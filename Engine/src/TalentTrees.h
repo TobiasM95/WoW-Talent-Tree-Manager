@@ -50,9 +50,9 @@ namespace Engine {
     };
 
     /*
-    A talent loadout has a name and a list of integers representing the number of points assigned to a talent in the order that the talent appears in tree.orderedTalents
+    A talent skillset has a name and a list of integers representing the number of points assigned to a talent in the order that the talent appears in tree.orderedTalents
     */
-    struct TalentLoadout {
+    struct TalentSkillset {
         std::string name;
         std::map<int, int> assignedSkillPoints;
     };
@@ -71,7 +71,7 @@ namespace Engine {
         int spentTalentPoints = 0;
         std::vector<std::shared_ptr<Talent>> talentRoots;
         std::map<int, std::shared_ptr<Talent>> orderedTalents;
-        std::vector<std::shared_ptr<TalentLoadout>> loadouts;
+        std::vector<std::shared_ptr<TalentSkillset>> loadout;
 
         int maxID = 0;
         int maxCol = 0;
@@ -103,13 +103,15 @@ namespace Engine {
     std::string getTalentString(TalentTree tree);
     void printTree(TalentTree tree);
     std::string createTreeStringRepresentation(TalentTree tree);
+    TalentTree loadTreePreset(std::string treeRep);
+    TalentTree parseTree(std::string treeRep);
     TalentTree parseCustomTree(std::string treeRep);
-    TalentTree parseTreeFromPreset(std::string treeRep);
+    TalentTree parseTreeFromPreset(std::string treeRep, std::string presetName);
     void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_map<std::string, int>& treeRepresentation);
     std::string unorderedMapToString(const std::unordered_map<std::string, int>& treeRepresentation, bool sortOutput);
     std::shared_ptr<Talent> createTalent(TalentTree& tree, std::string name, int maxPoints);
-    TalentTree parseTree(std::string treeRep);
-    bool verifyLoadout(TalentTree tree, std::shared_ptr<TalentLoadout> loadout);
+    bool validateLoadout(TalentTree tree);
+    bool validateSkillset(TalentTree tree, std::shared_ptr<TalentSkillset> skillset);
     std::vector<std::string> splitString(std::string s, std::string delimiter);
     void visualizeTree(TalentTree root, std::string suffix);
     void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream& connections);

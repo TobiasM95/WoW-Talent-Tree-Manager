@@ -45,10 +45,10 @@
     <ClCompile Include="src\ImGui\imgui_stdlib.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="src\TTMPresets.cpp">
+    <ClCompile Include="resources\fonts\roboto_medium.h">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="resources\fonts\roboto_medium.h">
+    <ClCompile Include="src\TTMGUIPresets.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,10 +83,10 @@
     <ClInclude Include="src\ImGui\imgui_stdlib.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="src\TTMPresets.h">
+    <ClInclude Include="resources\resource.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="resources\resource.h">
+    <ClInclude Include="src\TTMGUIPresets.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

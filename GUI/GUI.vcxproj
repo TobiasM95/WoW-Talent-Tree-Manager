@@ -170,7 +170,7 @@
     <ClCompile Include="src\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\TalentTreeManager.cpp" />
-    <ClCompile Include="src\TTMPresets.cpp" />
+    <ClCompile Include="src\TTMGUIPresets.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resources\resource.h" />
@@ -184,7 +184,7 @@
     <ClInclude Include="src\ImGui\imstb_textedit.h" />
     <ClInclude Include="src\ImGui\imstb_truetype.h" />
     <ClInclude Include="src\TalentTreeManager.h" />
-    <ClInclude Include="src\TTMPresets.h" />
+    <ClInclude Include="src\TTMGUIPresets.h" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="resources\fonts\Roboto-Medium.ttf">

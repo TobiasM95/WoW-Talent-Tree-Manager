@@ -10,7 +10,8 @@
 #include "imgui_stdlib.h"
 
 #include "TalentTreeManager.h"
-#include "TTMPresets.h"
+#include "TTMGUIPresets.h"
+#include "TTMEnginePresets.h"
 
 //TTMTODO: place different components into their own files, lots of cleanup
 //TTMTODO: Replace all talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree with talentTreeCollection.activeTree()
@@ -138,39 +139,43 @@ namespace TTM {
         if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
         {
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
-                TalentTreeData tree;
-                //TTMTODO: Remove debug example tree
-                tree.tree = Engine::parseTree(Presets::RETURN_PRESET(Presets::CLASS_IDS_DRUID, Presets::DRUID_SPEC_IDS_RESTORATION));
-                //All 3 methods of cycle checking (parseString auto checks parseStrings for cyclicity, other two are below)
-                //Engine::checkIfTreeHasCycle(tree.tree);
-                //std::shared_ptr<Engine::Talent> cycleTalent = std::make_shared<Engine::Talent>();
-                //cycleTalent->children.push_back(tree.tree.talentRoots[0]);
-                //cycleTalent->parents.push_back(tree.tree.orderedTalents[4]);
-                //Engine::checkIfTalentInsertsCycle(tree.tree, cycleTalent);
-                //tree.tree.orderedTalents[4]->children.push_back(tree.tree.talentRoots[0]);
-                //Engine::checkIfTreeHasCycle(tree.tree);
-                //Engine::autoPositionTreeNodes(tree.tree);
-
-                //#####################DEBUG END##############################
-                /*int freeIndex = 0;
-                bool duplicate = true;
-                while (duplicate) {
-                    duplicate = false;
-                    tree.tree.name = "Unnamed Tree " + std::to_string(freeIndex);
-                    for (auto& colTree : talentTreeCollection.trees) {
-                        if (tree.tree.name == colTree.tree.name) {
-                            duplicate = true;
-                            freeIndex++;
-                        }
-                    }
-                }*/
-                
-                talentTreeCollection.trees.push_back(tree);
-                talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                ImGui::OpenPopup("Create new tree");
             }
             if (ImGui::TabItemButton("X", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
                 ImGui::OpenPopup("CloseAllConfirmation");
 
+            if (ImGui::BeginPopupModal("Create new tree", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                if (ImGui::Button("New custom tree", ImVec2(-0.01f, 0))) {
+                    TalentTreeData tree;
+
+                    talentTreeCollection.trees.push_back(tree);
+                    talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                    ImGui::CloseCurrentPopup();
+                }
+                //ImGui::SameLine();
+                ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
+                ImGui::Text("or");
+                //ImGui::SameLine();
+                ImGui::Combo("##treeEditorCreationPresetClassCombo", &uiData.treeEditorPresetClassCombo, Presets::CLASSES, IM_ARRAYSIZE(Presets::CLASSES));
+                //ImGui::SameLine();
+                ImGui::Combo(
+                    "##treeEditorCreationPresetSpecCombo",
+                    &uiData.treeEditorPresetSpecCombo,
+                    Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
+                    IM_ARRAYSIZE(Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo))
+                );
+                //ImGui::SameLine();
+                if (ImGui::Button("Load preset", ImVec2(-0.01f, 0))) { 
+                    TalentTreeData tree;
+                    tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                    talentTreeCollection.trees.push_back(tree);
+                    talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+
+                    ImGui::CloseCurrentPopup(); 
+                }
+                ImGui::EndPopup();
+            }
             if (ImGui::BeginPopup("CloseAllConfirmation"))
             {
                 ImGui::Text("Close all tabs?");
@@ -325,6 +330,10 @@ namespace TTM {
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
                 ImGui::InputText("##TreeNameInputText", &talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.name);
 
+                ImGui::Text("Preset: ");
+                ImGui::SameLine(ImGui::GetContentRegionAvail().x / 3.f);
+                ImGui::Text(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.presetName.c_str());
+
                 ImGui::Text("Node count: ");
                 ImGui::SameLine(ImGui::GetContentRegionAvail().x / 3.f);
                 ImGui::Text("%d", talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.nodeCount);
@@ -338,6 +347,7 @@ namespace TTM {
                     ImGui::GetContentRegionAvail());
             }break;
             case TreeEditPage::TreeEdit: {
+                ImGui::Text("Note: Editing the tree can invalidate the loadout!");
                 if(uiData.talentJustSelected)
                     ImGui::SetNextItemOpen(false, ImGuiCond_Always);
                 //TTMTODO: At some point this Header content and the Edit/Delete header content can be put into a single function with uiData parameters
@@ -398,7 +408,7 @@ namespace TTM {
                     }
                     ImGui::Text("Parents:");
                     int parentCount = static_cast<int>(uiData.treeEditorCreationTalentParentsPlaceholder.size());
-                    ImGui::SliderInt("##talentCreationParentCountSlider", &parentCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationParentCountSlider", &parentCount, 0, talentTreeCollection.activeTree().nodeCount, "%d", ImGuiSliderFlags_NoInput);
                     if (parentCount != uiData.treeEditorCreationTalentParentsPlaceholder.size())
                         uiData.treeEditorCreationTalentParentsPlaceholder.resize(parentCount);
 
@@ -413,7 +423,7 @@ namespace TTM {
                     }
                     ImGui::Text("Children:");
                     int childrenCount = static_cast<int>(uiData.treeEditorCreationTalentChildrenPlaceholder.size());
-                    ImGui::SliderInt("##talentCreationChildrenCountSlider", &childrenCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationChildrenCountSlider", &childrenCount, 0, talentTreeCollection.activeTree().nodeCount, "%d", ImGuiSliderFlags_NoInput);
                     if (childrenCount != uiData.treeEditorCreationTalentChildrenPlaceholder.size())
                         uiData.treeEditorCreationTalentChildrenPlaceholder.resize(childrenCount);
 
@@ -494,7 +504,7 @@ namespace TTM {
                         }
                         ImGui::Text("Parents:");
                         int parentCount = static_cast<int>(uiData.treeEditorSelectedTalentParentsPlaceholder.size());
-                        ImGui::SliderInt("##talentEditParentCountSlider", &parentCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditParentCountSlider", &parentCount, 0, talentTreeCollection.activeTree().nodeCount - 1, "%d", ImGuiSliderFlags_NoInput);
                         if (parentCount != uiData.treeEditorSelectedTalentParentsPlaceholder.size())
                             uiData.treeEditorSelectedTalentParentsPlaceholder.resize(parentCount);
 
@@ -509,7 +519,7 @@ namespace TTM {
                         }
                         ImGui::Text("Children:");
                         int childrenCount = static_cast<int>(uiData.treeEditorSelectedTalentChildrenPlaceholder.size());
-                        ImGui::SliderInt("##talentEditChildrenCountSlider", &childrenCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditChildrenCountSlider", &childrenCount, 0, talentTreeCollection.activeTree().nodeCount - 1, "%d", ImGuiSliderFlags_NoInput);
                         if (childrenCount != uiData.treeEditorSelectedTalentChildrenPlaceholder.size())
                             uiData.treeEditorSelectedTalentChildrenPlaceholder.resize(childrenCount);
 
@@ -589,6 +599,16 @@ namespace TTM {
 
                             Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
 
+                            talentTreeCollection.activeTree().presetName = "custom";
+                            if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
+                                if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
+                                    talentTreeCollection.activeTree().loadoutDescription = (
+                                        "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                                        + talentTreeCollection.activeTree().loadoutDescription
+                                        );
+                                }
+                            }
+
                             uiData.treeEditorSelectedTalent = nullptr;
                         }
                         ImGui::SameLine();
@@ -611,6 +631,16 @@ namespace TTM {
                 {
                     if (ImGui::Button("Auto position talents in tree")) {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
+                            if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
+                                talentTreeCollection.activeTree().loadoutDescription = (
+                                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                                    + talentTreeCollection.activeTree().loadoutDescription
+                                    );
+                            }
+                        }
                     }
                 }
                 //Call all the different modal popups that can appear
@@ -634,6 +664,7 @@ namespace TTM {
                 }
             }break;
             case TreeEditPage::SaveLoadTree: {
+                ImGui::Text("Note: Trees also include the loadout and its description!");
                 if (ImGui::CollapsingHeader("Load preset"))
                 {
                     ImGui::Text("Class:");
@@ -758,7 +789,7 @@ namespace TTM {
 
                     ImGui::SetItemDefaultFocus();
                     if (ImGui::Button("OK", ImVec2(120, 0))) {
-                        talentTreeCollection.activeTree() = Engine::parseTree(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                        talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::SameLine();
@@ -939,6 +970,16 @@ namespace TTM {
         Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
         Engine::updateOrderedTalentList(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 
+        talentTreeCollection.activeTree().presetName = "custom";
+        if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
+            if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
+                talentTreeCollection.activeTree().loadoutDescription = (
+                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                    + talentTreeCollection.activeTree().loadoutDescription
+                    );
+            }
+        }
+
         uiData.treeEditorCreationTalent = std::make_shared<Engine::Talent>();
         uiData.treeEditorCreationTalentParentsPlaceholder.clear();
         uiData.treeEditorCreationTalentChildrenPlaceholder.clear();
@@ -1036,6 +1077,16 @@ namespace TTM {
         uiData.treeEditorSelectedTalent = std::make_shared<Engine::Talent>(*uiData.treeEditorSelectedTalent);
 
         Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+
+        talentTreeCollection.activeTree().presetName = "custom";
+        if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
+            if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
+                talentTreeCollection.activeTree().loadoutDescription = (
+                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                    + talentTreeCollection.activeTree().loadoutDescription
+                    );
+            }
+        }
     }
 
     std::filesystem::path getCustomTreePath() {
@@ -1281,7 +1332,7 @@ namespace TTM {
             }
         }
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
-        ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2.0f * talentHalfSpacing, talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
+        ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2.0f * talentHalfSpacing + 1.0f, talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
 
         if ((uiData.maxScrollBuffer.x != ImGui::GetScrollMaxX() || uiData.maxScrollBuffer.y != ImGui::GetScrollMaxY())
             && uiData.treeEditorWindowSize.x != 0 && uiData.treeEditorWindowSize.y != 0) {
@@ -1341,8 +1392,8 @@ namespace TTM {
         float offsetX = mouseClickedPos.x - buttonPos.x;
         float offsetY = mouseClickedPos.y - buttonPos.y;
         float gridUnit = static_cast<float>(2 * uiData.treeEditorBaseTalentHalfSpacing);
-        float deltaGridX = deltaMouseTot.x / gridUnit;
-        float deltaGridY = deltaMouseTot.y / gridUnit;
+        float deltaGridX = deltaMouseTot.x / gridUnit / uiData.treeEditorZoomFactor;
+        float deltaGridY = deltaMouseTot.y / gridUnit / uiData.treeEditorZoomFactor;
         int resDeltaGridX = deltaGridX >= 0 ? static_cast<int>(deltaGridX + 0.5) : static_cast<int>(deltaGridX - 0.5);
         int resDeltaGridY = deltaGridY >= 0 ? static_cast<int>(deltaGridY + 0.5) : static_cast<int>(deltaGridY - 0.5);
         
@@ -1355,6 +1406,18 @@ namespace TTM {
         }
         dragTalent.second->row = uiData.treeEditorDragTalentStartRow + resDeltaGridY;
         dragTalent.second->column = uiData.treeEditorDragTalentStartColumn + resDeltaGridX;
+
+        if (resDeltaGridX != 0 || resDeltaGridY != 0) {
+            talentTreeCollection.activeTree().presetName = "custom";
+            if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
+                if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
+                    talentTreeCollection.activeTree().loadoutDescription = (
+                        "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                        + talentTreeCollection.activeTree().loadoutDescription
+                        );
+                }
+            }
+        }
     }
 
     void drawArrowBetweenTalents(

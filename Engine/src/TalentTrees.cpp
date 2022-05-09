@@ -1,4 +1,5 @@
 #include "TalentTrees.h"
+#include "TTMEnginePresets.h"
 
 #include <iostream>
 #include <vector>
@@ -84,7 +85,7 @@ namespace Engine {
         }
         tccf.children.push_back(childVector);
         for (auto& parent : talent->parents) {
-            tccf.children[indexMap[parent->index]].push_back(tccf.talents.size() - 1);
+            tccf.children[indexMap[parent->index]].push_back(static_cast<int>(tccf.talents.size() - 1));
         }
         return tccf;
     }
@@ -167,7 +168,7 @@ namespace Engine {
         for (auto& root : tree.talentRoots) {
             countNodesRecursively(nodeTalentPoints, maxID, maxCol, talentIndexInRow, root);
         }
-        tree.nodeCount = nodeTalentPoints.size();
+        tree.nodeCount = static_cast<int>(nodeTalentPoints.size());
         int maxTalentPoints = 0;
         for (auto& node : nodeTalentPoints) {
             maxTalentPoints += node.second;
@@ -177,7 +178,7 @@ namespace Engine {
         tree.maxCol = maxCol;
         tree.talentsPerRow.clear();
         for (auto& rowIndices : talentIndexInRow) {
-            tree.talentsPerRow[rowIndices.first] = rowIndices.second.size();
+            tree.talentsPerRow[rowIndices.first] = static_cast<int>(rowIndices.second.size());
         }
     }
 
@@ -252,7 +253,7 @@ namespace Engine {
         //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
         //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
         std::stringstream treeRep;
-        treeRep << tree.presetName <<":" << tree.name << ":" << tree.treeDescription << ":" << tree.loadoutDescription << ":" << tree.orderedTalents.size() << ":" << tree.loadouts.size() << ";";
+        treeRep << tree.presetName <<":" << tree.name << ":" << tree.treeDescription << ":" << tree.loadoutDescription << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
         if (tree.presetName == "custom") {
             for (auto& talent : tree.orderedTalents) {
                 treeRep << talent.first << ":" << talent.second->name << ":";
@@ -278,9 +279,9 @@ namespace Engine {
                 treeRep << ";";
             }
         }
-        for (auto& loadout : tree.loadouts) {
-            treeRep << loadout->name;
-            for (auto& skillPoint : loadout->assignedSkillPoints) {
+        for (auto& skillset : tree.loadout) {
+            treeRep << skillset->name;
+            for (auto& skillPoint : skillset->assignedSkillPoints) {
                 treeRep << ":" << skillPoint.second;
             }
             treeRep << ";";
@@ -337,6 +338,9 @@ namespace Engine {
         return talent;
     }
 
+    TalentTree loadTreePreset(std::string treeRep) {
+        return parseCustomTree(treeRep);
+    }
 
     //Tree definition string: TreeString;TalentString;TalentString;...
     //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
@@ -357,14 +361,49 @@ namespace Engine {
             return parseCustomTree(treeRep);
         }
         else {
-            return parseTreeFromPreset(treeRep);
+            return parseTreeFromPreset(treeRep, treeInfoParts[0]);
         }
     }
 
-    TalentTree parseTreeFromPreset(std::string treeRep) {
-        //TTMTODO: Implement presets
-        TalentTree tree;
-        throw std::logic_error("Not yet implemted");
+    /*
+    Parse a import tree string that is based on a preset (same as regular tree representation but without talent information). 
+    First load the preset then edit the meta info and insert loadout
+    */
+    TalentTree parseTreeFromPreset(std::string treeRep, std::string presetName) {
+        TalentTree tree = loadTreePreset(Presets::RETURN_PRESET_BY_NAME(presetName));
+        std::vector<std::string> treeDefinitionParts = splitString(treeRep, ";");
+
+        std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
+        tree.presetName = treeInfoParts[0];
+        tree.name = treeInfoParts[1];
+        tree.treeDescription = treeInfoParts[2];
+        tree.loadoutDescription = treeInfoParts[3];
+        int numTalents = std::stoi(treeInfoParts[4]);
+        int numLoadouts = std::stoi(treeInfoParts[5]);
+
+        for (int i = 1; i < numLoadouts + 1; i++) {
+            if (treeDefinitionParts[i] == "")
+                break;
+            std::vector<std::string> skillsetParts = splitString(treeDefinitionParts[i], ":");
+            std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
+            skillset->name = skillsetParts[0];
+
+            if (skillsetParts.size() - 1 != numTalents)
+                continue;
+
+            int index = 1;
+            std::map<int, std::shared_ptr<Talent>>::iterator it;
+            for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
+            {
+                skillset->assignedSkillPoints[it->first] = std::stoi(skillsetParts[i]);
+                index++;
+            }
+
+            if (validateSkillset(tree, skillset)) {
+                tree.loadout.push_back(skillset);
+            }
+        }
+
         return tree;
     }
 
@@ -456,27 +495,43 @@ namespace Engine {
         for (int i = numTalents + 1; i < numTalents + numLoadouts + 1; i++) {
             if (treeDefinitionParts[i] == "")
                 break;
-            std::vector<std::string> loadoutParts = splitString(treeDefinitionParts[i], ":");
-            std::shared_ptr<TalentLoadout> loadout = std::make_shared<TalentLoadout>();
-            loadout->name = loadoutParts[0];
+            std::vector<std::string> skillsetParts = splitString(treeDefinitionParts[i], ":");
+            std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
+            skillset->name = skillsetParts[0];
 
-            if (loadoutParts.size() - 1 != numTalents)
+            if (skillsetParts.size() - 1 != numTalents)
                 continue;
 
-            for (int i = 1; i < loadoutParts.size(); i++) {
-                loadout->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = std::stoi(loadoutParts[i]);
+            for (int i = 1; i < skillsetParts.size(); i++) {
+                skillset->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = std::stoi(skillsetParts[i]);
             }
 
-            if (verifyLoadout(tree, loadout)) {
-                tree.loadouts.push_back(loadout);
+            if (validateSkillset(tree, skillset)) {
+                tree.loadout.push_back(skillset);
             }
         }
 
         return tree;
     }
 
-    bool verifyLoadout(TalentTree tree, std::shared_ptr<TalentLoadout> loadout) {
-        for (auto& indexPointsPair : loadout->assignedSkillPoints) {
+    bool validateLoadout(TalentTree tree) {
+        bool changed = false;
+        std::vector<std::shared_ptr<TalentSkillset>>::iterator it = tree.loadout.begin();
+
+        while (it != tree.loadout.end()) {
+
+            if (!validateSkillset(tree, *it)) {
+
+                it = tree.loadout.erase(it);
+                changed = true;
+            }
+            else ++it;
+        }
+        return changed;
+    }
+
+    bool validateSkillset(TalentTree tree, std::shared_ptr<TalentSkillset> skillset) {
+        for (auto& indexPointsPair : skillset->assignedSkillPoints) {
             if (indexPointsPair.second == 0) {
                 continue;
             }
@@ -494,11 +549,11 @@ namespace Engine {
             if (tree.orderedTalents[indexPointsPair.first]->parents.size() > 0) {
                 bool parentFilled = false;
                 for (auto& parent : tree.orderedTalents[indexPointsPair.first]->parents) {
-                    if (parent->type == Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] > 0) {
+                    if (parent->type == Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] > 0) {
                         parentFilled = true;
                         break;
                     }
-                    else if (parent->type != Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] >= parent->maxPoints) {
+                    else if (parent->type != Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] >= parent->maxPoints) {
                         parentFilled = true;
                         break;
                     }
@@ -509,9 +564,9 @@ namespace Engine {
             }
         }
         //check if points requirement is met by virtually assigning each point
-        std::map<int, int> tempASP = loadout->assignedSkillPoints;
+        std::map<int, int> tempASP = skillset->assignedSkillPoints;
         while (true) {
-            int talentsStart = tempASP.size();
+            int talentsStart = static_cast<int>(tempASP.size());
             if (talentsStart == 0) {
                 break;
             }
@@ -530,11 +585,11 @@ namespace Engine {
                 if (tree.orderedTalents[indexPointsPair.first]->parents.size() > 0) {
                     bool parentFilled = false;
                     for (auto& parent : tree.orderedTalents[indexPointsPair.first]->parents) {
-                        if (parent->type == Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] > 0) {
+                        if (parent->type == Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] > 0) {
                             parentFilled = true;
                             break;
                         }
-                        else if (parent->type != Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] >= parent->maxPoints) {
+                        else if (parent->type != Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] >= parent->maxPoints) {
                             parentFilled = true;
                             break;
                         }
@@ -758,7 +813,7 @@ namespace Engine {
         int maxWidth = 0;
         for (auto& depthTalentsPair : talentDepths) {
             if (depthTalentsPair.second.size() > maxWidth)
-                maxWidth = depthTalentsPair.second.size();
+                maxWidth = static_cast<int>(depthTalentsPair.second.size());
         }
         maxWidth += 4;
         //set up position grid
@@ -804,7 +859,7 @@ namespace Engine {
         //make tree symmetric
         int midPointIndex = (maxCol - 1) / 2;
         for (auto& depthTalentsPair : talentDepths) {
-            int talentsInRow = depthTalentsPair.second.size();
+            int talentsInRow = static_cast<int>(depthTalentsPair.second.size());
             for (int i = 0; i < talentsInRow; i++) {
                 std::shared_ptr<Talent> talent = depthTalentsPair.second[i];
                 int middleTalentIndex = (talentsInRow - 1) / 2; // or no decrement on talentsInRow
@@ -936,7 +991,7 @@ namespace Engine {
             for (auto& talent : talentParts) {
                 t->points += talent->points;
             }
-            t->maxPoints = talentParts.size();
+            t->maxPoints = static_cast<int>(talentParts.size());
             t->talentSwitch = talent->talentSwitch;
             t->parents = talentParts[0]->parents;
             t->children = talentParts[talentParts.size() - 1]->children;

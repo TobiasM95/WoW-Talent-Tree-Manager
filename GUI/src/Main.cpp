@@ -12,7 +12,7 @@
 
 //TTMTODO: Delete this debug include
 #include "TreeSolver.h"
-#include "TTMPresets.h"
+#include "TTMGUIPresets.h"
 
 // Data
 static ID3D11Device* g_pd3dDevice = NULL;

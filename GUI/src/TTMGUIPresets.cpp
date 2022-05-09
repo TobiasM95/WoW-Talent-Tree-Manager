@@ -1,4 +1,4 @@
-#include "TTMPresets.h"
+#include "TTMGUIPresets.h"
 
 namespace Presets {
 
@@ -132,8 +132,8 @@ namespace Presets {
 		colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
 
 		colors[ImGuiCol_Tab] = ImVec4(0.24f, 0.24f, 0.24f, 0.35f);
-		colors[ImGuiCol_TabActive] = ImVec4(0.44f, 0.44f, 0.44f, 0.35f);
-		colors[ImGuiCol_TabHovered] = ImVec4(0.64f, 0.64f, 0.64f, 0.35f);
+		colors[ImGuiCol_TabActive] = ImVec4(0.54f, 0.54f, 0.54f, 0.65f);
+		colors[ImGuiCol_TabHovered] = ImVec4(0.64f, 0.64f, 0.64f, 0.65f);
 		//colors[ImGuiCol_TabUnfocused] = ImVec4();
 		//colors[ImGuiCol_TabUnfocusedActive] = ImVec4();
 	}
@@ -201,27 +201,5 @@ namespace Presets {
 		colors[ImGuiCol_TabHovered] = ImVec4(0.64f, 0.64f, 0.64f, 0.35f);*/
 		//colors[ImGuiCol_TabUnfocused] = ImVec4();
 		//colors[ImGuiCol_TabUnfocusedActive] = ImVec4();
-	}
-
-	const char** RETURN_SPECS(int classID) {
-		switch (classID) {
-		case CLASS_IDS_DRUID: return SPECS_DRUID;
-		case CLASS_IDS_EVOKER: return SPECS_EVOKER;
-		}
-	}
-	
-	const std::string RETURN_PRESET(int classID, int specID) {
-		switch (classID) {
-		case CLASS_IDS_DRUID: {
-			switch (specID) {
-			case DRUID_SPEC_IDS_RESTORATION: return DRUID_RESTORATION_PRESET;
-			}
-		}
-		case CLASS_IDS_EVOKER: {
-			switch (specID) {
-			case EVOKER_SPEC_IDS_DEVASTATION: return DRUID_RESTORATION_PRESET;
-			}
-		}
-		}
 	}
 }

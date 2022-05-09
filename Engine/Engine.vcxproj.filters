@@ -21,12 +21,18 @@
     <ClCompile Include="src\TreeSolver.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\TTMEnginePresets.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\TalentTrees.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\TreeSolver.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\TTMEnginePresets.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
