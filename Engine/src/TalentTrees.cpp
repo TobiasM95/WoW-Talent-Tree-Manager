@@ -105,7 +105,7 @@ namespace Engine {
                 continue;
             tccf.talents.push_back(0);
             std::vector<int> childVector;
-            std::vector<std::string> childIndexStrings = splitString(splitString(treeComponents[i], ":")[11], ",");
+            std::vector<std::string> childIndexStrings = splitString(splitString(treeComponents[i], ":")[9], ",");
             for (auto& childIndex : childIndexStrings) {
                 if (childIndex == "")
                     continue;
@@ -252,27 +252,36 @@ namespace Engine {
         //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
         //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
         std::stringstream treeRep;
-        treeRep << "custom:" << tree.name << ":" << tree.treeDescription << ":" << tree.loadoutDescription << ":" << tree.unspentTalentPoints << ":" << tree.spentTalentPoints << ";";
-        for (auto& talent : tree.orderedTalents) {
-            treeRep << talent.first << ":" << talent.second->name << ":";
-            for (int i = 0; i < talent.second->descriptions.size() - 1; i++) {
-                treeRep << talent.second->descriptions[i] << ",";
-            }
-            treeRep << talent.second->descriptions[talent.second->descriptions.size() - 1] << ":";
-            treeRep << static_cast<int>(talent.second->type) << ":" << talent.second->row << ":" << talent.second->column << ":";
-            treeRep << talent.second->points << ":" << talent.second->maxPoints << ":" << talent.second->pointsRequired << ":" << talent.second->talentSwitch << ":";
-            if (talent.second->parents.size() > 0) {
-                for (int i = 0; i < talent.second->parents.size() - 1; i++) {
-                    treeRep << talent.second->parents[i]->index << ",";
+        treeRep << tree.presetName <<":" << tree.name << ":" << tree.treeDescription << ":" << tree.loadoutDescription << ":" << tree.orderedTalents.size() << ":" << tree.loadouts.size() << ";";
+        if (tree.presetName == "custom") {
+            for (auto& talent : tree.orderedTalents) {
+                treeRep << talent.first << ":" << talent.second->name << ":";
+                for (int i = 0; i < talent.second->descriptions.size() - 1; i++) {
+                    treeRep << talent.second->descriptions[i] << ",";
                 }
-                treeRep << talent.second->parents[talent.second->parents.size() - 1]->index;
-            }
-            treeRep << ":";
-            if (talent.second->children.size() > 0) {
-                for (int i = 0; i < talent.second->children.size() - 1; i++) {
-                    treeRep << talent.second->children[i]->index << ",";
+                treeRep << talent.second->descriptions[talent.second->descriptions.size() - 1] << ":";
+                treeRep << static_cast<int>(talent.second->type) << ":" << talent.second->row << ":" << talent.second->column << ":";
+                treeRep << talent.second->maxPoints << ":" << talent.second->pointsRequired << ":";
+                if (talent.second->parents.size() > 0) {
+                    for (int i = 0; i < talent.second->parents.size() - 1; i++) {
+                        treeRep << talent.second->parents[i]->index << ",";
+                    }
+                    treeRep << talent.second->parents[talent.second->parents.size() - 1]->index;
                 }
-                treeRep << talent.second->children[talent.second->children.size() - 1]->index;
+                treeRep << ":";
+                if (talent.second->children.size() > 0) {
+                    for (int i = 0; i < talent.second->children.size() - 1; i++) {
+                        treeRep << talent.second->children[i]->index << ",";
+                    }
+                    treeRep << talent.second->children[talent.second->children.size() - 1]->index;
+                }
+                treeRep << ";";
+            }
+        }
+        for (auto& loadout : tree.loadouts) {
+            treeRep << loadout->name;
+            for (auto& skillPoint : loadout->assignedSkillPoints) {
+                treeRep << ":" << skillPoint.second;
             }
             treeRep << ";";
         }
@@ -350,7 +359,6 @@ namespace Engine {
         else {
             return parseTreeFromPreset(treeRep);
         }
-        //TTMTODO: Validate tree function!
     }
 
     TalentTree parseTreeFromPreset(std::string treeRep) {
@@ -372,13 +380,12 @@ namespace Engine {
         TalentTree tree;
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
+        tree.presetName = treeInfoParts[0];
         tree.name = treeInfoParts[1];
         tree.treeDescription = treeInfoParts[2];
         tree.loadoutDescription = treeInfoParts[3];
         int numTalents = std::stoi(treeInfoParts[4]);
         int numLoadouts = std::stoi(treeInfoParts[5]);
-        tree.unspentTalentPoints = std::stoi(treeInfoParts[6]);
-        tree.spentTalentPoints = std::stoi(treeInfoParts[7]);
 
         for (int i = 1; i < numTalents + 1; i++) {
             if (treeDefinitionParts[i] == "")
@@ -406,11 +413,9 @@ namespace Engine {
             }
             t->row = std::stoi(talentInfo[4]);
             t->column = std::stoi(talentInfo[5]);
-            t->points = std::stoi(talentInfo[6]);
-            t->maxPoints = std::stoi(talentInfo[7]);
-            t->pointsRequired = std::stoi(talentInfo[8]);
-            t->talentSwitch = t->type == TalentType::SWITCH ? std::stoi(talentInfo[9]): 0;
-            for (auto& parent : splitString(talentInfo[10], ",")) {
+            t->maxPoints = std::stoi(talentInfo[6]);
+            t->pointsRequired = std::stoi(talentInfo[7]);
+            for (auto& parent : splitString(talentInfo[8], ",")) {
                 if (parent == "")
                     break;
                 int parentIndex = std::stoi(parent);
@@ -424,7 +429,7 @@ namespace Engine {
                     addParent(t, parentTalent);
                 }
             }
-            for (auto& child : splitString(talentInfo[11], ",")) {
+            for (auto& child : splitString(talentInfo[9], ",")) {
                 if (child == "")
                     break;
                 int childIndex = std::stoi(child);

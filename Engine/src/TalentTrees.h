@@ -61,6 +61,7 @@ namespace Engine {
     A tree has a name, (un)spent talent points and a list of root talents (talents without parents) that are the starting point
     */
     struct TalentTree {
+        std::string presetName = "custom";
         std::string name = "defaultTree";
         std::string treeDescription = "";
         std::string loadoutDescription = "";
