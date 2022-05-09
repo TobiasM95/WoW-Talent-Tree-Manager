@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
+#include <algorithm>
 
 namespace Engine {
     // Switch talents can select/switch between 2 talents in the same slot
@@ -44,8 +45,8 @@ namespace Engine {
 
         std::string getDescription() {
             if (type == TalentType::SWITCH)
-                return descriptions[talentSwitch];
-            return descriptions[points];
+                return descriptions[talentSwitch < 1 ? 0 : (talentSwitch - 1)];
+            return descriptions[points < 1 ? 0 : (points - 1)];
         }
     };
 

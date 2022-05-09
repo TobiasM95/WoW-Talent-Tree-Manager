@@ -84,4 +84,15 @@ namespace TTM {
 		}
 	};
 
+	void drawArrowBetweenTalents(
+		std::shared_ptr<Engine::Talent> t1,
+		std::shared_ptr<Engine::Talent> t2,
+		ImDrawList* drawList,
+		ImVec2 windowPos,
+		ImVec2 offset,
+		ImVec2 talentWindowPadding,
+		int talentHalfSpacing,
+		int talentSize,
+		float talentPadding,
+		UIData& uiData);
 }

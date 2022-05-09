@@ -22,7 +22,7 @@ namespace TTM {
 	bool deleteTreeFromFile(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	std::string treeNameToFileName(std::string treeName);
 	bool getTreeNameFromFile(std::filesystem::path entry, std::string& treeName);
-	void placeTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	void placeTreeEditorTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void selectTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::pair<int, std::shared_ptr<Engine::Talent>> talent);
 	void repositionTalent(
 		UIData& uiData,
@@ -31,15 +31,4 @@ namespace TTM {
 		ImVec2 mouseClickedPos,
 		ImVec2 deltaMouseTot,
 		ImVec2 buttonPos);
-	void drawArrowBetweenTalents(
-		std::shared_ptr<Engine::Talent> t1,
-		std::shared_ptr<Engine::Talent> t2,
-		ImDrawList* drawList,
-		ImVec2 windowPos,
-		ImVec2 offset,
-		ImVec2 talentWindowPadding,
-		int talentHalfSpacing,
-		int talentSize,
-		float talentPadding,
-		UIData& uiData);
 }

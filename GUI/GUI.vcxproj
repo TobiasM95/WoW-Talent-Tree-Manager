@@ -168,9 +168,11 @@
     <ClCompile Include="src\ImGui\imgui_stdlib.cpp" />
     <ClCompile Include="src\ImGui\imgui_tables.cpp" />
     <ClCompile Include="src\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\LoadoutEditorWindow.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\TalentTreeEditorWindow.cpp" />
     <ClCompile Include="src\TalentTreeManager.cpp" />
+    <ClCompile Include="src\TalentTreeManagerDefinitions.cpp" />
     <ClCompile Include="src\TTMGUIPresets.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -184,6 +186,7 @@
     <ClInclude Include="src\ImGui\imstb_rectpack.h" />
     <ClInclude Include="src\ImGui\imstb_textedit.h" />
     <ClInclude Include="src\ImGui\imstb_truetype.h" />
+    <ClInclude Include="src\LoadoutEditorWindow.h" />
     <ClInclude Include="src\TalentTreeEditorWindow.h" />
     <ClInclude Include="src\TalentTreeManager.h" />
     <ClInclude Include="src\TalentTreeManagerDefinitions.h" />
