@@ -42,7 +42,7 @@ namespace Presets {
     const std::string RETURN_PRESET(int classID, int specID);
 
     static const std::string DRUID_RESTORATION_PRESET =
-        "custom:DebugTree:Test description:Kek loadout:30:0;"
+        "custom:DebugTree:Test description:Kek loadout:31:3:30:0;"
         "0:A1:DA1:0:0:3:0:1:0:0::1,2,3;"
         "1:B1:DB1:0:1:2:0:1:0:0:0:4;"
         "2:B2:DB2,DB22:1:1:3:0:2:0:0:0:5;"
@@ -73,6 +73,9 @@ namespace Presets {
         "27:I5:DI5:1:8:6:0:1:0:0:22:30;"
         "28:J1,SJ1:DJ1,DSJ1:2:9:0:0:1:0:0:23:;"
         "29:J3,SJ1:DJ3,DSJ1:2:9:3:0:1:0:0:25,26:;"
-        "30:J5,SJ1:DJ5,DSJ1:2:9:6:0:1:0:0:27:;";
+        "30:J5,SJ1:DJ5,DSJ1:2:9:6:0:1:0:0:27:;"
+        "testLoadout:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0;"
+        "testLoadout2:1:0:0:0:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0;"
+        "testLoadout3:1:1:2:1:1:1:1:2:2:2:3:2:1:1:2:2:1:2:1:2:1:1:1:1:1:2:2:1:1:2:1;";
 	
 }

@@ -93,13 +93,14 @@ namespace Engine {
         std::vector<std::string> treeComponents = splitString(treeRep, ";");
         TreeCycleCheckFormat tccf;
         std::map<int, int> indexMap;
-        for (int i = 1; i < treeComponents.size(); i++) {
+        int numTalents = std::stoi(splitString(treeComponents[0], ":")[4]);
+        for (int i = 1; i < numTalents + 1; i++) {
             if (treeComponents[i] == "")
                 continue;
             int talentIndex = std::stoi(splitString(treeComponents[i], ":")[0]);
             indexMap[talentIndex] = i - 1;
         }
-        for (int i = 1; i < treeComponents.size(); i++) {
+        for (int i = 1; i < numTalents + 1; i++) {
             if (treeComponents[i] == "")
                 continue;
             tccf.talents.push_back(0);
@@ -374,10 +375,12 @@ namespace Engine {
         tree.name = treeInfoParts[1];
         tree.treeDescription = treeInfoParts[2];
         tree.loadoutDescription = treeInfoParts[3];
-        tree.unspentTalentPoints = std::stoi(treeInfoParts[4]);
-        tree.spentTalentPoints = std::stoi(treeInfoParts[5]);
+        int numTalents = std::stoi(treeInfoParts[4]);
+        int numLoadouts = std::stoi(treeInfoParts[5]);
+        tree.unspentTalentPoints = std::stoi(treeInfoParts[6]);
+        tree.spentTalentPoints = std::stoi(treeInfoParts[7]);
 
-        for (int i = 1; i < treeDefinitionParts.size(); i++) {
+        for (int i = 1; i < numTalents + 1; i++) {
             if (treeDefinitionParts[i] == "")
                 break;
             std::vector<std::string> talentInfo = splitString(treeDefinitionParts[i], ":");
@@ -439,14 +442,116 @@ namespace Engine {
                 roots.push_back(t);
             }
         }
-
         
         tree.talentRoots = roots;
 
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
 
+        for (int i = numTalents + 1; i < numTalents + numLoadouts + 1; i++) {
+            if (treeDefinitionParts[i] == "")
+                break;
+            std::vector<std::string> loadoutParts = splitString(treeDefinitionParts[i], ":");
+            std::shared_ptr<TalentLoadout> loadout = std::make_shared<TalentLoadout>();
+            loadout->name = loadoutParts[0];
+
+            if (loadoutParts.size() - 1 != numTalents)
+                continue;
+
+            for (int i = 1; i < loadoutParts.size(); i++) {
+                loadout->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = std::stoi(loadoutParts[i]);
+            }
+
+            if (verifyLoadout(tree, loadout)) {
+                tree.loadouts.push_back(loadout);
+            }
+        }
+
         return tree;
+    }
+
+    bool verifyLoadout(TalentTree tree, std::shared_ptr<TalentLoadout> loadout) {
+        for (auto& indexPointsPair : loadout->assignedSkillPoints) {
+            if (indexPointsPair.second == 0) {
+                continue;
+            }
+            //first, check if talent has more or fewer points than allowed
+            if (indexPointsPair.second < 0) {
+                return false;
+            }
+            if ((tree.orderedTalents[indexPointsPair.first]->type == Engine::TalentType::SWITCH && indexPointsPair.second > 2)
+                || (tree.orderedTalents[indexPointsPair.first]->type != Engine::TalentType::SWITCH 
+                    && indexPointsPair.second > tree.orderedTalents[indexPointsPair.first]->maxPoints)) {
+                return false;
+            }
+            //check if at least 1 parent is fully skilled
+            //TTMTODO: this should be unnecessary since the same check is performed in points requirement check
+            if (tree.orderedTalents[indexPointsPair.first]->parents.size() > 0) {
+                bool parentFilled = false;
+                for (auto& parent : tree.orderedTalents[indexPointsPair.first]->parents) {
+                    if (parent->type == Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] > 0) {
+                        parentFilled = true;
+                        break;
+                    }
+                    else if (parent->type != Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] >= parent->maxPoints) {
+                        parentFilled = true;
+                        break;
+                    }
+                }
+                if (!parentFilled) {
+                    return false;
+                }
+            }
+        }
+        //check if points requirement is met by virtually assigning each point
+        std::map<int, int> tempASP = loadout->assignedSkillPoints;
+        while (true) {
+            int talentsStart = tempASP.size();
+            if (talentsStart == 0) {
+                break;
+            }
+            int pointsSpent = 0;
+            std::vector<int> talentsSelected;
+            for (auto& indexPointsPair : tempASP) {
+                if (indexPointsPair.second == 0) {
+                    talentsSelected.push_back(indexPointsPair.first);
+                    continue;
+                }
+                //check if point requirement is met
+                if (pointsSpent < tree.orderedTalents[indexPointsPair.first]->pointsRequired) {
+                    continue;
+                }
+                //check if parent is fully skilled if it exists
+                if (tree.orderedTalents[indexPointsPair.first]->parents.size() > 0) {
+                    bool parentFilled = false;
+                    for (auto& parent : tree.orderedTalents[indexPointsPair.first]->parents) {
+                        if (parent->type == Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] > 0) {
+                            parentFilled = true;
+                            break;
+                        }
+                        else if (parent->type != Engine::TalentType::SWITCH && loadout->assignedSkillPoints[parent->index] >= parent->maxPoints) {
+                            parentFilled = true;
+                            break;
+                        }
+                    }
+                    if (!parentFilled) {
+                        continue;
+                    }
+                }
+                //assign point
+                pointsSpent += indexPointsPair.second;
+                talentsSelected.push_back(indexPointsPair.first);
+            }
+            for (auto& index : talentsSelected) {
+                tempASP.erase(index);
+            }
+            if (talentsStart == tempASP.size() && talentsStart > 0) {
+                return false;
+            }
+            talentsSelected.clear();
+        }
+
+        return true;
     }
 
     /*

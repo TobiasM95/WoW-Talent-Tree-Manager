@@ -166,7 +166,7 @@ namespace TTM {
                 }*/
                 
                 talentTreeCollection.trees.push_back(tree);
-                talentTreeCollection.activeTreeIndex = talentTreeCollection.trees.size() - 1;
+                talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
             }
             if (ImGui::TabItemButton("X", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
                 ImGui::OpenPopup("CloseAllConfirmation");
@@ -205,7 +205,7 @@ namespace TTM {
             }
             if (deleteTreeIndex < talentTreeCollection.trees.size()) {
                 talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + deleteTreeIndex);
-                talentTreeCollection.activeTreeIndex = talentTreeCollection.trees.size() - 1;
+                talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
             }
             if (talentTreeCollection.trees.size() == 0) {
                 uiData.editorView = EditorView::None;
@@ -397,7 +397,7 @@ namespace TTM {
                         }
                     }
                     ImGui::Text("Parents:");
-                    int parentCount = uiData.treeEditorCreationTalentParentsPlaceholder.size();
+                    int parentCount = static_cast<int>(uiData.treeEditorCreationTalentParentsPlaceholder.size());
                     ImGui::SliderInt("##talentCreationParentCountSlider", &parentCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
                     if (parentCount != uiData.treeEditorCreationTalentParentsPlaceholder.size())
                         uiData.treeEditorCreationTalentParentsPlaceholder.resize(parentCount);
@@ -409,10 +409,10 @@ namespace TTM {
                             &uiData.treeEditorCreationTalentParentsPlaceholder[i],
                             &Funcs::ItemGetter,
                             &talentComboList,
-                            talentComboList.size());
+                            static_cast<int>(talentComboList.size()));
                     }
                     ImGui::Text("Children:");
-                    int childrenCount = uiData.treeEditorCreationTalentChildrenPlaceholder.size();
+                    int childrenCount = static_cast<int>(uiData.treeEditorCreationTalentChildrenPlaceholder.size());
                     ImGui::SliderInt("##talentCreationChildrenCountSlider", &childrenCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
                     if (childrenCount != uiData.treeEditorCreationTalentChildrenPlaceholder.size())
                         uiData.treeEditorCreationTalentChildrenPlaceholder.resize(childrenCount);
@@ -424,7 +424,7 @@ namespace TTM {
                             &uiData.treeEditorCreationTalentChildrenPlaceholder[i],
                             &Funcs::ItemGetter,
                             &talentComboList,
-                            talentComboList.size());
+                            static_cast<int>(talentComboList.size()));
                     }
 
                     if (ImGui::Button("Create talent")) {
@@ -493,7 +493,7 @@ namespace TTM {
                             }
                         }
                         ImGui::Text("Parents:");
-                        int parentCount = uiData.treeEditorSelectedTalentParentsPlaceholder.size();
+                        int parentCount = static_cast<int>(uiData.treeEditorSelectedTalentParentsPlaceholder.size());
                         ImGui::SliderInt("##talentEditParentCountSlider", &parentCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
                         if (parentCount != uiData.treeEditorSelectedTalentParentsPlaceholder.size())
                             uiData.treeEditorSelectedTalentParentsPlaceholder.resize(parentCount);
@@ -505,10 +505,10 @@ namespace TTM {
                                 &uiData.treeEditorSelectedTalentParentsPlaceholder[i],
                                 &Funcs::ItemGetter,
                                 &talentComboList,
-                                talentComboList.size());
+                                static_cast<int>(talentComboList.size()));
                         }
                         ImGui::Text("Children:");
-                        int childrenCount = uiData.treeEditorSelectedTalentChildrenPlaceholder.size();
+                        int childrenCount = static_cast<int>(uiData.treeEditorSelectedTalentChildrenPlaceholder.size());
                         ImGui::SliderInt("##talentEditChildrenCountSlider", &childrenCount, 0, 10, "%d", ImGuiSliderFlags_NoInput);
                         if (childrenCount != uiData.treeEditorSelectedTalentChildrenPlaceholder.size())
                             uiData.treeEditorSelectedTalentChildrenPlaceholder.resize(childrenCount);
@@ -520,10 +520,10 @@ namespace TTM {
                                 &uiData.treeEditorSelectedTalentChildrenPlaceholder[i],
                                 &Funcs::ItemGetter,
                                 &talentComboList,
-                                talentComboList.size());
+                                static_cast<int>(talentComboList.size()));
                         }
                         ImGui::Separator();
-                        if (ImGui::Button("Reset talent", ImVec2(ImGui::GetContentRegionAvail().x / 4.0, 0))) {
+                        if (ImGui::Button("Reset talent", ImVec2(ImGui::GetContentRegionAvail().x / 4.0f, 0))) {
                             uiData.treeEditorSelectedTalent = std::make_shared<Engine::Talent>(
                                 *talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents[uiData.treeEditorSelectedTalent->index]
                                 );
@@ -547,12 +547,12 @@ namespace TTM {
                             }
                         }
                         ImGui::SameLine();
-                        if (ImGui::Button("Update talent", ImVec2(ImGui::GetContentRegionAvail().x / 3.0, 0))) {
+                        if (ImGui::Button("Update talent", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 0))) {
                             //Validates talent and inserts it into tree, otherwise show modal popup
                             validateTalentUpdate(uiData, talentTreeCollection, comboIndexTalentMap);
                         }
                         ImGui::SameLine();
-                        if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0, 0))) {
+                        if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))) {
                             int talentIndex = uiData.treeEditorSelectedTalent->index;
                             //check children for new root talents &
                             //delete from children's parents lists
@@ -592,7 +592,7 @@ namespace TTM {
                             uiData.treeEditorSelectedTalent = nullptr;
                         }
                         ImGui::SameLine();
-                        if (ImGui::Button("Clear selection", ImVec2(ImGui::GetContentRegionAvail().x / 1.0, 0))) {
+                        if (ImGui::Button("Clear selection", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
                             uiData.treeEditorSelectedTalent = nullptr;
                         }
                     }
@@ -670,7 +670,7 @@ namespace TTM {
                         }
                         ImGui::EndListBox();
                     }
-                    if (ImGui::Button("Save tree##treeEditorCustomTreeSaveButton", ImVec2(ImGui::GetContentRegionAvail().x / 4.0, 0))) {
+                    if (ImGui::Button("Save tree##treeEditorCustomTreeSaveButton", ImVec2(ImGui::GetContentRegionAvail().x / 4.0f, 0))) {
                         //check if file list has changed and abort if yes while updating file list
                         bool hasFileListChanged = updateCustomTreeFileList(uiData);
                         if (hasFileListChanged) {
@@ -691,7 +691,7 @@ namespace TTM {
                         }
                     }
                     ImGui::SameLine();
-                    if (ImGui::Button("Load tree##treeEditorCustomTreeLoadButton", ImVec2(ImGui::GetContentRegionAvail().x / 3.0, 0))) {
+                    if (ImGui::Button("Load tree##treeEditorCustomTreeLoadButton", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 0))) {
                         //check if file list has changed and abort if yes while updating file list
                         bool hasFileListChanged = updateCustomTreeFileList(uiData);
                         if (hasFileListChanged) {
@@ -706,7 +706,7 @@ namespace TTM {
                         }
                     }
                     ImGui::SameLine();
-                    if (ImGui::Button("Delete tree##treeEditorCustomTreeDeleteButton", ImVec2(ImGui::GetContentRegionAvail().x / 2.0, 0))) {
+                    if (ImGui::Button("Delete tree##treeEditorCustomTreeDeleteButton", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))) {
                         if (uiData.treeEditorCustomTreeFileList.size() > 0) {
                             //check if file list has changed and abort if yes while updating file list
                             bool hasFileListChanged = updateCustomTreeFileList(uiData);
@@ -1217,9 +1217,9 @@ namespace TTM {
     void placeTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         Engine::TalentTree tree = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree;
         //TTMTODO: Change button style layout to render base layout? This is messy af
-        int talentHalfSpacing = uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor;
-        int talentSize = uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor;
-        float talentWindowPaddingY = uiData.treeEditorTalentWindowPaddingY;
+        int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
+        int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
+        float talentWindowPaddingY = static_cast<float>(uiData.treeEditorTalentWindowPaddingY);
 
         float talentWindowPaddingX = 0.5f * (ImGui::GetWindowWidth() - tree.maxCol * 2 * talentHalfSpacing);
         float minXPadding = ImGui::GetCursorPosX();
@@ -1242,7 +1242,7 @@ namespace TTM {
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
-            if (ImGui::Button(std::to_string(talent.second->index).c_str(), ImVec2(talentSize, talentSize))) {
+            if (ImGui::Button(std::to_string(talent.second->index).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 selectTalent(uiData, talentTreeCollection, talent);
             }
             ImGui::PopStyleVar(2);
@@ -1281,7 +1281,7 @@ namespace TTM {
             }
         }
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
-        ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2 * talentHalfSpacing, talentHalfSpacing - 0.5 * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
+        ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2.0f * talentHalfSpacing, talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
 
         if ((uiData.maxScrollBuffer.x != ImGui::GetScrollMaxX() || uiData.maxScrollBuffer.y != ImGui::GetScrollMaxY())
             && uiData.treeEditorWindowSize.x != 0 && uiData.treeEditorWindowSize.y != 0) {
@@ -1340,7 +1340,7 @@ namespace TTM {
     {
         float offsetX = mouseClickedPos.x - buttonPos.x;
         float offsetY = mouseClickedPos.y - buttonPos.y;
-        float gridUnit = 2 * uiData.treeEditorBaseTalentHalfSpacing;
+        float gridUnit = static_cast<float>(2 * uiData.treeEditorBaseTalentHalfSpacing);
         float deltaGridX = deltaMouseTot.x / gridUnit;
         float deltaGridY = deltaMouseTot.y / gridUnit;
         int resDeltaGridX = deltaGridX >= 0 ? static_cast<int>(deltaGridX + 0.5) : static_cast<int>(deltaGridX - 0.5);
@@ -1388,9 +1388,9 @@ namespace TTM {
             else if (t1->row == t2->row) {
                 //Arrow right
                 p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + 0.5 * talentSize;
+                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
                 p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + 0.5 * talentSize;
+                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
             }
             else {
                 //Arrow top right
