@@ -62,7 +62,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-    Presets::SET_GUI_STYLE();
+    Presets::SET_GUI_STYLE(Presets::STYLES::COMPANY_GREY);
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);

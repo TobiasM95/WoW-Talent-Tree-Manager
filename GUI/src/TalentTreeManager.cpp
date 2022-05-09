@@ -89,10 +89,16 @@ namespace TTM {
 
 	void RenderMenuBar(UIData& uiData) {
 		if (ImGui::BeginMainMenuBar()) {
-			if (ImGui::BeginMenu("File")) {
-				if (ImGui::MenuItem("Undo", "CTRL+Z")) {
-
-				}
+			if (ImGui::BeginMenu("Styles")) {
+                if (ImGui::MenuItem("Company Grey")) {
+                    Presets::SET_GUI_STYLE(Presets::STYLES::COMPANY_GREY);
+                }
+                if (ImGui::MenuItem("Path of Talent Tree")) {
+                    Presets::SET_GUI_STYLE(Presets::STYLES::PATH_OF_TALENT_TREE);
+                }
+                if (ImGui::MenuItem("Light Mode (yuck)")) {
+                    Presets::SET_GUI_STYLE(Presets::STYLES::LIGHT_MODE);
+                }
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
@@ -1234,9 +1240,12 @@ namespace TTM {
                 changedColor = true;
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             if (ImGui::Button(std::to_string(talent.second->index).c_str(), ImVec2(talentSize, talentSize))) {
                 selectTalent(uiData, talentTreeCollection, talent);
             }
+            ImGui::PopStyleVar(2);
             if (changedColor) {
                 ImGui::PopStyleColor(3);
             }
