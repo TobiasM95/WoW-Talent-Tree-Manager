@@ -79,13 +79,53 @@ namespace TTM {
         ImGui::End();
         ImGui::PopStyleVar();
         if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
-            
+            if (ImGui::Button("Loadout Information", ImVec2(ImGui::GetContentRegionAvail().x / 2.f, 25))) {
+                uiData.loadoutEditPage = LoadoutEditPage::LoadoutInformation;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Edit Skillsets", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
+                uiData.loadoutEditPage = LoadoutEditPage::SkillsetEdit;
+            }
+            ImGui::Spacing();
+            switch (uiData.loadoutEditPage) {
+            case LoadoutEditPage::LoadoutInformation: {
+                ImGui::Text("Tree name: %s", talentTreeCollection.activeTree().name.c_str());
+
+                ImGui::Text("Skillset count: %d", talentTreeCollection.activeTree().loadout.size());
+
+                if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                    ImGui::Text("Skillset name: %s", talentTreeCollection.activeSkillset()->name.c_str());
+                    ImGui::Text("Skillset points spent: %d", talentTreeCollection.activeSkillset()->talentPointsSpent);
+                }
+                else {
+                    ImGui::Text("Skillset name: [none]");
+                    ImGui::Text("Skillset points spent: [none]");
+                }
+
+                ImGui::Text("Loadout description:");
+                ImGui::InputTextMultiline("##LoadoutDescriptionInputText", &talentTreeCollection.activeTree().loadoutDescription,
+                    ImGui::GetContentRegionAvail());
+            }break;
+            }
         }
         ImGui::End();
     }
 
     void placeLoadoutEditorTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
-        Engine::TalentTree tree = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree;
+        Engine::TalentTree& tree = talentTreeCollection.activeTree();
+
+        if (tree.loadout.size() == 0) {
+            if (ImGui::Button("Create first skillset")) {
+                Engine::createSkillset(tree);
+                Engine::activateSkillset(tree, tree.loadout.size() - 1);
+            }
+            return;
+        }
+        else if (tree.activeSkillsetIndex < 0) {
+            //this should in theory not happen but failsave never hurts
+            tree.activeSkillsetIndex = 0;
+        }
+
         //TTMTODO: Change button style layout to render base layout? This is messy af
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
         int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
@@ -103,8 +143,6 @@ namespace TTM {
             float posX = talentWindowPaddingX + talent.second->column * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + talent.second->row * 2 * talentHalfSpacing + talentPadding;
             bool changedColor = false;
-            //TTMTODO: Remove debug talent points setup
-            talent.second->points = std::min(talent.second->maxPoints, (talent.second->column * talent.second->row) % 3);
             if (talent.second->points > 0 && talent.second->points < talent.second->maxPoints) {
                 ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.2f, 0.9f, 0.2f));
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.25f, 1.0f, 0.25f));

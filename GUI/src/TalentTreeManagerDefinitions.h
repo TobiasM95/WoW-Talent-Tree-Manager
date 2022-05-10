@@ -18,6 +18,10 @@ namespace TTM {
 		TreeInformation, TreeEdit, SaveLoadTree
 	};
 
+	enum class LoadoutEditPage {
+		LoadoutInformation, SkillsetEdit
+	};
+
 	struct UIData {
 		EditorView editorView = EditorView::None;
 
@@ -59,7 +63,10 @@ namespace TTM {
 		ImVec2 treeEditorWindowSize;
 		ImVec2 treeEditorMousePos;
 		ImVec2 treeEditorRelWorldMousePos;
-		//################ END ##########################################
+
+		//############# LOADOUT EDITOR VARIABLES ########################
+		bool isLoadoutInitValidated = false;
+		LoadoutEditPage loadoutEditPage = LoadoutEditPage::LoadoutInformation;
 	};
 
 	struct TalentTreeData {
@@ -74,13 +81,20 @@ namespace TTM {
 			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
 				return trees[activeTreeIndex];
 			else
-				throw std::logic_error("Active tree index is larger than tree vector!");
+				throw std::logic_error("Active tree index is -1 or larger than tree vector!");
 		}
 		Engine::TalentTree& activeTree() {
 			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
 				return trees[activeTreeIndex].tree;
 			else
 				throw std::logic_error("Active tree index is larger than tree vector!");
+		}
+
+		std::shared_ptr<Engine::TalentSkillset> activeSkillset() {
+			if (trees[activeTreeIndex].tree.activeSkillsetIndex >= 0 && trees[activeTreeIndex].tree.activeSkillsetIndex < trees[activeTreeIndex].tree.loadout.size())
+				return trees[activeTreeIndex].tree.loadout[trees[activeTreeIndex].tree.activeSkillsetIndex];
+			else
+				throw std::logic_error("Active skillset index is -1 or larger than loadout size!");
 		}
 	};
 

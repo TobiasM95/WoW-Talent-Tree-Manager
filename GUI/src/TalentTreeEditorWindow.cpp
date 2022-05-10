@@ -395,14 +395,7 @@ namespace TTM {
                             Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
 
                             talentTreeCollection.activeTree().presetName = "custom";
-                            if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
-                                if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
-                                    talentTreeCollection.activeTree().loadoutDescription = (
-                                        "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
-                                        + talentTreeCollection.activeTree().loadoutDescription
-                                        );
-                                }
-                            }
+                            Engine::validateLoadout(talentTreeCollection.activeTree(), true);
 
                             uiData.treeEditorSelectedTalent = nullptr;
                         }
@@ -428,14 +421,7 @@ namespace TTM {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 
                         talentTreeCollection.activeTree().presetName = "custom";
-                        if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
-                            if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
-                                talentTreeCollection.activeTree().loadoutDescription = (
-                                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
-                                    + talentTreeCollection.activeTree().loadoutDescription
-                                    );
-                            }
-                        }
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                     }
                 }
                 //Call all the different modal popups that can appear
@@ -766,14 +752,7 @@ namespace TTM {
         Engine::updateOrderedTalentList(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 
         talentTreeCollection.activeTree().presetName = "custom";
-        if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
-            if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
-                talentTreeCollection.activeTree().loadoutDescription = (
-                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
-                    + talentTreeCollection.activeTree().loadoutDescription
-                    );
-            }
-        }
+        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
 
         uiData.treeEditorCreationTalent = std::make_shared<Engine::Talent>();
         uiData.treeEditorCreationTalentParentsPlaceholder.clear();
@@ -874,14 +853,7 @@ namespace TTM {
         Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
 
         talentTreeCollection.activeTree().presetName = "custom";
-        if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
-            if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
-                talentTreeCollection.activeTree().loadoutDescription = (
-                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
-                    + talentTreeCollection.activeTree().loadoutDescription
-                    );
-            }
-        }
+        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
     }
 
     std::filesystem::path getCustomTreePath() {
@@ -1206,14 +1178,7 @@ namespace TTM {
 
         if (resDeltaGridX != 0 || resDeltaGridY != 0) {
             talentTreeCollection.activeTree().presetName = "custom";
-            if (Engine::validateLoadout(talentTreeCollection.activeTree())) {
-                if (talentTreeCollection.activeTree().loadoutDescription.substr(0, 9) != "TTM Note:") {
-                    talentTreeCollection.activeTree().loadoutDescription = (
-                        "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
-                        + talentTreeCollection.activeTree().loadoutDescription
-                        );
-                }
-            }
+            Engine::validateLoadout(talentTreeCollection.activeTree(), true);
         }
     }
 }

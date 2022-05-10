@@ -37,7 +37,7 @@ namespace Engine {
         std::vector<std::shared_ptr<Talent>> children;
 
         std::string getName() {
-            if (type == TalentType::SWITCH && talentSwitch == 1)
+            if (type == TalentType::SWITCH && talentSwitch == 2)
                 return nameSwitch;
             else
                 return name;
@@ -56,6 +56,7 @@ namespace Engine {
     struct TalentSkillset {
         std::string name;
         std::map<int, int> assignedSkillPoints;
+        int talentPointsSpent = 0;
     };
 
     /*
@@ -73,6 +74,7 @@ namespace Engine {
         std::vector<std::shared_ptr<Talent>> talentRoots;
         std::map<int, std::shared_ptr<Talent>> orderedTalents;
         std::vector<std::shared_ptr<TalentSkillset>> loadout;
+        int activeSkillsetIndex = -1;
 
         int maxID = 0;
         int maxCol = 0;
@@ -111,7 +113,7 @@ namespace Engine {
     void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_map<std::string, int>& treeRepresentation);
     std::string unorderedMapToString(const std::unordered_map<std::string, int>& treeRepresentation, bool sortOutput);
     std::shared_ptr<Talent> createTalent(TalentTree& tree, std::string name, int maxPoints);
-    bool validateLoadout(TalentTree tree);
+    bool validateLoadout(TalentTree& tree, bool addNote);
     bool validateSkillset(TalentTree tree, std::shared_ptr<TalentSkillset> skillset);
     std::vector<std::string> splitString(std::string s, std::string delimiter);
     void visualizeTree(TalentTree root, std::string suffix);
@@ -131,5 +133,8 @@ namespace Engine {
     void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
     void contractTreeTalents(TalentTree& tree);
     void contractTalentAndAdvance(std::shared_ptr<Talent>& talent);
+
+    void createSkillset(TalentTree& tree);
+    void activateSkillset(TalentTree& tree, int index);
 
 }

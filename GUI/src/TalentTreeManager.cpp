@@ -1,5 +1,7 @@
 #include "TalentTreeManager.h"
 
+#include <algorithm>
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
@@ -164,16 +166,33 @@ namespace TTM {
             if (ImGui::BeginTabItem("Talent Tree Editor", nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::TreeEdit;
+                uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Talent Loadout Editor", nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::LoadoutEdit;
+                if (!uiData.isLoadoutInitValidated) {
+                    uiData.isLoadoutInitValidated = true;
+                    Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                }
+                if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                    talentTreeCollection.activeTree().activeSkillsetIndex = std::clamp(
+                        talentTreeCollection.activeTree().activeSkillsetIndex, 
+                        0, 
+                        static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1)
+                    );
+                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().activeSkillsetIndex);
+                }
+                else {
+                    talentTreeCollection.activeTree().activeSkillsetIndex = -1;
+                }
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Talent Loadout Solver", nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::LoadoutSolver;
+                uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
 

@@ -395,7 +395,9 @@ namespace Engine {
             std::map<int, std::shared_ptr<Talent>>::iterator it;
             for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
             {
-                skillset->assignedSkillPoints[it->first] = std::stoi(skillsetParts[i]);
+                int points = std::stoi(skillsetParts[index]);
+                skillset->assignedSkillPoints[it->first] = points;
+                skillset->talentPointsSpent += points;
                 index++;
             }
 
@@ -503,7 +505,9 @@ namespace Engine {
                 continue;
 
             for (int i = 1; i < skillsetParts.size(); i++) {
-                skillset->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = std::stoi(skillsetParts[i]);
+                int points = std::stoi(skillsetParts[i]);
+                skillset->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = points;
+                skillset->talentPointsSpent += points;
             }
 
             if (validateSkillset(tree, skillset)) {
@@ -514,7 +518,7 @@ namespace Engine {
         return tree;
     }
 
-    bool validateLoadout(TalentTree tree) {
+    bool validateLoadout(TalentTree& tree, bool addNote) {
         bool changed = false;
         std::vector<std::shared_ptr<TalentSkillset>>::iterator it = tree.loadout.begin();
 
@@ -526,6 +530,15 @@ namespace Engine {
                 changed = true;
             }
             else ++it;
+        }
+
+        if (addNote && changed) {
+            if (tree.loadoutDescription.substr(0, 9) != "TTM Note:") {
+                tree.loadoutDescription = (
+                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                    + tree.loadoutDescription
+                    );
+            }
         }
         return changed;
     }
@@ -1010,4 +1023,37 @@ namespace Engine {
         }
     }
 
+    void createSkillset(TalentTree& tree) {
+        std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
+        skillset->name = "New skillset";
+        for (auto& talent : tree.orderedTalents) {
+            skillset->assignedSkillPoints[talent.first] = 0;
+        }
+        tree.loadout.push_back(skillset);
+    }
+
+    void activateSkillset(TalentTree& tree, int index) {
+        if (index < 0 || index >= tree.loadout.size()) {
+            throw std::logic_error("Skillset index is -1 or larger than loadout size!");
+        }
+        tree.activeSkillsetIndex = index;
+        for (auto& indexPointsPair : tree.loadout[index]->assignedSkillPoints) {
+            if (indexPointsPair.second < 0 
+                || (tree.orderedTalents[indexPointsPair.first]->type != TalentType::SWITCH &&
+                    indexPointsPair.second > tree.orderedTalents[indexPointsPair.first]->maxPoints)
+                || (tree.orderedTalents[indexPointsPair.first]->type == TalentType::SWITCH &&
+                    indexPointsPair.second > 2)) {
+                throw std::logic_error("Skillset allocates <0 points or more than max points!");
+            }
+            if (tree.orderedTalents[indexPointsPair.first]->type != TalentType::SWITCH) {
+                tree.orderedTalents[indexPointsPair.first]->points = indexPointsPair.second;
+            }
+            else {
+                if (indexPointsPair.second > 0) {
+                    tree.orderedTalents[indexPointsPair.first]->points = 1;
+                    tree.orderedTalents[indexPointsPair.first]->talentSwitch = indexPointsPair.second;
+                }
+            }
+        }
+    }
 }
