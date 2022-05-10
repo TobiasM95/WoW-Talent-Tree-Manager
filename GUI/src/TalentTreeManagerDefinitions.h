@@ -39,6 +39,7 @@ namespace TTM {
 
 		int treeEditorPresetClassCombo = 0;
 		int treeEditorPresetSpecCombo = 0;
+		bool treeEditorPresetsKeepLoadout = false;
 
 		bool treeEditorIsCustomTreeFileListValid = false;
 		std::vector<std::pair<std::filesystem::path, std::string>> treeEditorCustomTreeFileList;
@@ -67,6 +68,13 @@ namespace TTM {
 		//############# LOADOUT EDITOR VARIABLES ########################
 		bool isLoadoutInitValidated = false;
 		LoadoutEditPage loadoutEditPage = LoadoutEditPage::LoadoutInformation;
+
+		int loadoutEditorRightClickIndex = 0;
+
+		std::string loadoutEditorExportActiveSkillsetString;
+		std::string loadoutEditorExportAllSkillsetsString;
+		std::string loadoutEditorImportSkillsetsString;
+		int loadoutEditorImportSkillsetsResult;
 	};
 
 	struct TalentTreeData {

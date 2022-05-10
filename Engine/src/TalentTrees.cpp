@@ -338,6 +338,19 @@ namespace Engine {
         return talent;
     }
 
+    TalentTree restorePreset(TalentTree& tree, std::string treeRep) {
+        TalentTree presetTree = parseCustomTree(treeRep);
+        presetTree.activeSkillsetIndex = -1;
+        presetTree.loadout.clear();
+        for (auto& skillset : tree.loadout) {
+            if (validateSkillset(presetTree, skillset)) {
+                presetTree.loadout.push_back(skillset);
+            }
+        }
+        presetTree.loadoutDescription = tree.loadoutDescription;
+        return presetTree;
+    }
+
     TalentTree loadTreePreset(std::string treeRep) {
         return parseCustomTree(treeRep);
     }
@@ -1053,7 +1066,112 @@ namespace Engine {
                     tree.orderedTalents[indexPointsPair.first]->points = 1;
                     tree.orderedTalents[indexPointsPair.first]->talentSwitch = indexPointsPair.second;
                 }
+                else {
+                    tree.orderedTalents[indexPointsPair.first]->points = 0;
+                    tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
+                }
             }
         }
+    }
+
+    int importSkillsets(TalentTree& tree, std::string importString) {
+        int importedSkillsets = 0;
+        std::vector<std::string> skillsetsString = splitString(importString, ";");
+        for (int i = 0; i < skillsetsString.size(); i++) {
+            try {
+                if (skillsetsString[i] == "")
+                    break;
+                std::vector<std::string> skillsetParts = splitString(skillsetsString[i], ":");
+                std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
+                skillset->name = skillsetParts[0];
+
+                if (skillsetParts.size() - 1 != tree.orderedTalents.size())
+                    continue;
+
+                int index = 1;
+                std::map<int, std::shared_ptr<Talent>>::iterator it;
+                for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
+                {
+                    int points = std::stoi(skillsetParts[index]);
+                    skillset->assignedSkillPoints[it->first] = points;
+                    skillset->talentPointsSpent += points;
+                    index++;
+                }
+
+                if (validateSkillset(tree, skillset)) {
+                    tree.loadout.push_back(skillset);
+                    importedSkillsets++;
+                }
+            }
+            catch (std::exception& e) {
+                continue;
+            }
+        }
+        return importedSkillsets;
+    }
+
+    std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset) {
+        std::string rep = skillset->name;
+        for (auto& indexPointsPair : skillset->assignedSkillPoints) {
+            rep += ":" + std::to_string(indexPointsPair.second);
+        }
+        rep += ";";
+        return rep;
+    }
+
+    std::string createActiveSkillsetStringRepresentation(TalentTree& tree) {
+        return createSkillsetStringRepresentation(tree.loadout[tree.activeSkillsetIndex]);
+    }
+
+    std::string createAllSkillsetsStringRepresentation(TalentTree& tree) {
+        std::string rep;
+        for (auto& skillset : tree.loadout) {
+            rep += createSkillsetStringRepresentation(skillset);
+        }
+        return rep;
+    }
+
+    bool checkTalentValidity(TalentTree& tree) {
+        int pointsSpent = tree.loadout[tree.activeSkillsetIndex]->talentPointsSpent;
+        int maxPointsRequirement = 0;
+        //first check if at least one parent is filled
+        for (auto& talent : tree.orderedTalents) {
+            maxPointsRequirement = talent.second->pointsRequired > maxPointsRequirement ? talent.second->pointsRequired : maxPointsRequirement;
+            if (talent.second->points == 0) {
+                continue;
+            }
+            bool isParentFilled = talent.second->parents.size() == 0;
+            for (auto& parent : talent.second->parents) {
+                if (parent->points == parent->maxPoints) {
+                    isParentFilled = true;
+                    break;
+                }
+            }
+            if (!isParentFilled) {
+                return false;
+            }
+        }
+
+        //second check if all talents fulfill their points requirement
+        std::vector<std::vector<std::shared_ptr<Talent>>> reqSortedTalents;
+        reqSortedTalents.resize(maxPointsRequirement + 1, std::vector<std::shared_ptr<Talent>>());
+        for (auto& talent : tree.orderedTalents) {
+            reqSortedTalents[talent.second->pointsRequired].push_back(talent.second);
+        }
+        for (int i = 1; i < reqSortedTalents.size(); i++) {
+            int talentPointsSpentUntil = 0;
+            for (int k = 0; k < i; k++) {
+                for (int l = 0; l < reqSortedTalents[k].size(); l++) {
+                    talentPointsSpentUntil += reqSortedTalents[k][l]->points;
+                }
+            }
+            for (int j = 0; j < reqSortedTalents[i].size(); j++) {
+                if (reqSortedTalents[i][j]->points > 0 && talentPointsSpentUntil < i) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

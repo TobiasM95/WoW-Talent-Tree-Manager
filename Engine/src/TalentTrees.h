@@ -106,6 +106,7 @@ namespace Engine {
     std::string getTalentString(TalentTree tree);
     void printTree(TalentTree tree);
     std::string createTreeStringRepresentation(TalentTree tree);
+    TalentTree restorePreset(TalentTree& tree, std::string treeRep);
     TalentTree loadTreePreset(std::string treeRep);
     TalentTree parseTree(std::string treeRep);
     TalentTree parseCustomTree(std::string treeRep);
@@ -136,5 +137,10 @@ namespace Engine {
 
     void createSkillset(TalentTree& tree);
     void activateSkillset(TalentTree& tree, int index);
+    int importSkillsets(TalentTree& tree, std::string importString);
+    std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
+    std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
+    std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
 
+    bool checkTalentValidity(TalentTree& tree);
 }

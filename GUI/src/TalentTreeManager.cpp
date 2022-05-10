@@ -175,17 +175,17 @@ namespace TTM {
                 if (!uiData.isLoadoutInitValidated) {
                     uiData.isLoadoutInitValidated = true;
                     Engine::validateLoadout(talentTreeCollection.activeTree(), true);
-                }
-                if (talentTreeCollection.activeTree().loadout.size() > 0) {
-                    talentTreeCollection.activeTree().activeSkillsetIndex = std::clamp(
-                        talentTreeCollection.activeTree().activeSkillsetIndex, 
-                        0, 
-                        static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1)
-                    );
-                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().activeSkillsetIndex);
-                }
-                else {
-                    talentTreeCollection.activeTree().activeSkillsetIndex = -1;
+                    if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                        talentTreeCollection.activeTree().activeSkillsetIndex = std::clamp(
+                            talentTreeCollection.activeTree().activeSkillsetIndex,
+                            0,
+                            static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1)
+                        );
+                        Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().activeSkillsetIndex);
+                    }
+                    else {
+                        talentTreeCollection.activeTree().activeSkillsetIndex = -1;
+                    }
                 }
                 ImGui::EndTabItem();
             }

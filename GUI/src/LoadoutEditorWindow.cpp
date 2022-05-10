@@ -106,6 +106,71 @@ namespace TTM {
                 ImGui::InputTextMultiline("##LoadoutDescriptionInputText", &talentTreeCollection.activeTree().loadoutDescription,
                     ImGui::GetContentRegionAvail());
             }break;
+            case LoadoutEditPage::SkillsetEdit: {
+                ImGui::Text("Skillsets:");
+                if (ImGui::BeginListBox("##loadoutEditorSkillsetsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+                {
+                    for (int n = 0; n < talentTreeCollection.activeTree().loadout.size(); n++)
+                    {
+                        const bool is_selected = (talentTreeCollection.activeTree().activeSkillsetIndex == n);
+                        if (ImGui::Selectable((talentTreeCollection.activeTree().loadout[n]->name + "##" + std::to_string(n)).c_str(), is_selected)) {
+                            talentTreeCollection.activeTree().activeSkillsetIndex = n;
+                            Engine::activateSkillset(talentTreeCollection.activeTree(), n);
+                        }
+
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndListBox();
+                }
+                if (ImGui::Button("Add skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))) {
+                    Engine::createSkillset(talentTreeCollection.activeTree());
+                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().loadout.size() - 1);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Delete skillset##loadoutEditorDeleteSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    talentTreeCollection.activeTree().loadout.erase(talentTreeCollection.activeTree().loadout.begin() + talentTreeCollection.activeTree().activeSkillsetIndex);
+                    if (talentTreeCollection.activeTree().loadout.size() == 0) {
+                        talentTreeCollection.activeTree().activeSkillsetIndex = -1;
+                    }
+                    else {
+                        talentTreeCollection.activeTree().activeSkillsetIndex = std::clamp(
+                            talentTreeCollection.activeTree().activeSkillsetIndex, 
+                            0, 
+                            static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
+                    }
+                }
+                ImGui::Text("Import skillsets:");
+                ImGui::InputText("##loadoutEditorImportSkillsetsInput", &uiData.loadoutEditorImportSkillsetsString);
+                ImGui::SameLine();
+                if (ImGui::Button("Import##treeEditorImportTalentTreeButton")) {
+                    uiData.loadoutEditorImportSkillsetsResult = Engine::importSkillsets(talentTreeCollection.activeTree(), uiData.loadoutEditorImportSkillsetsString);
+                    ImGui::OpenPopup("Import skillsets result");
+                }
+                ImGui::Text("Export active skillset:");
+                ImGui::InputText("##loadoutEditorExportActiveSkillsetInput", &uiData.loadoutEditorExportActiveSkillsetString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetButton")) {
+                    uiData.loadoutEditorExportActiveSkillsetString = Engine::createActiveSkillsetStringRepresentation(talentTreeCollection.activeTree());
+                }
+                ImGui::Text("Export all skillsets:");
+                ImGui::InputText("##loadoutEditorExportAllSkillsetsInput", &uiData.loadoutEditorExportAllSkillsetsString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsButton")) {
+                    uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
+                }
+            }break;
+            }
+            if (ImGui::BeginPopupModal("Import skillsets result", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Imported %d skillsets!\n(Skillsets might have been discarded due to mismatched trees\nor corrupted import strings.)", uiData.loadoutEditorImportSkillsetsResult);
+
+                ImGui::SetItemDefaultFocus();
+                if (ImGui::Button("OK", ImVec2(120, 0))) {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
         }
         ImGui::End();
@@ -115,7 +180,8 @@ namespace TTM {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
 
         if (tree.loadout.size() == 0) {
-            if (ImGui::Button("Create first skillset")) {
+            ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x * 0.5f - 75.0f, ImGui::GetContentRegionAvail().y * 0.5f - 12.5f));
+            if (ImGui::Button("Create first skillset", ImVec2(150, 25))) {
                 Engine::createSkillset(tree);
                 Engine::activateSkillset(tree, tree.loadout.size() - 1);
             }
@@ -161,8 +227,55 @@ namespace TTM {
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
-            if (ImGui::Button(std::to_string(talent.second->points).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+            if (ImGui::Button((std::to_string(talent.second->points) + "##" + talent.second->name).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 //TTMTODO: loadout editor talent selection
+                if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
+                    if (talent.second->type == Engine::TalentType::SWITCH && talent.second->points > 0) {
+                        talent.second->talentSwitch = talent.second->talentSwitch == 1 ? 2 : 1;
+                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
+                    }
+                }
+                else {
+                    bool isParentFilled = talent.second->parents.size() == 0;
+                    for (auto& parent : talent.second->parents) {
+                        if (parent->points == parent->maxPoints) {
+                            isParentFilled = true;
+                            break;
+                        }
+                    }
+                    if (isParentFilled && talentTreeCollection.activeSkillset()->talentPointsSpent >= talent.second->pointsRequired && talent.second->points < talent.second->maxPoints) {
+                        talent.second->points += 1;
+                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
+                        talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
+                        if (talent.second->type == Engine::TalentType::SWITCH) {
+                            talent.second->talentSwitch = 1;
+                        }
+                    }
+                }
+            }
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+                uiData.loadoutEditorRightClickIndex = talent.first;
+            }
+            if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && talent.first == uiData.loadoutEditorRightClickIndex) {
+                if (talent.second->points > 0) {
+                    talent.second->points -= 1;
+                    if (talent.second->type == Engine::TalentType::SWITCH) {
+                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = 0;
+                    }
+                    else {
+                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] -= 1;
+                    }
+                    talentTreeCollection.activeSkillset()->talentPointsSpent -= 1;
+                    bool allTalentsValid = Engine::checkTalentValidity(talentTreeCollection.activeTree());
+                    if (!allTalentsValid) {
+                        talent.second->points += 1;
+                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
+                        talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
+                    }
+                    if (talent.second->points == 0) {
+                        talent.second->talentSwitch = 0;
+                    }
+                }
             }
             ImGui::PopStyleVar(2);
             ImGui::PopFont();

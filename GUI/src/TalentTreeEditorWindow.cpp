@@ -149,7 +149,7 @@ namespace TTM {
                 if (ImGui::CollapsingHeader("Create Node"))
                 {
                     ImGui::Text("Name:");
-                    ImGui::InputText("##talentCreationNameInput", &uiData.treeEditorCreationTalent->name, ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::InputText("##talentCreationNameInput", &uiData.treeEditorCreationTalent->name);
 
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
                     ImGui::Text("Name (switch):");
@@ -457,6 +457,7 @@ namespace TTM {
                         Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
                         IM_ARRAYSIZE(Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo))
                     );
+                    ImGui::Checkbox("Try to keep skillsets", &uiData.treeEditorPresetsKeepLoadout);
                     if (ImGui::Button("Load##treeEditorPresetLoadButton")) {
                         ImGui::OpenPopup("Load preset confirmation");
                     }
@@ -555,7 +556,7 @@ namespace TTM {
                     }
 
                     ImGui::Text("Export talent tree:");
-                    ImGui::InputText("##treeEditorExportTalentInput", &uiData.treeEditorExportTreeString, ImGuiInputTextFlags_ReadOnly);
+                    ImGui::InputText("##treeEditorExportTalentInput", &uiData.treeEditorExportTreeString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
                     ImGui::SameLine();
                     if (ImGui::Button("Export##treeEditorExportTalentTreeButton")) {
                         uiData.treeEditorExportTreeString = Engine::createTreeStringRepresentation(talentTreeCollection.activeTree());
@@ -566,11 +567,17 @@ namespace TTM {
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
                 if (ImGui::BeginPopupModal("Load preset confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize))
                 {
-                    ImGui::Text("Do you want to load the preset?\nCurrent tree will be overwritten!");
+                    ImGui::Text("Do you want to load the preset?\nCurrent tree will be overwritten!\n(Skillsets will either be discarded or validated.)");
 
                     ImGui::SetItemDefaultFocus();
                     if (ImGui::Button("OK", ImVec2(120, 0))) {
-                        talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                        if (uiData.treeEditorPresetsKeepLoadout) {
+                            talentTreeCollection.activeTree() = Engine::restorePreset(talentTreeCollection.activeTree(),
+                                Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                        }
+                        else {
+                            talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                        }
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::SameLine();
