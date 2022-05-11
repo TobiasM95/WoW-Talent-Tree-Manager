@@ -117,6 +117,7 @@ namespace Engine {
     bool validateLoadout(TalentTree& tree, bool addNote);
     bool validateSkillset(TalentTree tree, std::shared_ptr<TalentSkillset> skillset);
     std::vector<std::string> splitString(std::string s, std::string delimiter);
+    std::string extractOrigTalentName(std::string name);
     void visualizeTree(TalentTree root, std::string suffix);
     void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream& connections);
     std::string visualizeTalentInformation(TalentTree tree);
@@ -131,9 +132,11 @@ namespace Engine {
     float sqDistToParents(std::shared_ptr<Talent> talent);
 
     void expandTreeTalents(TalentTree& tree);
-    void expandTalentAndAdvance(std::shared_ptr<Talent> talent);
+    void expandTalentAndAdvance(std::shared_ptr<Talent> talent, int maxTalentPoints);
     void contractTreeTalents(TalentTree& tree);
     void contractTalentAndAdvance(std::shared_ptr<Talent>& talent);
+
+    void clearTree(TalentTree& tree);
 
     void createSkillset(TalentTree& tree);
     void activateSkillset(TalentTree& tree, int index);

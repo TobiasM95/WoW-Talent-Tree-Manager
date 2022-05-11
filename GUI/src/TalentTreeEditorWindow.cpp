@@ -393,6 +393,7 @@ namespace TTM {
 
                             talentTreeCollection.activeTree().presetName = "custom";
                             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                            clearSolvingProcess(uiData, talentTreeCollection);
 
                             uiData.treeEditorSelectedTalent = nullptr;
                         }
@@ -419,6 +420,7 @@ namespace TTM {
 
                         talentTreeCollection.activeTree().presetName = "custom";
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
                     }
                 }
                 //Call all the different modal popups that can appear
@@ -757,6 +759,7 @@ namespace TTM {
 
         talentTreeCollection.activeTree().presetName = "custom";
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+        clearSolvingProcess(uiData, talentTreeCollection);
 
         uiData.treeEditorCreationTalent = std::make_shared<Engine::Talent>();
         uiData.treeEditorCreationTalentParentsPlaceholder.clear();
@@ -858,6 +861,7 @@ namespace TTM {
 
         talentTreeCollection.activeTree().presetName = "custom";
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+        clearSolvingProcess(uiData, talentTreeCollection);
     }
 
     bool updateCustomTreeFileList(UIData& uiData) {
@@ -1142,6 +1146,7 @@ namespace TTM {
         if (resDeltaGridX != 0 || resDeltaGridY != 0) {
             talentTreeCollection.activeTree().presetName = "custom";
             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+            clearSolvingProcess(uiData, talentTreeCollection);
         }
     }
 }

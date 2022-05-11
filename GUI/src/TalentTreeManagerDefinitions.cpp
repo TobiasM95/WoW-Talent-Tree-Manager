@@ -117,4 +117,11 @@ namespace TTM {
             color
         );
     }
+
+    void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        uiData.allCombinationsAdded = 0;
+        talentTreeCollection.activeTreeData().isTreeSolveProcessed = false;
+        talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
+        talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
+    }
 }

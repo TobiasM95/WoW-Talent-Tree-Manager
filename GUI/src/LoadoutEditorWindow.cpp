@@ -126,7 +126,7 @@ namespace TTM {
                 }
                 if (ImGui::Button("Add skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))) {
                     Engine::createSkillset(talentTreeCollection.activeTree());
-                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().loadout.size() - 1);
+                    Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Delete skillset##loadoutEditorDeleteSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
@@ -185,7 +185,7 @@ namespace TTM {
             ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x * 0.5f - 75.0f, ImGui::GetContentRegionAvail().y * 0.5f - 12.5f));
             if (ImGui::Button("Create first skillset", ImVec2(150, 25))) {
                 Engine::createSkillset(tree);
-                Engine::activateSkillset(tree, tree.loadout.size() - 1);
+                Engine::activateSkillset(tree, static_cast<int>(tree.loadout.size() - 1));
             }
             return;
         }

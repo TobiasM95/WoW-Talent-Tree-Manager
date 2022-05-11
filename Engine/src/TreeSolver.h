@@ -17,38 +17,39 @@ namespace Engine {
         std::vector<std::vector<int>> minimalTreeDAG;
         std::vector<std::shared_ptr<Talent>> sortedTalents;
         std::vector<int> rootIndices;
-    }; void individualCombinationCount();
+        std::shared_ptr<TalentTree> processedTree;
+        std::vector<std::vector<std::pair<std::uint64_t, int>>> allCombinations;
+    }; 
 
-    void parallelCombinationCount();
-    void testground();
-
-    std::unordered_map<std::uint64_t, int> countConfigurationsFast(TalentTree tree);
-    std::vector<std::unordered_map<std::uint64_t, int>> countConfigurationsFastParallel(TalentTree tree);
+    std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree);
+    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree);
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
     void visitTalent(
         int talentIndex,
         std::uint64_t visitedTalents,
+        int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::set<int> possibleTalents,
+        std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::unordered_map<std::uint64_t, int>& combinations,
+        std::vector<std::pair<std::uint64_t, int>>& combinations,
         int& allCombinations
     );
     void visitTalentParallel(
         int talentIndex,
         std::uint64_t visitedTalents,
+        int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::set<int> possibleTalents,
+        std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector<std::unordered_map<std::uint64_t, int>>& combinations,
+        std::vector < std::vector < std::pair< std::uint64_t, int>>>& combinations,
         std::vector<int>& allCombinations
     );
     inline void setTalent(std::uint64_t& talent, int index);
 
-    void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix = "");
     std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG);
+    void insertIntoVector(std::vector<int>& v, const int& t);
 }

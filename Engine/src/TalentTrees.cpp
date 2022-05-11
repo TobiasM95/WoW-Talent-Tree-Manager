@@ -658,6 +658,24 @@ namespace Engine {
         return stringSplit;
     }
 
+    /*
+    Helper function to extract the original talent name of an expanded talent.
+    */
+    std::string extractOrigTalentName(std::string name) {
+        std::string origName = "";
+        std::vector<std::string> parts = splitString(name, "_");
+        if (parts.size() == 1) {
+            throw std::logic_error("There is no talent expansion character in talent name!");
+        }
+        for (int i = 0; i < parts.size() - 1; i++) {
+            origName += parts[i];
+            if (i < parts.size() - 2) {
+                origName += "_";
+            }
+        }
+        return origName;
+    }
+
 
     /*
     Visualizes a given tree with graphviz. Needs to be installed and the paths have to exist. Generally not safe to use without careful skimming through it.
@@ -919,7 +937,7 @@ namespace Engine {
     */
     void expandTreeTalents(TalentTree& tree) {
         for (auto& root : tree.talentRoots) {
-            expandTalentAndAdvance(root);
+            expandTalentAndAdvance(root, tree.maxTalentPoints);
         }
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
@@ -928,7 +946,7 @@ namespace Engine {
     /*
     Creates all the necessary single point talents to replace a multi point talent and inserts them with correct parents/children
     */
-    void expandTalentAndAdvance(std::shared_ptr<Talent> talent) {
+    void expandTalentAndAdvance(std::shared_ptr<Talent> talent, int maxTalentPoints) {
         if (talent->maxPoints > 1) {
             std::vector<std::shared_ptr<Talent>> talentParts;
             std::vector<std::shared_ptr<Talent>> originalChildren;
@@ -939,7 +957,7 @@ namespace Engine {
             talentParts.push_back(talent);
             for (int i = 0; i < talent->maxPoints - 1; i++) {
                 std::shared_ptr<Talent> t = std::make_shared<Talent>();
-                t->index = talent->index;
+                t->index = talent->index * maxTalentPoints + i;
                 t->expansionIndex = i + 1;
                 t->isExpanded = true;
                 t->name = talent->name + "_" + std::to_string(i + 1);
@@ -967,12 +985,12 @@ namespace Engine {
             }
             talent->maxPoints = 1;
             for (auto& child : originalChildren) {
-                expandTalentAndAdvance(child);
+                expandTalentAndAdvance(child, maxTalentPoints);
             }
         }
         else {
             for (auto& child : talent->children) {
-                expandTalentAndAdvance(child);
+                expandTalentAndAdvance(child, maxTalentPoints);
             }
         }
     }
@@ -1002,7 +1020,9 @@ namespace Engine {
             std::shared_ptr<Talent> currTalent = talent;
             talentParts.push_back(talent);
             std::shared_ptr<Talent> childTalent = talent->children[0];
-            while (childTalent->index == talent->index) {
+            int minIndex = talent->index;
+            while (extractOrigTalentName(childTalent->name) == talent->name) {
+                minIndex = minIndex > childTalent->index ? childTalent->index : minIndex;
                 talentParts.push_back(childTalent);
                 currTalent = childTalent;
                 if (currTalent->children.size() == 0)
@@ -1010,7 +1030,7 @@ namespace Engine {
                 childTalent = currTalent->children[0];
             }
             std::shared_ptr<Talent> t = std::make_shared<Talent>();
-            t->index = talent->index;
+            t->index = minIndex;
             t->name = talent->name;
             t->type = talent->type;
             t->points = 0;
@@ -1033,6 +1053,13 @@ namespace Engine {
             for (auto& child : talent->children) {
                 contractTalentAndAdvance(child);
             }
+        }
+    }
+
+    void clearTree(TalentTree& tree) {
+        for (auto& talent : tree.orderedTalents) {
+            talent.second->points = 0;
+            talent.second->talentSwitch = 0;
         }
     }
 

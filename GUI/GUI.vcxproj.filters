@@ -60,6 +60,9 @@
     <ClCompile Include="src\TalentTreeManagerDefinitions.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\LoadoutSolverWindow.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ImGui\imgui.h">
@@ -105,6 +108,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\LoadoutEditorWindow.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\LoadoutSolverWindow.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

@@ -14,6 +14,7 @@
 
 #include "TalentTreeEditorWindow.h"
 #include "LoadoutEditorWindow.h"
+#include "LoadoutSolverWindow.h"
 
 //TTMTODO: place different components into their own files, lots of cleanup
 //TTMTODO: Replace all talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree with talentTreeCollection.activeTree()
@@ -230,7 +231,7 @@ namespace TTM {
         switch (uiData.editorView) {
         case EditorView::TreeEdit: {RenderTalentTreeEditorWindow(uiData, talentTreeCollection); } break;
         case EditorView::LoadoutEdit: {RenderLoadoutEditorWindow(uiData, talentTreeCollection); } break;
-        case EditorView::LoadoutSolver: {ImGui::Text("Not yet implemented..."); } break;
+        case EditorView::LoadoutSolver: {RenderLoadoutSolverWindow(uiData, talentTreeCollection); } break;
         }
         
     }

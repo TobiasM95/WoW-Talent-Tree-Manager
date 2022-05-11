@@ -7,6 +7,7 @@
 #include "imgui.h"
 
 #include "TalentTrees.h"
+#include "TreeSolver.h"
 
 namespace TTM {
 
@@ -20,6 +21,10 @@ namespace TTM {
 
 	enum class LoadoutEditPage {
 		LoadoutInformation, SkillsetEdit
+	};
+
+	enum class LoadoutSolverPage {
+		SolutionResults
 	};
 
 	struct UIData {
@@ -75,10 +80,19 @@ namespace TTM {
 		std::string loadoutEditorExportAllSkillsetsString;
 		std::string loadoutEditorImportSkillsetsString;
 		int loadoutEditorImportSkillsetsResult;
+
+		//############# LOADOUT SOLVER VARIABLES ########################
+		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
+		int allCombinationsAdded;
+		int loadoutSolverTalentPointSelection;
 	};
 
 	struct TalentTreeData {
 		Engine::TalentTree tree;
+
+		bool isTreeSolveProcessed = false;
+		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
+		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
 	};
 
 	struct TalentTreeCollection {
@@ -117,4 +131,6 @@ namespace TTM {
 		int talentSize,
 		float talentPadding,
 		UIData& uiData);
+
+	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 }
