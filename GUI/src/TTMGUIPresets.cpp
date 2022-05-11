@@ -152,6 +152,9 @@ namespace Presets {
 
 		ImVec4* colors = style.Colors;
 
+		colors[ImGuiCol_Button] = ImVec4(0.74f, 0.74f, 0.74f, 0.35f);
+		colors[ImGuiCol_ButtonHovered] = ImVec4(0.74f, 0.74f, 0.74f, 0.59f);
+		colors[ImGuiCol_ButtonActive] = ImVec4(0.76f, 0.76f, 0.76f, 0.45f);
 		/*colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 		colors[ImGuiCol_TextDisabled] = ImVec4(0.40f, 0.40f, 0.40f, 1.00f);
 		colors[ImGuiCol_ChildBg] = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
@@ -173,9 +176,6 @@ namespace Presets {
 		colors[ImGuiCol_CheckMark] = ImVec4(0.65f, 0.65f, 0.65f, 1.00f);
 		colors[ImGuiCol_SliderGrab] = ImVec4(0.32f, 0.32f, 0.32f, 1.00f);
 		colors[ImGuiCol_SliderGrabActive] = ImVec4(0.44f, 0.44f, 0.44f, 1.00f);
-		colors[ImGuiCol_Button] = ImVec4(0.24f, 0.24f, 0.24f, 0.35f);
-		colors[ImGuiCol_ButtonHovered] = ImVec4(0.22f, 0.22f, 0.22f, 0.59f);
-		colors[ImGuiCol_ButtonActive] = ImVec4(0.46f, 0.46f, 0.46f, 1.00f);
 		colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
 		colors[ImGuiCol_HeaderHovered] = ImVec4(0.27f, 0.27f, 0.27f, 1.00f);
 		colors[ImGuiCol_HeaderActive] = ImVec4(0.56f, 0.56f, 0.56f, 0.77f);

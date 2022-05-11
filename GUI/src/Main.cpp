@@ -62,6 +62,11 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
+    std::string IniPath = std::string((TTM::getAppPath() / "imgui.ini").string());
+    std::string LogPath = std::string((TTM::getAppPath() / "imgui_log.txt").string());
+    io.IniFilename = IniPath.c_str();
+    io.LogFilename = LogPath.c_str();
+
     Presets::SET_GUI_STYLE(Presets::STYLES::PATH_OF_TALENT_TREE);
 
     // Setup Platform/Renderer backends

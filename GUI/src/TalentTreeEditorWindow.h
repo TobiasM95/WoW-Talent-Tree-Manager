@@ -15,6 +15,7 @@ namespace TTM {
 	//TTMTODO: add consts to functions that do not modify uiData and talentTreeCollection
 	void validateAndInsertTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap);
 	void validateTalentUpdate(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap);
+	std::filesystem::path getCustomTreePath();
 	bool updateCustomTreeFileList(UIData& uiData);
 	bool checkIfTreeFileExists(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	bool saveTreeToFile(UIData& uiData, TalentTreeCollection& talentTreeCollection);

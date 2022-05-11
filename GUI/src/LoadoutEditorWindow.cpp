@@ -18,7 +18,7 @@ namespace TTM {
                 case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
-                ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), talentTypeString.c_str());
+                ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), talentTypeString.c_str());
                 ImGui::Text(("Points: " + std::to_string(talent.points) + "/" + std::to_string(talent.maxPoints) + ", points required: " + std::to_string(talent.pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -36,7 +36,7 @@ namespace TTM {
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
-                ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), "(switch)");
+                ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), "(switch, ctrl+click)");
                 ImGui::Text(("Points: " + std::to_string(talent.points) + "/" + std::to_string(talent.maxPoints) + ", points required: " + std::to_string(talent.pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -160,6 +160,8 @@ namespace TTM {
                 if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsButton")) {
                     uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
                 }
+                ImGui::Separator();
+                ImGui::Text("Hint: Loadouts are stored in trees. If you save a tree, this will include the loadout!");
             }break;
             }
             if (ImGui::BeginPopupModal("Import skillsets result", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -217,16 +219,32 @@ namespace TTM {
                 changedColor = true;
             }
             else if (talent.second->points == talent.second->maxPoints) {
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.73f, 0.0f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.82f, 0.0f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.95f, 0.0f));
-                ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
+                if (talent.second->type == Engine::TalentType::SWITCH) {
+                    if (talent.second->talentSwitch == 1) {
+                        ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.43f, 0.43f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.53f, 0.53f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.63f, 0.63f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
+                    }
+                    else {
+                        ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.43f, 0.43f, 0.9f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.53f, 0.53f, 1.0f));
+                        ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(.63f, 0.63f, 1.0f));
+                        ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
+                    }
+                }
+                else {
+                    ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.73f, 0.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.82f, 0.0f));
+                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.95f, 0.0f));
+                    ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
+                }
                 changedColor = true;
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             if (ImGui::Button((std::to_string(talent.second->points) + "##" + talent.second->name).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 //TTMTODO: loadout editor talent selection
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {

@@ -1,5 +1,8 @@
 #include "TalentTreeManager.h"
 
+#include <windows.h>
+#include <shlobj.h>
+
 #include <algorithm>
 
 #include "imgui.h"
@@ -248,4 +251,50 @@ namespace TTM {
 		}
         ImGui::End();
 	}
+
+    std::filesystem::path getAppPath() {
+        std::filesystem::path path;
+        PWSTR path_tmp;
+
+        /* Attempt to get user's AppData folder
+         *
+         * This breaks Windows XP and earlier support!
+         *
+         * Microsoft Docs:
+         * https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
+         * https://docs.microsoft.com/en-us/windows/win32/shell/knownfolderid
+         */
+        auto get_folder_path_ret = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_tmp);
+
+        /* Error check */
+        if (get_folder_path_ret != S_OK) {
+            CoTaskMemFree(path_tmp);
+            throw std::system_error::exception("Could not open/find Roaming App Data path!");
+        }
+
+        /* Convert the Windows path type to a C++ path */
+        path = path_tmp;
+        std::filesystem::path appPath = path / "WoWTalentTreeManager";
+
+        /* Free memory :) */
+        CoTaskMemFree(path_tmp);
+
+        //create app folder if it doesn't exist
+        if (!std::filesystem::is_directory(appPath)) {
+            std::filesystem::create_directory(appPath);
+        }
+
+        return appPath;
+    }
+
+    std::filesystem::path getCustomTreePath() {
+        std::filesystem::path treePath = getAppPath() / "CustomTrees";
+
+        //create custom tree folder if it doesn't exist
+        if (!std::filesystem::is_directory(treePath)) {
+            std::filesystem::create_directory(treePath);
+        }
+
+        return treePath;
+    }
 }

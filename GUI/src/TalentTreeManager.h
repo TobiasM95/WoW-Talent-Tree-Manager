@@ -19,5 +19,7 @@ namespace TTM {
 	void SubmitDockSpace();
 	void RenderWorkAreaWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void RenderStatusBar(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	std::filesystem::path getAppPath();
+	std::filesystem::path getCustomTreePath();
 
 }
