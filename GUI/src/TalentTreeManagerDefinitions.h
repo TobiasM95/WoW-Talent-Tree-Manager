@@ -11,6 +11,20 @@
 
 namespace TTM {
 
+	struct TextFilters
+	{
+		//only letters and numbers and blank space
+		static int FilterNameLetters(ImGuiInputTextCallbackData* data)
+		{
+			ImWchar c = data->EventChar;
+			if (c >= 'A' && c <= 'Z') return 0;
+			if (c >= 'a' && c <= 'z') return 0;
+			if (c >= '0' && c <= '9') return 0;
+			if (c == ' ') return 0;
+			return 1;
+		}
+	};
+
 	enum class EditorView {
 		None, TreeEdit, LoadoutEdit, LoadoutSolver
 	};
@@ -83,16 +97,27 @@ namespace TTM {
 
 		//############# LOADOUT SOLVER VARIABLES ########################
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
-		int allCombinationsAdded;
-		int loadoutSolverTalentPointSelection;
+		int loadoutSolverAllCombinationsAdded;
+		int loadoutSolverTalentPointSelection = -1;
+		const int loadoutSolverResultsPerPage = 50;
+		//the selected/requested page of skillset results
+		int loadoutSolverSkillsetResultPage = -1;
+		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
+		int loadoutSolverBufferedPage = -1;
+		std::vector<std::pair<std::uint64_t, int>> loadoutSolverPageResults;
+		int selectedFilteredSkillsetIndex = -1;
+		std::uint64_t selectedFilteredSkillset = 0;
 	};
 
 	struct TalentTreeData {
 		Engine::TalentTree tree;
 
 		bool isTreeSolveProcessed = false;
+		bool isTreeSolveFiltered = false;
 		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
 		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
+		bool restrictTalentPoints = false;
+		int restrictedTalentPoints = 0;
 	};
 
 	struct TalentTreeCollection {

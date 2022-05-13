@@ -1,6 +1,7 @@
 #include "TalentTrees.h"
 #include "TTMEnginePresets.h"
 
+#include <regex>
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -246,6 +247,20 @@ namespace Engine {
     }
 
     /*
+    Helper function to replace all ":" with "__/__" to not disturb the parsing
+    */
+    inline std::string cleanString(std::string s) {
+        return std::regex_replace(s, std::regex(":"), "__/__");
+    }
+
+    /*
+    Helper function to replace all "__/__" with ":" to not disturb the parsing
+    */
+    inline std::string restoreString(std::string s) {
+        return std::regex_replace(s, std::regex("__/__"), ":");
+    }
+
+    /*
     Creates a full tree string representation that's compatible to import trees in parse tree
     */
     std::string createTreeStringRepresentation(TalentTree tree) {
@@ -253,14 +268,14 @@ namespace Engine {
         //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
         //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
         std::stringstream treeRep;
-        treeRep << tree.presetName <<":" << tree.name << ":" << tree.treeDescription << ":" << tree.loadoutDescription << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
+        treeRep << tree.presetName <<":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
         if (tree.presetName == "custom") {
             for (auto& talent : tree.orderedTalents) {
                 treeRep << talent.first << ":" << talent.second->name << ":";
                 for (int i = 0; i < talent.second->descriptions.size() - 1; i++) {
-                    treeRep << talent.second->descriptions[i] << ",";
+                    treeRep << cleanString(talent.second->descriptions[i]) << ",";
                 }
-                treeRep << talent.second->descriptions[talent.second->descriptions.size() - 1] << ":";
+                treeRep << cleanString(talent.second->descriptions[talent.second->descriptions.size() - 1]) << ":";
                 treeRep << static_cast<int>(talent.second->type) << ":" << talent.second->row << ":" << talent.second->column << ":";
                 treeRep << talent.second->maxPoints << ":" << talent.second->pointsRequired << ":";
                 if (talent.second->parents.size() > 0) {
@@ -389,8 +404,8 @@ namespace Engine {
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[0];
         tree.name = treeInfoParts[1];
-        tree.treeDescription = treeInfoParts[2];
-        tree.loadoutDescription = treeInfoParts[3];
+        tree.treeDescription = restoreString(treeInfoParts[2]);
+        tree.loadoutDescription = restoreString(treeInfoParts[3]);
         int numTalents = std::stoi(treeInfoParts[4]);
         int numLoadouts = std::stoi(treeInfoParts[5]);
 
@@ -436,8 +451,8 @@ namespace Engine {
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[0];
         tree.name = treeInfoParts[1];
-        tree.treeDescription = treeInfoParts[2];
-        tree.loadoutDescription = treeInfoParts[3];
+        tree.treeDescription = restoreString(treeInfoParts[2]);
+        tree.loadoutDescription = restoreString(treeInfoParts[3]);
         int numTalents = std::stoi(treeInfoParts[4]);
         int numLoadouts = std::stoi(treeInfoParts[5]);
 
@@ -457,7 +472,11 @@ namespace Engine {
             }
             std::vector<std::string> names = splitString(talentInfo[1], ",");
             t->name = names[0];
-            t->descriptions = splitString(talentInfo[2], ",");
+            std::vector<std::string> tDescriptions;
+            for (auto& desc : splitString(talentInfo[2], ",")) {
+                tDescriptions.push_back(restoreString(desc));
+            }
+            t->descriptions = tDescriptions;
             t->type = static_cast<TalentType>(std::stoi(talentInfo[3]));
             if (t->type == TalentType::SWITCH) {
                 if (names.size() <= 1)

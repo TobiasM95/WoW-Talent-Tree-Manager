@@ -94,7 +94,9 @@ namespace TTM {
                 ImGui::Text("Skillset count: %d", talentTreeCollection.activeTree().loadout.size());
 
                 if (talentTreeCollection.activeTree().loadout.size() > 0) {
-                    ImGui::Text("Skillset name: %s", talentTreeCollection.activeSkillset()->name.c_str());
+                    ImGui::Text("Skillset name:");
+                    ImGui::InputText("##loadoutEditorSkillsetNameInput", &talentTreeCollection.activeSkillset()->name, 
+                        ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
                     ImGui::Text("Skillset points spent: %d", talentTreeCollection.activeSkillset()->talentPointsSpent);
                 }
                 else {

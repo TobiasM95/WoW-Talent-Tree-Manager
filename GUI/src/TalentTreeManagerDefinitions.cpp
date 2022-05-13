@@ -119,8 +119,14 @@ namespace TTM {
     }
 
     void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
-        uiData.allCombinationsAdded = 0;
+        uiData.loadoutSolverAllCombinationsAdded = 0;
+        uiData.loadoutSolverTalentPointSelection = -1;
+        uiData.loadoutSolverSkillsetResultPage = -1;
+        uiData.loadoutSolverBufferedPage = -1;
+        uiData.selectedFilteredSkillset = 0;
+        uiData.selectedFilteredSkillsetIndex = -1;
         talentTreeCollection.activeTreeData().isTreeSolveProcessed = false;
+        talentTreeCollection.activeTreeData().isTreeSolveFiltered = false;
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
         talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
     }

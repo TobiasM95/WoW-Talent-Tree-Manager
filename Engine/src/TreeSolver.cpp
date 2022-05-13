@@ -362,4 +362,95 @@ namespace Engine {
         if (i == v.end() || t < *i)
             v.insert(i, t);
     }
+
+    /*
+    Filters the skillsets that are created by the tree solver with the given filter
+    */
+    void filterSolvedSkillsets(TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter) {
+        //skillset has compactTalentIndex information
+        //treeDAG->sortedTalents containts index->expandedTalentIndex mapping
+        //therefore we need compactTalentIndex->expandedTalentIndex mapping and reverse the index->expandedTalentIndex
+        std::map<int, int> expandedToPosIndexMap;
+        for (int i = 0; i < treeDAG->sortedTalents.size(); i++) {
+            expandedToPosIndexMap[treeDAG->sortedTalents[i]->index] = i;
+        }
+        std::map<int, std::vector<int>> compactToExpandedIndexMap;
+        for (auto& talent : tree.orderedTalents) {
+            std::vector<int> indices;
+            for (int i = 0; i < talent.second->maxPoints; i++) {
+                //this indexing is taken from TalentTrees.cpp expand talent tree routine and represents an arbitrary indexing
+                //for multipoint talents that doesn't collide for a use in a map
+                if (i == 0) {
+                    indices.push_back(talent.second->index);
+                }
+                else {
+                    indices.push_back(talent.second->index * tree.maxTalentPoints + (i - 1));
+                }
+            }
+            compactToExpandedIndexMap[talent.second->index] = indices;
+        }
+        std::uint64_t includeFilter = 0;
+        std::uint64_t excludeFilter = 0;
+        for (auto& indexFilterPair : filter->assignedSkillPoints) {
+            if (indexFilterPair.second == -1) {
+                int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][0];
+                int pos = expandedToPosIndexMap[expandedTalentIndex];
+                setTalent(excludeFilter, pos);
+            }
+            else if (indexFilterPair.second > 0) {
+                for (int i = 0; i < indexFilterPair.second; i++) {
+                    int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][i];
+                    int pos = expandedToPosIndexMap[expandedTalentIndex];
+                    setTalent(includeFilter, pos);
+                }
+            }
+        }
+
+        std::vector<std::vector<std::pair<std::uint64_t, int>>> filteredCombinations;
+        for (int i = 0; i < treeDAG->allCombinations.size(); i++) {
+            std::vector<std::pair<std::uint64_t, int>> combs;
+            for (int j = 0; j < treeDAG->allCombinations[i].size(); j++) {
+                std::uint64_t skillset = treeDAG->allCombinations[i][j].first;
+                if ((skillset & excludeFilter) == 0 && ((~skillset) & includeFilter) == 0) {
+                    combs.push_back(std::pair<std::uint64_t, int>(skillset, treeDAG->allCombinations[i][j].second));
+                }
+            }
+            filteredCombinations.push_back(combs);
+        }
+
+        treeDAG->filteredCombinations = filteredCombinations;
+    }
+
+    /*
+    Creates a skillset with a given uint64 index
+    */
+    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::uint64_t skillsetIndex) {
+        std::map<int, int> expandedToCompactIndexMap;
+        for (auto& talent : tree.orderedTalents) {
+            for (int i = 0; i < talent.second->maxPoints; i++) {
+                //this indexing is taken from TalentTrees.cpp expand talent tree routine and represents an arbitrary indexing
+                //for multipoint talents that doesn't collide for a use in a map
+                if (i == 0) {
+                    expandedToCompactIndexMap[talent.second->index] = talent.second->index;
+                }
+                else {
+                    expandedToCompactIndexMap[talent.second->index * tree.maxTalentPoints + (i - 1)] = talent.second->index;
+                }
+            }
+        }
+        std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
+        skillset->name = "New skillset";
+        for (auto& talent : tree.orderedTalents) {
+            skillset->assignedSkillPoints[talent.first] = 0;
+        }
+        for (int i = 0; i < treeDAG->sortedTalents.size(); i++) {
+            bool checkBit = (skillsetIndex) & (1ULL << i);
+            if (checkBit) {
+                int compactIndex = expandedToCompactIndexMap[treeDAG->sortedTalents[i]->index];
+                skillset->assignedSkillPoints[compactIndex] += 1;
+                skillset->talentPointsSpent += 1;
+            }
+        }
+        return skillset;
+    }
 }

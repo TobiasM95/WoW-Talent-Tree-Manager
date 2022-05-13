@@ -88,31 +88,104 @@ namespace TTM {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
                     ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points.",
-                        talentTreeCollection.activeTree().name.c_str(), uiData.allCombinationsAdded, talentTreeCollection.activeTree().maxTalentPoints);
+                        talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, talentTreeCollection.activeTree().maxTalentPoints);
                     ImGui::Text("Hint: Include/Exclude talents on the left, then press filter to view all valid combinations. Green/Yellow = must have, Red = must not have.");
                     ImGui::PopTextWrapPos();
                     if (ImGui::Button("Filter")) {
-
+                        Engine::filterSolvedSkillsets(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeData().treeDAGInfo, talentTreeCollection.activeTreeData().skillsetFilter);
+                        talentTreeCollection.activeTreeData().isTreeSolveFiltered = true;
+                        uiData.loadoutSolverTalentPointSelection = -1;
+                        uiData.loadoutSolverSkillsetResultPage = -1;
+                        uiData.loadoutSolverBufferedPage = -1;
                     }
-                    ImGui::Separator();
-                    ImGui::Text("Number of talent points");
-                    if (ImGui::BeginListBox("##loadoutSolverTalentPointsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
-                    {
-                        for (int n = 0; n < talentTreeCollection.activeTree().maxTalentPoints; n++)
-                        {
-                            const bool is_selected = (uiData.loadoutSolverTalentPointSelection == n);
-                            if (ImGui::Selectable(std::to_string(n + 1).c_str(), is_selected)) {
-                                uiData.loadoutSolverTalentPointSelection = n;
-                            }
-
-                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
+                    ImGui::SameLine();
+                    if (ImGui::Button("Clear filter")) {
+                        for (auto& indexPointPair : talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints) {
+                            indexPointPair.second = 0;
                         }
-                        ImGui::EndListBox();
+                        Engine::filterSolvedSkillsets(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeData().treeDAGInfo, talentTreeCollection.activeTreeData().skillsetFilter);
+                        talentTreeCollection.activeTreeData().isTreeSolveFiltered = true;
+                        uiData.loadoutSolverTalentPointSelection = -1;
+                        uiData.loadoutSolverSkillsetResultPage = -1;
+                        uiData.loadoutSolverBufferedPage = -1;
+                    }
+                    if (talentTreeCollection.activeTreeData().isTreeSolveFiltered) {
+                        ImGui::Separator();
+                        ImGui::Text("Number of talent points (number of combinations):");
+                        ImGui::Checkbox("##loadoutSolverRestrictTalentPointsCheckbox", &talentTreeCollection.activeTreeData().restrictTalentPoints);
+                        if (!talentTreeCollection.activeTreeData().restrictTalentPoints) {
+                            ImGui::BeginDisabled();
+                        }
+                        ImGui::SameLine();
+                        ImGui::Text("Restrict talent points to:");
+                        ImGui::SameLine();
+                        if (ImGui::BeginCombo("##loadoutSolverRestrictTalentPointsCombo", std::to_string(talentTreeCollection.activeTreeData().restrictedTalentPoints + 1).c_str(), ImGuiComboFlags_None))
+                        {
+                            for (int n = 0; n < talentTreeCollection.activeTree().maxTalentPoints; n++)
+                            {
+                                const bool is_selected = (talentTreeCollection.activeTreeData().restrictedTalentPoints == n);
+                                if (ImGui::Selectable(std::to_string(n + 1).c_str(), is_selected))
+                                    talentTreeCollection.activeTreeData().restrictedTalentPoints = n;
+
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        if (!talentTreeCollection.activeTreeData().restrictTalentPoints) {
+                            ImGui::EndDisabled();
+                        }
+                        if (ImGui::BeginListBox("##loadoutSolverTalentPointsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+                        {
+                            if (talentTreeCollection.activeTreeData().restrictTalentPoints) {
+                                int rtp = talentTreeCollection.activeTreeData().restrictedTalentPoints;
+                                const bool is_selected = (uiData.loadoutSolverTalentPointSelection == rtp);
+                                if (ImGui::Selectable((std::to_string(rtp + 1) + " (" + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[rtp].size()) + ")").c_str(), is_selected)) {
+                                    uiData.loadoutSolverTalentPointSelection = rtp;
+                                    uiData.loadoutSolverSkillsetResultPage = 0;
+                                    uiData.loadoutSolverBufferedPage = -1;
+                                }
+
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            else {
+                                for (int n = 0; n < talentTreeCollection.activeTree().maxTalentPoints; n++)
+                                {
+                                    if (talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[n].size() > 0) {
+                                        const bool is_selected = (uiData.loadoutSolverTalentPointSelection == n);
+                                        if (ImGui::Selectable((std::to_string(n + 1) + " (" + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[n].size()) + ")").c_str(), is_selected)) {
+                                            uiData.loadoutSolverTalentPointSelection = n;
+                                            uiData.loadoutSolverSkillsetResultPage = 0;
+                                            uiData.loadoutSolverBufferedPage = -1;
+                                        }
+
+                                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                        if (is_selected)
+                                            ImGui::SetItemDefaultFocus();
+                                    }
+                                }
+                            }
+                            ImGui::EndListBox();
+                        }
+                        if (uiData.loadoutSolverTalentPointSelection > -1) {
+                            displayFilteredSkillsetSelector(uiData, talentTreeCollection);
+                        }
                     }
                 }break;
                 }
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            if (ImGui::BeginPopupModal("Add to loadout successfull", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Skillset/s has/have been successfully added to the loadout!");
+
+                ImGui::SetItemDefaultFocus();
+                if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
             ImGui::End();
         }
         ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -148,7 +221,7 @@ namespace TTM {
                 talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
                 for (auto& talentPointsCombinbations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
                     for (auto& combinations : talentPointsCombinbations) {
-                        uiData.allCombinationsAdded += combinations.second;
+                        uiData.loadoutSolverAllCombinationsAdded += combinations.second;
                     }
                 }
             }
@@ -260,4 +333,96 @@ namespace TTM {
         }
     }
 
+    void displayFilteredSkillsetSelector(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        //get buffered skillset page results
+        int maxPage = getResultsPage(uiData, talentTreeCollection, uiData.loadoutSolverSkillsetResultPage);
+        if (uiData.loadoutSolverPageResults.size() == 0) {
+            return;
+        }
+        ImGui::Text("Filtered skillsets:");
+
+        if (ImGui::BeginListBox("##loadoutSolverFilteredSkillsetPageListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+        {
+            for (int n = 0; n < uiData.loadoutSolverPageResults.size(); n++)
+            {
+                const bool is_selected = (uiData.selectedFilteredSkillsetIndex == n);
+                if (ImGui::Selectable(("Id: " + std::to_string(uiData.loadoutSolverPageResults[n].first)).c_str(), is_selected)) {
+                    uiData.selectedFilteredSkillsetIndex = n;
+                    uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[n].first;
+                }
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndListBox();
+        }
+
+        float padding = ImGui::GetCursorPosX();
+        if (ImGui::Button("<<##loadoutSolverFilterSkipLeftButton")) {
+            uiData.loadoutSolverSkillsetResultPage = 0;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("<##loadoutSolverFilterLeftButton")) {
+            uiData.loadoutSolverSkillsetResultPage = std::max(uiData.loadoutSolverSkillsetResultPage - 1, 0);
+        }
+        ImGui::SameLine();
+        float width = ImGui::GetCursorPosX() - padding;
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x * 0.5f);
+        ImGui::Text("%d/%d", uiData.loadoutSolverSkillsetResultPage + 1, maxPage + 1);
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - width + padding);
+        if (ImGui::Button(">##loadoutSolverFilterRightButton")) {
+            uiData.loadoutSolverSkillsetResultPage = std::min(uiData.loadoutSolverSkillsetResultPage + 1, maxPage);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(">>##loadoutSolverFilterSkipRightButton")) {
+            uiData.loadoutSolverSkillsetResultPage = maxPage;
+        }
+        if (ImGui::Button("Add to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex > 0) {
+            std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
+                talentTreeCollection.activeTree(),
+                talentTreeCollection.activeTreeData().treeDAGInfo,
+                uiData.selectedFilteredSkillset
+            );
+            sk->name = "Solved loadout " + std::to_string(uiData.selectedFilteredSkillset);
+            talentTreeCollection.activeTree().loadout.push_back(
+                sk
+            );
+            ImGui::OpenPopup("Add to loadout successfull");
+        }
+        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllToLoadoutButton") && uiData.selectedFilteredSkillsetIndex > 0) {
+            for (auto& skillsetIndexPair : uiData.loadoutSolverPageResults) {
+                std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
+                    talentTreeCollection.activeTree(),
+                    talentTreeCollection.activeTreeData().treeDAGInfo,
+                    skillsetIndexPair.first
+                );
+                sk->name = "Solved loadout " + std::to_string(skillsetIndexPair.first);
+                talentTreeCollection.activeTree().loadout.push_back(
+                    sk
+                );
+            }
+            ImGui::OpenPopup("Add to loadout successfull");
+        }
+    }
+
+    int getResultsPage(UIData& uiData, TalentTreeCollection& talentTreeCollection, int pageNumber) {
+        std::vector<std::pair<std::uint64_t, int>>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
+        int maxPage = (filteredResults.size() - 1) / uiData.loadoutSolverResultsPerPage;
+        if (pageNumber == uiData.loadoutSolverBufferedPage) {
+            return maxPage;
+        }
+        uiData.loadoutSolverBufferedPage = pageNumber;
+        uiData.loadoutSolverPageResults.clear();
+        int maxIndex = (pageNumber + 1) * uiData.loadoutSolverResultsPerPage;
+        maxIndex = maxIndex > filteredResults.size() ? filteredResults.size() : maxIndex;
+        if (maxIndex == 0) {
+            return maxPage;
+        }
+        for (int i = pageNumber * uiData.loadoutSolverResultsPerPage; i < maxIndex; i++) {
+            uiData.loadoutSolverPageResults.push_back(filteredResults[i]);
+        }
+        return maxPage;
+    }
 }

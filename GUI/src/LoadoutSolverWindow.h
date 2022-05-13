@@ -7,6 +7,7 @@ namespace TTM {
 	static void AttachLoadoutSolverTooltip(Engine::Talent talent);
 	void RenderLoadoutSolverWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void placeLoadoutSolverTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection);
-
+	void displayFilteredSkillsetSelector(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	int getResultsPage(UIData& uiData, TalentTreeCollection& talentTreeCollection, int pageNumber);
 	
 }

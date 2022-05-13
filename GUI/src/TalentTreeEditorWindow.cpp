@@ -120,7 +120,8 @@ namespace TTM {
             case TreeEditPage::TreeInformation: {
                 ImGui::Text("Tree name:");
                 ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-                ImGui::InputText("##TreeNameInputText", &talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.name);
+                ImGui::InputText("##TreeNameInputText", &talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.name,
+                    ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
 
                 ImGui::Text("Preset: ");
                 ImGui::SameLine(ImGui::GetContentRegionAvail().x / 3.f);
@@ -146,7 +147,8 @@ namespace TTM {
                 if (ImGui::CollapsingHeader("Create Node"))
                 {
                     ImGui::Text("Name:");
-                    ImGui::InputText("##talentCreationNameInput", &uiData.treeEditorCreationTalent->name);
+                    ImGui::InputText("##talentCreationNameInput", &uiData.treeEditorCreationTalent->name,
+                        ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
 
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
                     ImGui::Text("Name (switch):");
@@ -242,11 +244,13 @@ namespace TTM {
                     if (uiData.treeEditorSelectedTalent != nullptr) {
 
                         ImGui::Text("Name:");
-                        ImGui::InputText("##talentEditNameInput", &uiData.treeEditorSelectedTalent->name, ImGuiInputTextFlags_AutoSelectAll);
+                        ImGui::InputText("##talentEditNameInput", &uiData.treeEditorSelectedTalent->name, 
+                            ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
 
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
                         ImGui::Text("Name (switch):");
-                        ImGui::InputText("##talentEditNameSwitchInput", &uiData.treeEditorSelectedTalent->nameSwitch, ImGuiInputTextFlags_AutoSelectAll);
+                        ImGui::InputText("##talentEditNameSwitchInput", &uiData.treeEditorSelectedTalent->nameSwitch, 
+                            ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
 
                         ImGui::Text("Talent type:");

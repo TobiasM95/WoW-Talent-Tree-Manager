@@ -89,6 +89,7 @@ namespace TTM {
             {
                 if (ImGui::Button("New custom tree", ImVec2(-0.01f, 0))) {
                     TalentTreeData tree;
+                    tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET_BY_NAME("new_custom_tree"));
 
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);

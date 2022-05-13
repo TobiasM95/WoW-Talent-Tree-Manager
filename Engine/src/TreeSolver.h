@@ -19,6 +19,7 @@ namespace Engine {
         std::vector<int> rootIndices;
         std::shared_ptr<TalentTree> processedTree;
         std::vector<std::vector<std::pair<std::uint64_t, int>>> allCombinations;
+        std::vector<std::vector<std::pair<std::uint64_t, int>>> filteredCombinations;
     }; 
 
     std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree);
@@ -52,4 +53,7 @@ namespace Engine {
 
     std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG);
     void insertIntoVector(std::vector<int>& v, const int& t);
+
+    void filterSolvedSkillsets(TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter);
+    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::uint64_t);
 }

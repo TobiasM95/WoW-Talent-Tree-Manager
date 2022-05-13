@@ -1,5 +1,7 @@
 #include "TTMEnginePresets.h"
 
+#include <stdexcept>
+
 namespace Presets {
 
 	const char** RETURN_SPECS(int classID) {
@@ -25,7 +27,9 @@ namespace Presets {
 	}
 
 	const std::string RETURN_PRESET_BY_NAME(std::string presetNAME) {
+		if (presetNAME == "new_custom_tree") return NEW_CUSTOM_TREE_PRESET;
 		if (presetNAME == "druid_restoration") return RETURN_PRESET(CLASS_IDS_DRUID, DRUID_SPEC_IDS_RESTORATION);
 		if (presetNAME == "evoker_devastation") return RETURN_PRESET(CLASS_IDS_EVOKER, EVOKER_SPEC_IDS_DEVASTATION);
+		throw std::logic_error("Preset name not found!");
 	}
 }

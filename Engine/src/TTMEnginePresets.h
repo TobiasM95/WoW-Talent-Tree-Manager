@@ -26,9 +26,15 @@ namespace Presets {//ENGINE PRESETES
     const std::string RETURN_PRESET(int classID, int specID);
     const std::string RETURN_PRESET_BY_NAME(std::string presetNAME);
 
+    static const std::string NEW_CUSTOM_TREE_PRESET =
+        "custom:New custom Tree:"
+        "Welcome to WoW Talent Tree Manager.\nThis is a solution to manage trees and their loadouts. A loadout is a collection of skillsets, \ne.g. a skillset for Raid/M+/PvP etc. You can edit trees or work with spec presets, manage \nvarious skillsets in your loadout as well as auto solve all possible skill combinations with a \ngiven filter.\n\nEdit the tree name/description here. To edit tree nodes select \"Tree Editor\" in the top right.\nPress \"Save/Load Trees\" to load tree spec presets, manage your custom trees and import or\nexport trees (from/to Discord, etc.).\nTo start the tree editing process, go to \"Tree Editor\" -> \"Create Node\" and create your first talent.\n\nSelect the \"Talent Loadout Editor\" in the top left to manage your loadout. You can \nedit the loadout description there and create/import/export skillsets. Since skillsets are stored\ninside the loadout which is part of the tree, you can save your skillsets by saving the tree\nin the tree editor.\n\nLastly, select the \"Talent Loadout Solver\" to generate all possible combinations of talent\nselections for all possible amounts of spendable talent points. Afterwards, you can filter\nthe results to include/exclude specific talents and load the results into your loadout.\n\nHint__/__ This text can be edited!:"
+        "Your loadout is a collection of different skillset that you can edit to suit various ingame situations,\ne.g. a raid setup, an M+ setup or different PvP skillsets.\nAll skillsets are stored in the loadout which in turn is stored in the tree. So if you save your tree\nyou'll save your loadout as well! Additionally, you can import/export skillsets directly, to share\nwith friends or your favorite discord class experts.:"
+        "0:0;";
+
     static const std::string DRUID_RESTORATION_PRESET =
         "druid_restoration:DebugTree:Test description:Kek loadout:31:3;"
-        "0:A1:DA1:0:0:3:1:0::1,2,3;"
+        "0:A1:DA1__/__Testcolon:0:0:3:1:0::1,2,3;"
         "1:B1:DB1:0:1:2:1:0:0:4;"
         "2:B2:DB2,DB22:1:1:3:2:0:0:5;"
         "3:B3:DB3:1:1:4:1:0:0:6;"

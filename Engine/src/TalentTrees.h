@@ -105,6 +105,8 @@ namespace Engine {
     void pairTalents(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child);
     std::string getTalentString(TalentTree tree);
     void printTree(TalentTree tree);
+    inline std::string cleanString(std::string s);
+    inline std::string restoreString(std::string s);
     std::string createTreeStringRepresentation(TalentTree tree);
     TalentTree restorePreset(TalentTree& tree, std::string treeRep);
     TalentTree loadTreePreset(std::string treeRep);
