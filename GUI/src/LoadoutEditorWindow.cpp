@@ -131,7 +131,8 @@ namespace TTM {
                     Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Delete skillset##loadoutEditorDeleteSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                if (ImGui::Button("Delete skillset##loadoutEditorDeleteSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x, 0))
+                    && talentTreeCollection.activeTree().loadout.size() > 0 && talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
                     talentTreeCollection.activeTree().loadout.erase(talentTreeCollection.activeTree().loadout.begin() + talentTreeCollection.activeTree().activeSkillsetIndex);
                     if (talentTreeCollection.activeTree().loadout.size() == 0) {
                         talentTreeCollection.activeTree().activeSkillsetIndex = -1;

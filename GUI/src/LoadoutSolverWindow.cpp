@@ -391,7 +391,7 @@ namespace TTM {
             );
             ImGui::OpenPopup("Add to loadout successfull");
         }
-        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllToLoadoutButton") && uiData.selectedFilteredSkillsetIndex > 0) {
+        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllToLoadoutButton")) {
             for (auto& skillsetIndexPair : uiData.loadoutSolverPageResults) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
