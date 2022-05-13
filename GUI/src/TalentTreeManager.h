@@ -22,6 +22,6 @@ namespace TTM {
 	std::filesystem::path getAppPath();
 	std::filesystem::path getCustomTreePath();
 
-	void saveWorkspace(TalentTreeCollection& talentTreeCollection);
-	TalentTreeCollection loadWorkspace();
+	void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	TalentTreeCollection loadWorkspace(UIData& uiData);
 }

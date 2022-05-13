@@ -141,6 +141,7 @@ namespace TTM {
                             talentTreeCollection.activeTree().activeSkillsetIndex, 
                             0, 
                             static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
+                        Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().activeSkillsetIndex);
                     }
                 }
                 ImGui::Text("Import skillsets:");

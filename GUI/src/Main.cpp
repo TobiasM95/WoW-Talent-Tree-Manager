@@ -29,9 +29,6 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 //int main(int, char**)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-    //Engine::individualCombinationCount();
-    TTM::UIData uiData;
-    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace();
 
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
@@ -65,7 +62,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     io.IniFilename = IniPath.c_str();
     io.LogFilename = LogPath.c_str();
 
-    Presets::SET_GUI_STYLE(Presets::STYLES::PATH_OF_TALENT_TREE);
+    TTM::UIData uiData;
+    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);
@@ -128,7 +126,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
-    TTM::saveWorkspace(talentTreeCollection);
+    TTM::saveWorkspace(uiData, talentTreeCollection);
 
     // Cleanup
     ImGui_ImplDX11_Shutdown();
