@@ -34,7 +34,7 @@ namespace TTM {
 		if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Save")) {
-                    saveWorkspace(talentTreeCollection);
+                    saveWorkspace(uiData, talentTreeCollection);
                 }
                 if (ImGui::MenuItem("Close")) {
                     done = true;
@@ -44,17 +44,37 @@ namespace TTM {
 			if (ImGui::BeginMenu("Styles")) {
                 if (ImGui::MenuItem("Company Grey")) {
                     Presets::SET_GUI_STYLE(Presets::STYLES::COMPANY_GREY);
+                    uiData.style = Presets::STYLES::COMPANY_GREY;
                 }
                 if (ImGui::MenuItem("Path of Talent Tree")) {
                     Presets::SET_GUI_STYLE(Presets::STYLES::PATH_OF_TALENT_TREE);
+                    uiData.style = Presets::STYLES::PATH_OF_TALENT_TREE;
                 }
                 if (ImGui::MenuItem("Light Mode (yuck)")) {
                     Presets::SET_GUI_STYLE(Presets::STYLES::LIGHT_MODE);
+                    uiData.style = Presets::STYLES::LIGHT_MODE;
                 }
 				ImGui::EndMenu();
 			}
+            if (ImGui::BeginMenu("About")) {
+                ImGui::MenuItem("About TTM");
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+                    ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+                    ImGui::Text("GUI Library: https://github.com/ocornut/imgui");
+
+                    //ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                    //ImGui::PopTextWrapPos();
+
+                    ImGui::EndTooltip();
+                }
+                ImGui::EndMenu();
+            }
 			ImGui::EndMainMenuBar();
 		}
+
 	}
 
     void RenderWorkArea(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
@@ -310,9 +330,14 @@ namespace TTM {
         return treePath;
     }
 
-    void saveWorkspace(TalentTreeCollection& talentTreeCollection) {
+    void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         std::filesystem::path appPath = getAppPath();
         std::string workspace = "";
+        switch (uiData.style) {
+        case Presets::STYLES::COMPANY_GREY: {workspace += "COMPANY_GREY\n"; }break;
+        case Presets::STYLES::PATH_OF_TALENT_TREE: {workspace += "PATH_OF_TALENT_TREE\n"; }break;
+        case Presets::STYLES::LIGHT_MODE: {workspace += "LIGHT_MODE\n"; }break;
+        }
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
         }
@@ -320,7 +345,7 @@ namespace TTM {
         workFile << workspace;
     }
 
-    TalentTreeCollection loadWorkspace() {
+    TalentTreeCollection loadWorkspace(UIData& uiData) {
         std::filesystem::path appPath = getAppPath();
         TalentTreeCollection col;
         if (!std::filesystem::is_regular_file(appPath / "workspace.txt")) {
@@ -328,8 +353,25 @@ namespace TTM {
         }
         std::ifstream workFile(appPath / "workspace.txt");
         std::string line;
+        bool firstLine = false;
         while (std::getline(workFile, line))
         {
+            if (!firstLine) {
+                firstLine = true;
+                if (line == "COMPANY_GREY") {
+                    Presets::SET_GUI_STYLE_COMPANY_GREY();
+                    uiData.style = Presets::STYLES::COMPANY_GREY;
+                }
+                else if (line == "PATH_OF_TALENT_TREE") {
+                    Presets::SET_GUI_STYLE_PATH_OF_TALENT_TREE();
+                    uiData.style = Presets::STYLES::PATH_OF_TALENT_TREE;
+                }
+                else if (line == "LIGHT_MODE") {
+                    Presets::SET_GUI_STYLE_LIGHT_MODE();
+                    uiData.style = Presets::STYLES::LIGHT_MODE;
+                }
+                continue;
+            }
             if (line == "") {
                 break;
             }

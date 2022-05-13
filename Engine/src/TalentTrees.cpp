@@ -395,7 +395,7 @@ namespace Engine {
 
     /*
     Parse a import tree string that is based on a preset (same as regular tree representation but without talent information). 
-    First load the preset then edit the meta info and insert loadout
+    First load the preset then edit the meta info and clear the included skillsets, then insert saved (non preset) loadout
     */
     TalentTree parseTreeFromPreset(std::string treeRep, std::string presetName) {
         TalentTree tree = loadTreePreset(Presets::RETURN_PRESET_BY_NAME(presetName));
@@ -408,6 +408,7 @@ namespace Engine {
         tree.loadoutDescription = restoreString(treeInfoParts[3]);
         int numTalents = std::stoi(treeInfoParts[4]);
         int numLoadouts = std::stoi(treeInfoParts[5]);
+        tree.loadout.clear();
 
         for (int i = 1; i < numLoadouts + 1; i++) {
             if (treeDefinitionParts[i] == "")

@@ -8,6 +8,7 @@
 
 #include "TalentTrees.h"
 #include "TreeSolver.h"
+#include "TTMGUIPresets.h"
 
 namespace TTM {
 
@@ -42,6 +43,7 @@ namespace TTM {
 	};
 
 	struct UIData {
+		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
 
 		//################# TREE EDITOR VARIABLES #######################
