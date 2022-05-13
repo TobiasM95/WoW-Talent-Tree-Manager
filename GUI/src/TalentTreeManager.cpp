@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <shlobj.h>
 
+#include <fstream>
 #include <algorithm>
 
 #include "imgui.h"
@@ -21,16 +22,25 @@
 namespace TTM {
     
 
-	void RenderMainWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+	void RenderMainWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool& done) {
 
-		RenderMenuBar(uiData);
+		RenderMenuBar(uiData, talentTreeCollection, done);
         RenderStatusBar(uiData, talentTreeCollection);
         RenderWorkArea(uiData, talentTreeCollection);
         //ImGui::ShowMetricsWindow(nullptr);
 	}
 
-	void RenderMenuBar(UIData& uiData) {
+	void RenderMenuBar(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool& done) {
 		if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Save")) {
+                    saveWorkspace(talentTreeCollection);
+                }
+                if (ImGui::MenuItem("Close")) {
+                    done = true;
+                }
+                ImGui::EndMenu();
+            }
 			if (ImGui::BeginMenu("Styles")) {
                 if (ImGui::MenuItem("Company Grey")) {
                     Presets::SET_GUI_STYLE(Presets::STYLES::COMPANY_GREY);
@@ -298,5 +308,36 @@ namespace TTM {
         }
 
         return treePath;
+    }
+
+    void saveWorkspace(TalentTreeCollection& talentTreeCollection) {
+        std::filesystem::path appPath = getAppPath();
+        std::string workspace = "";
+        for (TalentTreeData tree : talentTreeCollection.trees) {
+            workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
+        }
+        std::ofstream workFile(appPath / "workspace.txt");
+        workFile << workspace;
+    }
+
+    TalentTreeCollection loadWorkspace() {
+        std::filesystem::path appPath = getAppPath();
+        TalentTreeCollection col;
+        if (!std::filesystem::is_regular_file(appPath / "workspace.txt")) {
+            return col;
+        }
+        std::ifstream workFile(appPath / "workspace.txt");
+        std::string line;
+        while (std::getline(workFile, line))
+        {
+            if (line == "") {
+                break;
+            }
+            TalentTreeData data;
+            data.tree = Engine::parseTree(line);
+            col.trees.push_back(data);
+            col.activeTreeIndex = col.trees.size() - 1;
+        }
+        return col;
     }
 }

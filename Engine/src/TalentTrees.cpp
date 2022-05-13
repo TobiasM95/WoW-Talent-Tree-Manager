@@ -250,14 +250,14 @@ namespace Engine {
     Helper function to replace all ":" with "__/__" to not disturb the parsing
     */
     inline std::string cleanString(std::string s) {
-        return std::regex_replace(s, std::regex(":"), "__/__");
+        return std::regex_replace(std::regex_replace(s, std::regex(":"), "__/__"), std::regex("\n"), "__%__");
     }
 
     /*
     Helper function to replace all "__/__" with ":" to not disturb the parsing
     */
     inline std::string restoreString(std::string s) {
-        return std::regex_replace(s, std::regex("__/__"), ":");
+        return std::regex_replace(std::regex_replace(s, std::regex("__/__"), ":"), std::regex("__%__"), "\n");
     }
 
     /*

@@ -11,8 +11,8 @@
 namespace TTM {
 
 	//TTMTODO: add consts to functions that do not modify uiData and talentTreeCollection
-	void RenderMainWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
-	void RenderMenuBar(UIData& uiData);
+	void RenderMainWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool& done);
+	void RenderMenuBar(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool& done);
 	void RenderWorkArea(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void RenderTalentTreeTabs(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void RenderTreeViewTabs(UIData& uiData, TalentTreeCollection& talentTreeCollection);
@@ -22,4 +22,6 @@ namespace TTM {
 	std::filesystem::path getAppPath();
 	std::filesystem::path getCustomTreePath();
 
+	void saveWorkspace(TalentTreeCollection& talentTreeCollection);
+	TalentTreeCollection loadWorkspace();
 }

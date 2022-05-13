@@ -10,8 +10,6 @@
 #include "resource.h"
 #include "roboto_medium.h"
 
-//TTMTODO: Delete this debug include
-#include "TreeSolver.h"
 #include "TTMGUIPresets.h"
 
 // Data
@@ -33,7 +31,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 {
     //Engine::individualCombinationCount();
     TTM::UIData uiData;
-    TTM::TalentTreeCollection talentTreeCollection;
+    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace();
 
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
@@ -117,7 +115,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        TTM::RenderMainWindow(uiData, talentTreeCollection);
+        TTM::RenderMainWindow(uiData, talentTreeCollection, done);
 
         // Rendering
         ImGui::Render();
@@ -129,6 +127,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         g_pSwapChain->Present(1, 0); // Present with vsync
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
+
+    TTM::saveWorkspace(talentTreeCollection);
 
     // Cleanup
     ImGui_ImplDX11_Shutdown();
