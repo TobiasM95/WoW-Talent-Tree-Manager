@@ -126,12 +126,12 @@ namespace TTM {
                     }
                     ImGui::EndListBox();
                 }
-                if (ImGui::Button("Add skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))) {
+                if (ImGui::Button("Add skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 0))) {
                     Engine::createSkillset(talentTreeCollection.activeTree());
                     Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Delete skillset##loadoutEditorDeleteSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x, 0))
+                if (ImGui::Button("Delete skillset##loadoutEditorDeleteSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))
                     && talentTreeCollection.activeTree().loadout.size() > 0 && talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
                     talentTreeCollection.activeTree().loadout.erase(talentTreeCollection.activeTree().loadout.begin() + talentTreeCollection.activeTree().activeSkillsetIndex);
                     if (talentTreeCollection.activeTree().loadout.size() == 0) {
@@ -144,6 +144,11 @@ namespace TTM {
                             static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
                         Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().activeSkillsetIndex);
                     }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Delete all skillsets##loadoutEditorDeleteAllSkillsetsButton", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+                    talentTreeCollection.activeTree().loadout.clear();
+                    talentTreeCollection.activeTree().activeSkillsetIndex = -1;
                 }
                 ImGui::Text("Import skillsets:");
                 ImGui::InputText("##loadoutEditorImportSkillsetsInput", &uiData.loadoutEditorImportSkillsetsString);

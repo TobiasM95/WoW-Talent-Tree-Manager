@@ -126,5 +126,17 @@
     <Image Include="resources\icon1.ico">
       <Filter>Ressourcendateien</Filter>
     </Image>
+    <Image Include="resources\gallery\LoadoutEditor.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="resources\gallery\LoadoutSolver.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="resources\gallery\TreeEditor1.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="resources\gallery\TreeEditor2.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
   </ItemGroup>
 </Project>

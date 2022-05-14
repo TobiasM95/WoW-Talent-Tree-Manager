@@ -208,6 +208,10 @@
     <ResourceCompile Include="resources\Resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="resources\gallery\LoadoutEditor.png" />
+    <Image Include="resources\gallery\LoadoutSolver.png" />
+    <Image Include="resources\gallery\TreeEditor1.png" />
+    <Image Include="resources\gallery\TreeEditor2.png" />
     <Image Include="resources\icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
