@@ -23,7 +23,17 @@ Features of WoW TTM:
     * Transfer results to loadout for fine tuning
 
 ## Gallery
-tba
+Tree editor main window (dark theme):
+![Tree editor main window](/GUI/resources/gallery/TreeEditor1.png?raw=true "Tree editor main window")
+
+Tree editor talent window (dark theme):
+![Tree editor talent window](/GUI/resources/gallery/TreeEditor2.png?raw=true "Tree editor talent window")
+
+Loadout editor window (grey theme):
+![Loadout editor window](/GUI/resources/gallery/LoadoutEditor.png?raw=true "Loadout editor window")
+
+Loadout solver window (light theme):
+![Loadout solver window](/GUI/resources/gallery/LoadoutSolver.png?raw=true "Loadout solver window")
 
 ## Feedback & Contribution
 Since this is currently a solo project there will be some rough edges, issues and bugs as well as features that might be missing or aren't well thought out. You can provide TTM feedback via Discord ("About" tab in program for more details) and via issues here on Github.
