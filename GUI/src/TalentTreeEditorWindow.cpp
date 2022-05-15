@@ -419,6 +419,7 @@ namespace TTM {
                 }
                 if (ImGui::CollapsingHeader("Misc."))
                 {
+                    ImGui::Text("Warning: Potentially very long runtime/unstable (beta feature)");
                     if (ImGui::Button("Auto position talents in tree")) {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 

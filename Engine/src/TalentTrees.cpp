@@ -871,57 +871,12 @@ namespace Engine {
             }
         }
 
-
-        //now start the positioning
-        //first set up the max width
-        int maxWidth = 0;
-        for (auto& depthTalentsPair : talentDepths) {
-            if (depthTalentsPair.second.size() > maxWidth)
-                maxWidth = static_cast<int>(depthTalentsPair.second.size());
-        }
-        maxWidth += 4;
-        //set up position grid
-        std::vector<std::vector<bool>> talentGrid;
-        talentGrid.resize(talentDepths.size(), std::vector<bool>(maxWidth));
-        std::vector<std::vector<int>> edges;
-        std::vector<std::shared_ptr<Talent>> placedTalents;
-        int maxCol = -1;
-        //iterate through every talent
-        for (auto& depthTalentsPair : talentDepths) {
-            for (auto& talent : depthTalentsPair.second) {
-                float minScore = FLT_MAX;
-                int minCol = -1;
-                for (int col = 0; col < maxWidth; col++) {
-                    if (talentGrid[depthTalentsPair.first][col])
-                        continue;
-                    talent->row = depthTalentsPair.first;
-                    talent->column = col;
-                    //cross penalty
-                    //TTMTODO: Not sure if this can actually improve anything since it would have to move to the left or move earlier talents
-                    float score = checkForCrossing(talent, edges, placedTalents);
-                    //distance to parents penalty
-                    for (auto& parent : talent->parents) {
-                        score += sqDistToParents(talent);
-                    }
-                    //select minimal penalty
-                    if (score < minScore) {
-                        minScore = score;
-                        minCol = col;
-                    }
-                }
-                talentGrid[depthTalentsPair.first][minCol] = 1;
-                talent->row = depthTalentsPair.first;
-                talent->column = minCol;
-                maxCol = minCol > maxCol ? minCol : maxCol;
-                placedTalents.push_back(talent);
-                for (auto& parent : talent->parents) {
-                    edges.push_back(std::vector<int>{parent->row,parent->column,talent->row,talent->column});
-                }
-            }
-        }
+        //recursively position row nodes
+        bool isPositioned = autoPositionRowNodes(0, talentDepths);
 
         //make tree symmetric
-        int midPointIndex = (maxCol - 1) / 2;
+        return;
+        int midPointIndex = (7 - 1) / 2;
         for (auto& depthTalentsPair : talentDepths) {
             int talentsInRow = static_cast<int>(depthTalentsPair.second.size());
             for (int i = 0; i < talentsInRow; i++) {
@@ -932,17 +887,131 @@ namespace Engine {
         }
     }
 
-    float checkForCrossing(std::shared_ptr<Talent> talent, std::vector<std::vector<int>> edges, std::vector<std::shared_ptr<Talent>> placedTalents) {
-        return 0;
+    bool autoPositionRowNodes(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
+        std::vector<std::vector<int>> positions = createPositionIndices(row, talentDepths);
+        bool isPositioned = false;
+        for (auto& positionVec : positions) {
+            do
+            {
+                for (int i = 0; i < positionVec.size(); i++) {
+                    talentDepths[row][i]->row = row;
+                    talentDepths[row][i]->column = positionVec[i];
+                }
+                bool isCrossing = checkForCrossing(row, talentDepths);
+                if (isCrossing) {
+                    continue;
+                }
+                if (talentDepths.count(row + 1)) {
+                    isPositioned = autoPositionRowNodes(row + 1, talentDepths);
+                }
+                else {
+                    isPositioned = !isCrossing;
+                }
+                if (isPositioned) {
+                    break;
+                }
+            } while (std::next_permutation(positionVec.begin(), positionVec.end()));
+            if (isPositioned) {
+                break;
+            }
+        }
+        return isPositioned;
     }
 
-    float sqDistToParents(std::shared_ptr<Talent> talent) {
-        float dist = 0.0f;
-        for (auto& parent : talent->parents) {
-            dist += (talent->row - parent->row) * (talent->row - parent->row) + (talent->column - parent->column) * (talent->column - parent->column);
-        }
-        return dist;
+    std::vector<std::vector<int>> createPositionIndices(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
+        std::vector<std::vector<int>> positions;
+        std::vector<int> positionVec;
+        expandPosition(0, 0, talentDepths[row].size(), 3, positionVec, positions);
+
+        return positions;
     }
+
+    void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, std::vector<std::vector<int>>& positions) {
+        for (int i = currentPos; i < additionalPos + currentIndex + 1; i++) {
+            positionVec.push_back(i);
+            if (positionVec.size() == indexSize) {
+                positions.push_back(positionVec);
+                positionVec.pop_back();
+                continue;
+            }
+            expandPosition(currentIndex + 1, i + 1, indexSize, additionalPos, positionVec, positions);
+            positionVec.pop_back();
+        }
+    }
+
+    bool checkForCrossing(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
+        std::vector<std::vector<int>> edges;
+        appendEdges(edges, row, talentDepths);
+        bool crossing = false;
+        for (int i = 0; i < static_cast<int>(edges.size()) - 1; i++) {
+            for (int j = i + 1; j < edges.size(); j++) {
+                crossing = intersects(edges[i], edges[j]);
+                if (crossing) {
+                    return true;
+                }
+            }
+        }
+        return crossing;
+    }
+
+    void appendEdges(std::vector<std::vector<int>>& edges, int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
+        if (!talentDepths.count(row)) {
+            return;
+        }
+        for (auto& talent : talentDepths[row]) {
+            for (auto& parent : talent->parents) {
+                edges.push_back(std::vector<int>{talent->column, talent->row, parent->column, parent->row});
+            }
+        }
+        appendEdges(edges, row - 1, talentDepths);
+    }
+
+    /*
+     returns true if the line from(a, b)->(c, d) intersects with(p, q)->(r, s)
+    */
+    bool intersects(std::vector<int> edge1, std::vector<int> edge2) {
+        int a = edge1[0];
+        int b = edge1[1];
+        int c = edge1[2];
+        int d = edge1[3];
+        int p = edge2[0];
+        int q = edge2[1];
+        int r = edge2[2];
+        int s = edge2[3];
+        if (a == 0 && b == 8 && c == 0 && d == 5)
+            int i = 0;
+        float det;
+        float gamma, lambda, alpha, beta;
+        det = (c - a) * (s - q) - (r - p) * (d - b);
+        if (det == 0) {
+            //line segments parallel
+            if (r - p != 0) {
+                gamma = (a - p) * 1.0f / (r - p);
+                alpha = (p - a) * 1.0f / (c - a);
+            }
+            else {
+                gamma = (b - q) * 1.0f / (s - q);
+                alpha = (q - b) * 1.0f / (d - b);
+            }
+            if (r - p != 0) {
+                lambda = (c - p) * 1.0f / (r - p);
+                beta = (r - a) * 1.0f / (c - a);
+            }
+            else {
+                lambda = (d - q) * 1.0f / (s - q);
+                beta = (s - b) * 1.0f / (d - b);
+            }
+            return (((std::abs(p + (r - p) * gamma - a) < 0.001f && std::abs(q + (s - q) * gamma - b) < 0.001f)
+                 || (std::abs(p + (r - p) * lambda - c) < 0.001f && std::abs(q + (s - q) * lambda - d) < 0.001f))
+                && ((0.001f < gamma && gamma < .999f) || (0.001f < lambda && lambda < .999f)
+                    || (0.001f < alpha && alpha < .999f) || (0.001f < beta && beta < .999f)));
+        }
+        else {
+            lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
+            gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+            return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+        }
+    };
 
     void findDepthRecursively(int depth, std::shared_ptr<Talent> talent, std::unordered_map<std::shared_ptr<Talent>, int>& maxDepthMap) {
         if(depth > maxDepthMap[talent])

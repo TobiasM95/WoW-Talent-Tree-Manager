@@ -129,9 +129,13 @@ namespace Engine {
     std::string getSwitchLabel(std::shared_ptr<Talent> talent);
 
     void autoPositionTreeNodes(TalentTree& tree);
+    bool autoPositionRowNodes(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths);
+    std::vector<std::vector<int>> createPositionIndices(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths);
+    void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, std::vector<std::vector<int>>& positions);
     void findDepthRecursively(int depth, std::shared_ptr<Talent> talent, std::unordered_map<std::shared_ptr<Talent>, int>& maxDepthMap);
-    float checkForCrossing(std::shared_ptr<Talent> talent, std::vector<std::vector<int>> edges, std::vector<std::shared_ptr<Talent>> placedTalents);
-    float sqDistToParents(std::shared_ptr<Talent> talent);
+    bool checkForCrossing(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths);
+    bool intersects(std::vector<int> edge1, std::vector<int> edge2);
+    void appendEdges(std::vector<std::vector<int>>& edges, int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths);
 
     void expandTreeTalents(TalentTree& tree);
     void expandTalentAndAdvance(std::shared_ptr<Talent> talent, int maxTalentPoints);
