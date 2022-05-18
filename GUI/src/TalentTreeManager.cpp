@@ -56,25 +56,95 @@ namespace TTM {
                 }
 				ImGui::EndMenu();
 			}
-            if (ImGui::BeginMenu("About")) {
-                ImGui::MenuItem("About TTM");
-                if (ImGui::IsItemHovered())
-                {
-                    ImGui::BeginTooltip();
-                    ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
-                    ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
-                    ImGui::Text("GUI Library: https://github.com/ocornut/imgui");
-
-                    //ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                    //ImGui::PopTextWrapPos();
-
-                    ImGui::EndTooltip();
+            if (ImGui::BeginMenu("Help")) {
+                if (ImGui::MenuItem("Controls & Tips")) {
+                    uiData.showHelpPopup = true;
+                }
+                if (ImGui::MenuItem("About TTM")) {
+                    uiData.showAboutPopup = true;
                 }
                 ImGui::EndMenu();
             }
 			ImGui::EndMainMenuBar();
-		}
+        }
+        if (uiData.showAboutPopup) {
+            uiData.showAboutPopup = false;
+            ImGui::OpenPopup("About##Popup");
+        }
+        if (uiData.showHelpPopup) {
+            uiData.showHelpPopup = false;
+            ImGui::OpenPopup("Controls & Tips##Popup");
+        }
+        if (ImGui::BeginPopupModal("About##Popup", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
 
+            ImGui::SetItemDefaultFocus();
+            if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            ImGui::EndPopup();
+        }
+        static bool* close = new bool();
+        *close = true;
+        if (ImGui::BeginPopupModal("Controls & Tips##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
+            ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
+            ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+
+            ImGui::SetItemDefaultFocus();
+            if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            ImGui::EndPopup();
+        }
 	}
 
     void RenderWorkArea(UIData& uiData, TalentTreeCollection& talentTreeCollection) {

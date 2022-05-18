@@ -40,7 +40,7 @@ namespace TTM {
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
-                ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), "(switch, ctrl+click)");
+                ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), "(switch)");
                 ImGui::Text(("Points: " + std::to_string(talent.points) + "/" + std::to_string(talent.maxPoints) + ", points required: " + std::to_string(talent.pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -242,8 +242,8 @@ namespace TTM {
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         for (auto& talent : tree.orderedTalents) {
-            float posX = talentWindowPaddingX + talent.second->column * 2 * talentHalfSpacing + talentPadding;
-            float posY = talentWindowPaddingY + talent.second->row * 2 * talentHalfSpacing + talentPadding;
+            float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
+            float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             bool changedColor = false;
             if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > 0 
                 && talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < talent.second->maxPoints) {
