@@ -3,6 +3,7 @@
 #include <fstream>
 #include <string>
 #include <algorithm>
+#include <tuple>
 
 #include "TTMEnginePresets.h"
 
@@ -1054,6 +1055,7 @@ namespace TTM {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                     uiData.treeEditorDragTalentStartRow = talent.second->row;
                     uiData.treeEditorDragTalentStartColumn = talent.second->column;
+                    uiData.treeEditorTempReplacedTalents.clear();
                 }
                 if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                     selectTalent(uiData, talentTreeCollection, talent);
@@ -1156,6 +1158,17 @@ namespace TTM {
             if (dragTalent.second->index != talent.second->index
                 && uiData.treeEditorDragTalentStartRow + resDeltaGridY == talent.second->row
                 && uiData.treeEditorDragTalentStartColumn + resDeltaGridX == talent.second->column) {
+                bool alreadyInserted = false;
+                for (int i = 0; i < uiData.treeEditorTempReplacedTalents.size(); i++) {
+                    if (std::get<3>(uiData.treeEditorTempReplacedTalents[i]) == talent.second->index) {
+                        alreadyInserted = true;
+                    }
+                }
+                if (!alreadyInserted) {
+                    uiData.treeEditorTempReplacedTalents.push_back(
+                        std::tuple<std::shared_ptr<Engine::Talent>, int, int, int>(talent.second, talent.second->row, talent.second->column, talent.second->index)
+                    );
+                }
                 talent.second->row = dragTalent.second->row;
                 talent.second->column = dragTalent.second->column;
 
@@ -1170,5 +1183,29 @@ namespace TTM {
             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
             clearSolvingProcess(uiData, talentTreeCollection);
         }
+        int restoredTalentPositions;
+        do {
+            restoredTalentPositions = 0;
+            std::vector<std::tuple<std::shared_ptr<Engine::Talent>, int, int, int> >::iterator it = uiData.treeEditorTempReplacedTalents.begin();
+
+            while (it != uiData.treeEditorTempReplacedTalents.end()) {
+                bool spotFree = true;
+                for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
+                    if (talent.second->row == std::get<1>(*it) && talent.second->column == std::get<2>(*it)) {
+                        spotFree = false;
+                    }
+                }
+
+                if (spotFree) {
+                    restoredTalentPositions++;
+                    std::get<0>(*it)->row = std::get<1>(*it);
+                    std::get<0>(*it)->column = std::get<2>(*it);
+                    it = uiData.treeEditorTempReplacedTalents.erase(it);
+                }
+                else {
+                    ++it;
+                }
+            }
+        } while (restoredTalentPositions > 0);
     }
 }
