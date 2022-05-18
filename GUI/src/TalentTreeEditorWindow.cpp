@@ -1223,6 +1223,10 @@ namespace TTM {
                         childTalent->parents.erase(alreadyLinkedParent);
                         parentTalent->children.erase(alreadyLinkedChild);
                     }
+
+                    talentTreeCollection.activeTree().presetName = "custom";
+                    Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                    clearSolvingProcess(uiData, talentTreeCollection);
                 }
                 //regular talent selection
                 else {
