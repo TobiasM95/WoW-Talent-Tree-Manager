@@ -361,10 +361,12 @@ namespace TTM {
         float padding = ImGui::GetCursorPosX();
         if (ImGui::Button("<<##loadoutSolverFilterSkipLeftButton")) {
             uiData.loadoutSolverSkillsetResultPage = 0;
+            uiData.selectedFilteredSkillsetIndex = 0;
         }
         ImGui::SameLine();
         if (ImGui::Button("<##loadoutSolverFilterLeftButton")) {
             uiData.loadoutSolverSkillsetResultPage = std::max(uiData.loadoutSolverSkillsetResultPage - 1, 0);
+            uiData.selectedFilteredSkillsetIndex = 0;
         }
         ImGui::SameLine();
         float width = ImGui::GetCursorPosX() - padding;
@@ -374,12 +376,14 @@ namespace TTM {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - width + padding);
         if (ImGui::Button(">##loadoutSolverFilterRightButton")) {
             uiData.loadoutSolverSkillsetResultPage = std::min(uiData.loadoutSolverSkillsetResultPage + 1, maxPage);
+            uiData.selectedFilteredSkillsetIndex = 0;
         }
         ImGui::SameLine();
         if (ImGui::Button(">>##loadoutSolverFilterSkipRightButton")) {
             uiData.loadoutSolverSkillsetResultPage = maxPage;
+            uiData.selectedFilteredSkillsetIndex = 0;
         }
-        if (ImGui::Button("Add to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex > 0) {
+        if (ImGui::Button("Add to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex >= 0) {
             std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                 talentTreeCollection.activeTree(),
                 talentTreeCollection.activeTreeData().treeDAGInfo,
@@ -422,6 +426,9 @@ namespace TTM {
         }
         for (int i = pageNumber * uiData.loadoutSolverResultsPerPage; i < maxIndex; i++) {
             uiData.loadoutSolverPageResults.push_back(filteredResults[i]);
+        }
+        if (uiData.loadoutSolverPageResults.size() > 0) {
+            uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[0].first;
         }
         return maxPage;
     }
