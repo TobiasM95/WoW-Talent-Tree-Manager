@@ -26,70 +26,70 @@ namespace TTM {
         if (t1->column < t2->column) {
             if (t1->row < t2->row) {
                 //Arrow to the bottom right
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding;
             }
             else if (t1->row == t2->row) {
                 //Arrow right
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
             }
             else {
                 //Arrow top right
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
             }
         }
         else if (t1->column == t2->column) {
             if (t1->row < t2->row) {
                 //Arrow straight down
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding;
             }
             else if (t1->row == t2->row) {
                 //TTMTODO: This should never happen but there are currently no validations for imported trees to have proper positioning!
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
             }
             else {
                 //Arrow straight up
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
             }
         }
         else {
             if (t1->row < t2->row) {
                 //Arrow to the bottom left
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding;
             }
             else if (t1->row == t2->row) {
                 //Arrow straight left
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding + 0.5f * talentSize;
             }
             else {
                 //Arrow to the top left
-                p1X = talentWindowPadding.x + t1->column * 2 * talentHalfSpacing + talentPadding;
-                p1Y = talentWindowPadding.y + t1->row * 2 * talentHalfSpacing + talentPadding;
-                p2X = talentWindowPadding.x + t2->column * 2 * talentHalfSpacing + talentPadding + talentSize;
-                p2Y = talentWindowPadding.y + t2->row * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p1X = talentWindowPadding.x + (t1->column - 1) * 2 * talentHalfSpacing + talentPadding;
+                p1Y = talentWindowPadding.y + (t1->row - 1) * 2 * talentHalfSpacing + talentPadding;
+                p2X = talentWindowPadding.x + (t2->column - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
+                p2Y = talentWindowPadding.y + (t2->row - 1) * 2 * talentHalfSpacing + talentPadding + talentSize;
             }
         }
         p1X += windowPos.x - offset.x;

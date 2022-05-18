@@ -834,7 +834,7 @@ namespace Engine {
         //depth is the longest path from a root talent that reaches the given talent
         std::unordered_map<std::shared_ptr<Talent>, int> maxDepthMap;
         for (auto& root : tree.talentRoots) {
-            findDepthRecursively(0, root, maxDepthMap);
+            findDepthRecursively(1, root, maxDepthMap);
         }
 
         //create a map that holds all talent per depth value
@@ -872,19 +872,9 @@ namespace Engine {
         }
 
         //recursively position row nodes
-        bool isPositioned = autoPositionRowNodes(0, talentDepths);
+        bool isPositioned = autoPositionRowNodes(1, talentDepths);
 
-        //make tree symmetric
         return;
-        int midPointIndex = (7 - 1) / 2;
-        for (auto& depthTalentsPair : talentDepths) {
-            int talentsInRow = static_cast<int>(depthTalentsPair.second.size());
-            for (int i = 0; i < talentsInRow; i++) {
-                std::shared_ptr<Talent> talent = depthTalentsPair.second[i];
-                int middleTalentIndex = (talentsInRow - 1) / 2; // or no decrement on talentsInRow
-                talent->column = midPointIndex - (middleTalentIndex - i);
-            }
-        }
     }
 
     bool autoPositionRowNodes(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
@@ -921,13 +911,13 @@ namespace Engine {
     std::vector<std::vector<int>> createPositionIndices(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
         std::vector<std::vector<int>> positions;
         std::vector<int> positionVec;
-        expandPosition(0, 0, talentDepths[row].size(), 3, positionVec, positions);
+        expandPosition(0, 1, talentDepths[row].size(), 3, positionVec, positions);
 
         return positions;
     }
 
     void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, std::vector<std::vector<int>>& positions) {
-        for (int i = currentPos; i < additionalPos + currentIndex + 1; i++) {
+        for (int i = currentPos; i < additionalPos + currentIndex + 2; i++) {
             positionVec.push_back(i);
             if (positionVec.size() == indexSize) {
                 positions.push_back(positionVec);
