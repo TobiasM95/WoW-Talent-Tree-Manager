@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <vector>
 #include <memory>
 #include <filesystem>
@@ -48,6 +49,8 @@ namespace TTM {
 
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;
+
+		std::vector<std::tuple<std::shared_ptr<Engine::Talent>, int, int, int>> treeEditorTempReplacedTalents;
 
 		std::shared_ptr<Engine::Talent> treeEditorCreationTalent = std::make_shared<Engine::Talent>();
 		std::vector<int> treeEditorCreationTalentParentsPlaceholder;
