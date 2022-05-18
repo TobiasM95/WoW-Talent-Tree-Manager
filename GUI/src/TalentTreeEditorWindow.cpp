@@ -182,10 +182,10 @@ namespace TTM {
                     }
 
                     ImGui::Text("Talent row:");
-                    ImGui::SliderInt("##talentCreationRowSlider", &uiData.treeEditorCreationTalent->row, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationRowSlider", &uiData.treeEditorCreationTalent->row, 1, 20, "%d", ImGuiSliderFlags_NoInput);
 
                     ImGui::Text("Talent column:");
-                    ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 1, 20, "%d", ImGuiSliderFlags_NoInput);
 
                     std::vector<std::string> talentComboList;
                     std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap;
@@ -280,10 +280,10 @@ namespace TTM {
                         }
 
                         ImGui::Text("Talent row:");
-                        ImGui::SliderInt("##talentEditRowSlider", &uiData.treeEditorSelectedTalent->row, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditRowSlider", &uiData.treeEditorSelectedTalent->row, 1, 20, "%d", ImGuiSliderFlags_NoInput);
 
                         ImGui::Text("Talent column:");
-                        ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 1, 20, "%d", ImGuiSliderFlags_NoInput);
 
                         std::vector<std::string> talentComboList;
                         std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap;
@@ -431,9 +431,17 @@ namespace TTM {
                 //Call all the different modal popups that can appear
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
                 ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-                if (ImGui::BeginPopupModal("Talent spot occupied", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+                if (ImGui::BeginPopupModal("Talent spot occupied##creation", NULL, ImGuiWindowFlags_AlwaysAutoResize))
                 {
                     ImGui::Text("Talent spot (%d, %d) is already occupied!", uiData.treeEditorCreationTalent->row, uiData.treeEditorCreationTalent->column);
+
+                    ImGui::SetItemDefaultFocus();
+                    if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                    ImGui::EndPopup();
+                }
+                if (ImGui::BeginPopupModal("Talent spot occupied##update", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("Talent spot (%d, %d) is already occupied!", uiData.treeEditorSelectedTalent->row, uiData.treeEditorSelectedTalent->column);
 
                     ImGui::SetItemDefaultFocus();
                     if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -704,7 +712,7 @@ namespace TTM {
         //check if position is not occupied
         for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
             if (uiData.treeEditorCreationTalent->row == talent.second->row && uiData.treeEditorCreationTalent->column == talent.second->column) {
-                ImGui::OpenPopup("Talent spot occupied");
+                ImGui::OpenPopup("Talent spot occupied##creation");
                 return;
             }
         }
@@ -777,7 +785,7 @@ namespace TTM {
             if (uiData.treeEditorSelectedTalent->index == talent.second->index)
                 continue;
             if (uiData.treeEditorSelectedTalent->row == talent.second->row && uiData.treeEditorSelectedTalent->column == talent.second->column) {
-                ImGui::OpenPopup("Talent spot occupied");
+                ImGui::OpenPopup("Talent spot occupied##update");
                 return;
             }
         }
@@ -1020,8 +1028,8 @@ namespace TTM {
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         for (auto& talent : tree.orderedTalents) {
-            float posX = talentWindowPaddingX + talent.second->column * 2 * talentHalfSpacing + talentPadding;
-            float posY = talentWindowPaddingY + talent.second->row * 2 * talentHalfSpacing + talentPadding;
+            float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
+            float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             bool changedColor = false;
             if (uiData.treeEditorSelectedTalent != nullptr && uiData.treeEditorSelectedTalent->index == talent.second->index) {
                 ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.2f, 0.2f));
@@ -1137,12 +1145,21 @@ namespace TTM {
         float deltaGridY = deltaMouseTot.y / gridUnit / uiData.treeEditorZoomFactor;
         int resDeltaGridX = deltaGridX >= 0 ? static_cast<int>(deltaGridX + 0.5) : static_cast<int>(deltaGridX - 0.5);
         int resDeltaGridY = deltaGridY >= 0 ? static_cast<int>(deltaGridY + 0.5) : static_cast<int>(deltaGridY - 0.5);
+        if (uiData.treeEditorDragTalentStartRow + resDeltaGridY < 1) {
+            resDeltaGridY = -uiData.treeEditorDragTalentStartRow + 1;
+        }
+        if (uiData.treeEditorDragTalentStartColumn + resDeltaGridX < 1) {
+            resDeltaGridX = -uiData.treeEditorDragTalentStartColumn + 1;
+        }
 
         for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
             if (dragTalent.second->index != talent.second->index
                 && uiData.treeEditorDragTalentStartRow + resDeltaGridY == talent.second->row
                 && uiData.treeEditorDragTalentStartColumn + resDeltaGridX == talent.second->column) {
-                return;
+                talent.second->row = dragTalent.second->row;
+                talent.second->column = dragTalent.second->column;
+
+                break;
             }
         }
         dragTalent.second->row = uiData.treeEditorDragTalentStartRow + resDeltaGridY;

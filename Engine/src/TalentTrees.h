@@ -27,8 +27,8 @@ namespace Engine {
         std::string nameSwitch = "";
         std::vector<std::string> descriptions;
         TalentType type = TalentType::ACTIVE;
-        int row = 0;
-        int column = 0;
+        int row = 1;
+        int column = 4;
         int points = 0;
         int maxPoints = 1;
         int pointsRequired = 0;
