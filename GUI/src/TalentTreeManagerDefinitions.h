@@ -46,6 +46,8 @@ namespace TTM {
 	struct UIData {
 		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
+		bool showAboutPopup = false;
+		bool showHelpPopup = false;
 
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;
@@ -60,6 +62,14 @@ namespace TTM {
 		std::shared_ptr<Engine::Talent> treeEditorSelectedTalent = nullptr;
 		std::vector<int> treeEditorSelectedTalentParentsPlaceholder;
 		std::vector<int> treeEditorSelectedTalentChildrenPlaceholder;
+
+		int treeEditorShiftAllRowsBy = 0;
+		int treeEditorShiftAllColumnsBy = 0;
+		int minRowShift, maxRowShift, minColShift, maxColShift;
+
+		int treeEditorEmptyActiveNodes = 0;
+		int treeEditorEmptyPassiveNodes = 0;
+		int treeEditorEmptySwitchNodes = 0;
 
 		int treeEditorPresetClassCombo = 0;
 		int treeEditorPresetSpecCombo = 0;

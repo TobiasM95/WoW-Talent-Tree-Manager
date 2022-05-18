@@ -100,6 +100,17 @@ namespace TTM {
 
             placeTreeEditorTreeElements(uiData, talentTreeCollection);
 
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            if (ImGui::BeginPopupModal("Cycle detected", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Talent will introduce a cycle to the tree and invalidate it! Check talent children and parents and remove talents that will create a loop.");
+
+                ImGui::SetItemDefaultFocus();
+                if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
+
             ImGui::EndChild();
         }
         ImGui::End();
@@ -420,6 +431,117 @@ namespace TTM {
                 }
                 if (ImGui::CollapsingHeader("Misc."))
                 {
+                    ImGui::Text("Shift all talents");
+                    ImGui::Spacing();
+                    ImGui::Text("Shift rows by:");
+                    ImGui::SliderInt("##treeEditAllRowSlider", &uiData.treeEditorShiftAllRowsBy, -19, 19, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::Text("Shift columns by:");
+                    ImGui::SliderInt("##reeEditAllColumnSlider", &uiData.treeEditorShiftAllColumnsBy, -19, 19, "%d", ImGuiSliderFlags_NoInput);
+                    if (ImGui::Button("Shift talents")) {
+                        uiData.minRowShift = -19;
+                        uiData.maxRowShift = 19;
+                        uiData.minColShift = -19;
+                        uiData.maxColShift = 19;
+                        bool shiftExceedsBounds = false;
+                        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+                            uiData.minRowShift = 1 - talent.second->row > uiData.minRowShift ? 1 - talent.second->row : uiData.minRowShift;
+                            uiData.minColShift = 1 - talent.second->column > uiData.minColShift ? 1 - talent.second->column : uiData.minColShift;
+                            uiData.maxRowShift = 20 - talent.second->row < uiData.maxRowShift ? 20 - talent.second->row : uiData.maxRowShift;
+                            uiData.maxColShift = 20 - talent.second->column < uiData.maxColShift ? 20 - talent.second->column : uiData.maxColShift;
+                            if (uiData.treeEditorShiftAllRowsBy < uiData.minRowShift || uiData.treeEditorShiftAllRowsBy > uiData.maxRowShift
+                                || uiData.treeEditorShiftAllColumnsBy < uiData.minColShift || uiData.treeEditorShiftAllColumnsBy > uiData.maxColShift) {
+                                shiftExceedsBounds = true;
+                            }
+                        }
+                        if (shiftExceedsBounds) {
+                            ImGui::OpenPopup("Shift value exceeds bounds");
+                        }
+                        else {
+                            for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+                                talent.second->row += uiData.treeEditorShiftAllRowsBy;
+                                talent.second->column += uiData.treeEditorShiftAllColumnsBy;
+                            }
+                            uiData.treeEditorShiftAllRowsBy = 0;
+                            uiData.treeEditorShiftAllColumnsBy = 0;
+                        }
+                    }
+                    ImGui::Separator();
+                    ImGui::Text("Place empty nodes");
+                    ImGui::Spacing();
+                    ImGui::Text("Active talents:");
+                    ImGui::SliderInt("##treeEditEmptyActiveSlider", &uiData.treeEditorEmptyActiveNodes, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::Text("Passive talents:");
+                    ImGui::SliderInt("##treeEditEmptyPassiveSlider", &uiData.treeEditorEmptyPassiveNodes, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::Text("Switch talents:");
+                    ImGui::SliderInt("##treeEditEmptySwitchSlider", &uiData.treeEditorEmptySwitchNodes, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    if (ImGui::Button("Insert talents")) {
+                        if (uiData.treeEditorEmptyActiveNodes + uiData.treeEditorEmptyPassiveNodes
+                            + uiData.treeEditorEmptySwitchNodes + talentTreeCollection.activeTree().orderedTalents.size() > 20 * 20) { 
+                            ImGui::OpenPopup("Too many talents inserted");
+                        }
+                        else {
+                            int an = uiData.treeEditorEmptyActiveNodes;
+                            int pn = uiData.treeEditorEmptyPassiveNodes;
+                            int sn = uiData.treeEditorEmptySwitchNodes;
+                            int currentPosX = 1;
+                            int currentPosY = 1;
+                            int currentTalentIndex = talentTreeCollection.activeTree().maxID;
+                            std::vector<std::vector<int>> occupiedSpots;
+                            occupiedSpots.resize(20, std::vector<int>(20));
+                            for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+                                occupiedSpots[talent.second->row - 1][talent.second->column - 1] = 1;
+                            }
+                            while (an + pn + sn > 0) {
+                                if (currentPosX == 21 && currentPosY == 20) {
+                                    throw std::logic_error("Trying to insert talents beyond 400!");
+                                }
+                                if (occupiedSpots[currentPosY - 1][currentPosX - 1] == 0) {
+                                    std::shared_ptr<Engine::Talent> talent = std::make_shared<Engine::Talent>();
+                                    talent->row = currentPosY;
+                                    talent->column = currentPosX;
+                                    talent->index = currentTalentIndex;
+                                    currentTalentIndex++;
+                                    if (an > 0) {
+                                        an--;
+                                        talent->type = Engine::TalentType::ACTIVE;
+                                        talent->descriptions.push_back("");
+                                    }
+                                    else if (pn > 0) {
+                                        pn--;
+                                        talent->type = Engine::TalentType::PASSIVE;
+                                        talent->descriptions.push_back("");
+                                    }
+                                    else {
+                                        sn--;
+                                        talent->type = Engine::TalentType::SWITCH;
+                                        talent->descriptions.push_back("");
+                                        talent->descriptions.push_back("");
+                                    }
+                                    talentTreeCollection.activeTree().talentRoots.push_back(talent);
+                                    occupiedSpots[currentPosY - 1][currentPosX - 1] = 1;
+                                }
+                                currentPosX++;
+                                if (currentPosX == 11 && currentPosY < 20) {
+                                    currentPosY++;
+                                    currentPosX = 1;
+                                }
+                                else if (currentPosX == 11 && currentPosY == 20) {
+                                    currentPosY = 1;
+                                }
+                                else if (currentPosX == 21 && currentPosY < 20) {
+                                    currentPosY++;
+                                    currentPosX = 11;
+                                }
+                            }
+                            Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                            Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+
+                            talentTreeCollection.activeTree().presetName = "custom";
+                            Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                            clearSolvingProcess(uiData, talentTreeCollection);
+                        }
+                    }
+                    ImGui::Separator();
                     ImGui::Text("Warning: Potentially very long runtime/unstable (beta feature)");
                     if (ImGui::Button("Auto position talents in tree")) {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
@@ -451,6 +573,34 @@ namespace TTM {
                 if (ImGui::BeginPopupModal("Cycle detected", NULL, ImGuiWindowFlags_AlwaysAutoResize))
                 {
                     ImGui::Text("Talent will introduce a cycle to the tree and invalidate it! Check talent children and parents and remove talents that will create a loop.");
+
+                    ImGui::SetItemDefaultFocus();
+                    if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                    ImGui::EndPopup();
+                }
+                if (ImGui::BeginPopupModal("Shift value exceeds bounds", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("The selected values for row and column shifts exceed the bounds. Please select smaller values.");
+                    ImGui::Text("Minimum row shift:");
+                    ImGui::SameLine(ImGui::CalcTextSize("@@@@@@@@@@@@@@@@@").x);
+                    ImGui::Text("%d", uiData.minRowShift);
+                    ImGui::Text("Maximum row shift:");
+                    ImGui::SameLine(ImGui::CalcTextSize("@@@@@@@@@@@@@@@@@").x);
+                    ImGui::Text("%d", uiData.maxRowShift);
+                    ImGui::Text("Minimum column shift:");
+                    ImGui::SameLine(ImGui::CalcTextSize("@@@@@@@@@@@@@@@@@").x);
+                    ImGui::Text("%d", uiData.minColShift);
+                    ImGui::Text("Maximum column shift:");
+                    ImGui::SameLine(ImGui::CalcTextSize("@@@@@@@@@@@@@@@@@").x);
+                    ImGui::Text("%d", uiData.maxColShift);
+
+                    ImGui::SetItemDefaultFocus();
+                    if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                    ImGui::EndPopup();
+                }
+                if (ImGui::BeginPopupModal("Too many talents inserted", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("Trying to insert too many talents into the tree. Max number of talents is 400.");
 
                     ImGui::SetItemDefaultFocus();
                     if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -1043,7 +1193,41 @@ namespace TTM {
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             if (ImGui::Button(std::to_string(talent.second->index).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
-                selectTalent(uiData, talentTreeCollection, talent);
+                //Quick parent/child connection edit
+                if (ImGui::IsKeyDown(ImGuiKey_LeftAlt) && uiData.treeEditorSelectedTalent != nullptr) {
+                    //make pressed button the parent
+                    std::shared_ptr<Engine::Talent> parentTalent;
+                    std::shared_ptr<Engine::Talent> childTalent;
+                    if (ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
+                        parentTalent = talent.second;
+                        childTalent = talentTreeCollection.activeTree().orderedTalents[uiData.treeEditorSelectedTalent->index];
+                    }
+                    //make pressed button the child
+                    else {
+                        childTalent = talent.second;
+                        parentTalent = talentTreeCollection.activeTree().orderedTalents[uiData.treeEditorSelectedTalent->index];
+                    }
+                    std::vector<std::shared_ptr<Engine::Talent>>::iterator alreadyLinkedChild = std::find(parentTalent->children.begin(), parentTalent->children.end(), childTalent);
+                    if (alreadyLinkedChild == parentTalent->children.end()) {
+                        parentTalent->children.push_back(childTalent);
+                        childTalent->parents.push_back(parentTalent);
+                        if (Engine::checkIfTreeHasCycle(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree)) {
+                            parentTalent->children.pop_back();
+                            childTalent->parents.pop_back();
+
+                            ImGui::OpenPopup("Cycle detected");
+                        }
+                    }
+                    else {
+                        std::vector<std::shared_ptr<Engine::Talent>>::iterator alreadyLinkedParent = std::find(childTalent->parents.begin(), childTalent->parents.end(), parentTalent);
+                        childTalent->parents.erase(alreadyLinkedParent);
+                        parentTalent->children.erase(alreadyLinkedChild);
+                    }
+                }
+                //regular talent selection
+                else {
+                    selectTalent(uiData, talentTreeCollection, talent);
+                }
             }
             ImGui::PopStyleVar(2);
             ImGui::PopFont();

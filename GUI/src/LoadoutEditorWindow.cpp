@@ -217,8 +217,8 @@ namespace TTM {
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         for (auto& talent : tree.orderedTalents) {
-            float posX = talentWindowPaddingX + talent.second->column * 2 * talentHalfSpacing + talentPadding;
-            float posY = talentWindowPaddingY + talent.second->row * 2 * talentHalfSpacing + talentPadding;
+            float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
+            float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             bool changedColor = false;
             if (talent.second->points > 0 && talent.second->points < talent.second->maxPoints) {
                 ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.2f, 0.9f, 0.2f));
