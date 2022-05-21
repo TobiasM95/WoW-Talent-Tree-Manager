@@ -17,7 +17,7 @@ namespace Engine {
     /*
     DFS cyclicity check of a tree
     */
-    bool checkIfTreeHasCycle(TalentTree& tree) {
+    bool checkIfTreeHasCycle(const TalentTree& tree) {
         TreeCycleCheckFormat tccf = createTreeCycleCheckFormat(tree);
         return checkCyclicity(tccf);
     }
@@ -25,7 +25,7 @@ namespace Engine {
     /*
     DFS cyclicity check of a tree if a talent would be inserted
     */
-    bool checkIfTalentInsertsCycle(TalentTree& tree, std::shared_ptr<Talent> talent) {
+    bool checkIfTalentInsertsCycle(const TalentTree& tree, Talent_s talent) {
         TreeCycleCheckFormat tccf = createTreeCycleCheckFormat(tree, talent);
         return checkCyclicity(tccf);
     }
@@ -41,7 +41,7 @@ namespace Engine {
     /*
     Helper function to create a simple DFS cyclicity check data structure with a tree
     */
-    TreeCycleCheckFormat createTreeCycleCheckFormat(TalentTree& tree) {
+    TreeCycleCheckFormat createTreeCycleCheckFormat(const TalentTree& tree) {
         TreeCycleCheckFormat tccf;
         std::map<int, int> indexMap;
         int index = 0;
@@ -63,7 +63,7 @@ namespace Engine {
     /*
     Helper function to create a simple DFS cyclicity check data structure with a tree and a talent
     */
-    TreeCycleCheckFormat createTreeCycleCheckFormat(TalentTree& tree, std::shared_ptr<Talent> talent) {
+    TreeCycleCheckFormat createTreeCycleCheckFormat(const TalentTree& tree, Talent_s talent) {
         TreeCycleCheckFormat tccf;
         std::map<int, int> indexMap;
         int index = 0;
@@ -142,7 +142,7 @@ namespace Engine {
     /*
     Auxilliary DFS cyclicity check function, see https://en.wikipedia.org/wiki/Topological_sorting for pseudo code
     */
-    bool cycleCheckVisitTalent(int talentIndex, std::vector<int>& talents, std::vector<std::vector<int>> children) {
+    bool cycleCheckVisitTalent(int talentIndex, std::vector<int>& talents, vec2d<int> children) {
         bool hasCycle = false;
         if (talents[talentIndex] == 1)
             return true;
@@ -183,7 +183,7 @@ namespace Engine {
         }
     }
 
-    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, std::shared_ptr<Talent> talent) {
+    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
         nodeTalentPoints[talent->index] = talent->maxPoints;
         if (talent->index >= maxID)
             maxID = talent->index + 1;
@@ -207,20 +207,20 @@ namespace Engine {
             orderTalentsRecursively(tree.orderedTalents, root);
         }
     }
-    void orderTalentsRecursively(std::map<int, std::shared_ptr<Talent>>& talentMap, std::shared_ptr<Talent> talent) {
+    void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s talent) {
         talentMap[talent->index] = talent;
         for (auto& child : talent->children) {
             orderTalentsRecursively(talentMap, child);
         }
     }
 
-    void addChild(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child) {
+    void addChild(Talent_s parent, Talent_s child) {
         parent->children.push_back(child);
     }
-    void addParent(std::shared_ptr<Talent> child, std::shared_ptr<Talent> parent) {
+    void addParent(Talent_s child, Talent_s parent) {
         child->parents.push_back(parent);
     }
-    void pairTalents(std::shared_ptr<Talent> parent, std::shared_ptr<Talent> child) {
+    void pairTalents(Talent_s parent, Talent_s child) {
         parent->children.push_back(child);
         child->parents.push_back(parent);
     }
@@ -228,7 +228,7 @@ namespace Engine {
     /*
     Transforms a skilled talent tree into a string. That string does not contain the tree structure, just the selected talents.
     */
-    std::string getTalentString(TalentTree tree) {
+    std::string getTalentString(const TalentTree& tree) {
         std::unordered_map<std::string, int> treeRepresentation;
         for (auto& root : tree.talentRoots) {
             addTalentAndChildrenToMap(root, treeRepresentation);
@@ -239,7 +239,7 @@ namespace Engine {
     /*
     Prints some informations about a specific tree.
     */
-    void printTree(TalentTree tree) {
+    void printTree(const TalentTree& tree) {
         std::cout << tree.name << std::endl;
         std::cout << "Unspent talent points:\t" << tree.unspentTalentPoints << std::endl;
         std::cout << "Spent talent points:\t" << tree.spentTalentPoints << std::endl;
@@ -263,7 +263,7 @@ namespace Engine {
     /*
     Creates a full tree string representation that's compatible to import trees in parse tree
     */
-    std::string createTreeStringRepresentation(TalentTree tree) {
+    std::string createTreeStringRepresentation(const TalentTree& tree) {
         //Tree definition string: TreeString;TalentString;TalentString;...
         //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
         //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
@@ -307,7 +307,7 @@ namespace Engine {
     /*
     Helper function that adds a talent and its children recursively to a map (and adds talent switch information if existing).
     */
-    void addTalentAndChildrenToMap(std::shared_ptr<Talent> talent, std::unordered_map<std::string, int>& treeRepresentation) {
+    void addTalentAndChildrenToMap(Talent_s talent, std::unordered_map<std::string, int>& treeRepresentation) {
         std::string talentIndex = std::to_string(talent->index);
         if (talent->type == TalentType::SWITCH) {
             talentIndex += std::to_string(talent->talentSwitch);
@@ -340,8 +340,8 @@ namespace Engine {
     /*
     Helper function that creates a talent with the given index name and max points.
     */
-    std::shared_ptr<Talent> createTalent(TalentTree& tree, std::string name, int maxPoints) {
-        std::shared_ptr<Talent> talent = std::make_shared<Talent>();
+    Talent_s createTalent(TalentTree& tree, std::string name, int maxPoints) {
+        Talent_s talent = std::make_shared<Talent>();
         talent->index = tree.maxID;
         tree.nodeCount++;
         tree.maxTalentPoints += maxPoints;
@@ -353,7 +353,7 @@ namespace Engine {
         return talent;
     }
 
-    TalentTree restorePreset(TalentTree& tree, std::string treeRep) {
+    TalentTree restorePreset(const TalentTree& tree, std::string treeRep) {
         TalentTree presetTree = parseCustomTree(treeRep);
         presetTree.activeSkillsetIndex = -1;
         presetTree.loadout.clear();
@@ -421,7 +421,7 @@ namespace Engine {
                 continue;
 
             int index = 1;
-            std::map<int, std::shared_ptr<Talent>>::iterator it;
+            std::map<int, Talent_s>::iterator it;
             for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
             {
                 int points = std::stoi(skillsetParts[index]);
@@ -445,8 +445,8 @@ namespace Engine {
     */
     TalentTree parseCustomTree(std::string treeRep) {
         std::vector<std::string> treeDefinitionParts = splitString(treeRep, ";");
-        std::vector<std::shared_ptr<Talent>> roots;
-        std::unordered_map<int, std::shared_ptr<Talent>> talentTree;
+        TalentVec roots;
+        std::unordered_map<int, Talent_s> talentTree;
         TalentTree tree;
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
@@ -461,7 +461,7 @@ namespace Engine {
             if (treeDefinitionParts[i] == "")
                 break;
             std::vector<std::string> talentInfo = splitString(treeDefinitionParts[i], ":");
-            std::shared_ptr<Talent> t;
+            Talent_s t;
             int talentIndex = std::stoi(talentInfo[0]);
             if (talentTree.count(talentIndex)) {
                 t = talentTree[talentIndex];
@@ -497,7 +497,7 @@ namespace Engine {
                     addParent(t, talentTree[parentIndex]);
                 }
                 else {
-                    std::shared_ptr<Talent> parentTalent = std::make_shared<Talent>();
+                    Talent_s parentTalent = std::make_shared<Talent>();
                     parentTalent->index = parentIndex;
                     talentTree[parentIndex] = parentTalent;
                     addParent(t, parentTalent);
@@ -511,7 +511,7 @@ namespace Engine {
                     addChild(t, talentTree[childIndex]);
                 }
                 else {
-                    std::shared_ptr<Talent> childTalent = std::make_shared<Talent>();
+                    Talent_s childTalent = std::make_shared<Talent>();
                     childTalent->index = childIndex;
                     talentTree[childIndex] = childTalent;
                     addChild(t, childTalent);
@@ -576,7 +576,7 @@ namespace Engine {
         return changed;
     }
 
-    bool validateSkillset(TalentTree tree, std::shared_ptr<TalentSkillset> skillset) {
+    bool validateSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
         for (auto& indexPointsPair : skillset->assignedSkillPoints) {
             if (indexPointsPair.second == 0) {
                 continue;
@@ -700,7 +700,7 @@ namespace Engine {
     /*
     Visualizes a given tree with graphviz. Needs to be installed and the paths have to exist. Generally not safe to use without careful skimming through it.
     */
-    void visualizeTree(TalentTree tree, std::string suffix) {
+    void visualizeTree(const TalentTree& tree, std::string suffix) {
         std::cout << "Visualize tree " << tree.name << " " << suffix << std::endl;
         std::string directory = "C:\\Users\\Tobi\\Documents\\Programming\\CodeSnippets\\WowTalentTrees\\TreesInputsOutputs";
 
@@ -752,7 +752,7 @@ namespace Engine {
     /*
     Helper function that recursively gets the specific graphviz visualization string for a talent and its children.
     */
-    void getTalentInfos(std::shared_ptr<Talent> talent, std::unordered_map<int, std::string>& talentInfos) {
+    void getTalentInfos(Talent_s talent, std::unordered_map<int, std::string>& talentInfos) {
         talentInfos[talent->index] = "[label=\"" + std::to_string(talent->index) + " " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + getSwitchLabel(talent) + "\" fillcolor=" + getFillColor(talent) + " shape=" + getShape(talent->type) + "]";
         for (auto& child : talent->children) {
             getTalentInfos(child, talentInfos);
@@ -762,7 +762,7 @@ namespace Engine {
     /*
     Helper function that returns the appropriate fill color for different types of talents and points allocations.
     */
-    std::string getFillColor(std::shared_ptr<Talent> talent) {
+    std::string getFillColor(Talent_s talent) {
         if (talent->points == 0) {
             return "white";
         }
@@ -797,7 +797,7 @@ namespace Engine {
     /*
     Helper function that displays the switch state of a given talent.
     */
-    std::string getSwitchLabel(std::shared_ptr<Talent> talent) {
+    std::string getSwitchLabel(Talent_s talent) {
         if (talent->type == TalentType::SWITCH)
             return "";
         if (talent->talentSwitch == 0)
@@ -812,7 +812,7 @@ namespace Engine {
     Helper function that recursively creates the graphviz visualization string of all talent connections. (We only need connections from parents to children.
     Also, graph is defined as strict digraph so we don't need to take care of duplicate arrows.
     */
-    void visualizeTalentConnections(std::shared_ptr<Talent> root, std::stringstream& connections) {
+    void visualizeTalentConnections(Talent_s root, std::stringstream& connections) {
         if (root->children.size() == 0)
             return;
         connections << root->index << " -> {";
@@ -832,13 +832,13 @@ namespace Engine {
         //TTMTODO: Completely rework this system or maybe don't include it at all
         //find depth for each talent
         //depth is the longest path from a root talent that reaches the given talent
-        std::unordered_map<std::shared_ptr<Talent>, int> maxDepthMap;
+        std::unordered_map<Talent_s, int> maxDepthMap;
         for (auto& root : tree.talentRoots) {
             findDepthRecursively(1, root, maxDepthMap);
         }
 
         //create a map that holds all talent per depth value
-        std::map<int, std::vector<std::shared_ptr<Talent>>> talentDepths;
+        std::map<int, TalentVec> talentDepths;
         for (auto& talentDepthPair : maxDepthMap) {
             talentDepths[talentDepthPair.second].push_back(talentDepthPair.first);
         }
@@ -877,8 +877,8 @@ namespace Engine {
         return;
     }
 
-    bool autoPositionRowNodes(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
-        std::vector<std::vector<int>> positions = createPositionIndices(row, talentDepths);
+    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths) {
+        vec2d<int> positions = createPositionIndices(row, talentDepths);
         bool isPositioned = false;
         for (auto& positionVec : positions) {
             do
@@ -908,15 +908,15 @@ namespace Engine {
         return isPositioned;
     }
 
-    std::vector<std::vector<int>> createPositionIndices(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
-        std::vector<std::vector<int>> positions;
+    vec2d<int> createPositionIndices(int row, std::map<int, TalentVec>& talentDepths) {
+        vec2d<int> positions;
         std::vector<int> positionVec;
         expandPosition(0, 1, talentDepths[row].size(), 3, positionVec, positions);
 
         return positions;
     }
 
-    void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, std::vector<std::vector<int>>& positions) {
+    void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, vec2d<int>& positions) {
         for (int i = currentPos; i < additionalPos + currentIndex + 2; i++) {
             positionVec.push_back(i);
             if (positionVec.size() == indexSize) {
@@ -929,8 +929,8 @@ namespace Engine {
         }
     }
 
-    bool checkForCrossing(int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
-        std::vector<std::vector<int>> edges;
+    bool checkForCrossing(int row, std::map<int, TalentVec>& talentDepths) {
+        vec2d<int> edges;
         appendEdges(edges, row, talentDepths);
         bool crossing = false;
         for (int i = 0; i < static_cast<int>(edges.size()) - 1; i++) {
@@ -944,7 +944,7 @@ namespace Engine {
         return crossing;
     }
 
-    void appendEdges(std::vector<std::vector<int>>& edges, int row, std::map<int, std::vector<std::shared_ptr<Talent>>>& talentDepths) {
+    void appendEdges(vec2d<int>& edges, int row, std::map<int, TalentVec>& talentDepths) {
         if (!talentDepths.count(row)) {
             return;
         }
@@ -1003,7 +1003,7 @@ namespace Engine {
         }
     };
 
-    void findDepthRecursively(int depth, std::shared_ptr<Talent> talent, std::unordered_map<std::shared_ptr<Talent>, int>& maxDepthMap) {
+    void findDepthRecursively(int depth, Talent_s talent, std::unordered_map<Talent_s, int>& maxDepthMap) {
         if(depth > maxDepthMap[talent])
             maxDepthMap[talent] = depth;
         for (auto& child : talent->children) {
@@ -1025,17 +1025,17 @@ namespace Engine {
     /*
     Creates all the necessary single point talents to replace a multi point talent and inserts them with correct parents/children
     */
-    void expandTalentAndAdvance(std::shared_ptr<Talent> talent, int maxTalentPoints) {
+    void expandTalentAndAdvance(Talent_s talent, int maxTalentPoints) {
         if (talent->maxPoints > 1) {
-            std::vector<std::shared_ptr<Talent>> talentParts;
-            std::vector<std::shared_ptr<Talent>> originalChildren;
+            TalentVec talentParts;
+            TalentVec originalChildren;
             for (auto& child : talent->children) {
                 originalChildren.push_back(child);
             }
             talent->children.clear();
             talentParts.push_back(talent);
             for (int i = 0; i < talent->maxPoints - 1; i++) {
-                std::shared_ptr<Talent> t = std::make_shared<Talent>();
+                Talent_s t = std::make_shared<Talent>();
                 t->index = talent->index * maxTalentPoints + i;
                 t->expansionIndex = i + 1;
                 t->isExpanded = true;
@@ -1053,7 +1053,7 @@ namespace Engine {
                 talentParts[talent->maxPoints - 1]->children = originalChildren;
             }
             for (auto& child : originalChildren) {
-                std::vector<std::shared_ptr<Talent>>::iterator i = std::find(child->parents.begin(), child->parents.end(), talent);
+                TalentVec::iterator i = std::find(child->parents.begin(), child->parents.end(), talent);
                 if (i != child->parents.end()) {
                     (*i) = talentParts[talent->maxPoints - 1];
                 }
@@ -1088,17 +1088,17 @@ namespace Engine {
     /*
     Creates all the necessary multi point talents to replace a single point talent and inserts them with correct parents/children
     */
-    void contractTalentAndAdvance(std::shared_ptr<Talent>& talent) {
+    void contractTalentAndAdvance(Talent_s& talent) {
         //std::vector<std::string> splitIndex = splitString(talent->index, "_");
         if (talent->isExpanded) {
             //std::vector<std::string> splitName = splitString(talent->name, "_");
             //talent has to be contracted
             //expanded Talents have 1 child at most and talent chain is at least 2 talents long
             //std::string baseIndex = splitIndex[0];
-            std::vector<std::shared_ptr<Talent>> talentParts;
-            std::shared_ptr<Talent> currTalent = talent;
+            TalentVec talentParts;
+            Talent_s currTalent = talent;
             talentParts.push_back(talent);
-            std::shared_ptr<Talent> childTalent = talent->children[0];
+            Talent_s childTalent = talent->children[0];
             int minIndex = talent->index;
             while (extractOrigTalentName(childTalent->name) == talent->name) {
                 minIndex = minIndex > childTalent->index ? childTalent->index : minIndex;
@@ -1108,7 +1108,7 @@ namespace Engine {
                     break;
                 childTalent = currTalent->children[0];
             }
-            std::shared_ptr<Talent> t = std::make_shared<Talent>();
+            Talent_s t = std::make_shared<Talent>();
             t->index = minIndex;
             t->name = talent->name;
             t->type = talent->type;
@@ -1195,7 +1195,7 @@ namespace Engine {
                     continue;
 
                 int index = 1;
-                std::map<int, std::shared_ptr<Talent>>::iterator it;
+                std::map<int, Talent_s>::iterator it;
                 for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
                 {
                     int points = std::stoi(skillsetParts[index]);
@@ -1225,11 +1225,11 @@ namespace Engine {
         return rep;
     }
 
-    std::string createActiveSkillsetStringRepresentation(TalentTree& tree) {
+    std::string createActiveSkillsetStringRepresentation(const TalentTree& tree) {
         return createSkillsetStringRepresentation(tree.loadout[tree.activeSkillsetIndex]);
     }
 
-    std::string createAllSkillsetsStringRepresentation(TalentTree& tree) {
+    std::string createAllSkillsetsStringRepresentation(const TalentTree& tree) {
         std::string rep;
         for (auto& skillset : tree.loadout) {
             rep += createSkillsetStringRepresentation(skillset);
@@ -1237,7 +1237,7 @@ namespace Engine {
         return rep;
     }
 
-    bool checkTalentValidity(TalentTree& tree) {
+    bool checkTalentValidity(const TalentTree& tree) {
         int pointsSpent = tree.loadout[tree.activeSkillsetIndex]->talentPointsSpent;
         int maxPointsRequirement = 0;
         //first check if at least one parent is filled
@@ -1259,8 +1259,8 @@ namespace Engine {
         }
 
         //second check if all talents fulfill their points requirement
-        std::vector<std::vector<std::shared_ptr<Talent>>> reqSortedTalents;
-        reqSortedTalents.resize(maxPointsRequirement + 1, std::vector<std::shared_ptr<Talent>>());
+        std::vector<TalentVec> reqSortedTalents;
+        reqSortedTalents.resize(maxPointsRequirement + 1, TalentVec());
         for (auto& talent : tree.orderedTalents) {
             reqSortedTalents[talent.second->pointsRequired].push_back(talent.second);
         }

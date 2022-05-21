@@ -5,30 +5,30 @@
 #include "imgui_stdlib.h"
 
 namespace TTM {
-    static void AttachLoadoutSolverTooltip(Engine::Talent talent)
+    static void AttachLoadoutSolverTooltip(Engine::Talent_s talent)
     {
         if (ImGui::IsItemHovered())
         {
-            std::string idLabel = "Id: " + std::to_string(talent.index) + ", Pos: (" + std::to_string(talent.row) + ", " + std::to_string(talent.column) + ")";
-            if (talent.type != Engine::TalentType::SWITCH) {
+            std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
+            if (talent->type != Engine::TalentType::SWITCH) {
                 ImGui::BeginTooltip();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent.getName().c_str());
+                ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 std::string talentTypeString;
-                switch (talent.type) {
+                switch (talent->type) {
                 case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
                 ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), talentTypeString.c_str());
-                ImGui::Text(("Points: " + std::to_string(talent.points) + "/" + std::to_string(talent.maxPoints) + ", points required: " + std::to_string(talent.pointsRequired)).c_str());
+                ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
 
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent.getDescription().c_str());
+                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -36,15 +36,15 @@ namespace TTM {
             else {
                 ImGui::BeginTooltip();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent.getName().c_str());
+                ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), "(switch)");
-                ImGui::Text(("Points: " + std::to_string(talent.points) + "/" + std::to_string(talent.maxPoints) + ", points required: " + std::to_string(talent.pointsRequired)).c_str());
+                ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent.getDescription().c_str());
+                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
 
                 ImGui::EndTooltip();
             }
@@ -292,7 +292,7 @@ namespace TTM {
             if (changedColor) {
                 ImGui::PopStyleColor(4);
             }
-            AttachLoadoutSolverTooltip(*talent.second);
+            AttachLoadoutSolverTooltip(talent.second);
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
                     talent.second,
@@ -412,15 +412,15 @@ namespace TTM {
     }
 
     int getResultsPage(UIData& uiData, TalentTreeCollection& talentTreeCollection, int pageNumber) {
-        std::vector<std::pair<std::uint64_t, int>>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
-        int maxPage = (filteredResults.size() - 1) / uiData.loadoutSolverResultsPerPage;
+        std::vector<std::pair<Engine::SIND, int>>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
+        int maxPage = static_cast<int>((filteredResults.size() - 1) / uiData.loadoutSolverResultsPerPage);
         if (pageNumber == uiData.loadoutSolverBufferedPage) {
             return maxPage;
         }
         uiData.loadoutSolverBufferedPage = pageNumber;
         uiData.loadoutSolverPageResults.clear();
         int maxIndex = (pageNumber + 1) * uiData.loadoutSolverResultsPerPage;
-        maxIndex = maxIndex > filteredResults.size() ? filteredResults.size() : maxIndex;
+        maxIndex = maxIndex > filteredResults.size() ? static_cast<int>(filteredResults.size()) : maxIndex;
         if (maxIndex == 0) {
             return maxPage;
         }

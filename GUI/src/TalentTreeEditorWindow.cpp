@@ -9,34 +9,34 @@
 
 namespace TTM {
     //Talent tooltip for the tree editor view
-    static void AttachTalentEditTooltip(Engine::Talent talent)
+    static void AttachTalentEditTooltip(Engine::Talent_s talent)
     {
         if (ImGui::IsItemHovered())
         {
-            std::string idLabel = "Id: " + std::to_string(talent.index) + ", Pos: (" + std::to_string(talent.row) + ", " + std::to_string(talent.column) + ")";
-            if (talent.type != Engine::TalentType::SWITCH) {
+            std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
+            if (talent->type != Engine::TalentType::SWITCH) {
                 ImGui::BeginTooltip();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent.getName().c_str());
+                ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 std::string talentTypeString;
-                switch (talent.type) {
+                switch (talent->type) {
                 case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
                 ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), talentTypeString.c_str());
-                ImGui::Text(("Max points: " + std::to_string(talent.maxPoints) + ", points required: " + std::to_string(talent.pointsRequired)).c_str());
+                ImGui::Text(("Max points: " + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
 
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                for (int i = 0; i < talent.maxPoints - 1; i++) {
-                    ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent.descriptions[i].c_str());
+                for (int i = 0; i < talent->maxPoints - 1; i++) {
+                    ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[i].c_str());
                     ImGui::Separator();
                 }
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent.descriptions[talent.maxPoints - 1].c_str());
+                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[talent->maxPoints - 1].c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -44,28 +44,28 @@ namespace TTM {
             else {
                 ImGui::BeginTooltip();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent.name.c_str());
+                ImGui::Text(talent->name.c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), "(switch)");
-                ImGui::Text(("Max points: 1, points required: " + std::to_string(talent.pointsRequired)).c_str());
+                ImGui::Text(("Max points: 1, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent.descriptions[0].c_str());
+                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[0].c_str());
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent.nameSwitch.c_str());
+                ImGui::Text(talent->nameSwitch.c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), "(switch)");
-                ImGui::Text(("Max points: 1, points required: " + std::to_string(talent.pointsRequired)).c_str());
+                ImGui::Text(("Max points: 1, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent.descriptions[1].c_str());
+                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[1].c_str());
 
                 ImGui::EndTooltip();
             }
@@ -200,7 +200,7 @@ namespace TTM {
                     ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 1, 20, "%d", ImGuiSliderFlags_NoInput);
 
                     std::vector<std::string> talentComboList;
-                    std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap;
+                    std::map<int, Engine::Talent_s> comboIndexTalentMap;
                     struct Funcs { static bool ItemGetter(void* data, int n, const char** out_str) { *out_str = ((*((std::vector<std::string>*)data))[n].c_str()); return true; } };
                     if (uiData.treeEditorCreationTalentParentsPlaceholder.size() > 0 || uiData.treeEditorCreationTalentChildrenPlaceholder.size() > 0) {
                         //create array of talentIndex: talentName strings to show in combo menu and create map<comboindex, talent> to select correct talent
@@ -298,7 +298,7 @@ namespace TTM {
                         ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 1, 20, "%d", ImGuiSliderFlags_NoInput);
 
                         std::vector<std::string> talentComboList;
-                        std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap;
+                        std::map<int, Engine::Talent_s> comboIndexTalentMap;
                         struct Funcs { static bool ItemGetter(void* data, int n, const char** out_str) { *out_str = ((*((std::vector<std::string>*)data))[n].c_str()); return true; } };
                         if (uiData.treeEditorSelectedTalentParentsPlaceholder.size() > 0 || uiData.treeEditorSelectedTalentChildrenPlaceholder.size() > 0) {
                             //create array of talentIndex: talentName strings to show in combo menu and create map<comboindex, talent> to select correct talent
@@ -349,7 +349,7 @@ namespace TTM {
                             uiData.treeEditorSelectedTalentChildrenPlaceholder.clear();
 
                             if (uiData.treeEditorSelectedTalent->parents.size() > 0 || uiData.treeEditorSelectedTalent->children.size() > 0) {
-                                std::map<std::shared_ptr<Engine::Talent>, int> comboIndexTalentMap;
+                                std::map<Engine::Talent_s, int> comboIndexTalentMap;
                                 //create array of talentIndex: talentName strings to show in combo menu and create map<comboindex, talent> to select correct talent
                                 //not sure if it's guaranteed to have talentIndex == comboindex, therefore map
                                 int comboIndex = 0;
@@ -486,7 +486,7 @@ namespace TTM {
                             int currentPosX = 1;
                             int currentPosY = 1;
                             int currentTalentIndex = talentTreeCollection.activeTree().maxID;
-                            std::vector<std::vector<int>> occupiedSpots;
+                            Engine::vec2d<int> occupiedSpots;
                             occupiedSpots.resize(20, std::vector<int>(20));
                             for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
                                 occupiedSpots[talent.second->row - 1][talent.second->column - 1] = 1;
@@ -496,7 +496,7 @@ namespace TTM {
                                     throw std::logic_error("Trying to insert talents beyond 400!");
                                 }
                                 if (occupiedSpots[currentPosY - 1][currentPosX - 1] == 0) {
-                                    std::shared_ptr<Engine::Talent> talent = std::make_shared<Engine::Talent>();
+                                    Engine::Talent_s talent = std::make_shared<Engine::Talent>();
                                     talent->row = currentPosY;
                                     talent->column = currentPosX;
                                     talent->index = currentTalentIndex;
@@ -859,7 +859,7 @@ namespace TTM {
         ImGui::End();
     }
 
-    void validateAndInsertTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap) {
+    void validateAndInsertTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, Engine::Talent_s> comboIndexTalentMap) {
         //check if position is not occupied
         for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
             if (uiData.treeEditorCreationTalent->row == talent.second->row && uiData.treeEditorCreationTalent->column == talent.second->column) {
@@ -911,7 +911,7 @@ namespace TTM {
             std::remove_if(
                 talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.talentRoots.begin(),
                 talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.talentRoots.end(),
-                [](std::shared_ptr<Engine::Talent> root) { return root->parents.size() > 0; }),
+                [](Engine::Talent_s root) { return root->parents.size() > 0; }),
             talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.talentRoots.end());
         //-> if talent has no parent, add to root
         if (uiData.treeEditorCreationTalent->parents.size() == 0)
@@ -930,7 +930,7 @@ namespace TTM {
         uiData.treeEditorCreationTalentChildrenPlaceholder.clear();
     }
 
-    void validateTalentUpdate(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, std::shared_ptr<Engine::Talent>> comboIndexTalentMap) {
+    void validateTalentUpdate(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, Engine::Talent_s> comboIndexTalentMap) {
         //check if position is not occupied
         for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
             if (uiData.treeEditorSelectedTalent->index == talent.second->index)
@@ -966,11 +966,11 @@ namespace TTM {
             uiData.treeEditorSelectedTalent->children.push_back(comboIndexTalentMap[index]);
         }
 
-        std::shared_ptr<Engine::Talent> originalTalent = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents[
+        Engine::Talent_s originalTalent = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents[
             uiData.treeEditorSelectedTalent->index
         ];
-        std::vector<std::shared_ptr<Engine::Talent>> origParents = originalTalent->parents;
-        std::vector<std::shared_ptr<Engine::Talent>> origChildren = originalTalent->children;
+        std::vector<Engine::Talent_s> origParents = originalTalent->parents;
+        std::vector<Engine::Talent_s> origChildren = originalTalent->children;
 
         //check cycles (replace child/parent vectors, don't discard old -> check cycle -> if no change back and continue, if yes, then change back and abort)
         originalTalent->parents = uiData.treeEditorSelectedTalent->parents;
@@ -1196,8 +1196,8 @@ namespace TTM {
                 //Quick parent/child connection edit
                 if (ImGui::IsKeyDown(ImGuiKey_LeftAlt) && uiData.treeEditorSelectedTalent != nullptr) {
                     //make pressed button the parent
-                    std::shared_ptr<Engine::Talent> parentTalent;
-                    std::shared_ptr<Engine::Talent> childTalent;
+                    Engine::Talent_s parentTalent;
+                    Engine::Talent_s childTalent;
                     if (ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
                         parentTalent = talent.second;
                         childTalent = talentTreeCollection.activeTree().orderedTalents[uiData.treeEditorSelectedTalent->index];
@@ -1207,7 +1207,7 @@ namespace TTM {
                         childTalent = talent.second;
                         parentTalent = talentTreeCollection.activeTree().orderedTalents[uiData.treeEditorSelectedTalent->index];
                     }
-                    std::vector<std::shared_ptr<Engine::Talent>>::iterator alreadyLinkedChild = std::find(parentTalent->children.begin(), parentTalent->children.end(), childTalent);
+                    std::vector<Engine::Talent_s>::iterator alreadyLinkedChild = std::find(parentTalent->children.begin(), parentTalent->children.end(), childTalent);
                     if (alreadyLinkedChild == parentTalent->children.end()) {
                         parentTalent->children.push_back(childTalent);
                         childTalent->parents.push_back(parentTalent);
@@ -1219,7 +1219,7 @@ namespace TTM {
                         }
                     }
                     else {
-                        std::vector<std::shared_ptr<Engine::Talent>>::iterator alreadyLinkedParent = std::find(childTalent->parents.begin(), childTalent->parents.end(), parentTalent);
+                        std::vector<Engine::Talent_s>::iterator alreadyLinkedParent = std::find(childTalent->parents.begin(), childTalent->parents.end(), parentTalent);
                         childTalent->parents.erase(alreadyLinkedParent);
                         parentTalent->children.erase(alreadyLinkedChild);
                     }
@@ -1254,7 +1254,7 @@ namespace TTM {
                 }
             }
             else {
-                AttachTalentEditTooltip(*talent.second);
+                AttachTalentEditTooltip(talent.second);
             }
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
@@ -1296,7 +1296,7 @@ namespace TTM {
         }
     }
 
-    void selectTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::pair<int, std::shared_ptr<Engine::Talent>> talent) {
+    void selectTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::pair<int, Engine::Talent_s> talent) {
         uiData.talentJustSelected = true;
         uiData.treeEditorSelectedTalent = std::make_shared<Engine::Talent>(*talent.second);
         uiData.treeEditPage = TreeEditPage::TreeEdit;
@@ -1304,7 +1304,7 @@ namespace TTM {
         uiData.treeEditorSelectedTalentChildrenPlaceholder.clear();
 
         if (uiData.treeEditorSelectedTalent->parents.size() > 0 || uiData.treeEditorSelectedTalent->children.size() > 0) {
-            std::map<std::shared_ptr<Engine::Talent>, int> comboIndexTalentMap;
+            std::map<Engine::Talent_s, int> comboIndexTalentMap;
             //create array of talentIndex: talentName strings to show in combo menu and create map<comboindex, talent> to select correct talent
             //not sure if it's guaranteed to have talentIndex == comboindex, therefore map
             int comboIndex = 0;
@@ -1323,7 +1323,7 @@ namespace TTM {
     void repositionTalent(
         UIData& uiData,
         TalentTreeCollection& talentTreeCollection,
-        std::pair<int, std::shared_ptr<Engine::Talent>> dragTalent,
+        std::pair<int, Engine::Talent_s> dragTalent,
         ImVec2 mouseClickedPos,
         ImVec2 deltaMouseTot,
         ImVec2 buttonPos)
@@ -1354,7 +1354,7 @@ namespace TTM {
                 }
                 if (!alreadyInserted) {
                     uiData.treeEditorTempReplacedTalents.push_back(
-                        std::tuple<std::shared_ptr<Engine::Talent>, int, int, int>(talent.second, talent.second->row, talent.second->column, talent.second->index)
+                        std::tuple<Engine::Talent_s, int, int, int>(talent.second, talent.second->row, talent.second->column, talent.second->index)
                     );
                 }
                 talent.second->row = dragTalent.second->row;
@@ -1374,7 +1374,7 @@ namespace TTM {
         int restoredTalentPositions;
         do {
             restoredTalentPositions = 0;
-            std::vector<std::tuple<std::shared_ptr<Engine::Talent>, int, int, int> >::iterator it = uiData.treeEditorTempReplacedTalents.begin();
+            std::vector<std::tuple<Engine::Talent_s, int, int, int> >::iterator it = uiData.treeEditorTempReplacedTalents.begin();
 
             while (it != uiData.treeEditorTempReplacedTalents.end()) {
                 bool spotFree = true;

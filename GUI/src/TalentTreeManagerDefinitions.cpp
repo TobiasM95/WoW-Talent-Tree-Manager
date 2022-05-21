@@ -4,8 +4,8 @@
 
 namespace TTM {
     void drawArrowBetweenTalents(
-        std::shared_ptr<Engine::Talent> t1,
-        std::shared_ptr<Engine::Talent> t2,
+        Engine::Talent_s t1,
+        Engine::Talent_s t2,
         ImDrawList* drawList,
         ImVec2 windowPos,
         ImVec2 offset,
