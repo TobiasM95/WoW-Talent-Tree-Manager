@@ -24,13 +24,13 @@ namespace Engine {
         TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(tree);
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
-        std::vector<std::pair<std::uint64_t, int>> combinations;
+        std::vector<std::pair<SIND, int>> combinations;
         int allCombinations = 0;
 
         //iterate through all possible combinations in order:
         //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
         //weight of combination = factor of 2 for every switch talent in path
-        std::uint64_t visitedTalents = 0;
+        SIND visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
         std::vector<int> possibleTalents;
@@ -46,7 +46,7 @@ namespace Engine {
         }
         std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
 
-        std::vector<std::vector<std::pair<std::uint64_t, int>>> allCombinationsVector;
+        vec2d<std::pair<SIND, int>> allCombinationsVector;
         allCombinationsVector.push_back(combinations);
         sortedTreeDAG.allCombinations = allCombinationsVector;
 
@@ -59,14 +59,14 @@ namespace Engine {
     */
     void visitTalent(
         int talentIndex,
-        std::uint64_t visitedTalents,
+        SIND visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector<std::pair<std::uint64_t, int>>& combinations,
+        std::vector<std::pair<SIND, int>>& combinations,
         int& allCombinations
     ) {
         /*
@@ -82,7 +82,7 @@ namespace Engine {
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
         //check if path is complete
         if (talentPointsLeft == 0) {
-            combinations.push_back(std::pair<std::uint64_t, int>(visitedTalents, currentMultiplier));
+            combinations.push_back(std::pair<SIND, int>(visitedTalents, currentMultiplier));
             allCombinations += currentMultiplier;
             return;
         }
@@ -124,7 +124,7 @@ namespace Engine {
         sortedTreeDAG.processedTree = processedTree;
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
-        std::vector<std::vector<std::pair<std::uint64_t, int>>> combinations;
+        vec2d<std::pair<SIND, int>> combinations;
         combinations.resize(talentPoints);
         std::vector<int> allCombinations;
         allCombinations.resize(talentPoints, 0);
@@ -132,7 +132,7 @@ namespace Engine {
         //iterate through all possible combinations in order:
         //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
         //weight of combination = factor of 2 for every switch talent in path
-        std::uint64_t visitedTalents = 0;
+        SIND visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
         std::vector<int> possibleTalents;
@@ -157,14 +157,14 @@ namespace Engine {
     */
     void visitTalentParallel(
         int talentIndex,
-        std::uint64_t visitedTalents,
+        SIND visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<int> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        std::vector < std::vector < std::pair< std::uint64_t, int>>>& combinations,
+        vec2d<std::pair< SIND, int>>& combinations,
         std::vector<int>& allCombinations
     ) {
         /*
@@ -179,7 +179,7 @@ namespace Engine {
         talentPointsLeft -= 1;
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
 
-        combinations[talentPointsSpent - 1].push_back(std::pair<std::uint64_t, int>(visitedTalents, currentMultiplier));
+        combinations[talentPointsSpent - 1].push_back(std::pair<SIND, int>(visitedTalents, currentMultiplier));
         allCombinations[talentPointsSpent - 1] += currentMultiplier;
         if (talentPointsLeft == 0)
             return;
@@ -230,13 +230,13 @@ namespace Engine {
         else
             return L   (a topologically sorted order)
         */
-        std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](std::shared_ptr<Talent> a, std::shared_ptr<Talent> b) {
+        std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](Talent_s a, Talent_s b) {
             return a->pointsRequired > b->pointsRequired;
             });
         //while tree.talentRoots is not empty do
         while (tree.talentRoots.size() > 0) {
             //remove a node n from tree.talentRoots
-            std::shared_ptr<Talent> n = tree.talentRoots.front();
+            Talent_s n = tree.talentRoots.front();
             //note: terrible in theory but should not matter as vectors are small, otherwise use deque
             tree.talentRoots.erase(tree.talentRoots.begin());
             //add n to info.sortedTalents
@@ -247,7 +247,7 @@ namespace Engine {
                 //remove edge e from the graph
                 //note: it should suffice to just remove the parent in m since every node is only visited once so n->children does not have to be changed inside loop
                 if (m->parents.size() > 1) {
-                    std::vector<std::shared_ptr<Talent>>::iterator i = std::find(m->parents.begin(), m->parents.end(), n);
+                    TalentVec::iterator i = std::find(m->parents.begin(), m->parents.end(), n);
                     if (i != m->parents.end()) {
                         m->parents.erase(i);
                     }
@@ -263,7 +263,7 @@ namespace Engine {
                 if (m->parents.size() == 0) {
                     //insert m into S
                     tree.talentRoots.push_back(m);
-                    std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](std::shared_ptr<Talent> a, std::shared_ptr<Talent> b) {
+                    std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](Talent_s a, Talent_s b) {
                         return a->pointsRequired > b->pointsRequired;
                         });
                 }
@@ -290,53 +290,14 @@ namespace Engine {
     /*
     Helper function to set a talent as selected (simple bit flip function)
     */
-    inline void setTalent(std::uint64_t& talent, int index) {
+    inline void setTalent(SIND& talent, int index) {
         talent |= 1ULL << index;
-    }
-
-    /*
-    Debug function to compare the combinations of the slow legacy method with the fast counting for error checking purposes.
-    Creates two files that hold all combinations in the string representation after sorting to make file diff easy and quick.
-    */
-    void compareCombinations(const std::unordered_map<std::uint64_t, int>& fastCombinations, const std::unordered_set<std::string>& slowCombinations, std::string suffix) {
-        std::string directory = "C:\\Users\\Tobi\\Documents\\Programming\\CodeSnippets\\WowTalentTrees\\TreesInputsOutputs";
-
-        std::vector<std::string> fastCombinationsOrdered;
-        int count = 0;
-        for (auto& comb : fastCombinations) {
-            if (count++ % 100 == 0)
-                std::cout << count << std::endl;
-            TalentTree tree = parseTree(
-                "A1.0:1-+B1,B2,B3;B1.0:1-A1+C1;B2.1:2-A1+C2;B3.1:1-A1+C3;C1.0:1-B1+E1,D1;C2.0:1-B2+;C3.0:1-B3+D2,E4,D3;D1.1:2-C1+E2;D2.1:2-C3+E2;D3.1:2-C3+;E1.1:3-C1+F1;E2.2:1_0-D1,D2+F2,F3;E4.1:1-C3+F4;"
-                "F1.1:1-E1+G1,H1;F2.1:2-E2+G1;F3.1:2-E2+G3;F4.1:1-E4+G3,G4;G1.2:1_0-F1,F2+H3;G3.1:1-F3,F4+H3;G4.1:2-F4+H4;H1.2:1_0-F1+I1,I2,I3;H3.1:1-G1,G3+I3,I4;H4.0:1-G4+I4,I5;"
-                "I1.1:1-H1+J1;I2.1:1-H1+;I3.1:2-H1,H3+J3;I4.1:2-H3,H4+J3;I5.1:1-H4+J5;J1.2:1_0-I1+;J3.2:1_0-I3,I4+;J5.2:1_0-I5+;"
-            );
-            expandTreeTalents(tree);
-            //creating a treeDAG destroys all parents in the tree, but should not be necessary anyway
-            TreeDAGInfo treeDAG = createSortedMinimalDAG(tree);
-            fastCombinationsOrdered.push_back(fillOutTreeWithBinaryIndexToString(comb.first, tree, treeDAG));
-        }
-        std::sort(fastCombinationsOrdered.begin(), fastCombinationsOrdered.end());
-
-        std::ofstream output_file_fast(directory + "\\trees_comparison_" + suffix + "_fast.txt");
-        std::ostream_iterator<std::string> output_iterator_fast(output_file_fast, "\n");
-        std::copy(fastCombinationsOrdered.begin(), fastCombinationsOrdered.end(), output_iterator_fast);
-
-        std::vector<std::string> slowCombinationsOrdered;
-        for (auto& comb : slowCombinations) {
-            slowCombinationsOrdered.push_back(comb);
-        }
-        std::sort(slowCombinationsOrdered.begin(), slowCombinationsOrdered.end());
-
-        std::ofstream output_file_slow(directory + "\\trees_comparison_" + suffix + "_slow.txt");
-        std::ostream_iterator<std::string> output_iterator_slow(output_file_slow, "\n");
-        std::copy(slowCombinationsOrdered.begin(), slowCombinationsOrdered.end(), output_iterator_slow);
     }
 
     /*
     Recreates a full multi point talents TalentTree based on a uint64 index that holds selected talents. Has the option to filter out trees and visualize them.
     */
-    std::string fillOutTreeWithBinaryIndexToString(std::uint64_t comb, TalentTree tree, TreeDAGInfo treeDAG) {
+    std::string fillOutTreeWithBinaryIndexToString(SIND comb, TalentTree tree, TreeDAGInfo treeDAG) {
         bool filterFlag = false;
         for (int i = 0; i < 64; i++) {
             //check if bit is on
@@ -366,7 +327,7 @@ namespace Engine {
     /*
     Filters the skillsets that are created by the tree solver with the given filter
     */
-    void filterSolvedSkillsets(TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter) {
+    void filterSolvedSkillsets(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter) {
         //skillset has compactTalentIndex information
         //treeDAG->sortedTalents containts index->expandedTalentIndex mapping
         //therefore we need compactTalentIndex->expandedTalentIndex mapping and reverse the index->expandedTalentIndex
@@ -389,8 +350,8 @@ namespace Engine {
             }
             compactToExpandedIndexMap[talent.second->index] = indices;
         }
-        std::uint64_t includeFilter = 0;
-        std::uint64_t excludeFilter = 0;
+        SIND includeFilter = 0;
+        SIND excludeFilter = 0;
         for (auto& indexFilterPair : filter->assignedSkillPoints) {
             if (indexFilterPair.second == -1) {
                 int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][0];
@@ -406,13 +367,13 @@ namespace Engine {
             }
         }
 
-        std::vector<std::vector<std::pair<std::uint64_t, int>>> filteredCombinations;
+        vec2d<std::pair<SIND, int>> filteredCombinations;
         for (int i = 0; i < treeDAG->allCombinations.size(); i++) {
-            std::vector<std::pair<std::uint64_t, int>> combs;
+            std::vector<std::pair<SIND, int>> combs;
             for (int j = 0; j < treeDAG->allCombinations[i].size(); j++) {
-                std::uint64_t skillset = treeDAG->allCombinations[i][j].first;
+                SIND skillset = treeDAG->allCombinations[i][j].first;
                 if ((skillset & excludeFilter) == 0 && ((~skillset) & includeFilter) == 0) {
-                    combs.push_back(std::pair<std::uint64_t, int>(skillset, treeDAG->allCombinations[i][j].second));
+                    combs.push_back(std::pair<SIND, int>(skillset, treeDAG->allCombinations[i][j].second));
                 }
             }
             filteredCombinations.push_back(combs);
@@ -424,7 +385,7 @@ namespace Engine {
     /*
     Creates a skillset with a given uint64 index
     */
-    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::uint64_t skillsetIndex) {
+    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, SIND skillsetIndex) {
         std::map<int, int> expandedToCompactIndexMap;
         for (auto& talent : tree.orderedTalents) {
             for (int i = 0; i < talent.second->maxPoints; i++) {

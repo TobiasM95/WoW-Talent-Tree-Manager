@@ -8,7 +8,7 @@
 #include "imgui_stdlib.h"
 
 namespace TTM {
-	static void AttachLoadoutEditTooltip(Engine::Talent talent);
+	static void AttachLoadoutEditTooltip(Engine::Talent_s talent);
 
 	void RenderLoadoutEditorWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 

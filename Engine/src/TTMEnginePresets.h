@@ -1,8 +1,17 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
-namespace Presets {//ENGINE PRESETES
+namespace Engine {
+    template<class T>
+    using vec2d = std::vector<std::vector<T>>;
+
+    //skillset index is an unsigned 64 bit integer for now
+    using SIND = std::uint64_t;
+}
+
+namespace Presets {//ENGINE PRESETS
     enum CLASS_IDS {
         CLASS_IDS_DRUID = 0,
         CLASS_IDS_EVOKER = 1

@@ -457,7 +457,7 @@ namespace TTM {
             TalentTreeData data;
             data.tree = Engine::parseTree(line);
             col.trees.push_back(data);
-            col.activeTreeIndex = col.trees.size() - 1;
+            col.activeTreeIndex = static_cast<int>(col.trees.size() - 1);
         }
         return col;
     }

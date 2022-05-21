@@ -52,14 +52,14 @@ namespace TTM {
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;
 
-		std::vector<std::tuple<std::shared_ptr<Engine::Talent>, int, int, int>> treeEditorTempReplacedTalents;
+		std::vector<std::tuple<Engine::Talent_s, int, int, int>> treeEditorTempReplacedTalents;
 
-		std::shared_ptr<Engine::Talent> treeEditorCreationTalent = std::make_shared<Engine::Talent>();
+		Engine::Talent_s treeEditorCreationTalent = std::make_shared<Engine::Talent>();
 		std::vector<int> treeEditorCreationTalentParentsPlaceholder;
 		std::vector<int> treeEditorCreationTalentChildrenPlaceholder;
 
 		bool talentJustSelected = false;
-		std::shared_ptr<Engine::Talent> treeEditorSelectedTalent = nullptr;
+		Engine::Talent_s treeEditorSelectedTalent = nullptr;
 		std::vector<int> treeEditorSelectedTalentParentsPlaceholder;
 		std::vector<int> treeEditorSelectedTalentChildrenPlaceholder;
 
@@ -119,9 +119,9 @@ namespace TTM {
 		int loadoutSolverSkillsetResultPage = -1;
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
 		int loadoutSolverBufferedPage = -1;
-		std::vector<std::pair<std::uint64_t, int>> loadoutSolverPageResults;
+		std::vector<std::pair<Engine::SIND, int>> loadoutSolverPageResults;
 		int selectedFilteredSkillsetIndex = -1;
-		std::uint64_t selectedFilteredSkillset = 0;
+		Engine::SIND selectedFilteredSkillset = 0;
 	};
 
 	struct TalentTreeData {
@@ -161,8 +161,8 @@ namespace TTM {
 	};
 
 	void drawArrowBetweenTalents(
-		std::shared_ptr<Engine::Talent> t1,
-		std::shared_ptr<Engine::Talent> t2,
+		Engine::Talent_s t1,
+		Engine::Talent_s t2,
 		ImDrawList* drawList,
 		ImVec2 windowPos,
 		ImVec2 offset,
