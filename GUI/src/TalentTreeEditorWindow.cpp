@@ -1039,8 +1039,9 @@ namespace TTM {
                     if (getTreeNameFromFile(entry, treeName))
                         tempFileList.push_back(std::pair<std::filesystem::path, std::string>(entry, treeName));
                 }
-                catch (std::exception& e) {
+                catch (const std::ifstream::failure& e) {
                     //if file is not readable we can just ignore it, user shouldn't mingle in that folder anyway
+                    ImGui::LogText(e.what());
                     continue;
                 }
             }
@@ -1092,7 +1093,8 @@ namespace TTM {
             treeFileStream.close();
             return true;
         }
-        catch (std::exception& e) {
+        catch (const std::ofstream::failure& e) {
+            ImGui::LogText(e.what());
             return false;
         }
     }
@@ -1126,7 +1128,8 @@ namespace TTM {
             std::filesystem::remove(treeFile);
             return true;
         }
-        catch (std::exception& e) {
+        catch (const std::filesystem::filesystem_error &e) {
+            ImGui::LogText(e.what());
             return false;
         }
     }
@@ -1137,6 +1140,7 @@ namespace TTM {
     }
 
     bool getTreeNameFromFile(std::filesystem::path entry, std::string& treeName) {
+        //We checked if entry leads to valid file, so open should not crash
         bool readSuccessful = false;
         std::string line;
         std::ifstream treeFile;

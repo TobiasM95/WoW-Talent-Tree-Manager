@@ -108,7 +108,7 @@ namespace TTM {
 		std::string loadoutEditorExportActiveSkillsetString;
 		std::string loadoutEditorExportAllSkillsetsString;
 		std::string loadoutEditorImportSkillsetsString;
-		int loadoutEditorImportSkillsetsResult;
+		std::pair<int, int> loadoutEditorImportSkillsetsResult;
 
 		//############# LOADOUT SOLVER VARIABLES ########################
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;

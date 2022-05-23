@@ -568,7 +568,7 @@ namespace Engine {
         if (addNote && changed) {
             if (tree.loadoutDescription.substr(0, 9) != "TTM Note:") {
                 tree.loadoutDescription = (
-                    "TTM Note: Due to tree changes loadout has been revalidated and one or more skillset was invalidated!\n"
+                    "TTM Note:\nDue to tree changes loadout has been revalidated and one or more skillset was invalidated!\n\n"
                     + tree.loadoutDescription
                     );
             }
@@ -657,6 +657,32 @@ namespace Engine {
             talentsSelected.clear();
         }
 
+        return true;
+    }
+
+    /*
+    Helper function that checks if a skillset string is in the correct format
+    */
+    bool validateSkillsetStringFormat(TalentTree& tree, std::string skillsetString) {
+        if (skillsetString.find(";") != std::string::npos) {
+            return false;
+        }
+        std::vector<std::string> skillsetParts = splitString(skillsetString, ":");
+        if (skillsetParts.size() - 1 != tree.orderedTalents.size()) {
+            return false;
+        }
+        std::string skillsetName = skillsetParts[0];
+        if (skillsetName.find_first_not_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+        ) != std::string::npos) {
+            return false;
+        }
+        for (int i = 1; i < skillsetParts.size(); i++) {
+            if ((skillsetParts[i] == "" && i < skillsetParts.size() - 1)
+                || skillsetParts[i].find_first_not_of("0123456789") != std::string::npos) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -1180,37 +1206,37 @@ namespace Engine {
         }
     }
 
-    int importSkillsets(TalentTree& tree, std::string importString) {
-        int importedSkillsets = 0;
+    std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString) {
+        std::pair<int, int> importedSkillsets = { 0,0 };
         std::vector<std::string> skillsetsString = splitString(importString, ";");
         for (int i = 0; i < skillsetsString.size(); i++) {
-            try {
-                if (skillsetsString[i] == "")
-                    break;
-                std::vector<std::string> skillsetParts = splitString(skillsetsString[i], ":");
-                std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-                skillset->name = skillsetParts[0];
-
-                if (skillsetParts.size() - 1 != tree.orderedTalents.size())
-                    continue;
-
-                int index = 1;
-                std::map<int, Talent_s>::iterator it;
-                for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
-                {
-                    int points = std::stoi(skillsetParts[index]);
-                    skillset->assignedSkillPoints[it->first] = points;
-                    skillset->talentPointsSpent += points;
-                    index++;
-                }
-
-                if (validateSkillset(tree, skillset)) {
-                    tree.loadout.push_back(skillset);
-                    importedSkillsets++;
-                }
+            if (skillsetsString[i] == "") {
+                break;
             }
-            catch (std::exception& e) {
+            if (!validateSkillsetStringFormat(tree, skillsetsString[i])) {
+                importedSkillsets.second += 1;
                 continue;
+            }
+            std::vector<std::string> skillsetParts = splitString(skillsetsString[i], ":");
+            std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
+            skillset->name = skillsetParts[0];
+
+            if (skillsetParts.size() - 1 != tree.orderedTalents.size())
+                continue;
+
+            int index = 1;
+            std::map<int, Talent_s>::iterator it;
+            for (it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); it++)
+            {
+                int points = std::stoi(skillsetParts[index]);
+                skillset->assignedSkillPoints[it->first] = points;
+                skillset->talentPointsSpent += points;
+                index++;
+            }
+
+            if (validateSkillset(tree, skillset)) {
+                tree.loadout.push_back(skillset);
+                importedSkillsets.first += 1;
             }
         }
         return importedSkillsets;

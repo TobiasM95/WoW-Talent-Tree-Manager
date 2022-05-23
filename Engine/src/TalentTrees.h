@@ -119,6 +119,7 @@ namespace Engine {
     std::string unorderedMapToString(const std::unordered_map<std::string, int>& treeRepresentation, bool sortOutput);
     bool validateLoadout(TalentTree& tree, bool addNote);
     bool validateSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
+    bool validateSkillsetStringFormat(TalentTree& tree, std::string skillsetString);
     std::vector<std::string> splitString(std::string s, std::string delimiter);
     std::string extractOrigTalentName(std::string name);
     void visualizeTree(const TalentTree& tree, std::string suffix);
@@ -147,10 +148,15 @@ namespace Engine {
 
     void createSkillset(TalentTree& tree);
     void activateSkillset(TalentTree& tree, int index);
-    int importSkillsets(TalentTree& tree, std::string importString);
+    std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString);
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
     std::string createActiveSkillsetStringRepresentation(const TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(const TalentTree& tree);
 
+    /*
+    Checks if the currently assigned talent points fulfill all the requirements and are valid (in case
+    the user edits a skillset and tries to remove a talent point from anywhere in the tree). This is NOT
+    a skillset validation routine.
+    */
     bool checkTalentValidity(const TalentTree& tree);
 }
