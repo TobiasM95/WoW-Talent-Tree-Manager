@@ -175,7 +175,8 @@ namespace TTM {
             }
             if (ImGui::BeginPopupModal("Import skillsets result", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::Text("Imported %d skillsets!\n(Skillsets might have been discarded due to mismatched trees\nor corrupted import strings.)", uiData.loadoutEditorImportSkillsetsResult);
+                ImGui::Text("Imported %d skillsets!\n(%d skillsets might have been discarded due to mismatched trees\nor corrupted import strings.)", 
+                    uiData.loadoutEditorImportSkillsetsResult.first, uiData.loadoutEditorImportSkillsetsResult.second);
 
                 ImGui::SetItemDefaultFocus();
                 if (ImGui::Button("OK", ImVec2(120, 0))) {
@@ -254,7 +255,7 @@ namespace TTM {
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
-            if (ImGui::Button((std::to_string(talent.second->points) + "##" + talent.second->name).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+            if (ImGui::Button((std::to_string(talent.second->points) + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 //TTMTODO: loadout editor talent selection
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
                     if (talent.second->type == Engine::TalentType::SWITCH && talent.second->points > 0) {
