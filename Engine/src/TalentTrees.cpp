@@ -271,7 +271,7 @@ namespace Engine {
         treeRep << tree.presetName <<":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
         if (tree.presetName == "custom") {
             for (auto& talent : tree.orderedTalents) {
-                treeRep << talent.first << ":" << talent.second->name << ":";
+                treeRep << talent.first << ":" << cleanString(talent.second->name) << ":";
                 for (int i = 0; i < talent.second->descriptions.size() - 1; i++) {
                     treeRep << cleanString(talent.second->descriptions[i]) << ",";
                 }
@@ -370,6 +370,107 @@ namespace Engine {
         return parseCustomTree(treeRep);
     }
 
+    bool validateTreeStringFormat(std::string treeRep) {
+        //first check tree meta info line
+        std::vector<std::string> treeParts = splitString(treeRep, ";");
+        std::vector<std::string> metaInfo = splitString(treeParts[0], ":");
+        if (metaInfo.size() != 6) {
+            return false;
+        }
+        if (metaInfo[0] != "custom") {
+            try {
+                Presets::RETURN_PRESET_BY_NAME(metaInfo[0]);
+            }
+            catch (std::logic_error& e) {
+                //TTMNOTE: do something with e?
+                return false;
+            }
+        }
+        if (metaInfo[1].find_first_not_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+        ) != std::string::npos) {
+            return false;
+        }
+        if (metaInfo[4].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        if (metaInfo[5].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        int numTalents = std::stoi(metaInfo[4]);
+        int numSkillsets = std::stoi(metaInfo[5]);
+        if (metaInfo[0] == "custom") {
+            if (treeParts.size() != 1 + numTalents + numSkillsets && treeParts.size() != 2 + numTalents + numSkillsets) {
+                return false;
+            }
+            //check all talents individually
+            for (int i = 1; i < 1 + numTalents; i++) {
+                if (treeParts[i] == "" && i != treeParts.size() - 1) {
+                    return false;
+                }
+                if (!validateTalentStringFormat(treeParts[i])) {
+                    return false;
+                }
+            }
+        }
+        else {
+            if (treeParts.size() != 1 + numSkillsets && treeParts.size() != 2 + numSkillsets) {
+                return false;
+            }
+        }
+        //check all skillsets individually
+        for (int i = 1 + numTalents; i < treeParts.size(); i++) {
+            if (treeParts[i] == "" && i == treeParts.size() - 1) {
+                break;
+            }
+            if (treeParts[i] == "" && i != treeParts.size() - 1) {
+                return false;
+            }
+            if (!validateSkillsetStringFormat(numTalents, treeParts[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool validateTalentStringFormat(std::string talentString) {
+        std::vector<std::string> talentParts = splitString(talentString, ":");
+        if (talentParts.size() != 10) {
+            return false;
+        }
+        if (talentParts[0].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        if (talentParts[1].find_first_not_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _/()"
+        ) != std::string::npos) {
+            return false;
+        }
+        if (talentParts[3] != "0" && talentParts[3] != "1" && talentParts[3] != "2") {
+            return false;
+        }
+        if (talentParts[4] == "" || talentParts[4].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        if (talentParts[5] == "" || talentParts[5].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        if (talentParts[6] == "" || talentParts[6].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        if (talentParts[7] == "" || talentParts[7].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        if (talentParts[8].find_first_not_of("0123456789,") != std::string::npos) {
+            return false;
+        }
+        if (talentParts[9].find_first_not_of("0123456789,") != std::string::npos) {
+            return false;
+        }
+        return true;
+    }
+
     //Tree definition string: TreeString;TalentString;TalentString;...
     //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
     //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch
@@ -403,7 +504,7 @@ namespace Engine {
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[0];
-        tree.name = treeInfoParts[1];
+        tree.name = restoreString(treeInfoParts[1]);
         tree.treeDescription = restoreString(treeInfoParts[2]);
         tree.loadoutDescription = restoreString(treeInfoParts[3]);
         int numTalents = std::stoi(treeInfoParts[4]);
@@ -451,7 +552,7 @@ namespace Engine {
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[0];
-        tree.name = treeInfoParts[1];
+        tree.name = restoreString(treeInfoParts[1]);
         tree.treeDescription = restoreString(treeInfoParts[2]);
         tree.loadoutDescription = restoreString(treeInfoParts[3]);
         int numTalents = std::stoi(treeInfoParts[4]);
@@ -664,11 +765,18 @@ namespace Engine {
     Helper function that checks if a skillset string is in the correct format
     */
     bool validateSkillsetStringFormat(TalentTree& tree, std::string skillsetString) {
+        return validateSkillsetStringFormat(tree.orderedTalents.size(), skillsetString);
+    }
+
+    /*
+    Helper function that checks if a skillset string is in the correct format
+    */
+    bool validateSkillsetStringFormat(size_t numTalents, std::string skillsetString) {
         if (skillsetString.find(";") != std::string::npos) {
             return false;
         }
         std::vector<std::string> skillsetParts = splitString(skillsetString, ":");
-        if (skillsetParts.size() - 1 != tree.orderedTalents.size()) {
+        if (skillsetParts.size() - 1 != numTalents) {
             return false;
         }
         std::string skillsetName = skillsetParts[0];
@@ -817,6 +925,7 @@ namespace Engine {
         case TalentType::ACTIVE: return "square";
         case TalentType::PASSIVE: return "circle";
         case TalentType::SWITCH: return "octagon";
+        default: throw std::logic_error("Wrong talent type (illegal cast to TalentType enum?)!");
         }
     }
 
@@ -942,7 +1051,7 @@ namespace Engine {
         return positions;
     }
 
-    void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, vec2d<int>& positions) {
+    void expandPosition(int currentIndex, int currentPos, size_t indexSize, size_t additionalPos, std::vector<int> positionVec, vec2d<int>& positions) {
         for (int i = currentPos; i < additionalPos + currentIndex + 2; i++) {
             positionVec.push_back(i);
             if (positionVec.size() == indexSize) {
@@ -996,7 +1105,7 @@ namespace Engine {
         int s = edge2[3];
         if (a == 0 && b == 8 && c == 0 && d == 5)
             int i = 0;
-        float det;
+        int det;
         float gamma, lambda, alpha, beta;
         det = (c - a) * (s - q) - (r - p) * (d - b);
         if (det == 0) {
@@ -1023,8 +1132,8 @@ namespace Engine {
                     || (0.001f < alpha && alpha < .999f) || (0.001f < beta && beta < .999f)));
         }
         else {
-            lambda = ((s - q) * (r - a) + (p - r) * (s - b)) / det;
-            gamma = ((b - d) * (r - a) + (c - a) * (s - b)) / det;
+            lambda = ((s - q) * (r - a) + (p - r) * (s - b)) * 1.0f / det;
+            gamma = ((b - d) * (r - a) + (c - a) * (s - b)) * 1.0f / det;
             return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
         }
     };

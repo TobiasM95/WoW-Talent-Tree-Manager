@@ -138,7 +138,7 @@ namespace TTM {
                         }
                         if (ImGui::BeginListBox("##loadoutSolverTalentPointsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
                         {
-                            if (talentTreeCollection.activeTreeData().restrictTalentPoints) {
+                            if (talentTreeCollection.activeTreeData().restrictTalentPoints && talentTreeCollection.activeTree().maxTalentPoints > 0) {
                                 int rtp = talentTreeCollection.activeTreeData().restrictedTalentPoints;
                                 const bool is_selected = (uiData.loadoutSolverTalentPointSelection == rtp);
                                 if (ImGui::Selectable((std::to_string(rtp + 1) + " (" + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[rtp].size()) + ")").c_str(), is_selected)) {

@@ -55,7 +55,7 @@ namespace Presets {//ENGINE PRESETS
         1. Index (doesn't have to be starting from 0 and in order but loadouts define talent points spent for each talent ordered by index so it's easier to keep it that way)
         2. Talent name (does not have to be "A1".. this is the real talent name, if switch talent then we have 2 names separated by ",")
         3. Talent descriptions (1 description for each maxRank, or 2 if switch talent, separated by ",")
-        4. Talent type (0 is active, 1 is passive, 2 is "switch" (I think you have "choice"))
+        4. Talent type (0 is active, 1 is passive, 2 is "switch")
         5. Row position
         6. Column position
         7. Max points
