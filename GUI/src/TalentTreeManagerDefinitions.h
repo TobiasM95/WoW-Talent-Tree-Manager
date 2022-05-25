@@ -23,6 +23,8 @@ namespace TTM {
 			if (c >= 'a' && c <= 'z') return 0;
 			if (c >= '0' && c <= '9') return 0;
 			if (c == ' ') return 0;
+			if (c == ':') return 0;
+			if (c == '(' || c == ')') return 0;
 			return 1;
 		}
 	};

@@ -8,6 +8,7 @@ namespace Presets {
 		switch (classID) {
 		case CLASS_IDS_DRUID: return SPECS_DRUID;
 		case CLASS_IDS_EVOKER: return SPECS_EVOKER;
+		default: throw std::logic_error("Class ID does not exist!");
 		}
 	}
 
@@ -23,6 +24,7 @@ namespace Presets {
 			case EVOKER_SPEC_IDS_DEVASTATION: return EVOKER_DEVASTATION_PRESET;
 			}
 		}
+		default: throw std::logic_error("Combination of class ID and spec ID does not exist!");
 		}
 	}
 

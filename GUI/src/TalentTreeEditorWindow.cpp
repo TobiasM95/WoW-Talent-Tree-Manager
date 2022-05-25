@@ -709,12 +709,11 @@ namespace TTM {
                     ImGui::InputText("##treeEditorImportTalentTreeInput", &uiData.treeEditorImportTreeString);
                     ImGui::SameLine();
                     if (ImGui::Button("Import##treeEditorImportTalentTreeButton")) {
-                        try {
-                            talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
-                        }
-                        catch (const std::exception& e) {
-                            //TTMTODO: Implement proper validation method for a tree rep
+                        if (!Engine::validateTreeStringFormat(uiData.treeEditorImportTreeString)) {
                             ImGui::OpenPopup("Invalid import tree string");
+                        }
+                        else {
+                            talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
                         }
                     }
 
@@ -1100,6 +1099,8 @@ namespace TTM {
     }
 
     bool loadTreeFromFile(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        //tree file path should be valid path since the tree file list checks for that
+        //only way to invalid it is if user manually deletes/changes files since last validation
         try {
             std::filesystem::path treeFile = uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].first;
             std::string treeRepresentation;
@@ -1111,12 +1112,18 @@ namespace TTM {
                 {
                     std::getline(treeFileStream, treeRepresentation);
                     treeFileStream.close();
-                    talentTreeCollection.activeTree() = Engine::parseTree(treeRepresentation);
-                    return true;
+                    if (Engine::validateTreeStringFormat(treeRepresentation)) {
+                        talentTreeCollection.activeTree() = Engine::parseTree(treeRepresentation);
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
                 }
             }
         }
-        catch (const std::exception& e) {
+        catch (const std::ifstream::failure& e) {
+            ImGui::LogText(e.what());
             return false;
         }
         return false;

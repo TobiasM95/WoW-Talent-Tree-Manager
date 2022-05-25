@@ -275,11 +275,11 @@ namespace Engine {
             std::vector<int> child_indices(talent->children.size() + 1);
             child_indices[0] = talent->type == TalentType::SWITCH ? 2 : 1;
             for (int i = 0; i < talent->children.size(); i++) {
-                ptrdiff_t pos = std::distance(info.sortedTalents.begin(), std::find(info.sortedTalents.begin(), info.sortedTalents.end(), talent->children[i]));
+                size_t pos = static_cast<size_t>(std::distance(info.sortedTalents.begin(), std::find(info.sortedTalents.begin(), info.sortedTalents.end(), talent->children[i])));
                 if (pos >= info.sortedTalents.size()) {
                     throw std::logic_error("child does not appear in info.sortedTalents");
                 }
-                child_indices[i + 1] = pos;
+                child_indices[i + 1] = static_cast<int>(pos);
             }
             info.minimalTreeDAG.push_back(child_indices);
         }

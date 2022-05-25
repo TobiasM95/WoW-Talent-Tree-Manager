@@ -110,6 +110,8 @@ namespace Engine {
     inline std::string restoreString(std::string s);
     std::string createTreeStringRepresentation(const TalentTree& tree);
     Talent_s createTalent(TalentTree& tree, std::string name, int maxPoints);
+    bool validateTreeStringFormat(std::string treeRep);
+    bool validateTalentStringFormat(std::string talentString);
     TalentTree restorePreset(const TalentTree& tree, std::string treeRep);
     TalentTree loadTreePreset(std::string treeRep);
     TalentTree parseTree(std::string treeRep);
@@ -120,6 +122,7 @@ namespace Engine {
     bool validateLoadout(TalentTree& tree, bool addNote);
     bool validateSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
     bool validateSkillsetStringFormat(TalentTree& tree, std::string skillsetString);
+    bool validateSkillsetStringFormat(size_t numTalents, std::string skillsetString);
     std::vector<std::string> splitString(std::string s, std::string delimiter);
     std::string extractOrigTalentName(std::string name);
     void visualizeTree(const TalentTree& tree, std::string suffix);
@@ -133,7 +136,7 @@ namespace Engine {
     void autoPositionTreeNodes(TalentTree& tree);
     bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths);
     vec2d<int> createPositionIndices(int row, std::map<int, TalentVec>& talentDepths);
-    void expandPosition(int currentIndex, int currentPos, int indexSize, int additionalPos, std::vector<int> positionVec, vec2d<int>& positions);
+    void expandPosition(int currentIndex, int currentPos, size_t indexSize, size_t additionalPos, std::vector<int> positionVec, vec2d<int>& positions);
     void findDepthRecursively(int depth, Talent_s talent, std::unordered_map<Talent_s, int>& maxDepthMap);
     bool checkForCrossing(int row, std::map<int, TalentVec>& talentDepths);
     bool intersects(std::vector<int> edge1, std::vector<int> edge2);
