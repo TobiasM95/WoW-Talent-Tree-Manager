@@ -125,7 +125,11 @@ namespace TTM {
             }
             ImGui::SameLine();
             if (ImGui::Button("Save/Load Trees", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
-                uiData.treeEditPage = TreeEditPage::SaveLoadTree;
+                if (uiData.treeEditPage != TreeEditPage::SaveLoadTree) {
+                    uiData.treeEditPage = TreeEditPage::SaveLoadTree;
+                    uiData.treeEditorImportTreeString = "";
+                    uiData.treeEditorExportTreeString = "";
+                }
             }
             ImGui::Spacing();
             switch (uiData.treeEditPage) {
@@ -714,6 +718,7 @@ namespace TTM {
                         }
                         else {
                             talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
+                            uiData.treeEditorSelectedTalent = nullptr;
                         }
                     }
 
