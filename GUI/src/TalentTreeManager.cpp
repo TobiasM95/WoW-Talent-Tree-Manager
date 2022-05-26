@@ -192,7 +192,7 @@ namespace TTM {
                 ImGui::OpenPopup("Create new tree");
             }
             if (ImGui::TabItemButton("X", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
-                ImGui::OpenPopup("CloseAllConfirmation");
+                ImGui::OpenPopup("Close all confirmation");
 
             if (ImGui::BeginPopupModal("Create new tree", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
@@ -227,46 +227,71 @@ namespace TTM {
                 }
                 ImGui::EndPopup();
             }
-            if (ImGui::BeginPopup("CloseAllConfirmation"))
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            if (ImGui::BeginPopupModal("Close all confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 ImGui::Text("Close all tabs?");
-                ImGui::SameLine();
-                if (ImGui::Button("Yes")) {
+                if (ImGui::Button("Yes", ImVec2(50, 0))) {
                     talentTreeCollection.trees.clear();
                     talentTreeCollection.activeTreeIndex = -1;
                     uiData.editorView = EditorView::None;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(50, 0))) {
+                    uiData.deleteTreeIndex = -1;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndPopup();
             }
 
             // Submit our regular tabs
-            size_t deleteTreeIndex = talentTreeCollection.trees.size();
             for (int n = 0; n < talentTreeCollection.trees.size(); )
             {
                 bool open = true;
                 ImGuiTabItemFlags flag = ImGuiTabItemFlags_None;
-                if (ImGui::BeginTabItem((talentTreeCollection.trees[n].tree.name + "##" + std::to_string(n)).c_str(), &open, flag))
+                if (ImGui::BeginTabItem((talentTreeCollection.trees[n].tree.name + "###treetab" + std::to_string(n)).c_str(), &open, flag))
                 {
-                    talentTreeCollection.activeTreeIndex = n;
+                    if (open) {
+                        talentTreeCollection.activeTreeIndex = n;
+                    }
                     RenderTreeViewTabs(uiData, talentTreeCollection);
                     ImGui::EndTabItem();
                 }
 
                 if (!open) {
-                    deleteTreeIndex = n;
+                    uiData.deleteTreeIndex = n;
                 }
                 else
                     n++;
             }
-            if (deleteTreeIndex < talentTreeCollection.trees.size()) {
-                talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + deleteTreeIndex);
-                talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+            if (uiData.deleteTreeIndex >= 0) {
+                ImGui::OpenPopup("Delete tree confirmation");
             }
-            if (talentTreeCollection.trees.size() == 0) {
-                uiData.editorView = EditorView::None;
+            center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            if (ImGui::BeginPopupModal("Delete tree confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Delete the tree? This can not be undone!");
+                if (ImGui::Button("Yes", ImVec2(50, 0))) {
+                    if (uiData.deleteTreeIndex > 0 && uiData.deleteTreeIndex < talentTreeCollection.trees.size()) {
+                        talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
+                        talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                    }
+                    if (talentTreeCollection.trees.size() == 0) {
+                        uiData.editorView = EditorView::None;
+                    }
+                    uiData.deleteTreeIndex = -1;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(50, 0))) {
+                    uiData.deleteTreeIndex = -1;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
             }
-
             ImGui::EndTabBar();
         }
     }

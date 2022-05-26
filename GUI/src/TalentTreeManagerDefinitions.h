@@ -51,6 +51,8 @@ namespace TTM {
 		bool showAboutPopup = false;
 		bool showHelpPopup = false;
 
+		int deleteTreeIndex = -1;
+
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;
 
