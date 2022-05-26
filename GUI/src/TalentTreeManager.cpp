@@ -214,7 +214,7 @@ namespace TTM {
                     "##treeEditorCreationPresetSpecCombo",
                     &uiData.treeEditorPresetSpecCombo,
                     Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
-                    IM_ARRAYSIZE(Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo))
+                    Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo)
                 );
                 //ImGui::SameLine();
                 if (ImGui::Button("Load preset", ImVec2(-0.01f, 0))) { 

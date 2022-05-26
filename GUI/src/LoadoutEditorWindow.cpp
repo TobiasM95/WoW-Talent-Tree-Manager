@@ -18,13 +18,13 @@ namespace TTM {
                 case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
-                ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), talentTypeString.c_str());
+                ImGui::TextUnformattedColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), talentTypeString.c_str());
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
 
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
+                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -40,7 +40,7 @@ namespace TTM {
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
+                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
 
                 ImGui::EndTooltip();
             }
