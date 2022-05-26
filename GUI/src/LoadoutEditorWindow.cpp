@@ -221,6 +221,17 @@ namespace TTM {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             bool changedColor = false;
+            bool talentDisabled = false;
+            bool isParentFilled = talent.second->parents.size() == 0;
+            for (auto& parent : talent.second->parents) {
+                if (parent->points == parent->maxPoints) {
+                    isParentFilled = true;
+                    break;
+                }
+            }
+            if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent || !isParentFilled) {
+                talentDisabled = true;
+            }
             if (talent.second->points > 0 && talent.second->points < talent.second->maxPoints) {
                 ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.2f, 0.9f, 0.2f));
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.25f, 1.0f, 0.25f));
@@ -255,6 +266,9 @@ namespace TTM {
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            if (talentDisabled) {
+                ImGui::BeginDisabled();
+            }
             if (ImGui::Button((std::to_string(talent.second->points) + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 //TTMTODO: loadout editor talent selection
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
@@ -264,13 +278,6 @@ namespace TTM {
                     }
                 }
                 else {
-                    bool isParentFilled = talent.second->parents.size() == 0;
-                    for (auto& parent : talent.second->parents) {
-                        if (parent->points == parent->maxPoints) {
-                            isParentFilled = true;
-                            break;
-                        }
-                    }
                     if (isParentFilled && talentTreeCollection.activeSkillset()->talentPointsSpent >= talent.second->pointsRequired && talent.second->points < talent.second->maxPoints) {
                         talent.second->points += 1;
                         talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
@@ -304,6 +311,9 @@ namespace TTM {
                         talent.second->talentSwitch = 0;
                     }
                 }
+            }
+            if (talentDisabled) {
+                ImGui::EndDisabled();
             }
             ImGui::PopStyleVar(2);
             ImGui::PopFont();
