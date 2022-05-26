@@ -22,13 +22,13 @@ namespace TTM {
                 case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
-                ImGui::TextColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), talentTypeString.c_str());
+                ImGui::TextUnformattedColored(ImVec4(0.92f, 0.44f, 0.44f, 1.0f), talentTypeString.c_str());
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
 
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
+                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -44,7 +44,7 @@ namespace TTM {
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
+                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->getDescription().c_str());
 
                 ImGui::EndTooltip();
             }
@@ -77,6 +77,16 @@ namespace TTM {
             }
 
             placeLoadoutSolverTreeElements(uiData, talentTreeCollection);
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            if (ImGui::BeginPopupModal("Talent tree too large", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Talent tree has too many possible talent points!\nMaximum number of possible talent points spent is 64.");
+
+                ImGui::SetItemDefaultFocus();
+                if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
 
             ImGui::EndChild();
         }
@@ -187,16 +197,6 @@ namespace TTM {
                 ImGui::EndPopup();
             }
             ImGui::End();
-        }
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-        if (ImGui::BeginPopupModal("Talent tree too large", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-        {
-            ImGui::Text("Talent tree has too many possible talent points!\nMaximum number of possible talent points spent is 64.");
-
-            ImGui::SetItemDefaultFocus();
-            if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
-            ImGui::EndPopup();
         }
     }
 
