@@ -12,8 +12,8 @@ namespace Engine {
     Todo: Create a bulk count algorithm that does not employ early stopping if talent tree can't be filled anymore but keeps track of all sub tree binary indices
     to do all different talent points calculations in a single run
     */
-    std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree) {
-        tree.unspentTalentPoints = tree.maxTalentPoints;
+    std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree, int talentPointsLimit) {
+        tree.unspentTalentPoints = talentPointsLimit;
         int talentPoints = tree.unspentTalentPoints;
         //expand notes in tree
         expandTreeTalents(tree);
@@ -110,9 +110,9 @@ namespace Engine {
     Parallel version of fast configuration counting that runs slower for individual Ns (where N is the amount of available talent points and N >= smallest path from top to bottom)
     compared to single N count but includes all combinations for 1 up to N talent points.
     */
-    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree) {
+    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree, int talentPointsLimit) {
         std::shared_ptr<TalentTree> processedTree = std::make_shared<TalentTree>(parseTree(createTreeStringRepresentation(tree)));
-        tree.unspentTalentPoints = tree.maxTalentPoints;
+        tree.unspentTalentPoints = talentPointsLimit;
         int talentPoints = tree.unspentTalentPoints;
         //expand notes in tree
         expandTreeTalents(*processedTree);
