@@ -115,6 +115,8 @@ namespace TTM {
 		std::pair<int, int> loadoutEditorImportSkillsetsResult;
 
 		//############# LOADOUT SOLVER VARIABLES ########################
+		const int loadoutSolverMaxTalentPoints = 64;
+		int loadoutSolverTalentPointLimit = 1;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
 		int loadoutSolverAllCombinationsAdded;
 		int loadoutSolverTalentPointSelection = -1;

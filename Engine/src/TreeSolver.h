@@ -24,8 +24,8 @@ namespace Engine {
         vec2d<std::pair<SIND, int>> filteredCombinations;
     }; 
 
-    std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree);
-    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree);
+    std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree, int talentPointsLimit);
+    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree, int talentPointsLimit);
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
     void visitTalent(
         int talentIndex,
