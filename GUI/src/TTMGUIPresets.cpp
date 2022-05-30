@@ -1,6 +1,6 @@
 /*
 	WoW Talent Tree Manager is an application for creating/editing/sharing talent trees and setups.
-	Copyright(C) 2022 TobiasM95
+	Copyright(C) 2022 Tobias Mielich
 
 	This program is free software : you can redistribute it and /or modify
 	it under the terms of the GNU General Public License as published by
