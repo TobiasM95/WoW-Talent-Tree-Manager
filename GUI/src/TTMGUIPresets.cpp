@@ -222,4 +222,292 @@ namespace Presets {
 		//colors[ImGuiCol_TabUnfocused] = ImVec4();
 		//colors[ImGuiCol_TabUnfocusedActive] = ImVec4();
 	}
+
+	/*
+	Don't forget to call RESET_STATS_BAR_COLORS after calling this function and rendering the status bar!
+	*/
+	void SET_STATUS_BAR_COLOR(STYLES style, std::string presetName) {
+		if (presetName.find("deathknight_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.77f, 0.12f, 0.23f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			return;
+		}
+		if (presetName.find("demonhunter_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.64f, 0.19f, 0.79f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			return;
+		}
+		if (presetName.find("druid_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(1.f, 0.49f, 0.04f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("evoker_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.2f, 0.58f, 0.5f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("hunter_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.67f, 0.83f, 0.45f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("mage_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.25f, 0.78f, 0.92f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("monk_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.0f, 1.f, 0.6f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("paladin_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.96f, 0.55f, 0.73f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("priest_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(1.f, 1.f, 1.f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("rogue_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(1.f, 0.96f, 0.41f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("shaman_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.f, 0.44f, 0.87f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			return;
+		}
+		if (presetName.find("warlock_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.53f, 0.53f, 0.93f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+		if (presetName.find("warrior_") != std::string::npos) {
+			ImGui::PushStyleColor(ImGuiCol_MenuBarBg, ImVec4(0.78f, 0.61f, 0.43f, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			return;
+		}
+
+		ImGuiStyle& imStyle = ImGui::GetStyle();
+		ImVec4* colors = imStyle.Colors;
+		ImGui::PushStyleColor(ImGuiCol_MenuBarBg, colors[ImGuiCol_MenuBarBg]);
+		ImGui::PushStyleColor(ImGuiCol_Text, colors[ImGuiCol_Text]);
+	}
+
+	void RESET_STATUS_BAR_COLOR() {
+		ImGui::PopStyleColor(2);
+	}
+
+	/*
+	Don't forget to call RESET_STATS_BAR_COLORS after calling this function and rendering the status bar!
+	*/
+	void SET_TAB_ITEM_COLOR(STYLES style, std::string presetName) {
+		float regularDelta = -0.05f;
+		float activeDelta = 0.0f;
+		float hoveredDelta = 0.2f;
+		float regularAlpha = 0.85f;
+		ImVec4 c;
+		if (presetName.find("deathknight_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			c = ImVec4(0.77f, 0.12f, 0.23f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("demonhunter_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			c = ImVec4(0.64f, 0.19f, 0.79f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("druid_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			c = ImVec4(1.f, 0.49f, 0.04f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("evoker_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			c = ImVec4(0.2f, 0.58f, 0.5f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("hunter_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(0.67f, 0.83f, 0.45f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("mage_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(0.25f, 0.78f, 0.92f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("monk_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(0.0f, 1.f, 0.6f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("paladin_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(0.96f, 0.55f, 0.73f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("priest_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(1.f, 1.f, 1.f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("rogue_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(1.f, 0.96f, 0.41f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("shaman_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			c = ImVec4(0.f, 0.44f, 0.87f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("warlock_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));
+			}
+			c = ImVec4(0.53f, 0.53f, 0.93f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+		if (presetName.find("warrior_") != std::string::npos) {
+			if (style == STYLES::LIGHT_MODE) {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			else {
+				ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.f, 0.f, 0.f, 1.f));
+			}
+			c = ImVec4(0.78f, 0.61f, 0.43f, 1.f);
+			ImGui::PushStyleColor(ImGuiCol_Tab, ImVec4(c.x + regularDelta, c.y + regularDelta, c.z + regularDelta, regularAlpha));
+			ImGui::PushStyleColor(ImGuiCol_TabActive, ImVec4(c.x + activeDelta, c.y + activeDelta, c.z + activeDelta, 1.f));
+			ImGui::PushStyleColor(ImGuiCol_TabHovered, ImVec4(c.x + hoveredDelta, c.y + hoveredDelta, c.z + hoveredDelta, 1.f));
+			return;
+		}
+
+		ImGuiStyle& imStyle = ImGui::GetStyle();
+		ImVec4* colors = imStyle.Colors;
+		ImGui::PushStyleColor(ImGuiCol_Text, colors[ImGuiCol_Text]);
+		ImGui::PushStyleColor(ImGuiCol_Tab, colors[ImGuiCol_Tab]);
+		ImGui::PushStyleColor(ImGuiCol_TabActive, colors[ImGuiCol_TabActive]);
+		ImGui::PushStyleColor(ImGuiCol_TabHovered, colors[ImGuiCol_TabHovered]);
+	}
+
+	void RESET_TAB_ITEM_COLOR() {
+		ImGui::PopStyleColor(4);
+	}
+
+	ImVec4 GET_TOOLTIP_TALENT_TYPE_COLOR(STYLES style) {
+		if (style == STYLES::LIGHT_MODE) {
+			return ImVec4(0.92f, 0.24f, 0.24f, 1.0f);
+		}
+		else {
+			return ImVec4(0.92f, 0.44f, 0.44f, 1.0f);
+		}
+	}
+	ImVec4 GET_TOOLTIP_TALENT_DESC_COLOR(STYLES style) {
+		if (style == STYLES::LIGHT_MODE) {
+			return ImVec4(0.533f, 0.533f, 1.0f, 1.0f);
+		}
+		else {
+			return ImVec4(0.633f, 0.633f, 1.0f, 1.0f);
+		}
+	}
 }

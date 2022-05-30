@@ -29,7 +29,7 @@
 
 namespace TTM {
     //Talent tooltip for the tree editor view
-    static void AttachTalentEditTooltip(Engine::Talent_s talent)
+    static void AttachTalentEditTooltip(const UIData& uiData, Engine::Talent_s talent)
     {
         if (ImGui::IsItemHovered())
         {
@@ -46,17 +46,17 @@ namespace TTM {
                 case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
-                ImGui::TextUnformattedColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), talentTypeString.c_str());
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), talentTypeString.c_str());
                 ImGui::Text(("Max points: " + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
 
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
                 for (int i = 0; i < talent->maxPoints - 1; i++) {
-                    ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[i].c_str());
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[i].c_str());
                     ImGui::Separator();
                 }
-                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[talent->maxPoints - 1].c_str());
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[talent->maxPoints - 1].c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -68,11 +68,11 @@ namespace TTM {
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
-                ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), "(switch)");
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
                 ImGui::Text(("Max points: 1, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[0].c_str());
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[0].c_str());
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
@@ -81,11 +81,11 @@ namespace TTM {
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
-                ImGui::TextColored(ImVec4(0.92f, 0.24f, 0.24f, 1.0f), "(switch)");
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
                 ImGui::Text(("Max points: 1, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
-                ImGui::TextUnformattedColored(ImVec4(0.533f, 0.533f, 1.0f, 1.0f), talent->descriptions[1].c_str());
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[1].c_str());
 
                 ImGui::EndTooltip();
             }
@@ -642,7 +642,7 @@ namespace TTM {
                         "##treeEditorPresetSpecCombo",
                         &uiData.treeEditorPresetSpecCombo,
                         Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
-                        IM_ARRAYSIZE(Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo))
+                        Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo)
                     );
                     ImGui::Checkbox("Try to keep skillsets", &uiData.treeEditorPresetsKeepLoadout);
                     if (ImGui::Button("Load##treeEditorPresetLoadButton")) {
@@ -1290,7 +1290,7 @@ namespace TTM {
                 }
             }
             else {
-                AttachTalentEditTooltip(talent.second);
+                AttachTalentEditTooltip(uiData, talent.second);
             }
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
