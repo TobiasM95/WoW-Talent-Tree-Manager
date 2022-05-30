@@ -70,7 +70,7 @@ namespace TTM {
                     Presets::SET_GUI_STYLE(Presets::STYLES::PATH_OF_TALENT_TREE);
                     uiData.style = Presets::STYLES::PATH_OF_TALENT_TREE;
                 }
-                if (ImGui::MenuItem("Light Mode (yuck)")) {
+                if (ImGui::MenuItem("Light Mode")) {
                     Presets::SET_GUI_STYLE(Presets::STYLES::LIGHT_MODE);
                     uiData.style = Presets::STYLES::LIGHT_MODE;
                 }
@@ -269,9 +269,15 @@ namespace TTM {
             // Submit our regular tabs
             for (int n = 0; n < talentTreeCollection.trees.size(); )
             {
+                Presets::SET_TAB_ITEM_COLOR(uiData.style, talentTreeCollection.trees[n].tree.presetName);
+                bool isReset = false;
                 bool open = true;
                 ImGuiTabItemFlags flag = ImGuiTabItemFlags_None;
-                if (ImGui::BeginTabItem((talentTreeCollection.trees[n].tree.name + "###treetab" + std::to_string(n)).c_str(), &open, flag))
+                std::string displayTag = talentTreeCollection.trees[n].tree.name;
+                if (n == talentTreeCollection.activeTreeIndex) {
+                    displayTag = "> " + displayTag;
+                }
+                if (ImGui::BeginTabItem((displayTag + "###treetab" + std::to_string(n)).c_str(), &open, flag))
                 {
                     if (open) {
                         talentTreeCollection.activeTreeIndex = n;
@@ -285,6 +291,9 @@ namespace TTM {
                 }
                 else
                     n++;
+                if (!isReset) {
+                    Presets::RESET_TAB_ITEM_COLOR();
+                }
             }
             if (uiData.deleteTreeIndex >= 0) {
                 ImGui::OpenPopup("Delete tree confirmation");
@@ -295,7 +304,7 @@ namespace TTM {
             {
                 ImGui::Text("Delete the tree? This can not be undone!");
                 if (ImGui::Button("Yes", ImVec2(50, 0))) {
-                    if (uiData.deleteTreeIndex > 0 && uiData.deleteTreeIndex < talentTreeCollection.trees.size()) {
+                    if (uiData.deleteTreeIndex >= 0 && uiData.deleteTreeIndex < talentTreeCollection.trees.size()) {
                         talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
                         talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                     }
@@ -320,15 +329,23 @@ namespace TTM {
         // Expose some other flags which are useful to showcase how they interact with Leading/Trailing tabs
         static ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_FittingPolicyScroll;
 
-        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+        if (ImGui::BeginTabBar("TreeViewTabBar", tab_bar_flags))
         {
-            if (ImGui::BeginTabItem("Talent Tree Editor", nullptr, ImGuiTabItemFlags_None))
+            std::string treeEditDisplayTag = "Talent Tree Editor";
+            if (uiData.editorView == EditorView::TreeEdit) {
+                treeEditDisplayTag = "> " + treeEditDisplayTag;
+            }
+            if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::TreeEdit;
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Talent Loadout Editor", nullptr, ImGuiTabItemFlags_None))
+            std::string loadoutEditDisplayTag = "Talent Loadout Editor";
+            if (uiData.editorView == EditorView::LoadoutEdit) {
+                loadoutEditDisplayTag = "> " + loadoutEditDisplayTag;
+            }
+            if (ImGui::BeginTabItem((loadoutEditDisplayTag + "###LoadoutEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::LoadoutEdit;
                 if (!uiData.isLoadoutInitValidated) {
@@ -348,7 +365,11 @@ namespace TTM {
                 }
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem("Talent Loadout Solver", nullptr, ImGuiTabItemFlags_None))
+            std::string loadoutSolverDisplayTag = "Talent Loadout Solver";
+            if (uiData.editorView == EditorView::LoadoutSolver) {
+                loadoutSolverDisplayTag = "> " + loadoutSolverDisplayTag;
+            }
+            if (ImGui::BeginTabItem((loadoutSolverDisplayTag + "###LoadoutSolverTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::LoadoutSolver;
                 uiData.isLoadoutInitValidated = false;
@@ -392,6 +413,9 @@ namespace TTM {
     }
 
 	void RenderStatusBar(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        if (talentTreeCollection.activeTreeIndex >= 0) {
+            Presets::SET_STATUS_BAR_COLOR(uiData.style, talentTreeCollection.activeTree().presetName);
+        }
         //TTMTODO: Implement different statusbar texts for different views
 		if (ImGui::BeginViewportSideBar("MainStatusBar", NULL, ImGuiDir_Down, ImGui::GetFrameHeight(), ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar)) {
 			if (ImGui::BeginMenuBar()) {
@@ -406,6 +430,9 @@ namespace TTM {
 			}
 		}
         ImGui::End();
+        if (talentTreeCollection.activeTreeIndex >= 0) {
+            Presets::RESET_STATUS_BAR_COLOR();
+        }
 	}
 
     std::filesystem::path getAppPath() {
@@ -500,9 +527,16 @@ namespace TTM {
                 break;
             }
             TalentTreeData data;
-            data.tree = Engine::parseTree(line);
-            col.trees.push_back(data);
-            col.activeTreeIndex = static_cast<int>(col.trees.size() - 1);
+            if (Engine::validateTreeStringFormat(line)) {
+                try {
+                    data.tree = Engine::parseTree(line);
+                    col.trees.push_back(data);
+                    col.activeTreeIndex = static_cast<int>(col.trees.size() - 1);
+                }
+                catch (std::logic_error& e) {
+                    ImGui::LogText(e.what());
+                }
+            }
         }
         return col;
     }
