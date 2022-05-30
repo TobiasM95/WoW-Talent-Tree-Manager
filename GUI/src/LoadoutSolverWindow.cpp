@@ -124,7 +124,15 @@ namespace TTM {
                     }
                     ImGui::Text("Hint: Include/Exclude talents on the left, then press filter to view all valid combinations. Green/Yellow = must have, Red = must not have.");
                     ImGui::PopTextWrapPos();
-                    ImGui::Checkbox("Auto apply filter", &uiData.loadoutSolverAutoApplyFilter);
+                    if (ImGui::Checkbox("Auto apply filter", &uiData.loadoutSolverAutoApplyFilter)) {
+                        if (uiData.loadoutSolverAutoApplyFilter) {
+                            Engine::filterSolvedSkillsets(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeData().treeDAGInfo, talentTreeCollection.activeTreeData().skillsetFilter);
+                            talentTreeCollection.activeTreeData().isTreeSolveFiltered = true;
+                            uiData.loadoutSolverTalentPointSelection = -1;
+                            uiData.loadoutSolverSkillsetResultPage = -1;
+                            uiData.loadoutSolverBufferedPage = -1;
+                        }
+                    }
                     if (uiData.loadoutSolverAutoApplyFilter) {
                         ImGui::BeginDisabled();
                     }
