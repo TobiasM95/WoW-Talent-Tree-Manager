@@ -42,5 +42,6 @@ Since this is currently a solo project there will be some rough edges, issues an
 Additionally, if you want to contribute (there's a lot of code cleanup and extension to do) then you are more than welcome to do so.
 
 ## Credits
+Developed by Tobias Mielich.
 Credits to [Dear ImGui](https://github.com/ocornut/imgui) which is the foundation of the whole GUI and very recommended!
 Credits to [Bloodmallet](https://bloodmallet.com/) for giving me the whole idea and talking about this.
