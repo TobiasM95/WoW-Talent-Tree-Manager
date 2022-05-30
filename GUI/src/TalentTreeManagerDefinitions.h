@@ -121,6 +121,7 @@ namespace TTM {
 		int loadoutSolverAllCombinationsAdded;
 		int loadoutSolverTalentPointSelection = -1;
 		const int loadoutSolverResultsPerPage = 50;
+		bool loadoutSolverAutoApplyFilter = false;
 		//the selected/requested page of skillset results
 		int loadoutSolverSkillsetResultPage = -1;
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
