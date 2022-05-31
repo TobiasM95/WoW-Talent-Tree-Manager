@@ -118,7 +118,7 @@ namespace TTM {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
                     ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points.",
-                        talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, talentTreeCollection.activeTree().maxTalentPoints);
+                        talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, uiData.loadoutSolverTalentPointLimit);
                     if (ImGui::Button("Reset solutions")) {
                         clearSolvingProcess(uiData, talentTreeCollection);
                     }
