@@ -1,6 +1,4 @@
 # WoW Talent Tree Manager
-## IMPORTANT
-There is currently no signed executable in the releases tab with a proper certificate. This will make Windows Smartscreen pop up and tell you that it is a risk to open unknown programs. You can still safely run this program if you downloaded it from github (or compile on your own from source). This will be fixed in the future.
 ## What is the WoW Talent Tree Manager?
 For the return of talent trees in the upcoming World of Warcraft expansion Dragonflight, this project aims to give players the possibility to easily create, change and share talent tree setups for all classes and even create completely new and custom talent trees for fun. It does provide a simple and clean interface to make the exploration of new talent setups as smooth as possible.
 ## Features
@@ -42,7 +40,7 @@ Since this is currently a solo project there will be some rough edges, issues an
 Additionally, if you want to contribute (there's a lot of code cleanup and extension to do) then you are more than welcome to do so.
 
 ## Credits
-Developed by Tobias Mielich.
+Developed by [Tobias Mielich](https://github.com/TobiasM95).
 
 Credits to [Dear ImGui](https://github.com/ocornut/imgui) which is the foundation of the whole GUI and very recommended!
 
