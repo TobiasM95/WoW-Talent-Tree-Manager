@@ -64,7 +64,9 @@ namespace TTM {
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
+                ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
             }
