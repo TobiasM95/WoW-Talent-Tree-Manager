@@ -299,7 +299,11 @@ namespace Engine {
         treeRep << tree.presetName <<":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
         if (tree.presetName == "custom") {
             for (auto& talent : tree.orderedTalents) {
-                treeRep << talent.first << ":" << cleanString(talent.second->name) << ":";
+                treeRep << talent.first << ":" << cleanString(talent.second->name);
+                if (talent.second->type == TalentType::SWITCH) {
+                    treeRep << "," << cleanString(talent.second->nameSwitch);
+                }
+                treeRep << ":";
                 for (int i = 0; i < talent.second->descriptions.size() - 1; i++) {
                     treeRep << cleanString(talent.second->descriptions[i]) << ",";
                 }
