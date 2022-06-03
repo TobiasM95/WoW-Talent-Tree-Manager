@@ -411,7 +411,7 @@ namespace Engine {
         }
         if (metaInfo[0] != "custom") {
             try {
-                Presets::RETURN_PRESET_BY_NAME(metaInfo[0]);
+                Presets::LOAD_PRESETS()[metaInfo[0]];
             }
             catch (std::logic_error& e) {
                 //TTMNOTE: do something with e?
@@ -531,7 +531,7 @@ namespace Engine {
     First load the preset then edit the meta info and clear the included skillsets, then insert saved (non preset) loadout
     */
     TalentTree parseTreeFromPreset(std::string treeRep, std::string presetName) {
-        TalentTree tree = loadTreePreset(Presets::RETURN_PRESET_BY_NAME(presetName));
+        TalentTree tree = loadTreePreset(Presets::LOAD_PRESETS()[presetName]);
         std::vector<std::string> treeDefinitionParts = splitString(treeRep, ";");
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");

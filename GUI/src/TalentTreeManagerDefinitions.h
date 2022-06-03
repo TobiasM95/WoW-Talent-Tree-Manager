@@ -147,6 +147,8 @@ namespace TTM {
 		int activeTreeIndex = -1;
 		std::vector<TalentTreeData> trees;
 
+		std::map<std::string, std::string> presets;
+
 		TalentTreeData& activeTreeData() {
 			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
 				return trees[activeTreeIndex];

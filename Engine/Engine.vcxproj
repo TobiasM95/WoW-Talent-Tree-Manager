@@ -54,6 +54,9 @@
     <None Include="src\libs\libcurl\x64\copyright" />
     <None Include="src\libs\libcurl\x86\copyright" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\presets.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -147,7 +150,9 @@
     </Lib>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
+mkdir "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -176,8 +181,12 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(O
       <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 mkdir "$(OutputPath)TalentTreeManager\"
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
+mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)TalentTreeManager\resources\"
+mkdir "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -200,7 +209,9 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     </Lib>
     <PostBuildEvent>
       <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
+mkdir "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -229,8 +240,12 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(O
       <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 mkdir "$(OutputPath)TalentTreeManager\"
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
+mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)TalentTreeManager\resources\"
+mkdir "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
