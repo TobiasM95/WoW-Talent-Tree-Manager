@@ -24,7 +24,7 @@
 namespace TTM {
     static void AttachLoadoutEditTooltip(const UIData& uiData, Engine::Talent_s talent)
     {
-        if (ImGui::IsItemHovered())
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
