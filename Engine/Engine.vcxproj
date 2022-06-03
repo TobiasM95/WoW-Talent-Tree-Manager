@@ -24,9 +24,50 @@
     <ClCompile Include="src\TTMEnginePresets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\libs\libcurl\x64\include\curl.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\curlver.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\easy.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\header.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\mprintf.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\multi.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\options.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\stdcheaders.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\system.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\typecheck-gcc.h" />
+    <ClInclude Include="src\libs\libcurl\x64\include\urlapi.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\curl.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\curlver.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\easy.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\header.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\mprintf.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\multi.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\options.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\stdcheaders.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\system.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\typecheck-gcc.h" />
+    <ClInclude Include="src\libs\libcurl\x86\include\urlapi.h" />
     <ClInclude Include="src\TalentTrees.h" />
     <ClInclude Include="src\TreeSolver.h" />
     <ClInclude Include="src\TTMEnginePresets.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="src\libs\libcurl\x64\bin\libcurl-d.dll" />
+    <None Include="src\libs\libcurl\x64\bin\libcurl-d.pdb" />
+    <None Include="src\libs\libcurl\x64\bin\libcurl.dll" />
+    <None Include="src\libs\libcurl\x64\bin\libcurl.pdb" />
+    <None Include="src\libs\libcurl\x64\copyright" />
+    <None Include="src\libs\libcurl\x86\bin\libcurl-d.dll" />
+    <None Include="src\libs\libcurl\x86\bin\libcurl-d.pdb" />
+    <None Include="src\libs\libcurl\x86\bin\libcurl.dll" />
+    <None Include="src\libs\libcurl\x86\bin\libcurl.pdb" />
+    <None Include="src\libs\libcurl\x86\copyright" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="src\libs\libcurl\x64\bin\libcurl-d.lib" />
+    <Library Include="src\libs\libcurl\x64\lib\libcurl-d.lib" />
+    <Library Include="src\libs\libcurl\x64\lib\libcurl.lib" />
+    <Library Include="src\libs\libcurl\x86\lib\libcurl-d.lib" />
+    <Library Include="src\libs\libcurl\x86\lib\libcurl.lib" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -107,14 +148,17 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl-d.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -125,8 +169,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -135,6 +178,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -143,14 +190,17 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl-d.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -161,8 +211,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -171,6 +220,10 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
