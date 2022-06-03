@@ -95,7 +95,9 @@ namespace TTM {
             uiData.showHelpPopup = false;
             ImGui::OpenPopup("Controls & Tips##Popup");
         }
-        if (ImGui::BeginPopupModal("About##Popup", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+        static bool* close = new bool();
+        *close = true;
+        if (ImGui::BeginPopupModal("About##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
             ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
@@ -105,8 +107,6 @@ namespace TTM {
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
             ImGui::EndPopup();
         }
-        static bool* close = new bool();
-        *close = true;
         if (ImGui::BeginPopupModal("Controls & Tips##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::PushTextWrapPos(1000);
@@ -211,10 +211,15 @@ namespace TTM {
             if (ImGui::TabItemButton("+", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
                 ImGui::OpenPopup("Create new tree");
             }
-            if (ImGui::TabItemButton("X", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip))
+            if (ImGui::TabItemButton("X", ImGuiTabItemFlags_Trailing | ImGuiTabItemFlags_NoTooltip)) {
                 ImGui::OpenPopup("Close all confirmation");
+            }
 
-            if (ImGui::BeginPopupModal("Create new tree", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            static bool* close = new bool();
+            *close = true;
+            if (ImGui::BeginPopupModal("Create new tree", close, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 if (ImGui::Button("New custom tree", ImVec2(-0.01f, 0))) {
                     TalentTreeData tree;
@@ -247,19 +252,17 @@ namespace TTM {
                 }
                 ImGui::EndPopup();
             }
-            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-            if (ImGui::BeginPopupModal("Close all confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            if (ImGui::BeginPopupModal("Close all confirmation", close, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 ImGui::Text("Close all tabs?");
-                if (ImGui::Button("Yes", ImVec2(50, 0))) {
+                if (ImGui::Button("Yes", ImVec2(80, 0))) {
                     talentTreeCollection.trees.clear();
                     talentTreeCollection.activeTreeIndex = -1;
                     uiData.editorView = EditorView::None;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
-                if (ImGui::Button("Cancel", ImVec2(50, 0))) {
+                if (ImGui::Button("Cancel", ImVec2(80, 0))) {
                     uiData.deleteTreeIndex = -1;
                     ImGui::CloseCurrentPopup();
                 }

@@ -25,6 +25,7 @@ namespace TTM {
 			if (c == ' ') return 0;
 			if (c == ':') return 0;
 			if (c == '(' || c == ')') return 0;
+			if (c == '\'') return 0;
 			return 1;
 		}
 	};
