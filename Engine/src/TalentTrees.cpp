@@ -475,7 +475,7 @@ namespace Engine {
             return false;
         }
         if (talentParts[1].find_first_not_of(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _/()'"
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _/()',"
         ) != std::string::npos) {
             return false;
         }
@@ -605,7 +605,7 @@ namespace Engine {
                 talentTree[t->index] = t;
             }
             std::vector<std::string> names = splitString(talentInfo[1], ",");
-            t->name = names[0];
+            t->name = restoreString(names[0]);
             std::vector<std::string> tDescriptions;
             for (auto& desc : splitString(talentInfo[2], ",")) {
                 tDescriptions.push_back(restoreString(desc));
@@ -616,7 +616,7 @@ namespace Engine {
                 if (names.size() <= 1)
                     t->nameSwitch = "Undefined switch name";
                 else
-                    t->nameSwitch = names[1];
+                    t->nameSwitch = restoreString(names[1]);
             }
             t->row = std::stoi(talentInfo[4]);
             t->column = std::stoi(talentInfo[5]);
