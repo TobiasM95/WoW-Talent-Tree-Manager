@@ -143,5 +143,6 @@
     <Text Include="resources\releasedocs\changelog.txt" />
     <Text Include="resources\releasedocs\README.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />
+    <Text Include="resources\resource_versions.txt" />
   </ItemGroup>
 </Project>

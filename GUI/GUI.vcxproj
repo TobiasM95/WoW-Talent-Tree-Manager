@@ -105,6 +105,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutputPath)resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -128,10 +132,14 @@
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)TalentTreeManager\"
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
+mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.exe"
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
-copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"</Command>
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
+copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
+mkdir "$(OutputPath)resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -149,6 +157,10 @@ copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\l
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutputPath)resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -172,10 +184,14 @@ copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\l
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)TalentTreeManager\"
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
+mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.exe"
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
-copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"</Command>
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
+copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
+mkdir "$(OutputPath)resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -237,6 +253,7 @@ copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\l
   <ItemGroup>
     <Text Include="resources\releasedocs\changelog.txt" />
     <Text Include="resources\releasedocs\README.txt" />
+    <Text Include="resources\resource_versions.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
