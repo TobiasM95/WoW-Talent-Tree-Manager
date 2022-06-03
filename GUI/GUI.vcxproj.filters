@@ -139,4 +139,9 @@
       <Filter>Ressourcendateien</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\releasedocs\changelog.txt" />
+    <Text Include="resources\releasedocs\README.txt" />
+    <Text Include="src\ImGui\LICENSE.txt" />
+  </ItemGroup>
 </Project>

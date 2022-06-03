@@ -173,7 +173,11 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(O
       <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"</Command>
+      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
+mkdir "$(OutputPath)TalentTreeManager\"
+mkdir "$(OutputPath)TalentTreeManager\licenses\"
+copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -222,7 +226,11 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(O
       <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"</Command>
+      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
+mkdir "$(OutputPath)TalentTreeManager\"
+mkdir "$(OutputPath)TalentTreeManager\licenses\"
+copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
