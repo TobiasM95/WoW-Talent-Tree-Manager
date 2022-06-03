@@ -103,22 +103,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\libs\libcurl\x64\bin\libcurl.dll" />
-    <None Include="src\libs\libcurl\x64\bin\libcurl.pdb" />
-    <None Include="src\libs\libcurl\x64\bin\libcurl-d.dll" />
-    <None Include="src\libs\libcurl\x64\bin\libcurl-d.pdb" />
     <None Include="src\libs\libcurl\x64\copyright" />
     <None Include="src\libs\libcurl\x86\copyright" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl.dll" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl.pdb" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl-d.dll" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl-d.pdb" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="src\libs\libcurl\x64\bin\libcurl-d.lib" />
-    <Library Include="src\libs\libcurl\x64\lib\libcurl.lib" />
-    <Library Include="src\libs\libcurl\x86\lib\libcurl.lib" />
-    <Library Include="src\libs\libcurl\x86\lib\libcurl-d.lib" />
-    <Library Include="src\libs\libcurl\x64\lib\libcurl-d.lib" />
   </ItemGroup>
 </Project>

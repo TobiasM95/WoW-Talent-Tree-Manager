@@ -51,23 +51,8 @@
     <ClInclude Include="src\TTMEnginePresets.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\libs\libcurl\x64\bin\libcurl-d.dll" />
-    <None Include="src\libs\libcurl\x64\bin\libcurl-d.pdb" />
-    <None Include="src\libs\libcurl\x64\bin\libcurl.dll" />
-    <None Include="src\libs\libcurl\x64\bin\libcurl.pdb" />
     <None Include="src\libs\libcurl\x64\copyright" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl-d.dll" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl-d.pdb" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl.dll" />
-    <None Include="src\libs\libcurl\x86\bin\libcurl.pdb" />
     <None Include="src\libs\libcurl\x86\copyright" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="src\libs\libcurl\x64\bin\libcurl-d.lib" />
-    <Library Include="src\libs\libcurl\x64\lib\libcurl-d.lib" />
-    <Library Include="src\libs\libcurl\x64\lib\libcurl.lib" />
-    <Library Include="src\libs\libcurl\x86\lib\libcurl-d.lib" />
-    <Library Include="src\libs\libcurl\x86\lib\libcurl.lib" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
@@ -95,6 +80,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
+    <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
@@ -159,6 +145,10 @@
       <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl-d.lib</AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -182,6 +172,9 @@
       <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -201,6 +194,10 @@
       <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl-d.lib</AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -224,6 +221,9 @@
       <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
     </Lib>
+    <PostBuildEvent>
+      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
