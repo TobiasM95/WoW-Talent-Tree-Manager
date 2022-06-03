@@ -125,6 +125,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutputPath)TalentTreeManager\"
+mkdir "$(OutputPath)TalentTreeManager\licenses\"
+copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.exe"
+copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
+copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
+copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -161,6 +169,14 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(OutputPath)TalentTreeManager\"
+mkdir "$(OutputPath)TalentTreeManager\licenses\"
+copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.exe"
+copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
+copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
+copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="resources\fonts\roboto_medium.h" />
@@ -217,6 +233,11 @@
     <Image Include="resources\gallery\TreeEditor1.png" />
     <Image Include="resources\gallery\TreeEditor2.png" />
     <Image Include="resources\icon1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="resources\releasedocs\changelog.txt" />
+    <Text Include="resources\releasedocs\README.txt" />
+    <Text Include="src\ImGui\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
