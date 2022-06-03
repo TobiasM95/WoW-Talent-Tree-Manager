@@ -764,10 +764,10 @@ namespace TTM {
                     if (ImGui::Button("OK", ImVec2(120, 0))) {
                         if (uiData.treeEditorPresetsKeepLoadout) {
                             talentTreeCollection.activeTree() = Engine::restorePreset(talentTreeCollection.activeTree(),
-                                Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                                Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         }
                         else {
-                            talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                            talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         }
                         ImGui::CloseCurrentPopup();
                     }

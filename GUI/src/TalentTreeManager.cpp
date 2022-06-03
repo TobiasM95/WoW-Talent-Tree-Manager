@@ -223,7 +223,7 @@ namespace TTM {
             {
                 if (ImGui::Button("New custom tree", ImVec2(-0.01f, 0))) {
                     TalentTreeData tree;
-                    tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET_BY_NAME("new_custom_tree"));
+                    tree.tree = Engine::loadTreePreset(talentTreeCollection.presets["custom"]);
 
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
@@ -244,7 +244,7 @@ namespace TTM {
                 //ImGui::SameLine();
                 if (ImGui::Button("Load preset", ImVec2(-0.01f, 0))) { 
                     TalentTreeData tree;
-                    tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
+                    tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
 
