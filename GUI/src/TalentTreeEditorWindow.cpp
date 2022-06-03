@@ -182,6 +182,11 @@ namespace TTM {
                 //TTMTODO: At some point this Header content and the Edit/Delete header content can be put into a single function with uiData parameters
                 if (ImGui::CollapsingHeader("Create Node"))
                 {
+                    ImGui::Text("Talent type:");
+                    int currentType = static_cast<int>(uiData.treeEditorCreationTalent->type);
+                    ImGui::Combo("##talentCreationTypeCombo", &currentType, "Active\0Passive\0Switch");
+                    uiData.treeEditorCreationTalent->type = static_cast<Engine::TalentType>(currentType);
+
                     ImGui::Text("Name:");
                     ImGui::InputText("##talentCreationNameInput", &uiData.treeEditorCreationTalent->name,
                         ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
@@ -191,14 +196,9 @@ namespace TTM {
                     ImGui::InputText("##talentCreationNameSwitchInput", &uiData.treeEditorCreationTalent->nameSwitch, ImGuiInputTextFlags_AutoSelectAll);
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
 
-                    ImGui::Text("Talent type:");
-                    int currentType = static_cast<int>(uiData.treeEditorCreationTalent->type);
-                    ImGui::Combo("##talentCreationTypeCombo", &currentType, "Active\0Passive\0Switch");
-                    uiData.treeEditorCreationTalent->type = static_cast<Engine::TalentType>(currentType);
-
                     if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorCreationTalent->type == Engine::TalentType::ACTIVE) ImGui::BeginDisabled();
                     ImGui::Text("Maximum talent points:");
-                    ImGui::SliderInt("##talentCreationMaxPointsSlider", &uiData.treeEditorCreationTalent->maxPoints, 1, 10, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationMaxPointsSlider", &uiData.treeEditorCreationTalent->maxPoints, 1, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorCreationTalent->type == Engine::TalentType::ACTIVE) {
                         ImGui::EndDisabled();
                         uiData.treeEditorCreationTalent->maxPoints = 1;
@@ -206,7 +206,7 @@ namespace TTM {
 
 
                     ImGui::Text("Points required:");
-                    ImGui::SliderInt("##talentCreationPtsReqSlider", &uiData.treeEditorCreationTalent->pointsRequired, 0, 50, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationPtsReqSlider", &uiData.treeEditorCreationTalent->pointsRequired, 0, 50, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                     ImGui::Text("Descriptions:");
                     if (uiData.treeEditorCreationTalent->descriptions.size() != uiData.treeEditorCreationTalent->maxPoints + (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH)) {
@@ -218,10 +218,10 @@ namespace TTM {
                     }
 
                     ImGui::Text("Talent row:");
-                    ImGui::SliderInt("##talentCreationRowSlider", &uiData.treeEditorCreationTalent->row, 1, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationRowSlider", &uiData.treeEditorCreationTalent->row, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                     ImGui::Text("Talent column:");
-                    ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 1, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                     std::vector<std::string> talentComboList;
                     std::map<int, Engine::Talent_s> comboIndexTalentMap;
@@ -238,7 +238,7 @@ namespace TTM {
                     }
                     ImGui::Text("Parents:");
                     int parentCount = static_cast<int>(uiData.treeEditorCreationTalentParentsPlaceholder.size());
-                    ImGui::SliderInt("##talentCreationParentCountSlider", &parentCount, 0, talentTreeCollection.activeTree().nodeCount, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationParentCountSlider", &parentCount, 0, talentTreeCollection.activeTree().nodeCount, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (parentCount != uiData.treeEditorCreationTalentParentsPlaceholder.size())
                         uiData.treeEditorCreationTalentParentsPlaceholder.resize(parentCount);
 
@@ -253,7 +253,7 @@ namespace TTM {
                     }
                     ImGui::Text("Children:");
                     int childrenCount = static_cast<int>(uiData.treeEditorCreationTalentChildrenPlaceholder.size());
-                    ImGui::SliderInt("##talentCreationChildrenCountSlider", &childrenCount, 0, talentTreeCollection.activeTree().nodeCount, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##talentCreationChildrenCountSlider", &childrenCount, 0, talentTreeCollection.activeTree().nodeCount, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (childrenCount != uiData.treeEditorCreationTalentChildrenPlaceholder.size())
                         uiData.treeEditorCreationTalentChildrenPlaceholder.resize(childrenCount);
 
@@ -279,6 +279,11 @@ namespace TTM {
                 {
                     if (uiData.treeEditorSelectedTalent != nullptr) {
 
+                        ImGui::Text("Talent type:");
+                        int currentType = static_cast<int>(uiData.treeEditorSelectedTalent->type);
+                        ImGui::Combo("##talentEditTypeCombo", &currentType, "Active\0Passive\0Switch");
+                        uiData.treeEditorSelectedTalent->type = static_cast<Engine::TalentType>(currentType);
+
                         ImGui::Text("Name:");
                         ImGui::InputText("##talentEditNameInput", &uiData.treeEditorSelectedTalent->name, 
                             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
@@ -289,14 +294,9 @@ namespace TTM {
                             ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
 
-                        ImGui::Text("Talent type:");
-                        int currentType = static_cast<int>(uiData.treeEditorSelectedTalent->type);
-                        ImGui::Combo("##talentEditTypeCombo", &currentType, "Active\0Passive\0Switch");
-                        uiData.treeEditorSelectedTalent->type = static_cast<Engine::TalentType>(currentType);
-
                         if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorSelectedTalent->type == Engine::TalentType::ACTIVE) ImGui::BeginDisabled();
                         ImGui::Text("Maximum talent points:");
-                        ImGui::SliderInt("##talentEditMaxPointsSlider", &uiData.treeEditorSelectedTalent->maxPoints, 1, 10, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditMaxPointsSlider", &uiData.treeEditorSelectedTalent->maxPoints, 1, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
                         if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorSelectedTalent->type == Engine::TalentType::ACTIVE) {
                             ImGui::EndDisabled();
                             uiData.treeEditorSelectedTalent->maxPoints = 1;
@@ -304,7 +304,7 @@ namespace TTM {
 
 
                         ImGui::Text("Points required:");
-                        ImGui::SliderInt("##talentEditPtsReqSlider", &uiData.treeEditorSelectedTalent->pointsRequired, 0, 50, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditPtsReqSlider", &uiData.treeEditorSelectedTalent->pointsRequired, 0, 50, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                         ImGui::Text("Descriptions:");
                         if (uiData.treeEditorSelectedTalent->descriptions.size() != uiData.treeEditorSelectedTalent->maxPoints + (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH)) {
@@ -316,10 +316,10 @@ namespace TTM {
                         }
 
                         ImGui::Text("Talent row:");
-                        ImGui::SliderInt("##talentEditRowSlider", &uiData.treeEditorSelectedTalent->row, 1, 20, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditRowSlider", &uiData.treeEditorSelectedTalent->row, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                         ImGui::Text("Talent column:");
-                        ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 1, 20, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                         std::vector<std::string> talentComboList;
                         std::map<int, Engine::Talent_s> comboIndexTalentMap;
@@ -336,7 +336,7 @@ namespace TTM {
                         }
                         ImGui::Text("Parents:");
                         int parentCount = static_cast<int>(uiData.treeEditorSelectedTalentParentsPlaceholder.size());
-                        ImGui::SliderInt("##talentEditParentCountSlider", &parentCount, 0, talentTreeCollection.activeTree().nodeCount - 1, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditParentCountSlider", &parentCount, 0, talentTreeCollection.activeTree().nodeCount - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
                         if (parentCount != uiData.treeEditorSelectedTalentParentsPlaceholder.size())
                             uiData.treeEditorSelectedTalentParentsPlaceholder.resize(parentCount);
 
@@ -351,7 +351,7 @@ namespace TTM {
                         }
                         ImGui::Text("Children:");
                         int childrenCount = static_cast<int>(uiData.treeEditorSelectedTalentChildrenPlaceholder.size());
-                        ImGui::SliderInt("##talentEditChildrenCountSlider", &childrenCount, 0, talentTreeCollection.activeTree().nodeCount - 1, "%d", ImGuiSliderFlags_NoInput);
+                        ImGui::SliderInt("##talentEditChildrenCountSlider", &childrenCount, 0, talentTreeCollection.activeTree().nodeCount - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
                         if (childrenCount != uiData.treeEditorSelectedTalentChildrenPlaceholder.size())
                             uiData.treeEditorSelectedTalentChildrenPlaceholder.resize(childrenCount);
 
@@ -394,7 +394,7 @@ namespace TTM {
                             validateTalentUpdate(uiData, talentTreeCollection, comboIndexTalentMap);
                         }
                         ImGui::SameLine();
-                        if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0))) {
+                        if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0)) || ImGui::IsKeyPressed(ImGuiKey_Delete)) {
                             int talentIndex = uiData.treeEditorSelectedTalent->index;
                             //check children for new root talents &
                             //delete from children's parents lists
@@ -458,9 +458,9 @@ namespace TTM {
                     ImGui::Text("Shift all talents");
                     ImGui::Spacing();
                     ImGui::Text("Shift rows by:");
-                    ImGui::SliderInt("##treeEditAllRowSlider", &uiData.treeEditorShiftAllRowsBy, -19, 19, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##treeEditAllRowSlider", &uiData.treeEditorShiftAllRowsBy, -19, 19, "%d", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Text("Shift columns by:");
-                    ImGui::SliderInt("##reeEditAllColumnSlider", &uiData.treeEditorShiftAllColumnsBy, -19, 19, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##reeEditAllColumnSlider", &uiData.treeEditorShiftAllColumnsBy, -19, 19, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (ImGui::Button("Shift talents")) {
                         uiData.minRowShift = -19;
                         uiData.maxRowShift = 19;
@@ -493,11 +493,11 @@ namespace TTM {
                     ImGui::Text("Place empty nodes");
                     ImGui::Spacing();
                     ImGui::Text("Active talents:");
-                    ImGui::SliderInt("##treeEditEmptyActiveSlider", &uiData.treeEditorEmptyActiveNodes, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##treeEditEmptyActiveSlider", &uiData.treeEditorEmptyActiveNodes, 0, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Text("Passive talents:");
-                    ImGui::SliderInt("##treeEditEmptyPassiveSlider", &uiData.treeEditorEmptyPassiveNodes, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##treeEditEmptyPassiveSlider", &uiData.treeEditorEmptyPassiveNodes, 0, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Text("Switch talents:");
-                    ImGui::SliderInt("##treeEditEmptySwitchSlider", &uiData.treeEditorEmptySwitchNodes, 0, 20, "%d", ImGuiSliderFlags_NoInput);
+                    ImGui::SliderInt("##treeEditEmptySwitchSlider", &uiData.treeEditorEmptySwitchNodes, 0, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (ImGui::Button("Insert talents")) {
                         if (uiData.treeEditorEmptyActiveNodes + uiData.treeEditorEmptyPassiveNodes
                             + uiData.treeEditorEmptySwitchNodes + talentTreeCollection.activeTree().orderedTalents.size() > 20 * 20) { 
