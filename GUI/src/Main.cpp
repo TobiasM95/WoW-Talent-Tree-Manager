@@ -28,6 +28,7 @@
 #include <tchar.h>
 
 #include "TalentTreeManager.h"
+#include "TalentTreeManagerDefinitions.h"
 #include "Updater.h"
 #include "resource.h"
 #include "roboto_medium.h"
@@ -139,7 +140,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        TTM::RenderMainWindow(uiData, talentTreeCollection, done);
+        if (uiData.updateStatus != TTM::UpdateStatus::UPTODATE && uiData.updateStatus != TTM::UpdateStatus::IGNOREUPDATE) {
+            TTM::RenderUpdateWindow(uiData, talentTreeCollection);
+        } 
+        else {
+            TTM::RenderMainWindow(uiData, talentTreeCollection, done);
+        }
 
         // Rendering
         ImGui::Render();

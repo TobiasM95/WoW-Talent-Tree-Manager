@@ -33,6 +33,7 @@
 #include "TTMGUIPresets.h"
 #include "TTMEnginePresets.h"
 
+#include "Updater.h"
 #include "TalentTreeEditorWindow.h"
 #include "LoadoutEditorWindow.h"
 #include "LoadoutSolverWindow.h"
@@ -41,6 +42,89 @@
 //TTMTODO: Replace all talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree with talentTreeCollection.activeTree()
 namespace TTM {
     
+    void RenderUpdateWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        if (uiData.renderedOnce && uiData.updateStatus == UpdateStatus::NOTCHECKED) {
+            checkForUpdate(uiData);
+        }
+        if (uiData.updateStatus == UpdateStatus::UPTODATE) {
+            return;
+        }
+        static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration
+            | ImGuiWindowFlags_NoMove
+            | ImGuiWindowFlags_NoResize
+            | ImGuiWindowFlags_NoSavedSettings;
+
+        // We demonstrate using the full viewport area or the work area (without menu-bars, task-bars etc.)
+        // Based on your use case you may want one of the other.
+        const ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        if (ImGui::Begin("MainWindow", nullptr, flags))
+        {
+            ImGui::PopStyleVar();
+
+            if (uiData.updateStatus == UpdateStatus::NOTCHECKED) {
+                ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+                ImVec2 textSize = ImGui::CalcTextSize("Looking for updates...");
+                ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5f * textSize.y));
+                ImGui::Text("Looking for updates...");
+            }
+            else if (uiData.updateStatus == UpdateStatus::UPDATEERROR) {
+                uiData.menuBarUpdateLabel = "Check for updates failed. Presets might be outdated!";
+            }
+            else if (uiData.updateStatus == UpdateStatus::OUTDATED) {
+                //center an information rectangle
+                ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+                float centerX = 0.5f * contentRegion.x;
+                float centerY = 0.5f * contentRegion.y;
+                float wrapWidth = 250;
+                float offsetY = -100;
+                float boxPadding = 8;
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
+                ImGui::SetCursorPos(pos);
+                ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+                ImGui::Text("New update was detected. Do you want to update? (This includes presets, images, etc.)");
+                ImVec2 l1TopLeft = ImGui::GetItemRectMin();
+                ImVec2 l1BottomRight = ImGui::GetItemRectMax();
+                l1TopLeft.x -= boxPadding;
+                l1TopLeft.y -= boxPadding;
+                l1BottomRight.x += boxPadding;
+                l1BottomRight.y += boxPadding;
+
+                ImGui::Spacing();
+                ImGui::Spacing();
+
+                //ask for solver max talent points
+                ImGui::SetCursorPosX(pos.x);
+                ImGui::Text("Do you want to update the presets in your current workspace? This could invalidate and remove some of your loadouts.");
+                ImGui::SetCursorPosX(pos.x);
+                ImGui::Checkbox("Update current workspace##updateWindowWorkspace", &uiData.updateCurrentWorkspace);
+
+                ImVec2 l2BottomRight = ImGui::GetItemRectMax();
+                l2BottomRight.x += boxPadding;
+                l2BottomRight.y += boxPadding;
+
+                // Draw actual text bounding box, following by marker of our expected limit (should not overlap!)
+                draw_list->AddRect(l1TopLeft, ImVec2(l1TopLeft.x + wrapWidth + 2 * boxPadding, l2BottomRight.y), IM_COL32(200, 200, 200, 255));
+                ImGui::PopTextWrapPos();
+
+                //center a button
+                ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
+                if (ImGui::Button("Update", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
+                    updateResources(uiData, talentTreeCollection);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Ignore", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
+                    uiData.updateStatus = UpdateStatus::IGNOREUPDATE;
+                }
+            }
+        }
+        ImGui::End();
+        uiData.renderedOnce = true;
+    }
 
 	void RenderMainWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool& done) {
 
@@ -84,6 +168,11 @@ namespace TTM {
                     uiData.showAboutPopup = true;
                 }
                 ImGui::EndMenu();
+            }
+            if (uiData.menuBarUpdateLabel.size() > 0) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.f, 0.f, 1.f));
+                ImGui::Text(uiData.menuBarUpdateLabel.c_str());
+                ImGui::PopStyleColor();
             }
 			ImGui::EndMainMenuBar();
         }

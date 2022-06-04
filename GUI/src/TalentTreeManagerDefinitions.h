@@ -13,7 +13,7 @@
 
 namespace TTM {
 	enum class UpdateStatus {
-		UPTODATE, OUTDATED, UPDATEERROR, NOTCHECKED
+		UPTODATE, OUTDATED, UPDATEERROR, NOTCHECKED, IGNOREUPDATE
 	};
 
 	static const int TTM_RESOURCE_TYPE_COUNT = 1;
@@ -60,11 +60,16 @@ namespace TTM {
 		bool showAboutPopup = false;
 		bool showHelpPopup = false;
 
+		std::string menuBarUpdateLabel = "";
+
 		int deleteTreeIndex = -1;
 
 		//################# UPDATER #####################################
+		//used for displaying the screen at least once before a long blocking operation is shown
+		bool renderedOnce = false;
 		UpdateStatus updateStatus = UpdateStatus::NOTCHECKED;
 		std::vector<ResourceType> outOfDateResources;
+		bool updateCurrentWorkspace = false;
 
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;

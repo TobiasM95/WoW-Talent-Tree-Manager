@@ -80,6 +80,7 @@ namespace TTM {
             if (CURLE_OK != res) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 uiData.outOfDateResources.clear();
+                return;
             }
         }
         std::vector<std::string> remoteVersions = Engine::splitString(result, "\n");
@@ -105,7 +106,7 @@ namespace TTM {
         }
     }
 
-    void updateResources(UIData& uiData) {
+    void updateResources(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         if (uiData.outOfDateResources.size() == 0) {
             return;
         }
@@ -141,6 +142,15 @@ namespace TTM {
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
         uiData.updateStatus = UpdateStatus::UPTODATE;
+
+        talentTreeCollection.presets = Presets::LOAD_PRESETS();
+        if (uiData.updateCurrentWorkspace) {
+            for (auto& tree : talentTreeCollection.trees) {
+                if (tree.tree.presetName != "custom" && talentTreeCollection.presets.count(tree.tree.presetName)) {
+                    tree.tree = Engine::restorePreset(tree.tree, talentTreeCollection.presets[tree.tree.presetName]);
+                }
+            }
+        }
     }
 
     void updatePresets(UIData& uiData) {
