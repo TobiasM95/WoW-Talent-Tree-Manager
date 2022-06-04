@@ -97,17 +97,22 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\ImGui;$(ProjectDir)src\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl-d.lib;d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd1.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd.pdb" "$(OutputPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -119,7 +124,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\ImGui;$(ProjectDir)src\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -127,7 +132,8 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl.lib;d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)TalentTreeManager\"
@@ -137,9 +143,14 @@ copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.ex
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
-copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
+copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
 mkdir "$(OutputPath)resources\"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
+copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
+copy "$(OutputPath)zlib1.dll" "$(OutputPath)TalentTreeManager\zlib1.dll"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -149,17 +160,22 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\ImGui;$(ProjectDir)src\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl-d.lib;d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd1.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd.pdb" "$(OutputPath)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -171,7 +187,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\ImGui;$(ProjectDir)src\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -179,7 +195,8 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libcurl.lib;d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)TalentTreeManager\"
@@ -189,21 +206,26 @@ copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.ex
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
-copy "$(SolutionDir)GUI\src\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
+copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
 mkdir "$(OutputPath)resources\"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"</Command>
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
+copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
+copy "$(OutputPath)zlib1.dll" "$(OutputPath)TalentTreeManager\zlib1.dll"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="resources\fonts\roboto_medium.h" />
-    <ClCompile Include="src\ImGui\backends\imgui_impl_dx11.cpp" />
-    <ClCompile Include="src\ImGui\backends\imgui_impl_win32.cpp" />
-    <ClCompile Include="src\ImGui\imgui.cpp" />
-    <ClCompile Include="src\ImGui\imgui_demo.cpp" />
-    <ClCompile Include="src\ImGui\imgui_draw.cpp" />
-    <ClCompile Include="src\ImGui\imgui_stdlib.cpp" />
-    <ClCompile Include="src\ImGui\imgui_tables.cpp" />
-    <ClCompile Include="src\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="src\libs\ImGui\backends\imgui_impl_dx11.cpp" />
+    <ClCompile Include="src\libs\ImGui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="src\libs\ImGui\imgui.cpp" />
+    <ClCompile Include="src\libs\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="src\libs\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="src\libs\ImGui\imgui_stdlib.cpp" />
+    <ClCompile Include="src\libs\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="src\libs\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="src\LoadoutEditorWindow.cpp" />
     <ClCompile Include="src\LoadoutSolverWindow.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -211,24 +233,26 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
     <ClCompile Include="src\TalentTreeManager.cpp" />
     <ClCompile Include="src\TalentTreeManagerDefinitions.cpp" />
     <ClCompile Include="src\TTMGUIPresets.cpp" />
+    <ClCompile Include="src\Updater.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resources\resource.h" />
-    <ClInclude Include="src\ImGui\backends\imgui_impl_dx11.h" />
-    <ClInclude Include="src\ImGui\backends\imgui_impl_win32.h" />
-    <ClInclude Include="src\ImGui\imconfig.h" />
-    <ClInclude Include="src\ImGui\imgui.h" />
-    <ClInclude Include="src\ImGui\imgui_internal.h" />
-    <ClInclude Include="src\ImGui\imgui_stdlib.h" />
-    <ClInclude Include="src\ImGui\imstb_rectpack.h" />
-    <ClInclude Include="src\ImGui\imstb_textedit.h" />
-    <ClInclude Include="src\ImGui\imstb_truetype.h" />
+    <ClInclude Include="src\libs\ImGui\backends\imgui_impl_dx11.h" />
+    <ClInclude Include="src\libs\ImGui\backends\imgui_impl_win32.h" />
+    <ClInclude Include="src\libs\ImGui\imconfig.h" />
+    <ClInclude Include="src\libs\ImGui\imgui.h" />
+    <ClInclude Include="src\libs\ImGui\imgui_internal.h" />
+    <ClInclude Include="src\libs\ImGui\imgui_stdlib.h" />
+    <ClInclude Include="src\libs\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="src\libs\ImGui\imstb_textedit.h" />
+    <ClInclude Include="src\libs\ImGui\imstb_truetype.h" />
     <ClInclude Include="src\LoadoutEditorWindow.h" />
     <ClInclude Include="src\LoadoutSolverWindow.h" />
     <ClInclude Include="src\TalentTreeEditorWindow.h" />
     <ClInclude Include="src\TalentTreeManager.h" />
     <ClInclude Include="src\TalentTreeManagerDefinitions.h" />
     <ClInclude Include="src\TTMGUIPresets.h" />
+    <ClInclude Include="src\Updater.h" />
   </ItemGroup>
   <ItemGroup>
     <Font Include="resources\fonts\Roboto-Medium.ttf">
@@ -255,6 +279,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
     <Text Include="resources\releasedocs\README.txt" />
     <Text Include="resources\resource_versions.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />
+    <Text Include="src\libs\ImGui\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

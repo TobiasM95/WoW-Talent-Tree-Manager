@@ -12,6 +12,14 @@
 #include "TTMGUIPresets.h"
 
 namespace TTM {
+	enum class UpdateStatus {
+		UPTODATE, OUTDATED, UPDATEERROR, NOTCHECKED
+	};
+
+	static const int TTM_RESOURCE_TYPE_COUNT = 1;
+	enum class ResourceType {
+		PRESET = 0,
+	};
 
 	struct TextFilters
 	{
@@ -53,6 +61,10 @@ namespace TTM {
 		bool showHelpPopup = false;
 
 		int deleteTreeIndex = -1;
+
+		//################# UPDATER #####################################
+		UpdateStatus updateStatus = UpdateStatus::NOTCHECKED;
+		std::vector<ResourceType> outOfDateResources;
 
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;

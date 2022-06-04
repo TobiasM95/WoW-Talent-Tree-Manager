@@ -20,6 +20,7 @@
 
 #include <memory>
 
+#include "curl.h"
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
@@ -27,6 +28,7 @@
 #include <tchar.h>
 
 #include "TalentTreeManager.h"
+#include "Updater.h"
 #include "resource.h"
 #include "roboto_medium.h"
 
@@ -49,6 +51,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 //int main(int, char**)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+
+    //init curl globally
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
@@ -157,6 +162,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     CleanupDeviceD3D();
     ::DestroyWindow(hwnd);
     ::UnregisterClass(wc.lpszClassName, wc.hInstance);
+
+    curl_global_cleanup();
 
     return 0;
 }

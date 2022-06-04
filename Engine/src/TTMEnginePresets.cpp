@@ -182,7 +182,9 @@ namespace Presets {
 			}
 		}
 		else {
-			throw std::logic_error("Preset file does not exist");
+			//TTMTODO: Implement error logger for engine too
+			std::ofstream presetErrorFile("error_log.txt");
+			presetErrorFile << "Preset file was not present and couldn't be updated (maybe no internet connection)\n";
 		}
 
 		return presets;
