@@ -372,7 +372,10 @@ namespace TTM {
                 if (ImGui::BeginTabItem((displayTag + "###treetab" + std::to_string(n)).c_str(), &open, flag))
                 {
                     if (open) {
-                        talentTreeCollection.activeTreeIndex = n;
+                        if (talentTreeCollection.activeTreeIndex != n) {
+                            talentTreeCollection.activeTreeIndex = n;
+                            uiData.treeEditorSelectedTalent = nullptr;
+                        }
                     }
                     RenderTreeViewTabs(uiData, talentTreeCollection);
                     ImGui::EndTabItem();
