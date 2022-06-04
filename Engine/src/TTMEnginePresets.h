@@ -32,94 +32,107 @@ namespace Presets {//ENGINE PRESETS
     enum DEATHKNIGHT_SPEC_IDS {
         DEATHKNIGHT_SPEC_IDS_BLOOD = 0,
         DEATHKNIGHT_SPEC_IDS_FROST = 1,
-        DEATHKNIGHT_SPEC_IDS_UNHOLY = 2
+        DEATHKNIGHT_SPEC_IDS_UNHOLY = 2,
+        DEATHKNIGHT_SPEC_IDS_CLASS = 3
     };
 
     enum DEMONHUNTER_SPEC_IDS {
         DEMONHUNTER_SPEC_IDS_HAVOC = 0,
-        DEMONHUNTER_SPEC_IDS_VENGEANCE = 1
+        DEMONHUNTER_SPEC_IDS_VENGEANCE = 1,
+        DEMONHUNTER_SPEC_IDS_CLASS = 2
     };
 
     enum DRUID_SPEC_IDS {
         DRUID_SPEC_IDS_BALANCE = 0,
         DRUID_SPEC_IDS_FERAL = 1,
         DRUID_SPEC_IDS_GUARDIAN = 2,
-        DRUID_SPEC_IDS_RESTORATION = 3
+        DRUID_SPEC_IDS_RESTORATION = 3,
+        DRUID_SPEC_IDS_CLASS = 4
     };
 
     enum EVOKER_SPEC_IDS {
         EVOKER_SPEC_IDS_DEVASTATION = 0,
-        EVOKER_SPEC_IDS_PRESERVATION = 1
+        EVOKER_SPEC_IDS_PRESERVATION = 1,
+        EVOKER_SPEC_IDS_CLASS = 2
     };
 
     enum HUNTER_SPEC_IDS {
         HUNTER_SPEC_IDS_BEASTMASTERY = 0,
         HUNTER_SPEC_IDS_MARKSMANSHIP = 1,
-        HUNTER_SPEC_IDS_SURVIVAL = 2
+        HUNTER_SPEC_IDS_SURVIVAL = 2,
+        HUNTER_SPEC_IDS_CLASS = 3
     };
 
     enum MAGE_SPEC_IDS {
         MAGE_SPEC_IDS_ARCANE = 0,
         MAGE_SPEC_IDS_FIRE = 1,
-        MAGE_SPEC_IDS_FROST = 2
+        MAGE_SPEC_IDS_FROST = 2,
+        MAGE_SPEC_IDS_CLASS = 3
     };
 
     enum MONK_SPEC_IDS {
         MONK_SPEC_IDS_BREWMASTER = 0,
         MONK_SPEC_IDS_MISTWEAVER = 1,
-        MONK_SPEC_IDS_WINDWALKER = 2
+        MONK_SPEC_IDS_WINDWALKER = 2,
+        MONK_SPEC_IDS_CLASS = 3
     };
 
     enum PALADIN_SPEC_IDS {
         PALADIN_SPEC_IDS_HOLY = 0,
         PALADIN_SPEC_IDS_PROTECTION = 1,
-        PALADIN_SPEC_IDS_RETRIBUTION = 2
+        PALADIN_SPEC_IDS_RETRIBUTION = 2,
+        PALADIN_SPEC_IDS_CLASS = 3
     };
 
     enum PRIEST_SPEC_IDS {
         PRIEST_SPEC_IDS_DISCIPLINE = 0,
         PRIEST_SPEC_IDS_HOLY = 1,
-        PRIEST_SPEC_IDS_SHADOW = 2
+        PRIEST_SPEC_IDS_SHADOW = 2,
+        PRIEST_SPEC_IDS_CLASS = 3
     };
 
     enum ROGUE_SPEC_IDS {
         ROGUE_SPEC_IDS_ASSASSINATION = 0,
         ROGUE_SPEC_IDS_OUTLAW = 1,
-        ROGUE_SPEC_IDS_SUBTLETY = 2
+        ROGUE_SPEC_IDS_SUBTLETY = 2,
+        ROGUE_SPEC_IDS_CLASS = 3
     };
 
     enum SHAMAN_SPEC_IDS {
         SHAMAN_SPEC_IDS_ELEMENTAL = 0,
         SHAMAN_SPEC_IDS_ENHANCEMENT = 1,
-        SHAMAN_SPEC_IDS_RESTORATION = 2
+        SHAMAN_SPEC_IDS_RESTORATION = 2,
+        SHAMAN_SPEC_IDS_CLASS = 3
     };
 
     enum WARLOCK_SPEC_IDS {
         WARLOCK_SPEC_IDS_AFFLICTION = 0,
         WARLOCK_SPEC_IDS_DEMONOLOGY = 1,
-        WARLOCK_SPEC_IDS_DESTRUCTION = 2
+        WARLOCK_SPEC_IDS_DESTRUCTION = 2,
+        WARLOCK_SPEC_IDS_CLASS = 3
     };
 
     enum WARRIOR_SPEC_IDS {
         WARRIOR_SPEC_IDS_ARMS = 0,
         WARRIOR_SPEC_IDS_FURY = 1,
-        WARRIOR_SPEC_IDS_PROTECTION = 2
+        WARRIOR_SPEC_IDS_PROTECTION = 2,
+        WARRIOR_SPEC_IDS_CLASS = 3
     };
 
     static const char* CLASSES[] = { "Death Knight", "Demon Hunter", "Druid", "Evoker", "Hunter", "Mage", "Monk", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior"};
-    static const char* SPECS_DEATHKNIGHT[] = { "Blood", "Frost", "Unholy" };
-    static const char* SPECS_DEMONHUNTER[] = { "Havoc", "Vengeance" };
-    static const char* SPECS_DRUID[] = {"Balance", "Feral", "Guardian", "Restoration"};
+    static const char* SPECS_DEATHKNIGHT[] = { "Blood", "Frost", "Unholy" , "Class tree"};
+    static const char* SPECS_DEMONHUNTER[] = { "Havoc", "Vengeance" , "Class tree" };
+    static const char* SPECS_DRUID[] = {"Balance", "Feral", "Guardian", "Restoration", "Class tree" };
     static const char* SPECS_EVOKER[] = { "Devastation" , "Preservation"};
-    static const char* SPECS_HUNTER[] = { "Beast Mastery", "Marksmanship", "Survival" };
-    static const char* SPECS_MAGE[] = { "Arcane", "Fire", "Frost" };
-    static const char* SPECS_MONK[] = { "Brewmaster", "Mistweaver", "Windwalker" };
-    static const char* SPECS_PALADIN[] = { "Holy", "Protection", "Retribution" };
-    static const char* SPECS_PRIEST[] = { "Discipline", "Holy", "Shadow" };
-    static const char* SPECS_ROGUE[] = { "Assassination", "Outlaw", "Subtlety" };
-    static const char* SPECS_SHAMAN[] = { "Elemental", "Enhancement", "Restoration" };
-    static const char* SPECS_WARLOCK[] = { "Affliction", "Demonology", "Destruction" };
-    static const char* SPECS_WARRIOR[] = { "Arms", "Fury", "Protection" };
+    static const char* SPECS_HUNTER[] = { "Beast Mastery", "Marksmanship", "Survival" , "Class tree" };
+    static const char* SPECS_MAGE[] = { "Arcane", "Fire", "Frost" , "Class tree" };
+    static const char* SPECS_MONK[] = { "Brewmaster", "Mistweaver", "Windwalker" , "Class tree" };
+    static const char* SPECS_PALADIN[] = { "Holy", "Protection", "Retribution" , "Class tree" };
+    static const char* SPECS_PRIEST[] = { "Discipline", "Holy", "Shadow" , "Class tree" };
+    static const char* SPECS_ROGUE[] = { "Assassination", "Outlaw", "Subtlety" , "Class tree" };
+    static const char* SPECS_SHAMAN[] = { "Elemental", "Enhancement", "Restoration" , "Class tree" };
+    static const char* SPECS_WARLOCK[] = { "Affliction", "Demonology", "Destruction" , "Class tree" };
+    static const char* SPECS_WARRIOR[] = { "Arms", "Fury", "Protection" , "Class tree" };
 
     const int RETURN_SPEC_COUNT(int classID);
     const char** RETURN_SPECS(int classID);
@@ -131,11 +144,12 @@ namespace Presets {//ENGINE PRESETS
     First line (";" is line separator, ":" separates different parts of a single line, "," separates individual components of a property):
         1. custom or spec preset, if spec preset then spec name all lowercase, only letters, spaces transformed to "_" (just like in simc)
             a. if preset then all the talent point definitions can be omitted if preset is stored in a library (I build this library up with a custom string but that's implementation detail)
-        2. Tree name
-        3. Tree description
-        4. Loadout description (a loadout is a list of skill sets, e.g. "single target", "aoe", that get defined at the end)
-        5. number of talents in the tree
-        6. number of loadouts
+        2. Tree type (0 for class tree, 1 for spec tree)
+        3. Tree name
+        4. Tree description
+        5. Loadout description (a loadout is a list of skill sets, e.g. "single target", "aoe", that get defined at the end)
+        6. number of talents in the tree
+        7. number of loadouts
 
     Then N lines for N talents:
         1. Index (doesn't have to be starting from 0 and in order but loadouts define talent points spent for each talent ordered by index so it's easier to keep it that way)
@@ -146,8 +160,9 @@ namespace Presets {//ENGINE PRESETS
         6. Column position
         7. Max points
         8. Points required
-        9. Parent indices
-        10. Child indices
+        9. Pre-filled (0 for no, 1 for yes)
+        10. Parent indices
+        11. Child indices
 
     Then N lines for N loadouts:
         1. Loadout name

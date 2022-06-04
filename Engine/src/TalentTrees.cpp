@@ -115,7 +115,7 @@ namespace Engine {
         std::vector<std::string> treeComponents = splitString(treeRep, ";");
         TreeCycleCheckFormat tccf;
         std::map<int, int> indexMap;
-        int numTalents = std::stoi(splitString(treeComponents[0], ":")[4]);
+        int numTalents = std::stoi(splitString(treeComponents[0], ":")[5]);
         for (int i = 1; i < numTalents + 1; i++) {
             if (treeComponents[i] == "")
                 continue;
@@ -186,8 +186,9 @@ namespace Engine {
         std::unordered_map<int, std::unordered_set<int>> talentIndexInRow;
         int maxID = 0;
         int maxCol = 1;
+        int preFilledTalentCount = 0;
         for (auto& root : tree.talentRoots) {
-            countNodesRecursively(nodeTalentPoints, maxID, maxCol, talentIndexInRow, root);
+            countNodesRecursively(nodeTalentPoints, maxID, maxCol, preFilledTalentCount, talentIndexInRow, root);
         }
         tree.nodeCount = static_cast<int>(nodeTalentPoints.size());
         int maxTalentPoints = 0;
@@ -197,13 +198,14 @@ namespace Engine {
         tree.maxTalentPoints = maxTalentPoints;
         tree.maxID = maxID;
         tree.maxCol = maxCol;
+        tree.preFilledTalentPoints = preFilledTalentCount;
         tree.talentsPerRow.clear();
         for (auto& rowIndices : talentIndexInRow) {
             tree.talentsPerRow[rowIndices.first] = static_cast<int>(rowIndices.second.size());
         }
     }
 
-    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
+    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, int& preFilledTalentCount, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
         nodeTalentPoints[talent->index] = talent->maxPoints;
         if (talent->index >= maxID)
             maxID = talent->index + 1;
@@ -212,6 +214,9 @@ namespace Engine {
             maxCol = talent->column + 1;
 
         talentsPerRow[talent->row].insert(talent->index);
+        if (talent->preFilled) {
+            preFilledTalentCount += talent->maxPoints;
+        }
         /*if (talentsPerRow.count(talent->row)) {
         }
         else {
@@ -219,7 +224,7 @@ namespace Engine {
         }*/
 
         for (auto& child : talent->children)
-            countNodesRecursively(nodeTalentPoints, maxID, maxCol, talentsPerRow, child);
+            countNodesRecursively(nodeTalentPoints, maxID, maxCol, preFilledTalentCount, talentsPerRow, child);
     }
 
     void updateOrderedTalentList(TalentTree& tree) {
@@ -292,11 +297,8 @@ namespace Engine {
     Creates a full tree string representation that's compatible to import trees in parse tree
     */
     std::string createTreeStringRepresentation(TalentTree& tree) {
-        //Tree definition string: TreeString;TalentString;TalentString;...
-        //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
-        //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
         std::stringstream treeRep;
-        treeRep << tree.presetName <<":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
+        treeRep << tree.presetName << ":" << static_cast<int>(tree.type) << ":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
         if (tree.presetName == "custom") {
             for (auto& talent : tree.orderedTalents) {
                 treeRep << talent.first << ":" << cleanString(talent.second->name);
@@ -309,7 +311,7 @@ namespace Engine {
                 }
                 treeRep << cleanString(talent.second->descriptions[talent.second->descriptions.size() - 1]) << ":";
                 treeRep << static_cast<int>(talent.second->type) << ":" << talent.second->row << ":" << talent.second->column << ":";
-                treeRep << talent.second->maxPoints << ":" << talent.second->pointsRequired << ":";
+                treeRep << talent.second->maxPoints << ":" << talent.second->pointsRequired << ":" << static_cast<int>(talent.second->preFilled) << ":";
                 if (talent.second->parents.size() > 0) {
                     for (int i = 0; i < talent.second->parents.size() - 1; i++) {
                         treeRep << talent.second->parents[i]->index << ",";
@@ -409,7 +411,7 @@ namespace Engine {
         //first check tree meta info line
         std::vector<std::string> treeParts = splitString(treeRep, ";");
         std::vector<std::string> metaInfo = splitString(treeParts[0], ":");
-        if (metaInfo.size() != 6) {
+        if (metaInfo.size() != 7) {
             return false;
         }
         if (metaInfo[0] != "custom") {
@@ -421,19 +423,22 @@ namespace Engine {
                 return false;
             }
         }
-        if (metaInfo[1].find_first_not_of(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-        ) != std::string::npos) {
+        if (metaInfo[1] != "0" && metaInfo[1] != "1") {
             return false;
         }
-        if (metaInfo[4].find_first_not_of("0123456789") != std::string::npos) {
+        if (metaInfo[2].find_first_not_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+        ) != std::string::npos) {
             return false;
         }
         if (metaInfo[5].find_first_not_of("0123456789") != std::string::npos) {
             return false;
         }
-        int numTalents = std::stoi(metaInfo[4]);
-        int numSkillsets = std::stoi(metaInfo[5]);
+        if (metaInfo[6].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        int numTalents = std::stoi(metaInfo[5]);
+        int numSkillsets = std::stoi(metaInfo[6]);
         if (metaInfo[0] == "custom") {
             if (treeParts.size() != 1 + numTalents + numSkillsets && treeParts.size() != 2 + numTalents + numSkillsets) {
                 return false;
@@ -471,7 +476,7 @@ namespace Engine {
 
     bool validateTalentStringFormat(std::string talentString) {
         std::vector<std::string> talentParts = splitString(talentString, ":");
-        if (talentParts.size() != 10) {
+        if (talentParts.size() != 11) {
             return false;
         }
         if (talentParts[0].find_first_not_of("0123456789") != std::string::npos) {
@@ -497,19 +502,19 @@ namespace Engine {
         if (talentParts[7] == "" || talentParts[7].find_first_not_of("0123456789") != std::string::npos) {
             return false;
         }
-        if (talentParts[8].find_first_not_of("0123456789,") != std::string::npos) {
+        if (talentParts[8] != "0" && talentParts[8] != "1") {
             return false;
         }
         if (talentParts[9].find_first_not_of("0123456789,") != std::string::npos) {
             return false;
         }
+        if (talentParts[10].find_first_not_of("0123456789,") != std::string::npos) {
+            return false;
+        }
         return true;
     }
 
-    //Tree definition string: TreeString;TalentString;TalentString;...
-    //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
-    //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch
-    /*
+        /*
     Parse a tree with a given format string. There are two variants, specified by the preset in the tree info string.
     Given a spec name only the preset and then a string of numbers with the spent talent points as well as a .X where x specifies the switch state is needed.
     Given "custom" as preset, the full tree details have to be given. This is how spec trees are built.
@@ -539,11 +544,12 @@ namespace Engine {
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[0];
-        tree.name = restoreString(treeInfoParts[1]);
-        tree.treeDescription = restoreString(treeInfoParts[2]);
-        tree.loadoutDescription = restoreString(treeInfoParts[3]);
-        int numTalents = std::stoi(treeInfoParts[4]);
-        int numLoadouts = std::stoi(treeInfoParts[5]);
+        tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[1]));
+        tree.name = restoreString(treeInfoParts[2]);
+        tree.treeDescription = restoreString(treeInfoParts[3]);
+        tree.loadoutDescription = restoreString(treeInfoParts[4]);
+        int numTalents = std::stoi(treeInfoParts[5]);
+        int numLoadouts = std::stoi(treeInfoParts[6]);
         tree.loadout.clear();
 
         for (int i = 1; i < numLoadouts + 1; i++) {
@@ -563,6 +569,7 @@ namespace Engine {
                 int points = std::stoi(skillsetParts[index]);
                 skillset->assignedSkillPoints[it->first] = points;
                 skillset->talentPointsSpent += points;
+                it->second->points = points;
                 index++;
             }
 
@@ -574,11 +581,6 @@ namespace Engine {
         return tree;
     }
 
-    /*
-    Tree definition string: TreeString;TalentString;TalentString;...
-    Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
-    Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
-    */
     TalentTree parseCustomTree(std::string treeRep) {
         std::vector<std::string> treeDefinitionParts = splitString(treeRep, ";");
         TalentVec roots;
@@ -587,11 +589,12 @@ namespace Engine {
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[0];
-        tree.name = restoreString(treeInfoParts[1]);
-        tree.treeDescription = restoreString(treeInfoParts[2]);
-        tree.loadoutDescription = restoreString(treeInfoParts[3]);
-        int numTalents = std::stoi(treeInfoParts[4]);
-        int numLoadouts = std::stoi(treeInfoParts[5]);
+        tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[1]));
+        tree.name = restoreString(treeInfoParts[2]);
+        tree.treeDescription = restoreString(treeInfoParts[3]);
+        tree.loadoutDescription = restoreString(treeInfoParts[4]);
+        int numTalents = std::stoi(treeInfoParts[5]);
+        int numLoadouts = std::stoi(treeInfoParts[6]);
 
         for (int i = 1; i < numTalents + 1; i++) {
             if (treeDefinitionParts[i] == "")
@@ -625,7 +628,8 @@ namespace Engine {
             t->column = std::stoi(talentInfo[5]);
             t->maxPoints = std::stoi(talentInfo[6]);
             t->pointsRequired = std::stoi(talentInfo[7]);
-            for (auto& parent : splitString(talentInfo[8], ",")) {
+            t->preFilled = static_cast<bool>(std::stoi(talentInfo[8]));
+            for (auto& parent : splitString(talentInfo[9], ",")) {
                 if (parent == "")
                     break;
                 int parentIndex = std::stoi(parent);
@@ -639,7 +643,7 @@ namespace Engine {
                     addParent(t, parentTalent);
                 }
             }
-            for (auto& child : splitString(talentInfo[9], ",")) {
+            for (auto& child : splitString(talentInfo[10], ",")) {
                 if (child == "")
                     break;
                 int childIndex = std::stoi(child);
@@ -677,6 +681,7 @@ namespace Engine {
                 int points = std::stoi(skillsetParts[i]);
                 skillset->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = points;
                 skillset->talentPointsSpent += points;
+                tree.orderedTalents[std::stoi(splitString(treeDefinitionParts[i], ":")[0])]->points = points;
             }
 
             if (validateSkillset(tree, skillset)) {
@@ -714,7 +719,15 @@ namespace Engine {
 
     bool validateSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
         for (auto& indexPointsPair : skillset->assignedSkillPoints) {
+            //check if point is in talent with index that is not present in tree
+            if (!tree.orderedTalents.count(indexPointsPair.first)) {
+                return false;
+            }
             if (indexPointsPair.second == 0) {
+                //check if talent is pre filled but has 0 in skillset
+                if (tree.orderedTalents[indexPointsPair.first]->preFilled) {
+                    return false;
+                }
                 continue;
             }
             //first, check if talent has more or fewer points than allowed
@@ -724,6 +737,10 @@ namespace Engine {
             if ((tree.orderedTalents[indexPointsPair.first]->type == Engine::TalentType::SWITCH && indexPointsPair.second > 2)
                 || (tree.orderedTalents[indexPointsPair.first]->type != Engine::TalentType::SWITCH 
                     && indexPointsPair.second > tree.orderedTalents[indexPointsPair.first]->maxPoints)) {
+                return false;
+            }
+            //check if talent is pre filled but is not fully skilled
+            if (tree.orderedTalents[indexPointsPair.first]->preFilled && indexPointsPair.second != tree.orderedTalents[indexPointsPair.first]->maxPoints) {
                 return false;
             }
             //check if at least 1 parent is fully skilled
@@ -1188,11 +1205,47 @@ namespace Engine {
     }
 
     /*
-    Transforms tree with "complex" talents (that can hold mutliple skill points) to "simple" tree with only talents that can hold a single talent point
+    Transforms tree with "complex" talents (that can hold mutliple skill points) to "simple" tree with only talents that can hold a single talent point.
+    In the process, all pre filled talents get deleted as they are irrelevant for loadout solving.
     */
     void expandTreeTalents(TalentTree& tree) {
-        for (auto& root : tree.talentRoots) {
-            expandTalentAndAdvance(root, tree.maxTalentPoints);
+        //We use a very clever trick to easily incorporate pre filled talents in the tree solve process.
+        //Pre filled talents are fully filled and enable every child to be picked next. Therefore every child acts as a root node.
+        //We simply have to cut all parent connections (and therefore remove from parent's children) and add to root list to transform talent to root node.
+        //Then solving works the same as before.
+        int rootIndex = 0;
+        while(rootIndex < tree.talentRoots.size()) {
+            Talent_s& root = tree.talentRoots[rootIndex];
+            if (root->preFilled) {
+                int talentIndex = root->index;
+                //check children for new root talents &
+                //delete from children's parents lists
+                TalentVec origChildren = root->children;
+                for (auto& child : origChildren) {
+                    for (auto& childParent : child->parents) {
+                        childParent->children.erase(
+                            std::remove(
+                                childParent->children.begin(),
+                                childParent->children.end(),
+                                child),
+                            childParent->children.end());
+                    }
+                    child->parents.clear();
+                    tree.talentRoots.push_back(child);
+                }
+                //delete from tree.orderedTalents
+                tree.orderedTalents.erase(talentIndex);
+                rootIndex++;
+                continue;
+            }
+            expandTalentAndAdvance(tree, root, tree.maxTalentPoints);
+            rootIndex++;
+        }
+        tree.talentRoots.clear();
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            if (indexTalentPair.second->parents.size() == 0) {
+                tree.talentRoots.push_back(indexTalentPair.second);
+            }
         }
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
@@ -1201,7 +1254,40 @@ namespace Engine {
     /*
     Creates all the necessary single point talents to replace a multi point talent and inserts them with correct parents/children
     */
-    void expandTalentAndAdvance(Talent_s talent, int maxTalentPoints) {
+    void expandTalentAndAdvance(TalentTree& tree, Talent_s talent, int maxTalentPoints) {
+        if (talent->preFilled) {
+            //TTMNOTE: This should not be possible, only root nodes or nodes with pre filled parent (which are transformed to roots) can be pre filled
+            /*
+            int talentIndex = talent->index;
+            //check children for new root talents &
+            //delete from children's parents lists
+            for (auto& child : talent->children) {
+                child->parents.erase(
+                    std::remove(
+                        child->parents.begin(),
+                        child->parents.end(),
+                        talent),
+                    child->parents.end());
+            }
+            //delete from parents' children lists
+            for (auto& parent : talent->parents) {
+                parent->children.erase(
+                    std::remove(
+                        parent->children.begin(),
+                        parent->children.end(),
+                        talent),
+                    parent->children.end());
+            }
+            //delete from tree.orderedTalents
+            tree.orderedTalents.erase(talentIndex);
+            for (auto& child : talent->children) {
+                expandTalentAndAdvance(tree, child, maxTalentPoints);
+            }
+            talent->children.clear();
+            talent->parents.clear();
+            */
+            throw std::logic_error("Non-root nodes cannot be pre filled!");
+        }
         if (talent->maxPoints > 1) {
             TalentVec talentParts;
             TalentVec originalChildren;
@@ -1240,12 +1326,12 @@ namespace Engine {
             }
             talent->maxPoints = 1;
             for (auto& child : originalChildren) {
-                expandTalentAndAdvance(child, maxTalentPoints);
+                expandTalentAndAdvance(tree, child, maxTalentPoints);
             }
         }
         else {
             for (auto& child : talent->children) {
-                expandTalentAndAdvance(child, maxTalentPoints);
+                expandTalentAndAdvance(tree, child, maxTalentPoints);
             }
         }
     }
@@ -1332,6 +1418,7 @@ namespace Engine {
             throw std::logic_error("Skillset index is -1 or larger than loadout size!");
         }
         tree.activeSkillsetIndex = index;
+        tree.loadout[index]->talentPointsSpent = 0;
         for (auto& indexPointsPair : tree.loadout[index]->assignedSkillPoints) {
             if (indexPointsPair.second < 0 
                 || (tree.orderedTalents[indexPointsPair.first]->type != TalentType::SWITCH &&
@@ -1342,6 +1429,7 @@ namespace Engine {
             }
             if (tree.orderedTalents[indexPointsPair.first]->type != TalentType::SWITCH) {
                 tree.orderedTalents[indexPointsPair.first]->points = indexPointsPair.second;
+                tree.loadout[index]->talentPointsSpent += indexPointsPair.second;
             }
             else {
                 if (indexPointsPair.second > 0) {
@@ -1352,6 +1440,17 @@ namespace Engine {
                     tree.orderedTalents[indexPointsPair.first]->points = 0;
                     tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
                 }
+                tree.loadout[index]->talentPointsSpent += 1;
+            }
+        }
+    }
+
+    void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            if (indexTalentPair.second->preFilled) {
+                int additionalTalentPoints = indexTalentPair.second->maxPoints - skillset->assignedSkillPoints[indexTalentPair.first];
+                skillset->assignedSkillPoints[indexTalentPair.first] += additionalTalentPoints;
+                skillset->talentPointsSpent += additionalTalentPoints;
             }
         }
     }

@@ -17,9 +17,15 @@ namespace Engine {
         ACTIVE, PASSIVE, SWITCH
     };
 
+    enum class TreeType {
+        CLASS, SPEC
+    };
+    static const char* TreeTypeDescription[] = { "Class tree", "Spec tree" };
+
     struct Talent {
         int index = -1;
         bool isExpanded = false;
+        bool preFilled = false;
         int expansionIndex = 0;
         std::string name = "";
         std::string nameSwitch = "";
@@ -62,11 +68,13 @@ namespace Engine {
     */
     struct TalentTree {
         std::string presetName = "custom";
+        TreeType type = TreeType::CLASS;
         std::string name = "defaultTree";
         std::string treeDescription = "";
         std::string loadoutDescription = "";
         int nodeCount = 0;
         int maxTalentPoints = 0;
+        int preFilledTalentPoints = 0;
         int unspentTalentPoints = 30;
         int spentTalentPoints = 0;
         std::vector<std::shared_ptr<Talent>> talentRoots;
@@ -97,7 +105,7 @@ namespace Engine {
     bool cycleCheckVisitTalent(int talentIndex, std::vector<int>& talents, vec2d<int> children);
 
     void updateNodeCountAndMaxTalentPointsAndMaxID(TalentTree& tree);
-    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent);
+    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, int& preFilledTalentCount, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent);
     void updateOrderedTalentList(TalentTree& tree);
     void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s child);
 
@@ -143,7 +151,7 @@ namespace Engine {
     void appendEdges(vec2d<int>& edges, int row, std::map<int, TalentVec>& talentDepths);
 
     void expandTreeTalents(TalentTree& tree);
-    void expandTalentAndAdvance(Talent_s talent, int maxTalentPoints);
+    void expandTalentAndAdvance(TalentTree& tree, Talent_s talent, int maxTalentPoints);
     void contractTreeTalents(TalentTree& tree);
     void contractTalentAndAdvance(Talent_s& talent);
 
@@ -151,6 +159,7 @@ namespace Engine {
 
     void createSkillset(TalentTree& tree);
     void activateSkillset(TalentTree& tree, int index);
+    void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
     std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString);
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
