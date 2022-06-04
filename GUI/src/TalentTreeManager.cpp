@@ -167,6 +167,9 @@ namespace TTM {
                 if (ImGui::MenuItem("About TTM")) {
                     uiData.showAboutPopup = true;
                 }
+                if (ImGui::MenuItem("Reset TTM")) {
+                    uiData.showResetPopup = true;
+                }
                 ImGui::EndMenu();
             }
             if (uiData.menuBarUpdateLabel.size() > 0) {
@@ -183,6 +186,10 @@ namespace TTM {
         if (uiData.showHelpPopup) {
             uiData.showHelpPopup = false;
             ImGui::OpenPopup("Controls & Tips##Popup");
+        }
+        if (uiData.showResetPopup) {
+            uiData.showResetPopup = false;
+            ImGui::OpenPopup("Reset TTM##Popup");
         }
         static bool* close = new bool();
         *close = true;
@@ -261,6 +268,24 @@ namespace TTM {
 
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            ImGui::EndPopup();
+        }
+        if (ImGui::BeginPopupModal("Reset TTM##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::PushTextWrapPos(240);
+            ImGui::Text("Do you want to reset TTM? This will close the app, delete the workspace (all trees and loadouts) and settings!");
+            ImGui::PopTextWrapPos();
+
+            ImGui::SetItemDefaultFocus();
+            if (ImGui::Button("Reset", ImVec2(120, 0))) {
+                resetWorkspaceAndTrees();
+                done = true;
+                uiData.resetWorkspace = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel", ImVec2(120, 0))) { 
+                ImGui::CloseCurrentPopup(); 
+            }
             ImGui::EndPopup();
         }
 	}
@@ -634,5 +659,10 @@ namespace TTM {
             }
         }
         return col;
+    }
+
+    void resetWorkspaceAndTrees() {
+        std::filesystem::path appPath = getAppPath();
+        std::filesystem::remove_all(appPath);
     }
 }
