@@ -108,7 +108,7 @@ namespace Engine {
     void printTree(const TalentTree& tree);
     inline std::string cleanString(std::string s);
     inline std::string restoreString(std::string s);
-    std::string createTreeStringRepresentation(const TalentTree& tree);
+    std::string createTreeStringRepresentation(TalentTree& tree);
     Talent_s createTalent(TalentTree& tree, std::string name, int maxPoints);
     bool validateTreeStringFormat(std::string treeRep);
     bool validateTalentStringFormat(std::string talentString);
@@ -153,8 +153,8 @@ namespace Engine {
     void activateSkillset(TalentTree& tree, int index);
     std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString);
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
-    std::string createActiveSkillsetStringRepresentation(const TalentTree& tree);
-    std::string createAllSkillsetsStringRepresentation(const TalentTree& tree);
+    std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
+    std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
 
     /*
     Checks if the currently assigned talent points fulfill all the requirements and are valid (in case

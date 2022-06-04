@@ -291,7 +291,7 @@ namespace Engine {
     /*
     Creates a full tree string representation that's compatible to import trees in parse tree
     */
-    std::string createTreeStringRepresentation(const TalentTree& tree) {
+    std::string createTreeStringRepresentation(TalentTree& tree) {
         //Tree definition string: TreeString;TalentString;TalentString;...
         //Tree info string: preset:name:description:loadoutdescription:unspentTalentPoints:spentTalentPoints
         //Talent definition string: index:name:description1,description2,...:type:row:col:points:maxPoints:pointRequirement:talentSwitch:parentIndices:childIndices
@@ -327,6 +327,9 @@ namespace Engine {
             }
         }
         for (auto& skillset : tree.loadout) {
+            if (!validateSkillset(tree, skillset)) {
+                continue;
+            }
             treeRep << skillset->name;
             for (auto& skillPoint : skillset->assignedSkillPoints) {
                 treeRep << ":" << skillPoint.second;
@@ -789,6 +792,12 @@ namespace Engine {
             }
             talentsSelected.clear();
         }
+
+        int pointsSpent = 0;
+        for (auto& pointSpentPair : skillset->assignedSkillPoints) {
+            pointsSpent += pointSpentPair.second;
+        }
+        skillset->talentPointsSpent = pointsSpent;
 
         return true;
     }
@@ -1380,6 +1389,8 @@ namespace Engine {
                 importedSkillsets.first += 1;
             }
         }
+        tree.activeSkillsetIndex = static_cast<int>(tree.loadout.size() - 1);
+        activateSkillset(tree, tree.activeSkillsetIndex);
         return importedSkillsets;
     }
 
@@ -1392,14 +1403,22 @@ namespace Engine {
         return rep;
     }
 
-    std::string createActiveSkillsetStringRepresentation(const TalentTree& tree) {
+    std::string createActiveSkillsetStringRepresentation(TalentTree& tree) {
+        if (!validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
+            return "Invalid skillset!";
+        }
         return createSkillsetStringRepresentation(tree.loadout[tree.activeSkillsetIndex]);
     }
 
-    std::string createAllSkillsetsStringRepresentation(const TalentTree& tree) {
+    std::string createAllSkillsetsStringRepresentation(TalentTree& tree) {
         std::string rep;
+        int skillsetIndex = 1;
         for (auto& skillset : tree.loadout) {
+            if (!validateSkillset(tree, skillset)) {
+                return "At least skillset " + std::to_string(skillsetIndex) + " is invalid!";
+            }
             rep += createSkillsetStringRepresentation(skillset);
+            skillsetIndex++;
         }
         return rep;
     }
