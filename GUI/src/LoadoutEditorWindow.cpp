@@ -40,6 +40,9 @@ namespace TTM {
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), talentTypeString.c_str());
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -58,6 +61,9 @@ namespace TTM {
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch, ctrl+click)");
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -120,7 +126,21 @@ namespace TTM {
                     ImGui::Text("Skillset name:");
                     ImGui::InputText("##loadoutEditorSkillsetNameInput", &talentTreeCollection.activeSkillset()->name, 
                         ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
-                    ImGui::Text("Skillset points spent: %d", talentTreeCollection.activeSkillset()->talentPointsSpent);
+                    ImGui::Text("Skillset points spent: %d", talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints);
+                    int minLevel = 0;
+                    if (talentTreeCollection.activeSkillset()->talentPointsSpent > talentTreeCollection.activeTree().preFilledTalentPoints) {
+                        minLevel += 10;
+                        if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+                            minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints) * 2 - 2;
+                        }
+                        else {
+                            minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints)* 2 - 1;
+                        }
+                    }
+                    ImGui::Text("Required level: %d", minLevel);
+                    if (minLevel > 70) {
+                        ImGui::Text("Required level is greater than current max level (70)!");
+                    }
                 }
                 else {
                     ImGui::Text("Skillset name: [none]");
@@ -252,8 +272,17 @@ namespace TTM {
                     break;
                 }
             }
-            if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent || !isParentFilled) {
+            if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent || !isParentFilled || talent.second->preFilled) {
                 talentDisabled = true;
+            }
+            if (talent.second->preFilled) {
+                int assignedPoints = talent.second->maxPoints - talent.second->points;
+                talent.second->points += assignedPoints;
+                talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += assignedPoints;
+                talentTreeCollection.activeSkillset()->talentPointsSpent += assignedPoints;
+                if (talent.second->type == Engine::TalentType::SWITCH) {
+                    talent.second->talentSwitch = 1;
+                }
             }
             if (talent.second->points > 0 && talent.second->points < talent.second->maxPoints) {
                 ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.2f, 0.9f, 0.2f));

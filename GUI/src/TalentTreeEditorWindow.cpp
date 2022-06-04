@@ -47,6 +47,9 @@ namespace TTM {
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), talentTypeString.c_str());
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
                 ImGui::Text(("Max points: " + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -69,6 +72,9 @@ namespace TTM {
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
                 ImGui::Text(("Max points: 1, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -167,6 +173,18 @@ namespace TTM {
                 ImGui::SameLine(ImGui::GetContentRegionAvail().x / 3.f);
                 ImGui::Text(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.presetName.c_str());
 
+                ImGui::Text("Tree type:");
+                int currentTreeType = static_cast<int>(talentTreeCollection.activeTree().type);
+                ImGui::Combo("##talentCreationTypeCombo", &currentTreeType, "Class tree\0Spec tree");
+                if (static_cast<Engine::TreeType>(currentTreeType) != talentTreeCollection.activeTree().type) {
+                    talentTreeCollection.activeTree().type = static_cast<Engine::TreeType>(currentTreeType);
+                    talentTreeCollection.activeTree().presetName = "custom";
+                    Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                    clearSolvingProcess(uiData, talentTreeCollection);
+
+                    uiData.treeEditorSelectedTalent = nullptr;
+                }
+
                 ImGui::Text("Node count: ");
                 ImGui::SameLine(ImGui::GetContentRegionAvail().x / 3.f);
                 ImGui::Text("%d", talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.nodeCount);
@@ -208,9 +226,11 @@ namespace TTM {
                         uiData.treeEditorCreationTalent->maxPoints = 1;
                     }
 
-
                     ImGui::Text("Points required:");
                     ImGui::SliderInt("##talentCreationPtsReqSlider", &uiData.treeEditorCreationTalent->pointsRequired, 0, 50, "%d", ImGuiSliderFlags_AlwaysClamp);
+
+                    ImGui::Text("Is talent pre-filled:");
+                    ImGui::Checkbox("##talentEditPreFilledCheckbox", &uiData.treeEditorCreationTalent->preFilled);
 
                     ImGui::Text("Descriptions:");
                     if (uiData.treeEditorCreationTalent->descriptions.size() != uiData.treeEditorCreationTalent->maxPoints + (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH)) {
@@ -306,9 +326,11 @@ namespace TTM {
                             uiData.treeEditorSelectedTalent->maxPoints = 1;
                         }
 
-
                         ImGui::Text("Points required:");
                         ImGui::SliderInt("##talentEditPtsReqSlider", &uiData.treeEditorSelectedTalent->pointsRequired, 0, 50, "%d", ImGuiSliderFlags_AlwaysClamp);
+
+                        ImGui::Text("Is talent pre-filled:");
+                        ImGui::Checkbox("##talentEditPreFilledCheckbox", &uiData.treeEditorSelectedTalent->preFilled);
 
                         ImGui::Text("Descriptions:");
                         if (uiData.treeEditorSelectedTalent->descriptions.size() != uiData.treeEditorSelectedTalent->maxPoints + (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH)) {
@@ -567,6 +589,8 @@ namespace TTM {
                             talentTreeCollection.activeTree().presetName = "custom";
                             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                             clearSolvingProcess(uiData, talentTreeCollection);
+
+                            uiData.treeEditorSelectedTalent = nullptr;
                         }
                     }
                     ImGui::Separator();
@@ -577,6 +601,8 @@ namespace TTM {
                         talentTreeCollection.activeTree().presetName = "custom";
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
                     }
                 }
                 //Call all the different modal popups that can appear
@@ -952,6 +978,8 @@ namespace TTM {
         talentTreeCollection.activeTree().presetName = "custom";
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
         clearSolvingProcess(uiData, talentTreeCollection);
+
+        uiData.treeEditorSelectedTalent = nullptr;
 
         uiData.treeEditorCreationTalent = std::make_shared<Engine::Talent>();
         uiData.treeEditorCreationTalentParentsPlaceholder.clear();

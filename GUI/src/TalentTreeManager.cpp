@@ -544,6 +544,24 @@ namespace TTM {
                 if (talentTreeCollection.activeTreeIndex >= 0) {
                     text += " - node count: " + std::to_string(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.nodeCount);
                     text += " - maximum skill points : " + std::to_string(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.maxTalentPoints);
+                    if (uiData.editorView == EditorView::LoadoutEdit && talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
+                        int minLevel = 0;
+                        if (talentTreeCollection.activeSkillset()->talentPointsSpent > talentTreeCollection.activeTree().preFilledTalentPoints) {
+                            minLevel += 10;
+                            if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+                                minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints) * 2 - 2;
+                            }
+                            else {
+                                minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints) * 2 - 1;
+                            }
+                        }
+                        if (minLevel > 0) {
+                            text += " - required level: " + std::to_string(minLevel);
+                            if (minLevel > 70) {
+                                text += " - REQUIRED LEVEL IS GREATER THAN CURRENT MAX LEVEL (70)";
+                            }
+                        }
+                    }
                 }
 				ImGui::Text(text.c_str());
 				ImGui::EndMenuBar();

@@ -27,7 +27,7 @@
 namespace TTM {
     static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent)
     {
-        if (ImGui::IsItemHovered())
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
@@ -43,6 +43,9 @@ namespace TTM {
                 case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
                 }
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), talentTypeString.c_str());
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -61,6 +64,9 @@ namespace TTM {
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
                 ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -285,8 +291,8 @@ namespace TTM {
             ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
             if (ImGui::Button("Process tree", ImVec2(wrapWidth + 2 * boxPadding, 25))) {
                 clearSolvingProcess(uiData, talentTreeCollection);
-                if (uiData.loadoutSolverTalentPointLimit > talentTreeCollection.activeTree().maxTalentPoints) {
-                    uiData.loadoutSolverTalentPointLimit = talentTreeCollection.activeTree().maxTalentPoints;
+                if (uiData.loadoutSolverTalentPointLimit > talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints) {
+                    uiData.loadoutSolverTalentPointLimit = talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints;
                 }
                 if (uiData.loadoutSolverTalentPointLimit > uiData.loadoutSolverMaxTalentPoints
                     // This check prevents trees with more than 64 spendable talent points from being handled
@@ -338,7 +344,7 @@ namespace TTM {
                 ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
                 changedColor = true;
             }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] == talent.second->maxPoints) {
+            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] == talent.second->maxPoints || talent.second->preFilled) {
                 ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.73f, 0.0f));
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.82f, 0.0f));
                 ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.95f, 0.0f));
@@ -356,6 +362,10 @@ namespace TTM {
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
             ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
             ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            if (talent.second->preFilled) {
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
+                ImGui::BeginDisabled();
+            }
             if (ImGui::Button((std::to_string(talent.second->index) + "##" + talent.second->name).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
@@ -384,6 +394,10 @@ namespace TTM {
                     uiData.loadoutSolverSkillsetResultPage = -1;
                     uiData.loadoutSolverBufferedPage = -1;
                 }
+            }
+            if (talent.second->preFilled) {
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
+                ImGui::EndDisabled();
             }
             ImGui::PopStyleVar(2);
             ImGui::PopFont();
@@ -488,9 +502,8 @@ namespace TTM {
                 uiData.selectedFilteredSkillset
             );
             sk->name = "Solved loadout " + std::to_string(uiData.selectedFilteredSkillset);
-            talentTreeCollection.activeTree().loadout.push_back(
-                sk
-            );
+            Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
+            talentTreeCollection.activeTree().loadout.push_back(sk);
             ImGui::OpenPopup("Add to loadout successfull");
         }
         if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllToLoadoutButton")) {
@@ -501,9 +514,8 @@ namespace TTM {
                     skillsetIndexPair.first
                 );
                 sk->name = "Solved loadout " + std::to_string(skillsetIndexPair.first);
-                talentTreeCollection.activeTree().loadout.push_back(
-                    sk
-                );
+                Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
+                talentTreeCollection.activeTree().loadout.push_back(sk);
             }
             ImGui::OpenPopup("Add to loadout successfull");
         }
