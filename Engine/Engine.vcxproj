@@ -137,7 +137,8 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -145,13 +146,13 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcurl-d.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
-mkdir "$(OutputPath)resources\"
+      <Command>mkdir "$(OutputPath)resources\"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -164,7 +165,8 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -174,16 +176,15 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
-mkdir "$(OutputPath)TalentTreeManager\"
+      <Command>mkdir "$(OutputPath)TalentTreeManager\"
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 mkdir "$(OutputPath)TalentTreeManager\resources\"
-copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)TalentTreeManager\resources\"
 mkdir "$(OutputPath)resources\"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
@@ -196,7 +197,8 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -204,13 +206,13 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcurl-d.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
-mkdir "$(OutputPath)resources\"
+      <Command>mkdir "$(OutputPath)resources\"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -223,7 +225,8 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -233,16 +236,15 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Lib>
-      <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcurl.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
     </Lib>
     <PostBuildEvent>
-      <Command>copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
-mkdir "$(OutputPath)TalentTreeManager\"
+      <Command>mkdir "$(OutputPath)TalentTreeManager\"
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 mkdir "$(OutputPath)TalentTreeManager\resources\"
-copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)TalentTreeManager\resources\"
 mkdir "$(OutputPath)resources\"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>

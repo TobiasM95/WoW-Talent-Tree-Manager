@@ -18,31 +18,7 @@
     <ClCompile Include="src\Main.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="src\ImGui\imgui_demo.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\imgui_draw.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\imgui_tables.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\imgui_widgets.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\imgui.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\backends\imgui_impl_win32.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\backends\imgui_impl_dx11.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
     <ClCompile Include="src\TalentTreeManager.cpp">
-      <Filter>Quelldateien</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ImGui\imgui_stdlib.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="resources\fonts\roboto_medium.h">
@@ -63,36 +39,36 @@
     <ClCompile Include="src\LoadoutSolverWindow.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\Updater.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\imgui.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\imgui_demo.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\imgui_draw.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\imgui_stdlib.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\imgui_tables.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\imgui_widgets.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\backends\imgui_impl_dx11.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\libs\ImGui\backends\imgui_impl_win32.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ImGui\imgui.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\imgui_internal.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\imstb_rectpack.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\imstb_textedit.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\imstb_truetype.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\imconfig.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\backends\imgui_impl_win32.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\backends\imgui_impl_dx11.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="src\TalentTreeManager.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ImGui\imgui_stdlib.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="resources\resource.h">
@@ -111,6 +87,36 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\LoadoutSolverWindow.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Updater.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imconfig.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imgui.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imgui_internal.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imgui_stdlib.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imstb_rectpack.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imstb_textedit.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\imstb_truetype.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\backends\imgui_impl_dx11.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\libs\ImGui\backends\imgui_impl_win32.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -144,5 +150,6 @@
     <Text Include="resources\releasedocs\README.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />
     <Text Include="resources\resource_versions.txt" />
+    <Text Include="src\libs\ImGui\LICENSE.txt" />
   </ItemGroup>
 </Project>
