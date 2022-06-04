@@ -158,7 +158,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
-    TTM::saveWorkspace(uiData, talentTreeCollection);
+    if (!uiData.resetWorkspace) {
+        TTM::saveWorkspace(uiData, talentTreeCollection);
+    }
 
     // Cleanup
     ImGui_ImplDX11_Shutdown();

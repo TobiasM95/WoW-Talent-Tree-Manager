@@ -59,6 +59,8 @@ namespace TTM {
 		EditorView editorView = EditorView::None;
 		bool showAboutPopup = false;
 		bool showHelpPopup = false;
+		bool showResetPopup = false;
+		bool resetWorkspace = false;
 
 		std::string menuBarUpdateLabel = "";
 
