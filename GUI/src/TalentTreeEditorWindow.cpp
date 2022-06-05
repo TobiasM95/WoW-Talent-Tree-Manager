@@ -106,7 +106,12 @@ namespace TTM {
 
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5, 5));
         if (ImGui::Begin("TreeWindow", nullptr, ImGuiWindowFlags_NoDecoration)) {
-            ImGui::BeginChild("TreeWindowChild", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            ImGuiWindowFlags treeWindowChildFlags = ImGuiWindowFlags_NoScrollbar;
+            bool ctrlPressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+            if (ctrlPressed) {
+                treeWindowChildFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+            }
+            ImGui::BeginChild("TreeWindowChild", ImVec2(0, 0), true, treeWindowChildFlags);
             if (ImGui::IsItemActive())
             {
                 if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
@@ -114,7 +119,7 @@ namespace TTM {
                     ImGui::SetScrollY(ImGui::GetScrollY() - ImGui::GetIO().MouseDelta.y);
                 }
             }
-            if (ImGui::IsWindowHovered()) {
+            if (ImGui::IsWindowHovered() && ctrlPressed) {
                 float mouseWheel = ImGui::GetIO().MouseWheel;
                 if (mouseWheel != 0) {
                     float oldZoomFactor = uiData.treeEditorZoomFactor;
@@ -135,6 +140,14 @@ namespace TTM {
             if (ImGui::BeginPopupModal("Cycle detected", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 ImGui::Text("Talent will introduce a cycle to the tree and invalidate it! Check talent children and parents and remove talents that will create a loop.");
+
+                ImGui::SetItemDefaultFocus();
+                if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                ImGui::EndPopup();
+            }
+            if (ImGui::BeginPopupModal("Pre filled talent error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("Talent cannot be pre filled if it is not a root talent or if no parent is pre filled!");
 
                 ImGui::SetItemDefaultFocus();
                 if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -256,7 +269,12 @@ namespace TTM {
                         int comboIndex = 0;
                         for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
                             comboIndexTalentMap[comboIndex] = talent.second;
-                            talentComboList.push_back(std::to_string(talent.first) + ": " + talent.second->name);
+                            if (talent.second->type != Engine::TalentType::SWITCH) {
+                                talentComboList.push_back(std::to_string(talent.first) + ": " + talent.second->name);
+                            }
+                            else {
+                                talentComboList.push_back(std::to_string(talent.first) + ": " + talent.second->name + " / " + talent.second->nameSwitch);
+                            }
                             comboIndex++;
                         }
                     }
@@ -356,7 +374,12 @@ namespace TTM {
                             int comboIndex = 0;
                             for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {
                                 comboIndexTalentMap[comboIndex] = talent.second;
-                                talentComboList.push_back(std::to_string(talent.first) + ": " + talent.second->name);
+                                if (talent.second->type != Engine::TalentType::SWITCH) {
+                                    talentComboList.push_back(std::to_string(talent.first) + ": " + talent.second->name);
+                                }
+                                else {
+                                    talentComboList.push_back(std::to_string(talent.first) + ": " + talent.second->name + " / " + talent.second->nameSwitch);
+                                }
                                 comboIndex++;
                             }
                         }
@@ -514,6 +537,12 @@ namespace TTM {
                             uiData.treeEditorShiftAllRowsBy = 0;
                             uiData.treeEditorShiftAllColumnsBy = 0;
                         }
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
                     }
                     ImGui::Separator();
                     ImGui::Text("Place empty nodes");
@@ -627,6 +656,14 @@ namespace TTM {
                 if (ImGui::BeginPopupModal("Cycle detected", NULL, ImGuiWindowFlags_AlwaysAutoResize))
                 {
                     ImGui::Text("Talent will introduce a cycle to the tree and invalidate it! Check talent children and parents and remove talents that will create a loop.");
+
+                    ImGui::SetItemDefaultFocus();
+                    if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+                    ImGui::EndPopup();
+                }
+                if (ImGui::BeginPopupModal("Pre filled talent error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("Talent cannot be pre filled if it is not a root talent or if no parent is pre filled!");
 
                     ImGui::SetItemDefaultFocus();
                     if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -945,6 +982,21 @@ namespace TTM {
         for (auto& index : childComboIndices) {
             uiData.treeEditorCreationTalent->children.push_back(comboIndexTalentMap[index]);
         }
+
+        //check if talent is not erroneously pre filled
+        if (uiData.treeEditorCreationTalent->preFilled && uiData.treeEditorCreationTalent->parents.size() > 0) {
+            bool hasPreFilledParent = false;
+            for (auto& talent : uiData.treeEditorCreationTalent->parents) {
+                if (talent->preFilled) {
+                    hasPreFilledParent = true;
+                }
+            }
+            if (!hasPreFilledParent) {
+                ImGui::OpenPopup("Pre filled talent error");
+                return;
+            }
+        }
+
         //check for cycles in graph -> if yes then don't insert
         if (Engine::checkIfTalentInsertsCycle(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree,
             uiData.treeEditorCreationTalent)) {
@@ -1020,6 +1072,19 @@ namespace TTM {
         }
         for (auto& index : childComboIndices) {
             uiData.treeEditorSelectedTalent->children.push_back(comboIndexTalentMap[index]);
+        }
+
+        if (uiData.treeEditorSelectedTalent->preFilled && uiData.treeEditorSelectedTalent->parents.size() > 0) {
+            bool hasPreFilledParent = false;
+            for (auto& talent : uiData.treeEditorSelectedTalent->parents) {
+                if (talent->preFilled) {
+                    hasPreFilledParent = true;
+                }
+            }
+            if (!hasPreFilledParent) {
+                ImGui::OpenPopup("Pre filled talent error");
+                return;
+            }
         }
 
         Engine::Talent_s originalTalent = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents[
