@@ -47,9 +47,22 @@ namespace Engine {
                 return name;
         }
 
+        std::string getNameSwitch() {
+            if (type == TalentType::SWITCH && talentSwitch == 2)
+                return name;
+            else
+                return nameSwitch;
+        }
+
         std::string getDescription() {
             if (type == TalentType::SWITCH)
                 return descriptions[talentSwitch < 1 ? 0 : (talentSwitch - 1)];
+            return descriptions[points < 1 ? 0 : (points - 1)];
+        }
+
+        std::string getDescriptionSwitch() {
+            if (type == TalentType::SWITCH)
+                return descriptions[talentSwitch < 1 ? 1 : (1 - talentSwitch)];
             return descriptions[points < 1 ? 0 : (points - 1)];
         }
     };

@@ -107,8 +107,8 @@ namespace TTM {
 		std::string treeEditorExportTreeString = "";
 
 		//Important constants
-		const int treeEditorBaseTalentHalfSpacing = 30;
-		const int treeEditorBaseTalentSize = 30;
+		const int treeEditorBaseTalentHalfSpacing = 40;
+		const int treeEditorBaseTalentSize = 40;
 		const int treeEditorTalentWindowPaddingY = 25;
 
 		int treeEditorDragTalentStartRow = -1;

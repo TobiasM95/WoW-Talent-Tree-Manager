@@ -657,6 +657,17 @@ namespace Engine {
                     addChild(t, childTalent);
                 }
             }
+            if (t->preFilled && t->parents.size() > 0) {
+                bool canBePreFilled = false;
+                for (auto& parent : t->parents) {
+                    if (parent->preFilled) {
+                        canBePreFilled = true;
+                    }
+                }
+                if (!canBePreFilled) {
+                    t->preFilled = false;
+                }
+            }
             if (t->parents.size() == 0) {
                 roots.push_back(t);
             }
@@ -1286,7 +1297,18 @@ namespace Engine {
             talent->children.clear();
             talent->parents.clear();
             */
-            throw std::logic_error("Non-root nodes cannot be pre filled!");
+            bool hasPreFilledParent = false;
+            for (auto& parent : talent->parents) {
+                if (parent->preFilled) {
+                    hasPreFilledParent = true;
+                }
+            }
+            if (hasPreFilledParent) {
+                return;
+            }
+            else {
+                throw std::logic_error("Non-root nodes cannot be pre filled!");
+            }
         }
         if (talent->maxPoints > 1) {
             TalentVec talentParts;

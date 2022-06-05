@@ -60,7 +60,10 @@ namespace TTM {
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
-                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch, ctrl+click)");
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch, ctrl+click:");
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), (talent->getNameSwitch() + ")").c_str());
+                ImGui::PopTextWrapPos();
                 if (talent->preFilled) {
                     ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
                 }
@@ -79,7 +82,12 @@ namespace TTM {
     void RenderLoadoutEditorWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5, 5));
         if (ImGui::Begin("TreeWindow", nullptr, ImGuiWindowFlags_NoDecoration)) {
-            ImGui::BeginChild("TreeWindowChild", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            ImGuiWindowFlags treeWindowChildFlags = ImGuiWindowFlags_NoScrollbar;
+            bool ctrlPressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+            if (ctrlPressed) {
+                treeWindowChildFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+            }
+            ImGui::BeginChild("TreeWindowChild", ImVec2(0, 0), true, treeWindowChildFlags);
             if (ImGui::IsItemActive())
             {
                 if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
@@ -87,7 +95,7 @@ namespace TTM {
                     ImGui::SetScrollY(ImGui::GetScrollY() - ImGui::GetIO().MouseDelta.y);
                 }
             }
-            if (ImGui::IsWindowHovered()) {
+            if (ImGui::IsWindowHovered() && ctrlPressed) {
                 float mouseWheel = ImGui::GetIO().MouseWheel;
                 if (mouseWheel != 0) {
                     float oldZoomFactor = uiData.treeEditorZoomFactor;
@@ -322,7 +330,7 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
             }
-            if (ImGui::Button((std::to_string(talent.second->points) + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+            if (ImGui::Button((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 //TTMTODO: loadout editor talent selection
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
                     if (talent.second->type == Engine::TalentType::SWITCH && talent.second->points > 0) {

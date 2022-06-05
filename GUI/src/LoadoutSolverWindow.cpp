@@ -25,7 +25,7 @@
 #include "imgui_stdlib.h"
 
 namespace TTM {
-    static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent)
+    static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent, int assignedPointsTarget)
     {
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         {
@@ -46,7 +46,12 @@ namespace TTM {
                 if (talent->preFilled) {
                     ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
                 }
-                ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                if (assignedPointsTarget >= 0) {
+                    ImGui::Text(("Points: " + std::to_string(assignedPointsTarget) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else {
+                    ImGui::Text(("Points: exclude, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
                 ImGui::Spacing();
                 ImGui::Spacing();
 
@@ -67,11 +72,39 @@ namespace TTM {
                 if (talent->preFilled) {
                     ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
                 }
-                ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                if (assignedPointsTarget >= 0) {
+                    ImGui::Text(("Points: " + std::to_string(assignedPointsTarget) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else {
+                    ImGui::Text(("Points: exclude, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
                 ImGui::Spacing();
                 ImGui::Spacing();
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
+                ImGui::PopTextWrapPos();
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                ImGui::Text(talent->getNameSwitch().c_str());
+                ImGui::PopFont();
+                //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
+                ImGui::Text(idLabel.c_str());
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
+                if (talent->preFilled) {
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                }
+                if (assignedPointsTarget >= 0) {
+                    ImGui::Text(("Points: " + std::to_string(assignedPointsTarget) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else {
+                    ImGui::Text(("Points: exclude, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                ImGui::Spacing();
+                ImGui::Spacing();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescriptionSwitch().c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -82,7 +115,12 @@ namespace TTM {
     void RenderLoadoutSolverWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5, 5));
         if (ImGui::Begin("TreeWindow", nullptr, ImGuiWindowFlags_NoDecoration)) {
-            ImGui::BeginChild("TreeWindowChild", ImVec2(0, 0), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+            ImGuiWindowFlags treeWindowChildFlags = ImGuiWindowFlags_NoScrollbar;
+            bool ctrlPressed = ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl);
+            if (ctrlPressed) {
+                treeWindowChildFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
+            }
+            ImGui::BeginChild("TreeWindowChild", ImVec2(0, 0), true, treeWindowChildFlags);
             if (ImGui::IsItemActive())
             {
                 if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
@@ -90,7 +128,7 @@ namespace TTM {
                     ImGui::SetScrollY(ImGui::GetScrollY() - ImGui::GetIO().MouseDelta.y);
                 }
             }
-            if (ImGui::IsWindowHovered()) {
+            if (ImGui::IsWindowHovered() && ctrlPressed) {
                 float mouseWheel = ImGui::GetIO().MouseWheel;
                 if (mouseWheel != 0) {
                     float oldZoomFactor = uiData.treeEditorZoomFactor;
@@ -366,7 +404,14 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
             }
-            if (ImGui::Button((std::to_string(talent.second->index) + "##" + talent.second->name).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+            std::string buttonLabel = "";
+            if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] >= 0) {
+                buttonLabel = std::to_string(talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]) + "/" + std::to_string(talent.second->maxPoints);
+            }
+            else {
+                buttonLabel = "X/" + std::to_string(talent.second->maxPoints);
+            }
+            if (ImGui::Button((buttonLabel + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
                     talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -1;
@@ -404,7 +449,7 @@ namespace TTM {
             if (changedColor) {
                 ImGui::PopStyleColor(4);
             }
-            AttachLoadoutSolverTooltip(uiData, talent.second);
+            AttachLoadoutSolverTooltip(uiData, talent.second, talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]);
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
                     talent.second,
