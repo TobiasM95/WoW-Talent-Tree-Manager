@@ -1,2 +1,10 @@
+v. 1.1.0:
+- Various UI bugfixes
+- Tree solver bugfixes
+- Pre filled/selected talent functionality
+- First official presets
+- Better tree editing experience
+- Auto updater for resources
+
 v. 1.0.0:
 Initial release
