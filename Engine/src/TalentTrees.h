@@ -118,7 +118,7 @@ namespace Engine {
     bool cycleCheckVisitTalent(int talentIndex, std::vector<int>& talents, vec2d<int> children);
 
     void updateNodeCountAndMaxTalentPointsAndMaxID(TalentTree& tree);
-    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, int& preFilledTalentCount, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent);
+    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::map<int, int>& preFilledTalentCountMap, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent);
     void updateOrderedTalentList(TalentTree& tree);
     void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s child);
 
@@ -162,6 +162,10 @@ namespace Engine {
     bool checkForCrossing(int row, std::map<int, TalentVec>& talentDepths);
     bool intersects(std::vector<int> edge1, std::vector<int> edge2);
     void appendEdges(vec2d<int>& edges, int row, std::map<int, TalentVec>& talentDepths);
+
+    void reindexTree(TalentTree& tree);
+    void autoPointRequirements(TalentTree& tree);
+    void autoShiftTreeToCorner(TalentTree& tree);
 
     void expandTreeTalents(TalentTree& tree);
     void expandTalentAndAdvance(TalentTree& tree, Talent_s talent, int maxTalentPoints);

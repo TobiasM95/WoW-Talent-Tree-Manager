@@ -186,9 +186,9 @@ namespace Engine {
         std::unordered_map<int, std::unordered_set<int>> talentIndexInRow;
         int maxID = 0;
         int maxCol = 1;
-        int preFilledTalentCount = 0;
+        std::map<int, int> preFilledTalentCountMap;
         for (auto& root : tree.talentRoots) {
-            countNodesRecursively(nodeTalentPoints, maxID, maxCol, preFilledTalentCount, talentIndexInRow, root);
+            countNodesRecursively(nodeTalentPoints, maxID, maxCol, preFilledTalentCountMap, talentIndexInRow, root);
         }
         tree.nodeCount = static_cast<int>(nodeTalentPoints.size());
         int maxTalentPoints = 0;
@@ -198,6 +198,10 @@ namespace Engine {
         tree.maxTalentPoints = maxTalentPoints;
         tree.maxID = maxID;
         tree.maxCol = maxCol;
+        int preFilledTalentCount = 0;
+        for (auto& tCount : preFilledTalentCountMap) {
+            preFilledTalentCount += tCount.second;
+        }
         tree.preFilledTalentPoints = preFilledTalentCount;
         tree.talentsPerRow.clear();
         for (auto& rowIndices : talentIndexInRow) {
@@ -205,7 +209,7 @@ namespace Engine {
         }
     }
 
-    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, int& preFilledTalentCount, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
+    void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::map<int, int>& preFilledTalentCountMap, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
         nodeTalentPoints[talent->index] = talent->maxPoints;
         if (talent->index >= maxID)
             maxID = talent->index + 1;
@@ -215,7 +219,7 @@ namespace Engine {
 
         talentsPerRow[talent->row].insert(talent->index);
         if (talent->preFilled) {
-            preFilledTalentCount += talent->maxPoints;
+            preFilledTalentCountMap[talent->index] = talent->maxPoints;
         }
         /*if (talentsPerRow.count(talent->row)) {
         }
@@ -224,7 +228,7 @@ namespace Engine {
         }*/
 
         for (auto& child : talent->children)
-            countNodesRecursively(nodeTalentPoints, maxID, maxCol, preFilledTalentCount, talentsPerRow, child);
+            countNodesRecursively(nodeTalentPoints, maxID, maxCol, preFilledTalentCountMap, talentsPerRow, child);
     }
 
     void updateOrderedTalentList(TalentTree& tree) {
@@ -427,7 +431,7 @@ namespace Engine {
             return false;
         }
         if (metaInfo[2].find_first_not_of(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ():'-"
         ) != std::string::npos) {
             return false;
         }
@@ -483,7 +487,7 @@ namespace Engine {
             return false;
         }
         if (talentParts[1].find_first_not_of(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _/()',"
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _/()',-"
         ) != std::string::npos) {
             return false;
         }
@@ -729,6 +733,9 @@ namespace Engine {
     }
 
     bool validateSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
+        if (skillset->assignedSkillPoints.size() != tree.orderedTalents.size()) {
+            return false;
+        }
         for (auto& indexPointsPair : skillset->assignedSkillPoints) {
             //check if point is in talent with index that is not present in tree
             if (!tree.orderedTalents.count(indexPointsPair.first)) {
@@ -1215,6 +1222,86 @@ namespace Engine {
         }
     }
 
+
+    /*
+    Changes the indices of a tree to go from top left to bottom right.
+    */
+    void reindexTree(TalentTree& tree) {
+        //create sortable talent vector
+        TalentVec talents;
+        for (std::map<int, Talent_s>::iterator it = tree.orderedTalents.begin(); it != tree.orderedTalents.end(); ++it) {
+            talents.push_back(it->second);
+        }
+        //sort talent vector by row and column
+        std::sort(talents.begin(), talents.end(),
+            [](const Talent_s& a, const Talent_s& b) -> bool
+            {
+                if (a->row != b->row) {
+                    return a->row < b->row;
+                }
+                return a->column < b->column;
+            });
+        //create map with old->new indices
+        std::map<int, int> indexMap;
+        for (int i = 0; i < talents.size(); i++) {
+            indexMap[talents[i]->index] = i;
+        }
+
+        //reindex talents (only index has to change)
+        for (auto& talent : talents) {
+            talent->index = indexMap[talent->index];
+        }
+        //recreate tree.orderedTalents
+        std::map<int, Talent_s> newOrderedTalents;
+        for (auto& talent : talents) {
+            newOrderedTalents[talent->index] = talent;
+        }
+        tree.orderedTalents = newOrderedTalents;
+        //clear loadout
+        tree.loadout.clear();
+    }
+
+    /*
+    Auto sets the point requirements for every talent according to Blizzards example trees.
+    */
+    void autoPointRequirements(TalentTree& tree) {
+        for (auto& talent : tree.orderedTalents) {
+            if (talent.second->row >= 8) {
+                talent.second->pointsRequired = 20;
+                continue;
+            }
+            if (talent.second->row >= 5) {
+                talent.second->pointsRequired = 8;
+                continue;
+            }
+            talent.second->pointsRequired = 0;
+        }
+    }
+
+    /*
+    Auto shifts the tree such that min col and min row are 1
+    */
+    void autoShiftTreeToCorner(TalentTree& tree) {
+        int minCol = 1337;
+        int minRow = 1337;
+        for (auto& talent : tree.orderedTalents) {
+            if (talent.second->row < minRow) {
+                minRow = talent.second->row;
+            }
+            if (talent.second->column < minCol) {
+                minCol = talent.second->column;
+            }
+        }
+        tree.maxCol = 0;
+        for (auto& talent : tree.orderedTalents) {
+            talent.second->row -= minRow - 1;
+            talent.second->column -= minCol - 1;
+            if (talent.second->column > tree.maxCol) {
+                tree.maxCol = talent.second->column;
+            }
+        }
+    }
+
     /*
     Transforms tree with "complex" talents (that can hold mutliple skill points) to "simple" tree with only talents that can hold a single talent point.
     In the process, all pre filled talents get deleted as they are irrelevant for loadout solving.
@@ -1462,7 +1549,7 @@ namespace Engine {
                     tree.orderedTalents[indexPointsPair.first]->points = 0;
                     tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
                 }
-                tree.loadout[index]->talentPointsSpent += 1;
+                tree.loadout[index]->talentPointsSpent += indexPointsPair.second;
             }
         }
     }
@@ -1511,7 +1598,9 @@ namespace Engine {
             }
         }
         tree.activeSkillsetIndex = static_cast<int>(tree.loadout.size() - 1);
-        activateSkillset(tree, tree.activeSkillsetIndex);
+        if (tree.activeSkillsetIndex >= 0) {
+            activateSkillset(tree, tree.activeSkillsetIndex);
+        }
         return importedSkillsets;
     }
 
@@ -1525,7 +1614,7 @@ namespace Engine {
     }
 
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree) {
-        if (!validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
+        if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
             return "Invalid skillset!";
         }
         return createSkillsetStringRepresentation(tree.loadout[tree.activeSkillsetIndex]);

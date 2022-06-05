@@ -148,6 +148,7 @@ namespace TTM {
             if (ImGui::BeginPopupModal("Pre filled talent error", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 ImGui::Text("Talent cannot be pre filled if it is not a root talent or if no parent is pre filled!");
+                ImGui::Text("This warning could apply to child talents that are pre filled.");
 
                 ImGui::SetItemDefaultFocus();
                 if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -443,7 +444,8 @@ namespace TTM {
                             validateTalentUpdate(uiData, talentTreeCollection, comboIndexTalentMap);
                         }
                         ImGui::SameLine();
-                        if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0)) || ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+                        if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0)) 
+                            || ((ImGui::IsKeyPressed(ImGuiKey_LeftCtrl) || ImGui::IsKeyPressed(ImGuiKey_RightCtrl)) && ImGui::IsKeyPressed(ImGuiKey_Delete))) {
                             int talentIndex = uiData.treeEditorSelectedTalent->index;
                             //check children for new root talents &
                             //delete from children's parents lists
@@ -530,9 +532,13 @@ namespace TTM {
                             ImGui::OpenPopup("Shift value exceeds bounds");
                         }
                         else {
+                            talentTreeCollection.activeTree().maxCol = 0;
                             for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
                                 talent.second->row += uiData.treeEditorShiftAllRowsBy;
                                 talent.second->column += uiData.treeEditorShiftAllColumnsBy;
+                                if (talent.second->column > talentTreeCollection.activeTree().maxCol) {
+                                    talentTreeCollection.activeTree().maxCol = talent.second->column;
+                                }
                             }
                             uiData.treeEditorShiftAllRowsBy = 0;
                             uiData.treeEditorShiftAllColumnsBy = 0;
@@ -548,11 +554,11 @@ namespace TTM {
                     ImGui::Text("Place empty nodes");
                     ImGui::Spacing();
                     ImGui::Text("Active talents:");
-                    ImGui::SliderInt("##treeEditEmptyActiveSlider", &uiData.treeEditorEmptyActiveNodes, 0, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##treeEditEmptyActiveSlider", &uiData.treeEditorEmptyActiveNodes, 0, 40, "%d", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Text("Passive talents:");
-                    ImGui::SliderInt("##treeEditEmptyPassiveSlider", &uiData.treeEditorEmptyPassiveNodes, 0, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##treeEditEmptyPassiveSlider", &uiData.treeEditorEmptyPassiveNodes, 0, 40, "%d", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Text("Switch talents:");
-                    ImGui::SliderInt("##treeEditEmptySwitchSlider", &uiData.treeEditorEmptySwitchNodes, 0, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##treeEditEmptySwitchSlider", &uiData.treeEditorEmptySwitchNodes, 0, 40, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (ImGui::Button("Insert talents")) {
                         if (uiData.treeEditorEmptyActiveNodes + uiData.treeEditorEmptyPassiveNodes
                             + uiData.treeEditorEmptySwitchNodes + talentTreeCollection.activeTree().orderedTalents.size() > 20 * 20) { 
@@ -620,6 +626,9 @@ namespace TTM {
                             clearSolvingProcess(uiData, talentTreeCollection);
 
                             uiData.treeEditorSelectedTalent = nullptr;
+                            uiData.treeEditorEmptyActiveNodes = 0;
+                            uiData.treeEditorEmptyPassiveNodes = 0;
+                            uiData.treeEditorEmptySwitchNodes = 0;
                         }
                     }
                     ImGui::Separator();
@@ -628,6 +637,35 @@ namespace TTM {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+                    }
+                    if (ImGui::Button("Sort talent indices (deletes loadout!)")) {
+                        Engine::reindexTree(talentTreeCollection.activeTree());
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        //loadout gets cleared anyway since it will be nonsensical
+                        //Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+                    }
+                    if (ImGui::Button("Auto set point requirements")) {
+                        Engine::autoPointRequirements(talentTreeCollection.activeTree());
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+                    }
+                    if (ImGui::Button("Auto shift tree to corner")) {
+                        Engine::autoShiftTreeToCorner(talentTreeCollection.activeTree());
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        //These two shouldn't be necessary but to keep it consistent
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -766,10 +804,12 @@ namespace TTM {
                             ImGui::OpenPopup("File list changed");
                         }
                         else {
-                            //Modal popup that tells current tree gets discarded, just like load preset confirmation
-                            //load string from file and do a parse tree
-                            ImGui::OpenPopup("Load custom tree confirmation");
-                            uiData.treeEditorIsCustomTreeFileListValid = false;
+                            if (uiData.treeEditorCustomTreeListCurrent >= 0) {
+                                //Modal popup that tells current tree gets discarded, just like load preset confirmation
+                                //load string from file and do a parse tree
+                                ImGui::OpenPopup("Load custom tree confirmation");
+                                uiData.treeEditorIsCustomTreeFileListValid = false;
+                            }
                         }
                     }
                     ImGui::SameLine();
@@ -806,6 +846,7 @@ namespace TTM {
                         else {
                             talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
                             uiData.treeEditorSelectedTalent = nullptr;
+                            ImGui::OpenPopup("Tree import successful");
                         }
                     }
 
@@ -868,6 +909,9 @@ namespace TTM {
                             ImGui::OpenPopup("Tree delete error");
                         }
                         else {
+                            if (uiData.treeEditorCustomTreeFileList.size() == 0) {
+                                uiData.treeEditorCustomTreeListCurrent = -1;
+                            }
                             ImGui::CloseCurrentPopup();
                         }
                         uiData.treeEditorIsCustomTreeFileListValid = false;
@@ -876,9 +920,19 @@ namespace TTM {
                     if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
                     ImGui::EndPopup();
                 }
+                if (ImGui::BeginPopupModal("Tree import successful", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("Tree was imported successfully.");
+
+                    ImGui::SetItemDefaultFocus();
+                    if (ImGui::Button("OK", ImVec2(120, 0))) {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
                 if (ImGui::BeginPopupModal("Invalid import tree string", NULL, ImGuiWindowFlags_AlwaysAutoResize))
                 {
-                    ImGui::Text("Tree import is invalid!");
+                    ImGui::Text("Tree import string is invalid!");
 
                     ImGui::SetItemDefaultFocus();
                     if (ImGui::Button("OK", ImVec2(120, 0))) {
@@ -1074,6 +1128,29 @@ namespace TTM {
             uiData.treeEditorSelectedTalent->children.push_back(comboIndexTalentMap[index]);
         }
 
+        //check if pre filled conditions are met
+        //go from pre filled to not pre filled
+        if (!uiData.treeEditorSelectedTalent->preFilled && talentTreeCollection.activeTree().orderedTalents[uiData.treeEditorSelectedTalent->index]->preFilled) {
+            //check if every pre filled child has another pre filled parent
+            for (auto& child : uiData.treeEditorSelectedTalent->children) {
+                if (child->preFilled) {
+                    bool hasAnotherPreFilledParent = false;
+                    for (auto& childParent : child->parents) {
+                        if (childParent->index == uiData.treeEditorSelectedTalent->index) {
+                            continue;
+                        }
+                        if (childParent->preFilled) {
+                            hasAnotherPreFilledParent = true;
+                        }
+                    }
+                    if (!hasAnotherPreFilledParent) {
+                        ImGui::OpenPopup("Pre filled talent error");
+                        return;
+                    }
+                }
+            }
+        }
+        //go to pre filled
         if (uiData.treeEditorSelectedTalent->preFilled && uiData.treeEditorSelectedTalent->parents.size() > 0) {
             bool hasPreFilledParent = false;
             for (auto& talent : uiData.treeEditorSelectedTalent->parents) {
@@ -1221,6 +1298,9 @@ namespace TTM {
     }
 
     bool loadTreeFromFile(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        if (uiData.treeEditorCustomTreeListCurrent < 0 || uiData.treeEditorCustomTreeListCurrent >= uiData.treeEditorCustomTreeFileList.size()) {
+            return false;
+        }
         //tree file path should be valid path since the tree file list checks for that
         //only way to invalid it is if user manually deletes/changes files since last validation
         try {
@@ -1252,6 +1332,9 @@ namespace TTM {
     }
 
     bool deleteTreeFromFile(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        if (uiData.treeEditorCustomTreeListCurrent < 0 || uiData.treeEditorCustomTreeListCurrent >= uiData.treeEditorCustomTreeFileList.size()) {
+            return false;
+        }
         try {
             std::filesystem::path treeFile = uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].first;
             std::filesystem::remove(treeFile);
@@ -1280,12 +1363,11 @@ namespace TTM {
             if (!treeFile.eof())
             {
                 std::getline(treeFile, line);
-                //TTMTODO: is there a better way to check for valid format, maybe via mask?
                 std::vector<std::string> treeComponents = Engine::splitString(line, ";");
                 if (treeComponents.size() > 0) {
                     std::vector<std::string> treeInfo = Engine::splitString(treeComponents[0], ":");
-                    if (treeInfo.size() == 6) {
-                        treeName = treeInfo[1];
+                    if (treeInfo.size() == 7) {
+                        treeName = treeInfo[2];
                         readSuccessful = true;
                     }
                 }
@@ -1323,8 +1405,8 @@ namespace TTM {
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 8.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
             if (ImGui::Button(std::to_string(talent.second->index).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 //Quick parent/child connection edit
                 if (ImGui::IsKeyDown(ImGuiKey_LeftAlt) && uiData.treeEditorSelectedTalent != nullptr) {

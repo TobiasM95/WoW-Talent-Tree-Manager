@@ -33,13 +33,16 @@ namespace Presets {//ENGINE PRESETS
         DEATHKNIGHT_SPEC_IDS_BLOOD = 0,
         DEATHKNIGHT_SPEC_IDS_FROST = 1,
         DEATHKNIGHT_SPEC_IDS_UNHOLY = 2,
-        DEATHKNIGHT_SPEC_IDS_CLASS = 3
+        DEATHKNIGHT_SPEC_IDS_CLASS_BLOOD = 3,
+        DEATHKNIGHT_SPEC_IDS_CLASS_FROST = 4,
+        DEATHKNIGHT_SPEC_IDS_CLASS_UNHOLY = 5
     };
 
     enum DEMONHUNTER_SPEC_IDS {
         DEMONHUNTER_SPEC_IDS_HAVOC = 0,
         DEMONHUNTER_SPEC_IDS_VENGEANCE = 1,
-        DEMONHUNTER_SPEC_IDS_CLASS = 2
+        DEMONHUNTER_SPEC_IDS_CLASS_HAVOC = 2,
+        DEMONHUNTER_SPEC_IDS_CLASS_VENGEANCE = 3
     };
 
     enum DRUID_SPEC_IDS {
@@ -47,92 +50,114 @@ namespace Presets {//ENGINE PRESETS
         DRUID_SPEC_IDS_FERAL = 1,
         DRUID_SPEC_IDS_GUARDIAN = 2,
         DRUID_SPEC_IDS_RESTORATION = 3,
-        DRUID_SPEC_IDS_CLASS = 4
+        DRUID_SPEC_IDS_CLASS_BALANCE = 4,
+        DRUID_SPEC_IDS_CLASS_FERAL = 5,
+        DRUID_SPEC_IDS_CLASS_GUARDIAN = 6,
+        DRUID_SPEC_IDS_CLASS_RESTORATION = 7
     };
 
     enum EVOKER_SPEC_IDS {
         EVOKER_SPEC_IDS_DEVASTATION = 0,
         EVOKER_SPEC_IDS_PRESERVATION = 1,
-        EVOKER_SPEC_IDS_CLASS = 2
+        EVOKER_SPEC_IDS_CLASS_DEVASTATION = 2,
+        EVOKER_SPEC_IDS_CLASS_PRESERVATION = 3
     };
 
     enum HUNTER_SPEC_IDS {
         HUNTER_SPEC_IDS_BEASTMASTERY = 0,
         HUNTER_SPEC_IDS_MARKSMANSHIP = 1,
         HUNTER_SPEC_IDS_SURVIVAL = 2,
-        HUNTER_SPEC_IDS_CLASS = 3
+        HUNTER_SPEC_IDS_CLASS_BEASTMASTERY = 3,
+        HUNTER_SPEC_IDS_CLASS_MARKSMANSHIP = 4,
+        HUNTER_SPEC_IDS_CLASS_SURVIVAL = 5
     };
 
     enum MAGE_SPEC_IDS {
         MAGE_SPEC_IDS_ARCANE = 0,
         MAGE_SPEC_IDS_FIRE = 1,
         MAGE_SPEC_IDS_FROST = 2,
-        MAGE_SPEC_IDS_CLASS = 3
+        MAGE_SPEC_IDS_CLASS_ARCANCE = 3,
+        MAGE_SPEC_IDS_CLASS_FIRE = 4,
+        MAGE_SPEC_IDS_CLASS_FROST = 5
     };
 
     enum MONK_SPEC_IDS {
         MONK_SPEC_IDS_BREWMASTER = 0,
         MONK_SPEC_IDS_MISTWEAVER = 1,
         MONK_SPEC_IDS_WINDWALKER = 2,
-        MONK_SPEC_IDS_CLASS = 3
+        MONK_SPEC_IDS_CLASS_BREWMASTER = 3,
+        MONK_SPEC_IDS_CLASS_MISTWEAVER = 4,
+        MONK_SPEC_IDS_CLASS_WINDWALKER = 5
     };
 
     enum PALADIN_SPEC_IDS {
         PALADIN_SPEC_IDS_HOLY = 0,
         PALADIN_SPEC_IDS_PROTECTION = 1,
         PALADIN_SPEC_IDS_RETRIBUTION = 2,
-        PALADIN_SPEC_IDS_CLASS = 3
+        PALADIN_SPEC_IDS_CLASS_HOLY = 3,
+        PALADIN_SPEC_IDS_CLASS_PROTECTION = 4,
+        PALADIN_SPEC_IDS_CLASS_RETRIBUTION = 5
     };
 
     enum PRIEST_SPEC_IDS {
         PRIEST_SPEC_IDS_DISCIPLINE = 0,
         PRIEST_SPEC_IDS_HOLY = 1,
         PRIEST_SPEC_IDS_SHADOW = 2,
-        PRIEST_SPEC_IDS_CLASS = 3
+        PRIEST_SPEC_IDS_CLASS_DISCIPLINE = 3,
+        PRIEST_SPEC_IDS_CLASS_HOLY = 4,
+        PRIEST_SPEC_IDS_CLASS_SHADOW = 5
     };
 
     enum ROGUE_SPEC_IDS {
         ROGUE_SPEC_IDS_ASSASSINATION = 0,
         ROGUE_SPEC_IDS_OUTLAW = 1,
         ROGUE_SPEC_IDS_SUBTLETY = 2,
-        ROGUE_SPEC_IDS_CLASS = 3
+        ROGUE_SPEC_IDS_CLASS_ASSASSINATION = 3,
+        ROGUE_SPEC_IDS_CLASS_OUTLAW = 4,
+        ROGUE_SPEC_IDS_CLASS_SUBTLETY = 5
     };
 
     enum SHAMAN_SPEC_IDS {
         SHAMAN_SPEC_IDS_ELEMENTAL = 0,
         SHAMAN_SPEC_IDS_ENHANCEMENT = 1,
         SHAMAN_SPEC_IDS_RESTORATION = 2,
-        SHAMAN_SPEC_IDS_CLASS = 3
+        SHAMAN_SPEC_IDS_CLASS_ELEMENTAL = 3,
+        SHAMAN_SPEC_IDS_CLASS_ENHANCEMENT = 4,
+        SHAMAN_SPEC_IDS_CLASS_RESTORATION = 5
     };
 
     enum WARLOCK_SPEC_IDS {
         WARLOCK_SPEC_IDS_AFFLICTION = 0,
         WARLOCK_SPEC_IDS_DEMONOLOGY = 1,
         WARLOCK_SPEC_IDS_DESTRUCTION = 2,
-        WARLOCK_SPEC_IDS_CLASS = 3
+        WARLOCK_SPEC_IDS_CLASS_AFFLICTION = 3,
+        WARLOCK_SPEC_IDS_CLASS_DEMONOLOGY = 4,
+        WARLOCK_SPEC_IDS_CLASS_DESTRUCTION = 5
     };
 
     enum WARRIOR_SPEC_IDS {
         WARRIOR_SPEC_IDS_ARMS = 0,
         WARRIOR_SPEC_IDS_FURY = 1,
         WARRIOR_SPEC_IDS_PROTECTION = 2,
-        WARRIOR_SPEC_IDS_CLASS = 3
+        WARRIOR_SPEC_IDS_CLASS_ARMS = 3,
+        WARRIOR_SPEC_IDS_CLASS_FURY = 4,
+        WARRIOR_SPEC_IDS_CLASS_PROTECTION = 5
     };
 
     static const char* CLASSES[] = { "Death Knight", "Demon Hunter", "Druid", "Evoker", "Hunter", "Mage", "Monk", "Paladin", "Priest", "Rogue", "Shaman", "Warlock", "Warrior"};
-    static const char* SPECS_DEATHKNIGHT[] = { "Blood", "Frost", "Unholy" , "Class tree"};
-    static const char* SPECS_DEMONHUNTER[] = { "Havoc", "Vengeance" , "Class tree" };
-    static const char* SPECS_DRUID[] = {"Balance", "Feral", "Guardian", "Restoration", "Class tree" };
-    static const char* SPECS_EVOKER[] = { "Devastation" , "Preservation"};
-    static const char* SPECS_HUNTER[] = { "Beast Mastery", "Marksmanship", "Survival" , "Class tree" };
-    static const char* SPECS_MAGE[] = { "Arcane", "Fire", "Frost" , "Class tree" };
-    static const char* SPECS_MONK[] = { "Brewmaster", "Mistweaver", "Windwalker" , "Class tree" };
-    static const char* SPECS_PALADIN[] = { "Holy", "Protection", "Retribution" , "Class tree" };
-    static const char* SPECS_PRIEST[] = { "Discipline", "Holy", "Shadow" , "Class tree" };
-    static const char* SPECS_ROGUE[] = { "Assassination", "Outlaw", "Subtlety" , "Class tree" };
-    static const char* SPECS_SHAMAN[] = { "Elemental", "Enhancement", "Restoration" , "Class tree" };
-    static const char* SPECS_WARLOCK[] = { "Affliction", "Demonology", "Destruction" , "Class tree" };
-    static const char* SPECS_WARRIOR[] = { "Arms", "Fury", "Protection" , "Class tree" };
+    static const char* SPECS_DEATHKNIGHT[] = { "Blood", "Frost", "Unholy" , "Class tree (Blood)" , "Class tree (Frost)" , "Class tree (Unholy)" };
+    static const char* SPECS_DEMONHUNTER[] = { "Havoc", "Vengeance" , "Class tree (Havoc)", "Class tree (Vengeance)"};
+    static const char* SPECS_DRUID[] = {"Balance", "Feral", "Guardian", "Restoration", "Class tree (Balance)", "Class tree (Feral)", "Class tree (Guardian)", "Class tree (Restoration)" };
+    static const char* SPECS_EVOKER[] = { "Devastation" , "Preservation", "Class tree (Devastation)" , "Class tree (Preservation)" };
+    static const char* SPECS_HUNTER[] = { "Beast Mastery", "Marksmanship", "Survival" , "Class tree (Beast Mastery)", "Class tree (Marksmanship)", "Class tree (Survival)" };
+    static const char* SPECS_MAGE[] = { "Arcane", "Fire", "Frost" , "Class tree (Arcance)", "Class tree (Fire)", "Class tree (Frost)" };
+    static const char* SPECS_MONK[] = { "Brewmaster", "Mistweaver", "Windwalker" , "Class tree (Brewmaster)", "Class tree (Mistweaver)", "Class tree (Windwalker)" };
+    static const char* SPECS_PALADIN[] = { "Holy", "Protection", "Retribution" , "Class tree (Holy)", "Class tree (Protection)", "Class tree (Retribution)" };
+    static const char* SPECS_PRIEST[] = { "Discipline", "Holy", "Shadow" , "Class tree (Discipline)", "Class tree (Holy)", "Class tree (Shadow)" };
+    static const char* SPECS_ROGUE[] = { "Assassination", "Outlaw", "Subtlety" , "Class tree (Assassination)", "Class tree (Outlaw)", "Class tree (Subtlety)" };
+    static const char* SPECS_SHAMAN[] = { "Elemental", "Enhancement", "Restoration" , "Class tree (Elemental)", "Class tree (Enhancement)", "Class tree (Restoration)" };
+    static const char* SPECS_WARLOCK[] = { "Affliction", "Demonology", "Destruction" , "Class tree (Affliction)", "Class tree (Demonology)", "Class tree (Destruction)" };
+    static const char* SPECS_WARRIOR[] = { "Arms", "Fury", "Protection" , "Class tree (Arms)", "Class tree (Fury)", "Class tree (Protection)" };
 
     const int RETURN_SPEC_COUNT(int classID);
     const char** RETURN_SPECS(int classID);

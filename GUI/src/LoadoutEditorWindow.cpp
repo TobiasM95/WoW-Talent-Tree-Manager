@@ -134,7 +134,7 @@ namespace TTM {
                     ImGui::Text("Skillset name:");
                     ImGui::InputText("##loadoutEditorSkillsetNameInput", &talentTreeCollection.activeSkillset()->name, 
                         ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
-                    ImGui::Text("Skillset points spent: %d", talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints);
+                    ImGui::Text("Skillset points spent: %d (+%d)", talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints, talentTreeCollection.activeTree().preFilledTalentPoints);
                     int minLevel = 0;
                     if (talentTreeCollection.activeSkillset()->talentPointsSpent > talentTreeCollection.activeTree().preFilledTalentPoints) {
                         minLevel += 10;
@@ -205,20 +205,26 @@ namespace TTM {
                 ImGui::InputText("##loadoutEditorImportSkillsetsInput", &uiData.loadoutEditorImportSkillsetsString);
                 ImGui::SameLine();
                 if (ImGui::Button("Import##treeEditorImportTalentTreeButton")) {
-                    uiData.loadoutEditorImportSkillsetsResult = Engine::importSkillsets(talentTreeCollection.activeTree(), uiData.loadoutEditorImportSkillsetsString);
-                    ImGui::OpenPopup("Import skillsets result");
+                    if (uiData.loadoutEditorImportSkillsetsString != "") {
+                        uiData.loadoutEditorImportSkillsetsResult = Engine::importSkillsets(talentTreeCollection.activeTree(), uiData.loadoutEditorImportSkillsetsString);
+                        ImGui::OpenPopup("Import skillsets result");
+                    }
                 }
                 ImGui::Text("Export active skillset:");
                 ImGui::InputText("##loadoutEditorExportActiveSkillsetInput", &uiData.loadoutEditorExportActiveSkillsetString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetButton")) {
-                    uiData.loadoutEditorExportActiveSkillsetString = Engine::createActiveSkillsetStringRepresentation(talentTreeCollection.activeTree());
+                    if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
+                        uiData.loadoutEditorExportActiveSkillsetString = Engine::createActiveSkillsetStringRepresentation(talentTreeCollection.activeTree());
+                    }
                 }
                 ImGui::Text("Export all skillsets:");
                 ImGui::InputText("##loadoutEditorExportAllSkillsetsInput", &uiData.loadoutEditorExportAllSkillsetsString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsButton")) {
-                    uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
+                    if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                        uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
+                    }
                 }
                 ImGui::Separator();
                 ImGui::Text("Hint: Loadouts are stored in trees. If you save a tree, this will include the loadout!");
@@ -324,8 +330,8 @@ namespace TTM {
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 9.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 15.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
+            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
             if (talentDisabled) {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();

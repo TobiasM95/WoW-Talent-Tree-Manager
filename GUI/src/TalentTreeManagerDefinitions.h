@@ -34,6 +34,7 @@ namespace TTM {
 			if (c == ':') return 0;
 			if (c == '(' || c == ')') return 0;
 			if (c == '\'') return 0;
+			if (c == '-') return 0;
 			return 1;
 		}
 	};
@@ -101,7 +102,7 @@ namespace TTM {
 
 		bool treeEditorIsCustomTreeFileListValid = false;
 		std::vector<std::pair<std::filesystem::path, std::string>> treeEditorCustomTreeFileList;
-		int treeEditorCustomTreeListCurrent = 0;
+		int treeEditorCustomTreeListCurrent = -1;
 
 		std::string treeEditorImportTreeString = "";
 		std::string treeEditorExportTreeString = "";
