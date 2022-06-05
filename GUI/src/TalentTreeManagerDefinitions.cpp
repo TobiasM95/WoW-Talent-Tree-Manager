@@ -145,6 +145,7 @@ namespace TTM {
         uiData.loadoutSolverBufferedPage = -1;
         uiData.selectedFilteredSkillset = 0;
         uiData.selectedFilteredSkillsetIndex = -1;
+        uiData.loadoutSolverAutoApplyFilter = false;
         talentTreeCollection.activeTreeData().isTreeSolveProcessed = false;
         talentTreeCollection.activeTreeData().isTreeSolveFiltered = false;
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;

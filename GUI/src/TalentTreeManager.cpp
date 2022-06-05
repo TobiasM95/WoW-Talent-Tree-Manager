@@ -341,6 +341,8 @@ namespace TTM {
 
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                    uiData.treeEditorImportTreeString = "";
+                    uiData.treeEditorExportTreeString = "";
                     ImGui::CloseCurrentPopup();
                 }
                 //ImGui::SameLine();
@@ -361,6 +363,8 @@ namespace TTM {
                     tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                    uiData.treeEditorImportTreeString = "";
+                    uiData.treeEditorExportTreeString = "";
 
                     ImGui::CloseCurrentPopup(); 
                 }
