@@ -743,11 +743,15 @@ namespace TTM {
                     ImGui::Text("Class:");
                     ImGui::Combo("##treeEditorPresetClassCombo", &uiData.treeEditorPresetClassCombo, Presets::CLASSES, IM_ARRAYSIZE(Presets::CLASSES));
                     ImGui::Text("Specialization:");
+                    int specCount = Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo);
+                    if (uiData.treeEditorPresetSpecCombo >= specCount) {
+                        uiData.treeEditorPresetSpecCombo = specCount - 1;
+                    }
                     ImGui::Combo(
                         "##treeEditorPresetSpecCombo",
                         &uiData.treeEditorPresetSpecCombo,
                         Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
-                        Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo)
+                        specCount
                     );
                     ImGui::Checkbox("Try to keep skillsets", &uiData.treeEditorPresetsKeepLoadout);
                     if (ImGui::Button("Load##treeEditorPresetLoadButton")) {

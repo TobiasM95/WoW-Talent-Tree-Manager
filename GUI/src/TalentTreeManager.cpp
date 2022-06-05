@@ -351,11 +351,15 @@ namespace TTM {
                 //ImGui::SameLine();
                 ImGui::Combo("##treeEditorCreationPresetClassCombo", &uiData.treeEditorPresetClassCombo, Presets::CLASSES, IM_ARRAYSIZE(Presets::CLASSES));
                 //ImGui::SameLine();
+                int specCount = Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo);
+                if (uiData.treeEditorPresetSpecCombo >= specCount) {
+                    uiData.treeEditorPresetSpecCombo = specCount - 1;
+                }
                 ImGui::Combo(
                     "##treeEditorCreationPresetSpecCombo",
                     &uiData.treeEditorPresetSpecCombo,
                     Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
-                    Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo)
+                    specCount
                 );
                 //ImGui::SameLine();
                 if (ImGui::Button("Load preset", ImVec2(-0.01f, 0))) { 
