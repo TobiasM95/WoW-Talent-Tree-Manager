@@ -53,15 +53,15 @@ namespace Engine {
         SIND visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
-        std::vector<int> possibleTalents;
+        std::vector<std::pair<int, int>> possibleTalents;
         possibleTalents.reserve(sortedTreeDAG.minimalTreeDAG.size());
         //add roots to the list of possible talents first, then iterate recursively with visitTalent
         for (auto& root : sortedTreeDAG.rootIndices) {
-            possibleTalents.push_back(root);
+            possibleTalents.push_back(std::pair<int, int>(root, sortedTreeDAG.sortedTalents[root]->pointsRequired));
         }
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
-            if (sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired == 0)
+            if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
                 visitTalent(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
         std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
@@ -78,13 +78,13 @@ namespace Engine {
     and iterates through possible children in a sorted fashion to prevent duplicates.
     */
     void visitTalent(
-        int talentIndex,
+        std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::vector<int> possibleTalents,
+        std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<std::pair<SIND, int>>& combinations,
         int& allCombinations
@@ -96,10 +96,10 @@ namespace Engine {
         if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
         */
         //do combination housekeeping
-        setTalent(visitedTalents, talentIndex);
+        setTalent(visitedTalents, talentIndexReqPair.first);
         talentPointsSpent += 1;
         talentPointsLeft -= 1;
-        currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
+        currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
         //check if path is complete
         if (talentPointsLeft == 0) {
             combinations.push_back(std::pair<SIND, int>(visitedTalents, currentMultiplier));
@@ -108,19 +108,21 @@ namespace Engine {
         }
         //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but
         //sorting guarantees that these paths were visited earlier already)
-        if (sortedTreeDAG.sortedTalents.size() - talentIndex - 1 < talentPointsLeft) {
+        if (sortedTreeDAG.sortedTalents.size() - talentIndexReqPair.first - 1 < talentPointsLeft) {
             //cannot use up all the leftover talent points, therefore incomplete
             return;
         }
         //add all possible children to the set for iteration
-        for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-            insertIntoVector(possibleTalents, sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+        for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first].size(); i++) {
+            int childIndex = sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][i];
+            std::pair<int, int> targetPair = std::pair<int, int>(childIndex, sortedTreeDAG.sortedTalents[childIndex]->pointsRequired);
+            insertIntoVector(possibleTalents, targetPair);
         }
         //visit all possible children while keeping correct order
         for (int i = currentPosTalIndex; i < possibleTalents.size(); i++) {
             //check if next talent is in right order andn talentPointsSpent is >= next talent points required
-            if (possibleTalents[i] > talentIndex &&
-                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired) {
+            if (possibleTalents[i].first > talentIndexReqPair.first &&
+                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired) {
                 visitTalent(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
             }
         }
@@ -155,14 +157,15 @@ namespace Engine {
         SIND visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
         //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
-        std::vector<int> possibleTalents;
+        std::vector<std::pair<int, int>> possibleTalents;
         //add roots to the list of possible talents first, then iterate recursively with visitTalent
         for (auto& root : sortedTreeDAG.rootIndices) {
-            possibleTalents.push_back(root);
+            possibleTalents.push_back(std::pair<int, int>(root, sortedTreeDAG.sortedTalents[root]->pointsRequired));
         }
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
-            if (sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired == 0)
+            //if (possibleTalents[i].second == 0)
+            if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
                 visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
         for (int i = 0; i < talentPoints; i++) {
@@ -176,13 +179,13 @@ namespace Engine {
     Parallel version of recursive talent visitation that does not early stop and keeps track of all paths shorter than max path length.
     */
     void visitTalentParallel(
-        int talentIndex,
+        std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::vector<int> possibleTalents,
+        std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         vec2d<std::pair< SIND, int>>& combinations,
         std::vector<int>& allCombinations
@@ -194,10 +197,10 @@ namespace Engine {
         if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
         */
         //do combination housekeeping
-        setTalent(visitedTalents, talentIndex);
+        setTalent(visitedTalents, talentIndexReqPair.first);
         talentPointsSpent += 1;
         talentPointsLeft -= 1;
-        currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndex][0];
+        currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
 
         combinations[talentPointsSpent - 1].push_back(std::pair<SIND, int>(visitedTalents, currentMultiplier));
         allCombinations[talentPointsSpent - 1] += currentMultiplier;
@@ -205,14 +208,16 @@ namespace Engine {
             return;
 
         //add all possible children to the set for iteration
-        for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndex].size(); i++) {
-            insertIntoVector(possibleTalents, sortedTreeDAG.minimalTreeDAG[talentIndex][i]);
+        for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first].size(); i++) {
+            int childIndex = sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][i];
+            std::pair<int, int> targetPair = std::pair<int, int>(childIndex, sortedTreeDAG.sortedTalents[childIndex]->pointsRequired);
+            insertIntoVector(possibleTalents, targetPair);
         }
         //visit all possible children while keeping correct order
         for (int i = currentPosTalIndex; i < possibleTalents.size(); i++) {
             //check order is correct and if talentPointsSpent is >= next talent points required
-            if (possibleTalents[i] > talentIndex &&
-                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i]]->pointsRequired) {
+            if (possibleTalents[i].first > talentIndexReqPair.first &&
+                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired) {
                 visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
             }
         }
@@ -229,8 +234,9 @@ namespace Engine {
         //the algorithm the same and improving speed.
         //note: EVEN THOUGH TREE IS PASSED BY COPY ALL PARENTS WILL BE DELETED FROM TALENTS!
         TreeDAGInfo info;
+        std::vector<int> rootIndices;
         for (int i = 0; i < tree.talentRoots.size(); i++) {
-            info.rootIndices.push_back(i);
+            rootIndices.push_back(tree.talentRoots[i]->index);
         }
         //Original Kahn's algorithm description from https://en.wikipedia.org/wiki/Topological_sorting
         /*
@@ -251,7 +257,7 @@ namespace Engine {
             return L   (a topologically sorted order)
         */
         std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](Talent_s a, Talent_s b) {
-            return a->pointsRequired > b->pointsRequired;
+            return a->pointsRequired < b->pointsRequired;
             });
         //while tree.talentRoots is not empty do
         while (tree.talentRoots.size() > 0) {
@@ -284,8 +290,16 @@ namespace Engine {
                     //insert m into S
                     tree.talentRoots.push_back(m);
                     std::sort(tree.talentRoots.begin(), tree.talentRoots.end(), [](Talent_s a, Talent_s b) {
-                        return a->pointsRequired > b->pointsRequired;
+                        return a->pointsRequired < b->pointsRequired;
                         });
+                }
+            }
+        }
+        for (int i = 0; i < info.sortedTalents.size(); i++) {
+            for (int j = 0; j < rootIndices.size(); j++) {
+                if (info.sortedTalents[i]->index == rootIndices[j]) {
+                    info.rootIndices.push_back(i);
+                    break;
                 }
             }
         }
@@ -338,8 +352,12 @@ namespace Engine {
         return getTalentString(tree);
     }
 
-    void insertIntoVector(std::vector<int>& v, const int& t) {
-        std::vector<int>::iterator i = std::lower_bound(v.begin(), v.end(), t);
+    void insertIntoVector(std::vector<std::pair<int, int>>& v, std::pair<int, int>& t) {
+        std::vector<std::pair<int, int>>::iterator i = std::lower_bound(v.begin(), v.end(), t, [](const std::pair<int, int>& a, const std::pair<int, int>& b){
+            if (a.second < b.second) return true;
+            if (a.second == b.second) return a.first < b.first;
+            return false;
+            });
         if (i == v.end() || t < *i)
             v.insert(i, t);
     }

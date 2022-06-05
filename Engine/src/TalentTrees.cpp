@@ -1414,6 +1414,7 @@ namespace Engine {
                 t->type = talent->type;
                 t->points = 0;
                 t->maxPoints = 1;
+                t->pointsRequired = talent->pointsRequired;
                 t->talentSwitch = talent->talentSwitch;
                 t->parents.push_back(talentParts[i]);
                 talentParts.push_back(t);

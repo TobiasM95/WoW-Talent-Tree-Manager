@@ -28,33 +28,33 @@ namespace Engine {
     std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree, int talentPointsLimit);
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
     void visitTalent(
-        int talentIndex,
+        std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::vector<int> possibleTalents,
+        std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<std::pair<SIND, int>>& combinations,
         int& allCombinations
     );
     void visitTalentParallel(
-        int talentIndex,
+        std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
         int currentMultiplier,
         int talentPointsSpent,
         int talentPointsLeft,
-        std::vector<int> possibleTalents,
+        std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        vec2d<std::pair<SIND, int>>& combinations,
+        vec2d<std::pair< SIND, int>>& combinations,
         std::vector<int>& allCombinations
     );
     inline void setTalent(SIND& talent, int index);
 
     std::string fillOutTreeWithBinaryIndexToString(SIND comb, TalentTree tree, TreeDAGInfo treeDAG);
-    void insertIntoVector(std::vector<int>& v, const int& t);
+    void insertIntoVector(std::vector<std::pair<int, int>>& v, std::pair<int, int>& t);
 
     void filterSolvedSkillsets(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter);
     std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, SIND);
