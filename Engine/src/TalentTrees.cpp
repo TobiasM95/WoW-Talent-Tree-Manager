@@ -329,6 +329,7 @@ namespace Engine {
                     }
                     treeRep << talent.second->children[talent.second->children.size() - 1]->index;
                 }
+                treeRep << ":" << cleanString(talent.second->iconName);
                 treeRep << ";";
             }
         }
@@ -480,7 +481,7 @@ namespace Engine {
 
     bool validateTalentStringFormat(std::string talentString) {
         std::vector<std::string> talentParts = splitString(talentString, ":");
-        if (talentParts.size() != 11) {
+        if (talentParts.size() != 12) {
             return false;
         }
         if (talentParts[0].find_first_not_of("0123456789") != std::string::npos) {
@@ -661,6 +662,7 @@ namespace Engine {
                     addChild(t, childTalent);
                 }
             }
+            t->iconName = restoreString(talentInfo[11]);
             if (t->preFilled && t->parents.size() > 0) {
                 bool canBePreFilled = false;
                 for (auto& parent : t->parents) {

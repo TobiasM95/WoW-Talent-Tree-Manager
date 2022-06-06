@@ -1,5 +1,7 @@
 #pragma once
 
+#include <d3d11.h>
+
 #include <tuple>
 #include <vector>
 #include <memory>
@@ -66,6 +68,13 @@ namespace TTM {
 		std::string menuBarUpdateLabel = "";
 
 		int deleteTreeIndex = -1;
+
+		//################# GENERAL #####################################
+		int loadedIconTreeIndex = -1;
+		ID3D11Device* g_pd3dDevice;
+		std::filesystem::path defaultIconPath = "resources/icons/default.png";
+		std::map<std::string, std::filesystem::path> iconPathMap;
+		std::map<int, std::pair<ID3D11ShaderResourceView*, std::pair<int, int>>> iconIndexMap;
 
 		//################# UPDATER #####################################
 		//used for displaying the screen at least once before a long blocking operation is shown

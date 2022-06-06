@@ -34,11 +34,11 @@
 #include "TTMEnginePresets.h"
 
 #include "Updater.h"
+#include "ImageHandler.h"
 #include "TalentTreeEditorWindow.h"
 #include "LoadoutEditorWindow.h"
 #include "LoadoutSolverWindow.h"
 
-//TTMTODO: place different components into their own files, lots of cleanup
 //TTMTODO: Replace all talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree with talentTreeCollection.activeTree()
 namespace TTM {
     
@@ -198,6 +198,7 @@ namespace TTM {
             ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
             ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
             ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("stb: https://github.com/nothings/stb");
 
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -690,5 +691,68 @@ namespace TTM {
     void resetWorkspaceAndTrees() {
         std::filesystem::path appPath = getAppPath();
         std::filesystem::remove_all(appPath);
+    }
+
+    void refreshIconList(UIData& uiData) {
+        std::filesystem::path iconRootPath = "resources/icons/";
+        uiData.iconPathMap.clear();
+        for (auto& entry : std::filesystem::directory_iterator{ iconRootPath }) {
+            if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
+                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
+            }
+        }
+    }
+
+    void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        if (talentTreeCollection.activeTreeIndex == -1 || uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex) {
+            return;
+        }
+        //FREE STUFF HERE
+        //FREE ALL POINTERS!
+        for (auto& indexTexInfoPair : uiData.iconIndexMap) {
+            if (indexTexInfoPair.second.first) {
+                indexTexInfoPair.second.first->Release();
+                indexTexInfoPair.second.first = nullptr;
+            }
+        }
+        uiData.iconIndexMap.clear();
+        //load default texture first
+        int defaultImageWidth = 0;
+        int defaultImageHeight = 0;
+        ID3D11ShaderResourceView* defaultTexture = NULL;
+        std::string iconPath(uiData.defaultIconPath.string());
+        bool ret = LoadTextureFromFile(iconPath.c_str(), &defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+        if (!ret) {
+            //TTMTODO: Implement programmatically created default texture to prevent this error!
+            throw std::runtime_error("Cannot open default icon!");
+        }
+
+        //load individual icons or replace with default texture if error
+        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+            std::pair<int, int> texDim;
+            int width = 0;
+            int height = 0;
+            ID3D11ShaderResourceView* texture = NULL;
+            std::string path;
+            if (uiData.iconPathMap.count(talent.second->iconName)) {
+                path = uiData.iconPathMap[talent.second->iconName].string();
+            }
+            else {
+                path = uiData.defaultIconPath.string();
+            }
+            bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+            if (!ret) {
+                texDim.first = defaultImageWidth;
+                texDim.second = defaultImageHeight;
+                std::pair<ID3D11ShaderResourceView*, std::pair<int, int>> talentIconInfo = std::pair<ID3D11ShaderResourceView*, std::pair<int, int>>(defaultTexture, texDim);
+                uiData.iconIndexMap[talent.second->index] = talentIconInfo;
+            }
+            else {
+                texDim.first = width;
+                texDim.second = height;
+                std::pair<ID3D11ShaderResourceView*, std::pair<int, int>> talentIconInfo = std::pair<ID3D11ShaderResourceView*, std::pair<int, int>>(texture, texDim);
+                uiData.iconIndexMap[talent.second->index] = talentIconInfo;
+            }
+        }
     }
 }

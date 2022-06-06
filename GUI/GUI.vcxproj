@@ -97,7 +97,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\stb;$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -109,6 +109,7 @@
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd1.dll" "$(OutputPath)"
@@ -124,7 +125,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd.pdb" "$(Outpu
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\stb;$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -143,9 +144,11 @@ copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.ex
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y
 copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
 mkdir "$(OutputPath)resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
@@ -160,7 +163,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\stb;$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -172,6 +175,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd1.dll" "$(OutputPath)"
@@ -187,7 +191,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd.pdb" "$(Outpu
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\libs\stb;$(ProjectDir)src\libs\ImGui;$(ProjectDir)src\libs\ImGui\backends;$(SolutionDir)Engine\src;$(ProjectDir)resources\fonts;$(ProjectDir)resources;$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4101</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -206,9 +210,11 @@ copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.ex
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y
 copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
 mkdir "$(OutputPath)resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
@@ -218,6 +224,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="resources\fonts\roboto_medium.h" />
+    <ClCompile Include="src\ImageHandler.cpp" />
     <ClCompile Include="src\libs\ImGui\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="src\libs\ImGui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="src\libs\ImGui\imgui.cpp" />
@@ -237,6 +244,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resources\resource.h" />
+    <ClInclude Include="src\ImageHandler.h" />
     <ClInclude Include="src\libs\ImGui\backends\imgui_impl_dx11.h" />
     <ClInclude Include="src\libs\ImGui\backends\imgui_impl_win32.h" />
     <ClInclude Include="src\libs\ImGui\imconfig.h" />
@@ -246,6 +254,8 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     <ClInclude Include="src\libs\ImGui\imstb_rectpack.h" />
     <ClInclude Include="src\libs\ImGui\imstb_textedit.h" />
     <ClInclude Include="src\libs\ImGui\imstb_truetype.h" />
+    <ClInclude Include="src\libs\stb\stb_image.h" />
+    <ClInclude Include="src\libs\stb\stb_image_resize.h" />
     <ClInclude Include="src\LoadoutEditorWindow.h" />
     <ClInclude Include="src\LoadoutSolverWindow.h" />
     <ClInclude Include="src\TalentTreeEditorWindow.h" />
@@ -280,6 +290,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     <Text Include="resources\resource_versions.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />
     <Text Include="src\libs\ImGui\LICENSE.txt" />
+    <Text Include="src\libs\stb\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

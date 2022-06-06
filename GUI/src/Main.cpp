@@ -89,8 +89,11 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     io.LogFilename = LogPath.c_str();
 
     TTM::UIData uiData;
+    TTM::refreshIconList(uiData);
+    uiData.g_pd3dDevice = g_pd3dDevice;
     TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
     talentTreeCollection.presets = Presets::LOAD_PRESETS();
+    TTM::loadActiveIcons(uiData, talentTreeCollection);
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);

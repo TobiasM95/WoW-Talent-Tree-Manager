@@ -522,7 +522,12 @@ namespace TTM {
         }
         ImGui::SameLine();
         if (ImGui::Button("<##loadoutSolverFilterLeftButton")) {
-            uiData.loadoutSolverSkillsetResultPage = std::max(uiData.loadoutSolverSkillsetResultPage - 1, 0);
+            if (uiData.loadoutSolverSkillsetResultPage - 1 > 0) {
+                uiData.loadoutSolverSkillsetResultPage -= 1;
+            }
+            else {
+                uiData.loadoutSolverSkillsetResultPage = 0;
+            }
             uiData.selectedFilteredSkillsetIndex = 0;
         }
         ImGui::SameLine();
@@ -532,7 +537,12 @@ namespace TTM {
         ImGui::SameLine();
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - width + padding);
         if (ImGui::Button(">##loadoutSolverFilterRightButton")) {
-            uiData.loadoutSolverSkillsetResultPage = std::min(uiData.loadoutSolverSkillsetResultPage + 1, maxPage);
+            if (uiData.loadoutSolverSkillsetResultPage + 1 > maxPage) {
+                uiData.loadoutSolverSkillsetResultPage = maxPage;
+            }
+            else {
+                uiData.loadoutSolverSkillsetResultPage += 1;
+            }
             uiData.selectedFilteredSkillsetIndex = 0;
         }
         ImGui::SameLine();
