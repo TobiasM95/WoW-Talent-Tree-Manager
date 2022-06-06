@@ -39,6 +39,7 @@ namespace Engine {
         int talentSwitch = 0;
         std::vector<std::shared_ptr<Talent>> parents;
         std::vector<std::shared_ptr<Talent>> children;
+        std::string iconName = "default.png";
 
         std::string getName() {
             if (type == TalentType::SWITCH && talentSwitch == 2)
