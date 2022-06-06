@@ -40,7 +40,8 @@ namespace TTM {
         float relArrowSpace = 0.15f; //how much space should be between arrow and connecting talents in terms of relative to talentSize
         float relArrowHeadSize = 0.15f; //how long should each side of the the arrow head triangle be in terms of relative to talentSize
         float relArrowHeadAngle = 2.1f;
-        ImU32 color = ImColor(185, 166, 72, 255);
+        //ImU32 color = ImColor(185, 166, 72, 255); //Gold
+        ImU32 color = ImColor(120, 120, 120, 255);
 
         float p1X, p1Y, p2X, p2Y;
         if (t1->column < t2->column) {
@@ -136,6 +137,570 @@ namespace TTM {
             ImVec2(target.x + tri2.x, target.y + tri2.y),
             color
         );
+    }
+
+    void drawTreeEditorShapeAroundTalent(
+        Engine::Talent_s talent,
+        ImDrawList* drawList,
+        ImVec4* colors,
+        ImVec2 pos,
+        int talentSize,
+        ImVec2 windowPos,
+        ImVec2 scroll,
+        UIData& uiData,
+        TalentTreeCollection& talentTreeCollection,
+        bool selected)
+    {
+        ImVec4 borderCol = colors[ImGuiCol_WindowBg];
+        ImVec4 textColor = colors[ImGuiCol_Text];
+        ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
+        ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
+        if (selected) {
+            borderCol = ImVec4(0.85f, 0.15f, 0.15f, 1.0f);
+        }
+        else {
+            if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                borderCol = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+            }
+            else {
+                borderCol = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+            }
+        }
+        textRectColor = ImVec4(
+            0.5f * textRectColor.x + 0.5f * borderCol.x,
+            0.5f * textRectColor.y + 0.5f * borderCol.y,
+            0.5f * textRectColor.z + 0.5f * borderCol.z,
+            0.5f * textRectColor.w + 0.5f * borderCol.w
+        );
+        textRectBorderColor = ImVec4(
+            0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
+            0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
+            0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
+            0.5f * textRectBorderColor.w + 0.5f * borderCol.w
+        );
+
+        switch (talent->type) {
+        case Engine::TalentType::SWITCH: {
+            drawList->AddNgonRotated(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.65f,
+                ImColor(colors[ImGuiCol_WindowBg]),
+                8,
+                10 * uiData.treeEditorZoomFactor,
+                IM_PI / 8.0f
+            );
+            drawList->AddNgonRotated(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.65f - 3.5f * uiData.treeEditorZoomFactor,
+                ImColor(borderCol),
+                8,
+                4 * uiData.treeEditorZoomFactor,
+                IM_PI / 8.0f
+            );
+        }break;
+        case Engine::TalentType::PASSIVE: {
+            drawList->AddCircle(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.62f,
+                ImColor(colors[ImGuiCol_WindowBg]),
+                0,
+                10 * uiData.treeEditorZoomFactor
+            );
+            drawList->AddCircle(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.62f - 3.5f * uiData.treeEditorZoomFactor,
+                ImColor(borderCol),
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+        }break;
+        case Engine::TalentType::ACTIVE: {
+            drawList->AddRect(
+                ImVec2(
+                    pos.x + windowPos.x - scroll.x,
+                    pos.y + windowPos.y - scroll.y
+                ),
+                ImVec2(
+                    pos.x + talentSize + windowPos.x - scroll.x,
+                    pos.y + talentSize + windowPos.y - scroll.y
+                ),
+                ImColor(borderCol),
+                0,
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+        }break;
+        }
+        float textOffset = 0;
+        if (uiData.treeEditorZoomFactor <= 1.0f) {
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+        }
+        else if (uiData.treeEditorZoomFactor < 1.5f) {
+            textOffset = 0.01f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+        }
+        else if (uiData.treeEditorZoomFactor < 2.0f) {
+            textOffset = 0.015f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+        }
+        else {
+            textOffset = 0.02f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+        }
+        ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
+        ImVec2 textSize = ImGui::CalcTextSize("9/9");
+        drawList->AddRectFilled(
+            ImVec2(
+                bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
+                bottomRight.y - 0.65f * textSize.y - 0.05f * talentSize
+            ),
+            ImVec2(
+                bottomRight.x + 0.55f * textSize.x - 0.05f * talentSize,
+                bottomRight.y + 0.55f * textSize.y - 0.05f * talentSize
+            ),
+            ImColor(textRectColor),
+            0,
+            0
+        );
+        drawList->AddRect(
+            ImVec2(
+                bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
+                bottomRight.y - 0.65f * textSize.y - 0.05f * talentSize
+            ),
+            ImVec2(
+                bottomRight.x + 0.55f * textSize.x - 0.05f * talentSize,
+                bottomRight.y + 0.55f * textSize.y - 0.05f * talentSize
+            ),
+            ImColor(textRectBorderColor),
+            0,
+            0
+        );
+        drawList->AddText(
+            ImVec2(
+                bottomRight.x - 0.5f * textSize.x - 0.075f * talentSize + textOffset,
+                bottomRight.y - 0.5f * textSize.y - 0.075f * talentSize + textOffset
+            ),
+            ImColor(textColor),
+            ("0/" + std::to_string(talent->maxPoints)).c_str()
+        );
+        ImGui::PopFont();
+    }
+
+    void drawLoadoutEditorShapeAroundTalent(
+        Engine::Talent_s talent,
+        ImDrawList* drawList,
+        ImVec4* colors,
+        ImVec2 pos,
+        int talentSize,
+        ImVec2 windowPos,
+        ImVec2 scroll,
+        UIData& uiData,
+        TalentTreeCollection& talentTreeCollection,
+        float disabledAlpha)
+    {
+        ImVec4 borderCol = colors[ImGuiCol_WindowBg];
+        ImVec4 textColor = colors[ImGuiCol_TextDisabled];
+        ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
+        ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
+        if (disabledAlpha >= 1.0f) {
+            if (talent->points == 0) {
+                if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                    borderCol = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+                }
+                else {
+                    borderCol = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+                }
+            }
+            else if (talent->points == talent->maxPoints) {
+                borderCol = ImVec4(0.8f, 0.63f, 0.0f, 1.0f);
+            }
+            else {
+                borderCol = ImVec4(0.1f, 0.8f, 0.1f, 1.0f);
+            }
+            textColor = colors[ImGuiCol_Text];
+            textRectColor = ImVec4(
+                disabledAlpha * (0.5f * textRectColor.x + 0.5f * borderCol.x),
+                disabledAlpha * (0.5f * textRectColor.y + 0.5f * borderCol.y),
+                disabledAlpha * (0.5f * textRectColor.z + 0.5f * borderCol.z),
+                disabledAlpha * (0.5f * textRectColor.w + 0.5f * borderCol.w)
+            );
+            textRectBorderColor = ImVec4(
+                disabledAlpha * (0.5f * textRectBorderColor.x + 0.5f * borderCol.x),
+                disabledAlpha * (0.5f * textRectBorderColor.y + 0.5f * borderCol.y),
+                disabledAlpha * (0.5f * textRectBorderColor.z + 0.5f * borderCol.z),
+                disabledAlpha * (0.5f * textRectBorderColor.w + 0.5f * borderCol.w)
+            );
+        }
+        else if (talent->preFilled) {
+            borderCol = ImVec4(
+                0.9f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha), 
+                0.73f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
+                0.0f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
+                1.0f);
+            textColor = colors[ImGuiCol_Text];
+            ImVec4 pBorderCol = ImVec4(0.8f, 0.63f, 0.0f, 1.0f);
+            textRectColor = ImVec4(
+                0.5f * textRectColor.x + 0.5f * pBorderCol.x,
+                0.5f * textRectColor.y + 0.5f * pBorderCol.y,
+                0.5f * textRectColor.z + 0.5f * pBorderCol.z,
+                0.5f * textRectColor.w + 0.5f * pBorderCol.w
+            );
+            textRectBorderColor = ImVec4(
+                0.5f * textRectBorderColor.x + 0.5f * pBorderCol.x,
+                0.5f * textRectBorderColor.y + 0.5f * pBorderCol.y,
+                0.5f * textRectBorderColor.z + 0.5f * pBorderCol.z,
+                0.5f * textRectBorderColor.w + 0.5f * pBorderCol.w
+            );
+        }
+        else {
+            if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                borderCol = ImVec4(0.05f, 0.05f, 0.05f, disabledAlpha);
+            }
+            else {
+                borderCol = ImVec4(0.25f, 0.25f, 0.25f, disabledAlpha);
+            }
+            textRectColor = ImVec4(
+                disabledAlpha * (0.5f * textRectColor.x + 0.5f * borderCol.x),
+                disabledAlpha * (0.5f * textRectColor.y + 0.5f * borderCol.y),
+                disabledAlpha * (0.5f * textRectColor.z + 0.5f * borderCol.z),
+                disabledAlpha * (0.5f * textRectColor.w + 0.5f * borderCol.w)
+            );
+            textRectBorderColor = ImVec4(
+                disabledAlpha * (0.5f * textRectBorderColor.x + 0.5f * borderCol.x),
+                disabledAlpha * (0.5f * textRectBorderColor.y + 0.5f * borderCol.y),
+                disabledAlpha * (0.5f * textRectBorderColor.z + 0.5f * borderCol.z),
+                disabledAlpha * (0.5f * textRectBorderColor.w + 0.5f * borderCol.w)
+            );
+        }
+
+        switch (talent->type) {
+        case Engine::TalentType::SWITCH: {
+            drawList->AddNgonRotated(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.65f,
+                ImColor(colors[ImGuiCol_WindowBg]),
+                8,
+                10 * uiData.treeEditorZoomFactor,
+                IM_PI / 8.0f
+            );
+            drawList->AddNgonRotated(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.65f - 3.5f * uiData.treeEditorZoomFactor,
+                ImColor(borderCol),
+                8,
+                4 * uiData.treeEditorZoomFactor,
+                IM_PI / 8.0f
+            );
+        }break;
+        case Engine::TalentType::PASSIVE: {
+            drawList->AddCircle(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.62f,
+                ImColor(colors[ImGuiCol_WindowBg]),
+                0,
+                10 * uiData.treeEditorZoomFactor
+            );
+            drawList->AddCircle(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.62f - 3.5f * uiData.treeEditorZoomFactor,
+                ImColor(borderCol),
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+        }break;
+        case Engine::TalentType::ACTIVE: {
+            drawList->AddRect(
+                ImVec2(
+                    pos.x + windowPos.x - scroll.x,
+                    pos.y + windowPos.y - scroll.y
+                ),
+                ImVec2(
+                    pos.x + talentSize + windowPos.x - scroll.x,
+                    pos.y + talentSize + windowPos.y - scroll.y
+                ),
+                ImColor(borderCol),
+                0,
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+        }break;
+        }
+        float textOffset = 0;
+        if (uiData.treeEditorZoomFactor <= 1.0f) {
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+        }
+        else if (uiData.treeEditorZoomFactor < 1.5f) {
+            textOffset = 0.01f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+        }
+        else if (uiData.treeEditorZoomFactor < 2.0f) {
+            textOffset = 0.015f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+        }
+        else {
+            textOffset = 0.02f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+        }
+        ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
+        ImVec2 textSize = ImGui::CalcTextSize("9/9");
+        drawList->AddRectFilled(
+            ImVec2(
+                bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
+                bottomRight.y - 0.65f * textSize.y - 0.05f * talentSize
+            ),
+            ImVec2(
+                bottomRight.x + 0.55f * textSize.x - 0.05f * talentSize,
+                bottomRight.y + 0.55f * textSize.y - 0.05f * talentSize
+            ),
+            ImColor(textRectColor),
+            0,
+            0
+        );
+        drawList->AddRect(
+            ImVec2(
+                bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
+                bottomRight.y - 0.65f * textSize.y - 0.05f * talentSize
+            ),
+            ImVec2(
+                bottomRight.x + 0.55f * textSize.x - 0.05f * talentSize,
+                bottomRight.y + 0.55f * textSize.y - 0.05f * talentSize
+            ),
+            ImColor(textRectBorderColor),
+            0,
+            0
+        );
+        drawList->AddText(
+            ImVec2(
+                bottomRight.x - 0.5f * textSize.x - 0.075f * talentSize + textOffset,
+                bottomRight.y - 0.5f * textSize.y - 0.075f * talentSize + textOffset
+            ),
+            ImColor(textColor),
+            (std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints)).c_str()
+        );
+        ImGui::PopFont();
+    }
+
+    void drawLoadoutSolverShapeAroundTalent(
+        Engine::Talent_s talent,
+        ImDrawList* drawList,
+        ImVec4* colors,
+        ImVec2 pos,
+        int talentSize,
+        ImVec2 windowPos,
+        ImVec2 scroll,
+        UIData& uiData,
+        TalentTreeCollection& talentTreeCollection,
+        std::shared_ptr<Engine::TalentSkillset> skillsetFilter)
+    {
+        ImVec4 borderCol = colors[ImGuiCol_WindowBg];
+        ImVec4 textColor = colors[ImGuiCol_TextDisabled];
+        ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
+        ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
+        if (!talent->preFilled) {
+            if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == 0) {
+                if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                    borderCol = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+                }
+                else {
+                    borderCol = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+                }
+            }
+            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == talent->maxPoints) {
+                borderCol = ImVec4(0.8f, 0.63f, 0.0f, 1.0f);
+            }
+            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] < 0) {
+                borderCol = ImVec4(0.85f, 0.15f, 0.15f, 1.0f);
+            }
+            else {
+                borderCol = ImVec4(0.1f, 0.8f, 0.1f, 1.0f);
+            }
+            textColor = colors[ImGuiCol_Text];
+            textRectColor = ImVec4(
+                0.5f * textRectColor.x + 0.5f * borderCol.x,
+                0.5f * textRectColor.y + 0.5f * borderCol.y,
+                0.5f * textRectColor.z + 0.5f * borderCol.z,
+                0.5f * textRectColor.w + 0.5f * borderCol.w
+            );
+            textRectBorderColor = ImVec4(
+                0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
+                0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
+                0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
+                0.5f * textRectBorderColor.w + 0.5f * borderCol.w
+            );
+        }
+        else if (talent->preFilled) {
+            borderCol = ImVec4(
+                0.9f * 0.35f+ colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
+                0.73f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
+                0.0f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
+                1.0f);
+            textColor = colors[ImGuiCol_Text];
+            ImVec4 pBorderCol = ImVec4(0.8f, 0.63f, 0.0f, 1.0f);
+            textRectColor = ImVec4(
+                0.5f * textRectColor.x + 0.5f * pBorderCol.x,
+                0.5f * textRectColor.y + 0.5f * pBorderCol.y,
+                0.5f * textRectColor.z + 0.5f * pBorderCol.z,
+                0.5f * textRectColor.w + 0.5f * pBorderCol.w
+            );
+            textRectBorderColor = ImVec4(
+                0.5f * textRectBorderColor.x + 0.5f * pBorderCol.x,
+                0.5f * textRectBorderColor.y + 0.5f * pBorderCol.y,
+                0.5f * textRectBorderColor.z + 0.5f * pBorderCol.z,
+                0.5f * textRectBorderColor.w + 0.5f * pBorderCol.w
+            );
+        }
+
+        switch (talent->type) {
+        case Engine::TalentType::SWITCH: {
+            drawList->AddNgonRotated(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.65f,
+                ImColor(colors[ImGuiCol_WindowBg]),
+                8,
+                10 * uiData.treeEditorZoomFactor,
+                IM_PI / 8.0f
+            );
+            drawList->AddNgonRotated(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.65f - 3.5f * uiData.treeEditorZoomFactor,
+                ImColor(borderCol),
+                8,
+                4 * uiData.treeEditorZoomFactor,
+                IM_PI / 8.0f
+            );
+        }break;
+        case Engine::TalentType::PASSIVE: {
+            drawList->AddCircle(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.62f,
+                ImColor(colors[ImGuiCol_WindowBg]),
+                0,
+                10 * uiData.treeEditorZoomFactor
+            );
+            drawList->AddCircle(
+                ImVec2(
+                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
+                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
+                ),
+                talentSize * 0.62f - 3.5f * uiData.treeEditorZoomFactor,
+                ImColor(borderCol),
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+        }break;
+        case Engine::TalentType::ACTIVE: {
+            drawList->AddRect(
+                ImVec2(
+                    pos.x + windowPos.x - scroll.x,
+                    pos.y + windowPos.y - scroll.y
+                ),
+                ImVec2(
+                    pos.x + talentSize + windowPos.x - scroll.x,
+                    pos.y + talentSize + windowPos.y - scroll.y
+                ),
+                ImColor(borderCol),
+                0,
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+        }break;
+        }
+        float textOffset = 0;
+        if (uiData.treeEditorZoomFactor <= 1.0f) {
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+        }
+        else if (uiData.treeEditorZoomFactor < 1.5f) {
+            textOffset = 0.01f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+        }
+        else if (uiData.treeEditorZoomFactor < 2.0f) {
+            textOffset = 0.015f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+        }
+        else {
+            textOffset = 0.02f * talentSize;
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+        }
+        ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
+        ImVec2 textSize = ImGui::CalcTextSize("X/X");
+        drawList->AddRectFilled(
+            ImVec2(
+                bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
+                bottomRight.y - 0.65f * textSize.y - 0.05f * talentSize
+            ),
+            ImVec2(
+                bottomRight.x + 0.55f * textSize.x - 0.05f * talentSize,
+                bottomRight.y + 0.55f * textSize.y - 0.05f * talentSize
+            ),
+            ImColor(textRectColor),
+            0,
+            0
+        );
+        drawList->AddRect(
+            ImVec2(
+                bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
+                bottomRight.y - 0.65f * textSize.y - 0.05f * talentSize
+            ),
+            ImVec2(
+                bottomRight.x + 0.55f * textSize.x - 0.05f * talentSize,
+                bottomRight.y + 0.55f * textSize.y - 0.05f * talentSize
+            ),
+            ImColor(textRectBorderColor),
+            0,
+            0
+        );
+        std::string buttonLabel = "";
+        if (talent->preFilled) {
+            buttonLabel = std::to_string(talent->maxPoints) + "/" + std::to_string(talent->maxPoints);
+        }
+        else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] >= 0) {
+            buttonLabel = std::to_string(talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index]) + "/" + std::to_string(talent->maxPoints);
+        }
+        else {
+            buttonLabel = "X/" + std::to_string(talent->maxPoints);
+        }
+        drawList->AddText(
+            ImVec2(
+                bottomRight.x - 0.5f * textSize.x - 0.075f * talentSize + textOffset,
+                bottomRight.y - 0.5f * textSize.y - 0.075f * talentSize + textOffset
+            ),
+            ImColor(textColor),
+            (buttonLabel).c_str()
+        );
+        ImGui::PopFont();
     }
 
     void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {

@@ -370,48 +370,21 @@ namespace TTM {
         float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImGuiStyle& imStyle = ImGui::GetStyle();
         for (auto& talent : tree.orderedTalents) {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
-            bool changedColor = false;
-            if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > 0 
-                && talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < talent.second->maxPoints) {
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.2f, 0.9f, 0.2f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.25f, 1.0f, 0.25f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.4f, 1.0f, 0.4f));
-                ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                changedColor = true;
-            }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] == talent.second->maxPoints || talent.second->preFilled) {
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.73f, 0.0f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.82f, 0.0f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.95f, 0.0f));
-                ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                changedColor = true;
-            }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < 0) {
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.95f, 0.23f, 0.23f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.33f, 0.33f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.43f, 0.43f));
-                ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                changedColor = true;
-            }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
             if (talent.second->preFilled) {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
             }
-            std::string buttonLabel = "";
-            if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] >= 0) {
-                buttonLabel = std::to_string(talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]) + "/" + std::to_string(talent.second->maxPoints);
-            }
-            else {
-                buttonLabel = "X/" + std::to_string(talent.second->maxPoints);
-            }
-            if (ImGui::Button((buttonLabel + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+            ImGui::PushID((std::to_string(talent.second->index)).c_str());
+            auto iconContent = uiData.iconIndexMap[talent.second->index];
+            if (ImGui::ImageButton(iconContent.first,
+                ImVec2(talentSize, talentSize), ImVec2(0, 0), ImVec2(1, 1), 0
+            )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
                     talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -1;
@@ -424,6 +397,18 @@ namespace TTM {
                     uiData.loadoutSolverBufferedPage = -1;
                 }
             }
+            ImGui::PopID();
+            drawLoadoutSolverShapeAroundTalent(
+                talent.second,
+                drawList,
+                imStyle.Colors,
+                ImVec2(posX, posY),
+                talentSize,
+                ImGui::GetWindowPos(),
+                ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
+                uiData,
+                talentTreeCollection,
+                talentTreeCollection.activeTreeData().skillsetFilter);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
                 uiData.loadoutEditorRightClickIndex = talent.first;
             }
@@ -444,12 +429,10 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
                 ImGui::EndDisabled();
             }
-            ImGui::PopStyleVar(2);
             ImGui::PopFont();
-            if (changedColor) {
-                ImGui::PopStyleColor(4);
-            }
             AttachLoadoutSolverTooltip(uiData, talent.second, talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]);
+        }
+        for (auto& talent : tree.orderedTalents) {
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
                     talent.second,

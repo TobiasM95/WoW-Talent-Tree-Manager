@@ -234,7 +234,7 @@ namespace TTM {
 
                     if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorCreationTalent->type == Engine::TalentType::ACTIVE) ImGui::BeginDisabled();
                     ImGui::Text("Maximum talent points:");
-                    ImGui::SliderInt("##talentCreationMaxPointsSlider", &uiData.treeEditorCreationTalent->maxPoints, 1, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##talentCreationMaxPointsSlider", &uiData.treeEditorCreationTalent->maxPoints, 1, 9, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorCreationTalent->type == Engine::TalentType::ACTIVE) {
                         ImGui::EndDisabled();
                         uiData.treeEditorCreationTalent->maxPoints = 1;
@@ -339,7 +339,7 @@ namespace TTM {
 
                         if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorSelectedTalent->type == Engine::TalentType::ACTIVE) ImGui::BeginDisabled();
                         ImGui::Text("Maximum talent points:");
-                        ImGui::SliderInt("##talentEditMaxPointsSlider", &uiData.treeEditorSelectedTalent->maxPoints, 1, 10, "%d", ImGuiSliderFlags_AlwaysClamp);
+                        ImGui::SliderInt("##talentEditMaxPointsSlider", &uiData.treeEditorSelectedTalent->maxPoints, 1, 9, "%d", ImGuiSliderFlags_AlwaysClamp);
                         if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH || uiData.treeEditorSelectedTalent->type == Engine::TalentType::ACTIVE) {
                             ImGui::EndDisabled();
                             uiData.treeEditorSelectedTalent->maxPoints = 1;
@@ -445,7 +445,7 @@ namespace TTM {
                         }
                         ImGui::SameLine();
                         if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0)) 
-                            || ((ImGui::IsKeyPressed(ImGuiKey_LeftCtrl) || ImGui::IsKeyPressed(ImGuiKey_RightCtrl)) && ImGui::IsKeyPressed(ImGuiKey_Delete))) {
+                            || ((ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) && ImGui::IsKeyPressed(ImGuiKey_Delete))) {
                             int talentIndex = uiData.treeEditorSelectedTalent->index;
                             //check children for new root talents &
                             //delete from children's parents lists
@@ -1384,7 +1384,6 @@ namespace TTM {
 
     void placeTreeEditorTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         Engine::TalentTree tree = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree;
-        //TTMTODO: Change button style layout to render base layout? This is messy af
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
         int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
         float talentWindowPaddingY = static_cast<float>(uiData.treeEditorTalentWindowPaddingY);
@@ -1397,21 +1396,18 @@ namespace TTM {
         float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImGuiStyle& imStyle = ImGui::GetStyle();
         for (auto& talent : tree.orderedTalents) {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
-            bool changedColor = false;
-            if (uiData.treeEditorSelectedTalent != nullptr && uiData.treeEditorSelectedTalent->index == talent.second->index) {
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.2f, 0.2f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.2f, 0.2f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.1f, 0.1f));
-                changedColor = true;
-            }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
-            if (ImGui::Button(std::to_string(talent.second->index).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+
+            ImGui::PushID(std::to_string(talent.second->index).c_str());
+            auto iconContent = uiData.iconIndexMap[talent.second->index];
+            if (ImGui::ImageButton(iconContent.first,
+                ImVec2(talentSize, talentSize), ImVec2(0, 0), ImVec2(1, 1), 0
+            )) {
                 //Quick parent/child connection edit
                 if (ImGui::IsKeyDown(ImGuiKey_LeftAlt) && uiData.treeEditorSelectedTalent != nullptr) {
                     //make pressed button the parent
@@ -1452,11 +1448,19 @@ namespace TTM {
                     selectTalent(uiData, talentTreeCollection, talent);
                 }
             }
-            ImGui::PopStyleVar(2);
+            ImGui::PopID();
+            drawTreeEditorShapeAroundTalent(
+                talent.second,
+                drawList,
+                imStyle.Colors,
+                ImVec2(posX, posY),
+                talentSize,
+                ImGui::GetWindowPos(),
+                ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
+                uiData,
+                talentTreeCollection,
+                uiData.treeEditorSelectedTalent != nullptr && uiData.treeEditorSelectedTalent->index == talent.second->index);
             ImGui::PopFont();
-            if (changedColor) {
-                ImGui::PopStyleColor(3);
-            }
             if (ImGui::IsItemActive())
             {
                 if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
@@ -1475,6 +1479,8 @@ namespace TTM {
             else {
                 AttachTalentEditTooltip(uiData, talent.second);
             }
+        }
+        for (auto& talent : tree.orderedTalents) {
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
                     talent.second,

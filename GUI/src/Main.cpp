@@ -117,6 +117,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 17.0f);
     io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 20.0f);
     io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 27.0f);
+    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 14.0f);
 
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);

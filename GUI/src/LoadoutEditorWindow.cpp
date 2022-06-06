@@ -274,10 +274,12 @@ namespace TTM {
         float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImGuiStyle& imStyle = ImGui::GetStyle();
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
         for (auto& talent : tree.orderedTalents) {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
-            bool changedColor = false;
             bool talentDisabled = false;
             bool isParentFilled = talent.second->parents.size() == 0;
             for (auto& parent : talent.second->parents) {
@@ -298,46 +300,17 @@ namespace TTM {
                     talent.second->talentSwitch = 1;
                 }
             }
-            if (talent.second->points > 0 && talent.second->points < talent.second->maxPoints) {
-                ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.2f, 0.9f, 0.2f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.25f, 1.0f, 0.25f));
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(0.4f, 1.0f, 0.4f));
-                ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                changedColor = true;
-            }
-            else if (talent.second->points == talent.second->maxPoints) {
-                if (talent.second->type == Engine::TalentType::SWITCH) {
-                    if (talent.second->talentSwitch == 1) {
-                        ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.43f, 0.43f));
-                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.53f, 0.53f));
-                        ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.63f, 0.63f));
-                        ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                    }
-                    else {
-                        ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.43f, 0.43f, 0.9f));
-                        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(0.53f, 0.53f, 1.0f));
-                        ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(.63f, 0.63f, 1.0f));
-                        ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                    }
-                }
-                else {
-                    ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor(0.9f, 0.73f, 0.0f));
-                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor(1.0f, 0.82f, 0.0f));
-                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor(1.0f, 0.95f, 0.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)ImColor(0, 0, 0));
-                }
-                changedColor = true;
-            }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
-            ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 0.0f + (talent.second->type == Engine::TalentType::SWITCH) * 15.0f * uiData.treeEditorZoomFactor + (talent.second->type == Engine::TalentType::PASSIVE) * 30.0f * uiData.treeEditorZoomFactor);
             if (talentDisabled) {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
             }
-            if (ImGui::Button((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
-                //TTMTODO: loadout editor talent selection
+            ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
+            auto iconContent = uiData.iconIndexMap[talent.second->index];
+            if (ImGui::ImageButton(iconContent.first,
+                ImVec2(talentSize, talentSize), ImVec2(0,0), ImVec2(1,1), 0
+            )) {
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
                     if (talent.second->type == Engine::TalentType::SWITCH && talent.second->points > 0) {
                         talent.second->talentSwitch = talent.second->talentSwitch == 1 ? 2 : 1;
@@ -355,6 +328,18 @@ namespace TTM {
                     }
                 }
             }
+            ImGui::PopID();
+            drawLoadoutEditorShapeAroundTalent(
+                talent.second, 
+                drawList,
+                imStyle.Colors,
+                ImVec2(posX, posY), 
+                talentSize, 
+                ImGui::GetWindowPos(), 
+                ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()), 
+                uiData, 
+                talentTreeCollection,
+                1.0f - 0.65f * talentDisabled);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
                 uiData.loadoutEditorRightClickIndex = talent.first;
             }
@@ -383,12 +368,10 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
                 ImGui::EndDisabled();
             }
-            ImGui::PopStyleVar(2);
             ImGui::PopFont();
-            if (changedColor) {
-                ImGui::PopStyleColor(4);
-            }
             AttachLoadoutEditTooltip(uiData, talent.second);
+        }
+        for (auto& talent : tree.orderedTalents) {
             for (auto& child : talent.second->children) {
                 drawArrowBetweenTalents(
                     talent.second,
@@ -403,6 +386,7 @@ namespace TTM {
                     uiData);
             }
         }
+        ImGui::PopStyleColor(2);
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
         ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2.0f * talentHalfSpacing + 1.0f, talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
 

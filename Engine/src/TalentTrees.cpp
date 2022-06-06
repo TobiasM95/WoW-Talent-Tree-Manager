@@ -501,7 +501,7 @@ namespace Engine {
         if (talentParts[5] == "" || talentParts[5].find_first_not_of("0123456789") != std::string::npos) {
             return false;
         }
-        if (talentParts[6] == "" || talentParts[6].find_first_not_of("0123456789") != std::string::npos) {
+        if (talentParts[6] == "" || talentParts[6].length() > 1 || talentParts[6].find_first_not_of("0123456789") != std::string::npos) {
             return false;
         }
         if (talentParts[7] == "" || talentParts[7].find_first_not_of("0123456789") != std::string::npos) {
