@@ -1548,6 +1548,17 @@ void ImDrawList::AddNgon(const ImVec2& center, float radius, ImU32 col, int num_
     PathStroke(col, ImDrawFlags_Closed, thickness);
 }
 
+void ImDrawList::AddNgonRotated(const ImVec2& center, float radius, ImU32 col, int num_segments, float thickness, float alpha)
+{
+    if ((col & IM_COL32_A_MASK) == 0 || num_segments <= 2)
+        return;
+
+    // Because we are filling a closed shape we remove 1 from the count of segments/points
+    const float a_max = (IM_PI * 2.0f) * ((float)num_segments - 1.0f) / (float)num_segments;
+    PathArcTo(center, radius - 0.5f, 0.0f + alpha, a_max + alpha, num_segments - 1);
+    PathStroke(col, ImDrawFlags_Closed, thickness);
+}
+
 // Guaranteed to honor 'num_segments'
 void ImDrawList::AddNgonFilled(const ImVec2& center, float radius, ImU32 col, int num_segments)
 {

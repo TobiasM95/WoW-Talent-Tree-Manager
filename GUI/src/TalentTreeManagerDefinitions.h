@@ -211,5 +211,41 @@ namespace TTM {
 		float talentPadding,
 		UIData& uiData);
 
+	void drawLoadoutEditorShapeAroundTalent(
+		Engine::Talent_s talent,
+		ImDrawList* drawList,
+		ImVec4* colors,
+		ImVec2 pos,
+		int talentSize,
+		ImVec2 windowPos,
+		ImVec2 scroll,
+		UIData& uiData,
+		TalentTreeCollection& talentTreeCollection,
+		float disabledAlpha);
+
+	void drawTreeEditorShapeAroundTalent(
+		Engine::Talent_s talent,
+		ImDrawList* drawList,
+		ImVec4* colors,
+		ImVec2 pos,
+		int talentSize,
+		ImVec2 windowPos,
+		ImVec2 scroll,
+		UIData& uiData,
+		TalentTreeCollection& talentTreeCollection,
+		bool selected);
+
+	void drawLoadoutSolverShapeAroundTalent(
+		Engine::Talent_s talent,
+		ImDrawList* drawList,
+		ImVec4* colors,
+		ImVec2 pos,
+		int talentSize,
+		ImVec2 windowPos,
+		ImVec2 scroll,
+		UIData& uiData,
+		TalentTreeCollection& talentTreeCollection,
+		std::shared_ptr<Engine::TalentSkillset> skillsetFilter);
+
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 }

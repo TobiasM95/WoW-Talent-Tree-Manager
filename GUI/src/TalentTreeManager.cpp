@@ -409,6 +409,7 @@ namespace TTM {
                         if (talentTreeCollection.activeTreeIndex != n) {
                             talentTreeCollection.activeTreeIndex = n;
                             uiData.treeEditorSelectedTalent = nullptr;
+                            loadActiveIcons(uiData, talentTreeCollection);
                         }
                     }
                     RenderTreeViewTabs(uiData, talentTreeCollection);
