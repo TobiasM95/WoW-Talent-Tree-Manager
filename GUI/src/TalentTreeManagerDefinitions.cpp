@@ -442,6 +442,20 @@ namespace TTM {
                     pos.x + talentSize + windowPos.x - scroll.x,
                     pos.y + talentSize + windowPos.y - scroll.y
                 ),
+                ImColor(colors[ImGuiCol_WindowBg]),
+                0,
+                0,
+                4 * uiData.treeEditorZoomFactor
+            );
+            drawList->AddRect(
+                ImVec2(
+                    pos.x + windowPos.x - scroll.x,
+                    pos.y + windowPos.y - scroll.y
+                ),
+                ImVec2(
+                    pos.x + talentSize + windowPos.x - scroll.x,
+                    pos.y + talentSize + windowPos.y - scroll.y
+                ),
                 ImColor(borderCol),
                 0,
                 0,
