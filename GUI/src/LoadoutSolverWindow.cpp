@@ -287,7 +287,7 @@ namespace TTM {
     void placeLoadoutSolverTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
 
-        if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed) {
+        if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed && !uiData.loadoutSolveInitiated) {
             //center an information rectangle
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
             float centerX = 0.5f * contentRegion.x;
@@ -328,33 +328,48 @@ namespace TTM {
             //center a button
             ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
             if (ImGui::Button("Process tree", ImVec2(wrapWidth + 2 * boxPadding, 25))) {
-                clearSolvingProcess(uiData, talentTreeCollection);
-                if (uiData.loadoutSolverTalentPointLimit > talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints) {
-                    uiData.loadoutSolverTalentPointLimit = talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints;
-                }
-                if (uiData.loadoutSolverTalentPointLimit > uiData.loadoutSolverMaxTalentPoints
-                    // This check prevents trees with more than 64 spendable talent points from being handled
-                    // In a world where indexing would work with infite spendable talent poins (simple switch from uint64 to bitsets
-                    // this condition can be removed and everything should work fine
-                    || talentTreeCollection.activeTree().maxTalentPoints > uiData.loadoutSolverMaxTalentPoints) {
-                    ImGui::OpenPopup("Talent tree too large");
-                    return;
-                }
-                talentTreeCollection.activeTreeData().skillsetFilter = std::make_shared<Engine::TalentSkillset>();
-                talentTreeCollection.activeTreeData().skillsetFilter->name = "SolverSkillset";
-                for (auto& talent : tree.orderedTalents) {
-                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = 0;
-                }
-                Engine::clearTree(tree);
-                talentTreeCollection.activeTreeData().treeDAGInfo = Engine::countConfigurationsParallel(tree, uiData.loadoutSolverTalentPointLimit);
-                talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
-                for (auto& talentPointsCombinbations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
-                    for (auto& combinations : talentPointsCombinbations) {
-                        uiData.loadoutSolverAllCombinationsAdded += combinations.second;
-                    }
-                }
+                uiData.loadoutSolveInitiated = true;
             }
             return;
+        }
+        else if (uiData.loadoutSolveInitiated && !uiData.loadoutSolveInProgress) {
+            uiData.loadoutSolveInProgress = true;
+            ImVec2 textSize = ImGui::CalcTextSize("Processing...");
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5 * textSize.y));
+            ImGui::Text("Processing...");
+            return;
+        }
+        else if (uiData.loadoutSolveInitiated && uiData.loadoutSolveInProgress) {
+            clearSolvingProcess(uiData, talentTreeCollection);
+            if (uiData.loadoutSolverTalentPointLimit > talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints) {
+                uiData.loadoutSolverTalentPointLimit = talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints;
+            }
+            if (uiData.loadoutSolverTalentPointLimit > uiData.loadoutSolverMaxTalentPoints
+                // This check prevents trees with more than 64 spendable talent points from being handled
+                // In a world where indexing would work with infite spendable talent poins (simple switch from uint64 to bitsets
+                // this condition can be removed and everything should work fine
+                || talentTreeCollection.activeTree().maxTalentPoints > uiData.loadoutSolverMaxTalentPoints) {
+                ImGui::OpenPopup("Talent tree too large");
+                uiData.loadoutSolveInitiated = false;
+                uiData.loadoutSolveInProgress = false;
+                return;
+            }
+            talentTreeCollection.activeTreeData().skillsetFilter = std::make_shared<Engine::TalentSkillset>();
+            talentTreeCollection.activeTreeData().skillsetFilter->name = "SolverSkillset";
+            for (auto& talent : tree.orderedTalents) {
+                talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = 0;
+            }
+            Engine::clearTree(tree);
+            talentTreeCollection.activeTreeData().treeDAGInfo = Engine::countConfigurationsParallel(tree, uiData.loadoutSolverTalentPointLimit);
+            talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
+            for (auto& talentPointsCombinbations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
+                for (auto& combinations : talentPointsCombinbations) {
+                    uiData.loadoutSolverAllCombinationsAdded += combinations.second;
+                }
+            }
+            uiData.loadoutSolveInitiated = false;
+            uiData.loadoutSolveInProgress = false;
         }
 
         //TTMTODO: Change button style layout to render base layout? This is messy af
