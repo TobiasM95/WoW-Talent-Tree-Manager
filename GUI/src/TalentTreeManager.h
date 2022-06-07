@@ -25,7 +25,4 @@ namespace TTM {
 	void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	TalentTreeCollection loadWorkspace(UIData& uiData);
 	void resetWorkspaceAndTrees();
-
-	void refreshIconList(UIData& uiData);
-	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 }

@@ -211,7 +211,8 @@ namespace Presets {
 				while (!treeFile.eof())
 				{
 					std::getline(treeFile, line);
-					std::string presetName = line.substr(0, line.find(':'));
+					size_t pos1 = line.find(':') + 1;
+					std::string presetName = line.substr(pos1, line.substr(pos1).find(':'));
 					if (presetName.length() <= 0) {
 						continue;
 					}

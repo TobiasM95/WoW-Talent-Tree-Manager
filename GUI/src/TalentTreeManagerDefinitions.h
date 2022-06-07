@@ -9,6 +9,7 @@
 
 #include "imgui.h"
 
+#include "ImageHandler.h"
 #include "TalentTrees.h"
 #include "TreeSolver.h"
 #include "TTMGUIPresets.h"
@@ -74,7 +75,7 @@ namespace TTM {
 		ID3D11Device* g_pd3dDevice;
 		std::filesystem::path defaultIconPath = "resources/icons/default.png";
 		std::map<std::string, std::filesystem::path> iconPathMap;
-		std::map<int, std::pair<ID3D11ShaderResourceView*, std::pair<int, int>>> iconIndexMap;
+		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMap;
 
 		//################# UPDATER #####################################
 		//used for displaying the screen at least once before a long blocking operation is shown
@@ -89,11 +90,13 @@ namespace TTM {
 		std::vector<std::tuple<Engine::Talent_s, int, int, int>> treeEditorTempReplacedTalents;
 
 		Engine::Talent_s treeEditorCreationTalent = std::make_shared<Engine::Talent>();
+		std::string treeEditorCreationIconNameFilter;
 		std::vector<int> treeEditorCreationTalentParentsPlaceholder;
 		std::vector<int> treeEditorCreationTalentChildrenPlaceholder;
 
 		bool talentJustSelected = false;
 		Engine::Talent_s treeEditorSelectedTalent = nullptr;
+		std::string treeEditorEditIconNameFilter;
 		std::vector<int> treeEditorSelectedTalentParentsPlaceholder;
 		std::vector<int> treeEditorSelectedTalentChildrenPlaceholder;
 
@@ -198,6 +201,10 @@ namespace TTM {
 				throw std::logic_error("Active skillset index is -1 or larger than loadout size!");
 		}
 	};
+
+	void refreshIconList(UIData& uiData);
+	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
+	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first);
 
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,

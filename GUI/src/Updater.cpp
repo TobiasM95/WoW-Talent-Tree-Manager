@@ -151,6 +151,13 @@ namespace TTM {
                 }
             }
         }
+        else {
+            for (auto& tree : talentTreeCollection.trees) {
+                if (tree.tree.presetName != "custom") {
+                    tree.tree.presetName = "custom";
+                }
+            }
+        }
     }
 
     void updatePresets(UIData& uiData) {
