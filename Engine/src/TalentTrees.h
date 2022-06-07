@@ -39,7 +39,7 @@ namespace Engine {
         int talentSwitch = 0;
         std::vector<std::shared_ptr<Talent>> parents;
         std::vector<std::shared_ptr<Talent>> children;
-        std::string iconName = "default.png";
+        std::pair<std::string, std::string> iconName = std::pair<std::string, std::string>("default.png", "default.png");
 
         std::string getName() {
             if (type == TalentType::SWITCH && talentSwitch == 2)
@@ -57,13 +57,13 @@ namespace Engine {
 
         std::string getDescription() {
             if (type == TalentType::SWITCH)
-                return descriptions[talentSwitch < 1 ? 0 : (talentSwitch - 1)];
+                return descriptions[talentSwitch < 2 ? 0 : 1];
             return descriptions[points < 1 ? 0 : (points - 1)];
         }
 
         std::string getDescriptionSwitch() {
             if (type == TalentType::SWITCH)
-                return descriptions[talentSwitch < 1 ? 1 : (1 - talentSwitch)];
+                return descriptions[talentSwitch < 2 ? 1 : 0];
             return descriptions[points < 1 ? 0 : (points - 1)];
         }
     };
@@ -132,7 +132,7 @@ namespace Engine {
     inline std::string restoreString(std::string s);
     std::string createTreeStringRepresentation(TalentTree& tree);
     Talent_s createTalent(TalentTree& tree, std::string name, int maxPoints);
-    bool validateTreeStringFormat(std::string treeRep);
+    bool validateAndRepairTreeStringFormat(std::string treeRep);
     bool validateTalentStringFormat(std::string talentString);
     TalentTree restorePreset(const TalentTree& tree, std::string treeRep);
     TalentTree loadTreePreset(std::string treeRep);
@@ -176,6 +176,7 @@ namespace Engine {
     void clearTree(TalentTree& tree);
 
     void createSkillset(TalentTree& tree);
+    void copySkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
     void activateSkillset(TalentTree& tree, int index);
     void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
     std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString);
@@ -189,4 +190,7 @@ namespace Engine {
     a skillset validation routine.
     */
     bool checkTalentValidity(const TalentTree& tree);
+
+    bool repairTreeStringFormat(std::string& treeRep);
+    bool repairToV120(std::string& treeRep);
 }

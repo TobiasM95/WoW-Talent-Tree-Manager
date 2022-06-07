@@ -177,8 +177,14 @@ namespace TTM {
                     }
                     ImGui::EndListBox();
                 }
-                if (ImGui::Button("Add skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 0))) {
+                if (ImGui::Button("Add skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 4.0f, 0))) {
                     Engine::createSkillset(talentTreeCollection.activeTree());
+                    Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Copy skillset##loadoutEditorAddSkillsetButton", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 0))
+                    && talentTreeCollection.activeTree().loadout.size() > 0 && talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
+                    Engine::copySkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeSkillset());
                     Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(talentTreeCollection.activeTree().loadout.size() - 1));
                 }
                 ImGui::SameLine();
@@ -272,12 +278,12 @@ namespace TTM {
         if (talentWindowPaddingX < minXPadding)
             talentWindowPaddingX = minXPadding;
         float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
+        int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
-        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
-        ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
         for (auto& talent : tree.orderedTalents) {
+            maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             bool talentDisabled = false;
@@ -306,29 +312,48 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
             }
+
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
-            auto iconContent = uiData.iconIndexMap[talent.second->index];
-            if (ImGui::ImageButton(iconContent.first,
-                ImVec2(talentSize, talentSize), ImVec2(0,0), ImVec2(1,1), 0
+            TextureInfo iconContent;
+            if (talent.second->type == Engine::TalentType::SWITCH) {
+                if (talent.second->talentSwitch == 2) {
+                    iconContent = uiData.iconIndexMap[talent.second->index].second;
+                }
+                else {
+                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                }
+            }
+            else {
+                iconContent = uiData.iconIndexMap[talent.second->index].first;
+            }
+            if (ImGui::ImageButton(iconContent.texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0,0), ImVec2(1,1), 0
             )) {
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
-                    if (talent.second->type == Engine::TalentType::SWITCH && talent.second->points > 0) {
-                        talent.second->talentSwitch = talent.second->talentSwitch == 1 ? 2 : 1;
-                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
+                    if (talent.second->type == Engine::TalentType::SWITCH) {
+                        talent.second->talentSwitch = talent.second->talentSwitch < 2 ? 2 : 1;
+                        if (talent.second->points > 0) {
+                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
+                        }
                     }
                 }
                 else {
                     if (isParentFilled && talentTreeCollection.activeSkillset()->talentPointsSpent >= talent.second->pointsRequired && talent.second->points < talent.second->maxPoints) {
                         talent.second->points += 1;
-                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
-                        talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
                         if (talent.second->type == Engine::TalentType::SWITCH) {
-                            talent.second->talentSwitch = 1;
+                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
                         }
+                        else {
+                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
+                        }
+                        talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
                     }
                 }
             }
             ImGui::PopID();
+            ImGui::PopStyleColor(2);
             drawLoadoutEditorShapeAroundTalent(
                 talent.second, 
                 drawList,
@@ -356,11 +381,13 @@ namespace TTM {
                     bool allTalentsValid = Engine::checkTalentValidity(talentTreeCollection.activeTree());
                     if (!allTalentsValid) {
                         talent.second->points += 1;
-                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
+                        if (talent.second->type == Engine::TalentType::SWITCH) {
+                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
+                        }
+                        else {
+                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
+                        }
                         talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
-                    }
-                    if (talent.second->points == 0) {
-                        talent.second->talentSwitch = 0;
                     }
                 }
             }
@@ -386,9 +413,15 @@ namespace TTM {
                     uiData);
             }
         }
-        ImGui::PopStyleColor(2);
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
-        ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2.0f * talentHalfSpacing + 1.0f, talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
+        ImGui::SetCursorPos(ImVec2(0, talentWindowPaddingY + maxRow * 2 * talentHalfSpacing));
+        ImGui::InvisibleButton(
+            "##invisbuttonedit",
+            ImVec2(
+                2.0f * talentWindowPaddingX + (tree.maxCol - 2) * 2 * talentHalfSpacing + 2.0f * talentPadding + talentSize,
+                talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding
+            )
+        );
 
         if ((uiData.maxScrollBuffer.x != ImGui::GetScrollMaxX() || uiData.maxScrollBuffer.y != ImGui::GetScrollMaxY())
             && uiData.treeEditorWindowSize.x != 0 && uiData.treeEditorWindowSize.y != 0) {

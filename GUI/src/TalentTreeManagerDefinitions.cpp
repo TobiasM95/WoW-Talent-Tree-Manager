@@ -23,6 +23,89 @@
 #include "imgui_internal.h"
 
 namespace TTM {
+    void refreshIconList(UIData& uiData) {
+        std::filesystem::path iconRootPath = "resources/icons/";
+        uiData.iconPathMap.clear();
+        for (auto& entry : std::filesystem::directory_iterator{ iconRootPath }) {
+            if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
+                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
+            }
+        }
+    }
+
+    void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload) {
+        if (!forceReload && (talentTreeCollection.activeTreeIndex == -1 || uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
+            return;
+        }
+        //FREE STUFF HERE
+        //FREE ALL POINTERS!
+        for (auto& indexTexInfoPair : uiData.iconIndexMap) {
+            if (indexTexInfoPair.second.first.texture) {
+                indexTexInfoPair.second.first.texture->Release();
+                indexTexInfoPair.second.first.texture = nullptr;
+            }
+            if (indexTexInfoPair.second.second.texture) {
+                indexTexInfoPair.second.second.texture->Release();
+                indexTexInfoPair.second.second.texture = nullptr;
+            }
+        }
+        uiData.iconIndexMap.clear();
+        //load default texture first
+        int defaultImageWidth = 0;
+        int defaultImageHeight = 0;
+        ID3D11ShaderResourceView* defaultTexture = NULL;
+        std::string iconPath(uiData.defaultIconPath.string());
+        bool ret = LoadTextureFromFile(iconPath.c_str(), &defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+        if (!ret) {
+            //TTMTODO: Implement programmatically created default texture to prevent this error!
+            throw std::runtime_error("Cannot open default icon!");
+        }
+
+        //load individual icons or replace with default texture if error
+        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultImageWidth, defaultImageHeight, true);
+            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultImageWidth, defaultImageHeight, false);
+        }
+    }
+
+    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first) {
+        int width = 0;
+        int height = 0;
+        ID3D11ShaderResourceView* texture = NULL;
+        std::string path;
+        if (uiData.iconPathMap.count(iconName)) {
+            path = uiData.iconPathMap[iconName].string();
+        }
+        else {
+            path = uiData.defaultIconPath.string();
+        }
+        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+        if (!ret) {
+            TextureInfo textureInfo;
+            textureInfo.texture = defaultTexture;
+            textureInfo.width = defaultImageWidth;
+            textureInfo.height = defaultImageHeight;
+            if (first) {
+                uiData.iconIndexMap[index].first = textureInfo;
+            }
+            else {
+                uiData.iconIndexMap[index].second = textureInfo;
+            }
+        }
+        else {
+            TextureInfo textureInfo;
+            textureInfo.texture = texture;
+            textureInfo.width = width;
+            textureInfo.height = height;
+            if (first) {
+                uiData.iconIndexMap[index].first = textureInfo;
+            }
+            else {
+                uiData.iconIndexMap[index].second = textureInfo;
+            }
+        }
+    }
+
     void drawArrowBetweenTalents(
         Engine::Talent_s t1,
         Engine::Talent_s t2,

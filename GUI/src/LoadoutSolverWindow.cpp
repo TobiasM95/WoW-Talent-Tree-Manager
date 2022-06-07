@@ -64,7 +64,7 @@ namespace TTM {
             else {
                 ImGui::BeginTooltip();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent->getName().c_str());
+                ImGui::Text(talent->name.c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
@@ -81,13 +81,13 @@ namespace TTM {
                 ImGui::Spacing();
                 ImGui::Spacing();
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[0].c_str());
                 ImGui::PopTextWrapPos();
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent->getNameSwitch().c_str());
+                ImGui::Text(talent->nameSwitch.c_str());
                 ImGui::PopFont();
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
@@ -104,7 +104,7 @@ namespace TTM {
                 ImGui::Spacing();
                 ImGui::Spacing();
                 ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescriptionSwitch().c_str());
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[1].c_str());
                 ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
@@ -368,10 +368,12 @@ namespace TTM {
         if (talentWindowPaddingX < minXPadding)
             talentWindowPaddingX = minXPadding;
         float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
+        int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
         for (auto& talent : tree.orderedTalents) {
+            maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             ImGui::SetCursorPos(ImVec2(posX, posY));
@@ -380,10 +382,25 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
             }
+
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->index)).c_str());
-            auto iconContent = uiData.iconIndexMap[talent.second->index];
-            if (ImGui::ImageButton(iconContent.first,
-                ImVec2(talentSize, talentSize), ImVec2(0, 0), ImVec2(1, 1), 0
+            TextureInfo iconContent;
+            //TTMTODO: Implement dual icon textures for switch talents
+            if (talent.second->type == Engine::TalentType::SWITCH) {
+                if (talent.second->talentSwitch) {
+                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                }
+                else {
+                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                }
+            }
+            else {
+                iconContent = uiData.iconIndexMap[talent.second->index].first;
+            }
+            if (ImGui::ImageButton(iconContent.texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
             )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
@@ -398,6 +415,7 @@ namespace TTM {
                 }
             }
             ImGui::PopID();
+            ImGui::PopStyleColor(2);
             drawLoadoutSolverShapeAroundTalent(
                 talent.second,
                 drawList,
@@ -448,7 +466,14 @@ namespace TTM {
             }
         }
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
-        ImGui::InvisibleButton("##invisbuttonedit", ImVec2(tree.maxCol * 2.0f * talentHalfSpacing + 1.0f, talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding));
+        ImGui::SetCursorPos(ImVec2(0, talentWindowPaddingY + maxRow * 2 * talentHalfSpacing));
+        ImGui::InvisibleButton(
+            "##invisbuttonedit",
+            ImVec2(
+                2.0f * talentWindowPaddingX + (tree.maxCol - 2) * 2 * talentHalfSpacing + 2.0f * talentPadding + talentSize,
+                talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding
+            )
+        );
 
         if ((uiData.maxScrollBuffer.x != ImGui::GetScrollMaxX() || uiData.maxScrollBuffer.y != ImGui::GetScrollMaxY())
             && uiData.treeEditorWindowSize.x != 0 && uiData.treeEditorWindowSize.y != 0) {

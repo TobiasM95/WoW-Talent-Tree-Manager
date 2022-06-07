@@ -13,6 +13,8 @@ namespace Engine {
 }
 
 namespace Presets {//ENGINE PRESETS
+    static const std::string TTM_VERSION = "1.2.0";
+
     enum CLASS_IDS {
         CLASS_IDS_DEATHKNIGHT = 0,
         CLASS_IDS_DEMONHUNTER = 1,
@@ -167,14 +169,15 @@ namespace Presets {//ENGINE PRESETS
 
     /*
     First line (";" is line separator, ":" separates different parts of a single line, "," separates individual components of a property):
-        1. custom or spec preset, if spec preset then spec name all lowercase, only letters, spaces transformed to "_" (just like in simc)
+        1. creation version
+        2. custom or spec preset, if spec preset then spec name all lowercase, only letters, spaces transformed to "_" (just like in simc)
             a. if preset then all the talent point definitions can be omitted if preset is stored in a library (I build this library up with a custom string but that's implementation detail)
-        2. Tree type (0 for class tree, 1 for spec tree)
-        3. Tree name
-        4. Tree description
-        5. Loadout description (a loadout is a list of skill sets, e.g. "single target", "aoe", that get defined at the end)
-        6. number of talents in the tree
-        7. number of loadouts
+        3. Tree type (0 for class tree, 1 for spec tree)
+        4. Tree name
+        5. Tree description
+        6. Loadout description (a loadout is a list of skill sets, e.g. "single target", "aoe", that get defined at the end)
+        7. number of talents in the tree
+        8. number of loadouts
 
     Then N lines for N talents:
         1. Index (doesn't have to be starting from 0 and in order but loadouts define talent points spent for each talent ordered by index so it's easier to keep it that way)

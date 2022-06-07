@@ -115,7 +115,7 @@ namespace Engine {
         std::vector<std::string> treeComponents = splitString(treeRep, ";");
         TreeCycleCheckFormat tccf;
         std::map<int, int> indexMap;
-        int numTalents = std::stoi(splitString(treeComponents[0], ":")[5]);
+        int numTalents = std::stoi(splitString(treeComponents[0], ":")[6]);
         for (int i = 1; i < numTalents + 1; i++) {
             if (treeComponents[i] == "")
                 continue;
@@ -302,7 +302,7 @@ namespace Engine {
     */
     std::string createTreeStringRepresentation(TalentTree& tree) {
         std::stringstream treeRep;
-        treeRep << tree.presetName << ":" << static_cast<int>(tree.type) << ":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
+        treeRep << Presets::TTM_VERSION << ":" << tree.presetName << ":" << static_cast<int>(tree.type) << ":" << tree.name << ":" << cleanString(tree.treeDescription) << ":" << cleanString(tree.loadoutDescription) << ":" << tree.orderedTalents.size() << ":" << tree.loadout.size() << ";";
         if (tree.presetName == "custom") {
             for (auto& talent : tree.orderedTalents) {
                 treeRep << talent.first << ":" << cleanString(talent.second->name);
@@ -329,7 +329,7 @@ namespace Engine {
                     }
                     treeRep << talent.second->children[talent.second->children.size() - 1]->index;
                 }
-                treeRep << ":" << cleanString(talent.second->iconName);
+                treeRep << ":" << cleanString(talent.second->iconName.first) << "," << cleanString(talent.second->iconName.second);
                 treeRep << ";";
             }
         }
@@ -412,11 +412,14 @@ namespace Engine {
         return parseCustomTree(treeRep);
     }
 
-    bool validateTreeStringFormat(std::string treeRep) {
+    bool validateAndRepairTreeStringFormat(std::string treeRep) {
+        if (!repairTreeStringFormat(treeRep)) {
+            return false;
+        }
         //first check tree meta info line
         std::vector<std::string> treeParts = splitString(treeRep, ";");
         std::vector<std::string> metaInfo = splitString(treeParts[0], ":");
-        if (metaInfo.size() != 7) {
+        if (metaInfo.size() != 8) {
             return false;
         }
         if (metaInfo[0] != "custom") {
@@ -428,23 +431,23 @@ namespace Engine {
                 return false;
             }
         }
-        if (metaInfo[1] != "0" && metaInfo[1] != "1") {
+        if (metaInfo[2] != "0" && metaInfo[2] != "1") {
             return false;
         }
-        if (metaInfo[2].find_first_not_of(
+        if (metaInfo[3].find_first_not_of(
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ():'-"
         ) != std::string::npos) {
-            return false;
-        }
-        if (metaInfo[5].find_first_not_of("0123456789") != std::string::npos) {
             return false;
         }
         if (metaInfo[6].find_first_not_of("0123456789") != std::string::npos) {
             return false;
         }
-        int numTalents = std::stoi(metaInfo[5]);
-        int numSkillsets = std::stoi(metaInfo[6]);
-        if (metaInfo[0] == "custom") {
+        if (metaInfo[7].find_first_not_of("0123456789") != std::string::npos) {
+            return false;
+        }
+        int numTalents = std::stoi(metaInfo[6]);
+        int numSkillsets = std::stoi(metaInfo[7]);
+        if (metaInfo[1] == "custom") {
             if (treeParts.size() != 1 + numTalents + numSkillsets && treeParts.size() != 2 + numTalents + numSkillsets) {
                 return false;
             }
@@ -476,6 +479,88 @@ namespace Engine {
             }
         }
 
+        return true;
+    }
+
+    bool repairTreeStringFormat(std::string& treeRep) {
+        std::vector<std::string> treeParts = splitString(treeRep, ";");
+        std::vector<std::string> metaInfo = splitString(treeParts[0], ":");
+        //This emulates a switch case with fallthrough with if statements and strings
+        bool repairVersionStart = false;
+        bool repairSuccess = false;
+        if (repairVersionStart || metaInfo.size() != 8) {
+            repairSuccess = repairToV120(treeRep);
+            repairVersionStart = true;
+            if (!repairSuccess) {
+                return false;
+            }
+        }
+        /*
+        In the future you can easily append:
+        if (repairVersionStart || metaInfo[0] == "1.2.0" ) {
+            repairSuccess = repairToV130(treeRep);
+            repairVersionStart = true;
+            if (!repairSuccess) {
+                return false;
+            }
+        }
+        */
+        return true;
+    }
+
+    /*
+    V. 1.1.0 broke all tree strings that came before and gave no guarantee for them to work but guaranteed to make future versions not break v. 1.1.0 strings.
+    Therefore, fix strings from version 1.1.0 to 1.2.0: include a new version string and include talent icon names.
+    returns true if repair seemed to be successful, false if string definitely didn't match v. 1.1.0 format.
+    */
+    bool repairToV120(std::string& treeRep) {
+        std::stringstream treeRepStream;
+        std::stringstream treePartStream;
+        std::vector<std::string> treeParts = splitString(treeRep, ";");
+        //Expect meta info like: custom/preset : class/spec tree : tree name : tree desc : loadout desc : talent count : skillset count;
+        std::vector<std::string> metaInfo = splitString(treeParts[0], ":");
+
+        //Fix non-existing version number
+        if (metaInfo.size() == 7) {
+            treePartStream << Presets::TTM_VERSION;
+            for (int i = 0; i < metaInfo.size(); i++) {
+                treePartStream << ":" << metaInfo[i];
+            }
+        }
+        else {
+            return false;
+        }
+        treeParts[0] = treePartStream.str();
+        treePartStream.str(std::string());
+        treePartStream.clear();
+
+        //fix non-exisiting talent icon names for non-preset trees
+        if (metaInfo[0] == "custom") {
+            for (int i = 1; i <= std::stoi(metaInfo[5]); i++) {
+                //Expect talent parts like: id : name,switchName : desc,desc,.. : talent type : row : col : max points : point req : ?? : parents : children; 
+                std::vector<std::string> talentParts = splitString(treeParts[i], ":");
+                if (talentParts.size() == 11) {
+                    for (int j = 0; j < talentParts.size(); j++) {
+                        treePartStream << talentParts[j] << ":";
+                    }
+                    treePartStream << "default.png,default.png";
+                    treeParts[i] = treePartStream.str();
+                    treePartStream.str(std::string());
+                    treePartStream.clear();
+                }
+                else {
+                    return false;
+                }
+            }
+        }
+
+
+        //put everything back into treeRep
+        for (int i = 0; i < treeParts.size(); i++) {
+            treeRepStream << treeParts[i] << ";";
+        }
+
+        treeRep = treeRepStream.str();
         return true;
     }
 
@@ -529,13 +614,13 @@ namespace Engine {
         //TTMTODO: Wrap stuff in here in try except cause users are special
         std::vector<std::string> treeDefinitionParts = splitString(treeRep, ";");
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
-        if (treeInfoParts[0] == "custom") {
+        if (treeInfoParts[1] == "custom") {
             if (checkIfParseStringProducesCycle(treeRep))
                 throw std::logic_error("Tree rep produces cyclic tree!");
             return parseCustomTree(treeRep);
         }
         else {
-            return parseTreeFromPreset(treeRep, treeInfoParts[0]);
+            return parseTreeFromPreset(treeRep, treeInfoParts[1]);
         }
     }
 
@@ -548,13 +633,13 @@ namespace Engine {
         std::vector<std::string> treeDefinitionParts = splitString(treeRep, ";");
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
-        tree.presetName = treeInfoParts[0];
-        tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[1]));
-        tree.name = restoreString(treeInfoParts[2]);
-        tree.treeDescription = restoreString(treeInfoParts[3]);
-        tree.loadoutDescription = restoreString(treeInfoParts[4]);
-        int numTalents = std::stoi(treeInfoParts[5]);
-        int numLoadouts = std::stoi(treeInfoParts[6]);
+        tree.presetName = treeInfoParts[1];
+        tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[2]));
+        tree.name = restoreString(treeInfoParts[3]);
+        tree.treeDescription = restoreString(treeInfoParts[4]);
+        tree.loadoutDescription = restoreString(treeInfoParts[5]);
+        int numTalents = std::stoi(treeInfoParts[6]);
+        int numLoadouts = std::stoi(treeInfoParts[7]);
         tree.loadout.clear();
 
         for (int i = 1; i < numLoadouts + 1; i++) {
@@ -593,13 +678,13 @@ namespace Engine {
         TalentTree tree;
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
-        tree.presetName = treeInfoParts[0];
-        tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[1]));
-        tree.name = restoreString(treeInfoParts[2]);
-        tree.treeDescription = restoreString(treeInfoParts[3]);
-        tree.loadoutDescription = restoreString(treeInfoParts[4]);
-        int numTalents = std::stoi(treeInfoParts[5]);
-        int numLoadouts = std::stoi(treeInfoParts[6]);
+        tree.presetName = treeInfoParts[1];
+        tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[2]));
+        tree.name = restoreString(treeInfoParts[3]);
+        tree.treeDescription = restoreString(treeInfoParts[4]);
+        tree.loadoutDescription = restoreString(treeInfoParts[5]);
+        int numTalents = std::stoi(treeInfoParts[6]);
+        int numLoadouts = std::stoi(treeInfoParts[7]);
 
         for (int i = 1; i < numTalents + 1; i++) {
             if (treeDefinitionParts[i] == "")
@@ -624,14 +709,22 @@ namespace Engine {
             t->descriptions = tDescriptions;
             t->type = static_cast<TalentType>(std::stoi(talentInfo[3]));
             if (t->type == TalentType::SWITCH) {
-                if (names.size() <= 1)
+                if (names.size() <= 1) {
                     t->nameSwitch = "Undefined switch name";
-                else
+                }
+                else {
                     t->nameSwitch = restoreString(names[1]);
+                }
+                while (t->descriptions.size() < 2) {
+                    t->descriptions.push_back("Undefined switch description");
+                }
             }
             t->row = std::stoi(talentInfo[4]);
             t->column = std::stoi(talentInfo[5]);
             t->maxPoints = std::stoi(talentInfo[6]);
+            while (t->descriptions.size() < t->maxPoints) {
+                t->descriptions.push_back("Undefined rank description");
+            }
             t->pointsRequired = std::stoi(talentInfo[7]);
             t->preFilled = static_cast<bool>(std::stoi(talentInfo[8]));
             for (auto& parent : splitString(talentInfo[9], ",")) {
@@ -662,7 +755,11 @@ namespace Engine {
                     addChild(t, childTalent);
                 }
             }
-            t->iconName = restoreString(talentInfo[11]);
+            std::vector<std::string> iconNames = splitString(talentInfo[11], ",");
+            t->iconName.first = restoreString(iconNames[0]);
+            if (iconNames.size() > 1) {
+                t->iconName.second = restoreString(iconNames[1]);
+            }
             if (t->preFilled && t->parents.size() > 0) {
                 bool canBePreFilled = false;
                 for (auto& parent : t->parents) {
@@ -1525,6 +1622,16 @@ namespace Engine {
         tree.loadout.push_back(skillset);
     }
 
+    void copySkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
+        std::shared_ptr<TalentSkillset> skillsetCopy = std::make_shared<TalentSkillset>();
+        skillsetCopy->name = skillset->name;
+        skillsetCopy->talentPointsSpent = skillset->talentPointsSpent;
+        for (auto& indexPointsPair : skillset->assignedSkillPoints) {
+            skillsetCopy->assignedSkillPoints[indexPointsPair.first] = indexPointsPair.second;
+        }
+        tree.loadout.push_back(skillsetCopy);
+    }
+
     void activateSkillset(TalentTree& tree, int index) {
         if (index < 0 || index >= tree.loadout.size()) {
             throw std::logic_error("Skillset index is -1 or larger than loadout size!");
@@ -1550,7 +1657,8 @@ namespace Engine {
                 }
                 else {
                     tree.orderedTalents[indexPointsPair.first]->points = 0;
-                    tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
+                    //If we don't reset this, talentSwitches can linger around which might be better UX
+                    //tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
                 }
                 tree.loadout[index]->talentPointsSpent += indexPointsPair.second;
             }
