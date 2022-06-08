@@ -208,9 +208,11 @@ namespace TTM {
         *close = true;
         if (ImGui::BeginPopupModal("About##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
         {
+            ImGui::Text("TTM Version: %s", Presets::TTM_VERSION);
             ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
             ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
             ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
+            ImGui::Text("libcurl: https://curl.se/libcurl/");
             ImGui::Text("stb: https://github.com/nothings/stb");
 
             ImGui::SetItemDefaultFocus();
@@ -277,6 +279,13 @@ namespace TTM {
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("To quickly sim different skillsets you can manually add multiple skillsets to your loadout and export to simc (to be implemented in the future) or you can use the loadout solver -> process tree -> filter down to a suitable number of skillsets -> add all to loadout -> export all skillsets to simc -> sim.");
+            ImGui::Spacing();
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            ImGui::Text("Custom icons");
+            ImGui::PopFont();
+            ImGui::Separator();
+            ImGui::Bullet();
+            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
             ImGui::Spacing();
             ImGui::PopTextWrapPos();
 

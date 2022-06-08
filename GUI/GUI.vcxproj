@@ -163,7 +163,6 @@ copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTr
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
 copy "$(OutputPath)zlib1.dll" "$(OutputPath)TalentTreeManager\zlib1.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
 
 mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
@@ -176,8 +175,8 @@ del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
 
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
-
-</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
+copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\stb_LICENSE.txt"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -253,7 +252,6 @@ copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTr
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
 copy "$(OutputPath)zlib1.dll" "$(OutputPath)TalentTreeManager\zlib1.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
 
 mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
@@ -266,8 +264,8 @@ del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
 
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
-
-</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
+copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\stb_LICENSE.txt"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
