@@ -163,6 +163,42 @@ namespace TTM {
         }
     }
 
+    TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName) {
+        int width = 0;
+        int height = 0;
+        ID3D11ShaderResourceView* texture = NULL;
+        std::string path;
+        if (uiData.iconPathMap.count(iconName)) {
+            path = uiData.iconPathMap[iconName].string();
+        }
+        else {
+            path = uiData.defaultIconPath.string();
+        }
+        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+        TextureInfo textureInfo;
+        if (!ret) {
+            //load default texture first
+            int defaultImageWidth = 0;
+            int defaultImageHeight = 0;
+            ID3D11ShaderResourceView* defaultTexture = NULL;
+            std::string iconPath(uiData.defaultIconPath.string());
+            bool ret = LoadTextureFromFile(iconPath.c_str(), &defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+            if (!ret) {
+                //TTMTODO: Implement programmatically created default texture to prevent this error!
+                throw std::runtime_error("Cannot open default icon!");
+            }
+            textureInfo.texture = defaultTexture;
+            textureInfo.width = defaultImageWidth;
+            textureInfo.height = defaultImageHeight;
+        }
+        else {
+            textureInfo.texture = texture;
+            textureInfo.width = width;
+            textureInfo.height = height;
+        }
+        return textureInfo;
+    }
+
     void drawArrowBetweenTalents(
         Engine::Talent_s t1,
         Engine::Talent_s t2,

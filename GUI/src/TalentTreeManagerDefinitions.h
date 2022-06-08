@@ -94,12 +94,14 @@ namespace TTM {
 		std::vector<std::tuple<Engine::Talent_s, int, int, int>> treeEditorTempReplacedTalents;
 
 		Engine::Talent_s treeEditorCreationTalent = std::make_shared<Engine::Talent>();
+		std::pair<TextureInfo, TextureInfo> treeEditorCreationTalentIcons;
 		std::string treeEditorCreationIconNameFilter;
 		std::vector<int> treeEditorCreationTalentParentsPlaceholder;
 		std::vector<int> treeEditorCreationTalentChildrenPlaceholder;
 
 		bool talentJustSelected = false;
 		Engine::Talent_s treeEditorSelectedTalent = nullptr;
+		std::pair<TextureInfo, TextureInfo> treeEditorSelectedTalentIcons;
 		std::string treeEditorEditIconNameFilter;
 		std::vector<int> treeEditorSelectedTalentParentsPlaceholder;
 		std::vector<int> treeEditorSelectedTalentChildrenPlaceholder;
@@ -212,6 +214,7 @@ namespace TTM {
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
 	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first);
 	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight);
+	TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName);
 
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,
