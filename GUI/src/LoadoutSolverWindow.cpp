@@ -336,7 +336,7 @@ namespace TTM {
             uiData.loadoutSolveInProgress = true;
             ImVec2 textSize = ImGui::CalcTextSize("Processing...");
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-            ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5 * textSize.y));
+            ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5f * textSize.y));
             ImGui::Text("Processing...");
             return;
         }
@@ -402,14 +402,8 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->index)).c_str());
             TextureInfo iconContent;
-            //TTMTODO: Implement dual icon textures for switch talents
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                if (talent.second->talentSwitch) {
-                    iconContent = uiData.iconIndexMap[talent.second->index].first;
-                }
-                else {
-                    iconContent = uiData.iconIndexMap[talent.second->index].first;
-                }
+                iconContent = uiData.splitIconIndexMap[talent.second->index];
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;

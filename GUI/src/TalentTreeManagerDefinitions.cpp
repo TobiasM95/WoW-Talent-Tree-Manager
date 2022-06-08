@@ -49,7 +49,12 @@ namespace TTM {
                 indexTexInfoPair.second.second.texture = nullptr;
             }
         }
+        for (auto& indexTexInfoPair : uiData.splitIconIndexMap) {
+            indexTexInfoPair.second.texture->Release();
+            indexTexInfoPair.second.texture = nullptr;
+        }
         uiData.iconIndexMap.clear();
+        uiData.splitIconIndexMap.clear();
         //load default texture first
         int defaultImageWidth = 0;
         int defaultImageHeight = 0;
@@ -65,6 +70,9 @@ namespace TTM {
         for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
             loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultImageWidth, defaultImageHeight, true);
             loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultImageWidth, defaultImageHeight, false);
+            if (talent.second->type == Engine::TalentType::SWITCH) {
+                loadSplitIcon(uiData, talent.second, defaultTexture, defaultImageWidth, defaultImageHeight);
+            }
         }
     }
 
@@ -103,6 +111,41 @@ namespace TTM {
             else {
                 uiData.iconIndexMap[index].second = textureInfo;
             }
+        }
+    }
+
+    void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight) {
+        int width = 0;
+        int height = 0;
+        ID3D11ShaderResourceView* texture = NULL;
+        std::string path1;
+        std::string path2;
+        if (uiData.iconPathMap.count(talent->iconName.first)) {
+            path1 = uiData.iconPathMap[talent->iconName.first].string();
+        }
+        else {
+            path1 = uiData.defaultIconPath.string();
+        }
+        if (uiData.iconPathMap.count(talent->iconName.second)) {
+            path2 = uiData.iconPathMap[talent->iconName.second].string();
+        }
+        else {
+            path2 = uiData.defaultIconPath.string();
+        }
+        bool ret = LoadSplitTextureFromFile(path1.c_str(), path2.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+        if (!ret) {
+            TextureInfo textureInfo;
+            textureInfo.texture = defaultTexture;
+            textureInfo.width = defaultImageWidth;
+            textureInfo.height = defaultImageHeight;
+            uiData.splitIconIndexMap[talent->index] = textureInfo;
+        }
+        else {
+            TextureInfo textureInfo;
+            textureInfo.texture = texture;
+            textureInfo.width = width;
+            textureInfo.height = height;
+            uiData.splitIconIndexMap[talent->index] = textureInfo;
         }
     }
 

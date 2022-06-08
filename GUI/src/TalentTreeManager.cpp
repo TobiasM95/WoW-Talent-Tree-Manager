@@ -44,7 +44,7 @@ namespace TTM {
     
     void RenderUpdateWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         if (uiData.renderedOnce && uiData.updateStatus == UpdateStatus::NOTCHECKED) {
-            checkForUpdate(uiData);
+            uiData.updateMessage = checkForUpdate(uiData);
         }
         if (uiData.updateStatus == UpdateStatus::UPTODATE) {
             return;
@@ -93,6 +93,9 @@ namespace TTM {
                 l1TopLeft.y -= boxPadding;
                 l1BottomRight.x += boxPadding;
                 l1BottomRight.y += boxPadding;
+                ImGui::Spacing();
+                ImGui::SetCursorPosX(pos.x);
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), uiData.updateMessage.c_str());
 
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -114,12 +117,22 @@ namespace TTM {
                 //center a button
                 ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
                 if (ImGui::Button("Update", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
-                    updateResources(uiData, talentTreeCollection);
+                    uiData.updateStatus = UpdateStatus::UPDATEINITIATED;
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Ignore", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
                     uiData.updateStatus = UpdateStatus::IGNOREUPDATE;
                 }
+            }
+            else if (uiData.updateStatus == UpdateStatus::UPDATEINITIATED) {
+                ImVec2 textSize = ImGui::CalcTextSize("Updating...");
+                ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+                ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5f * textSize.y));
+                ImGui::Text("Updating...");
+                uiData.updateStatus = UpdateStatus::UPDATEINPROGRESS;
+            }
+            else if (uiData.updateStatus == UpdateStatus::UPDATEINPROGRESS) {
+                updateResources(uiData, talentTreeCollection);
             }
         }
         ImGui::End();

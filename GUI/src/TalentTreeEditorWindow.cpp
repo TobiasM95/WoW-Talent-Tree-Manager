@@ -1527,14 +1527,8 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
             ImGui::PushID(std::to_string(talent.second->index).c_str());
             TextureInfo iconContent;
-            //TTMTODO: Implement dual icon textures for switch talents
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                if (talent.second->talentSwitch) {
-                    iconContent = uiData.iconIndexMap[talent.second->index].first;
-                }
-                else {
-                    iconContent = uiData.iconIndexMap[talent.second->index].first;
-                }
+                iconContent = uiData.splitIconIndexMap[talent.second->index];
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;

@@ -396,6 +396,13 @@ namespace Engine {
     }
 
     TalentTree restorePreset(const TalentTree& tree, std::string treeRep) {
+        if (!repairTreeStringFormat(treeRep)) {
+            TalentTree emptyTree;
+            emptyTree.name = "Load error";
+            emptyTree.treeDescription = "Error when trying to load old version tree preset. It is recommended to update TTM and presets to the newest version.";
+            emptyTree.loadoutDescription = "Error when trying to load old version tree preset. It is recommended to update TTM and presets to the newest version.";
+            return emptyTree;
+        }
         TalentTree presetTree = parseCustomTree(treeRep);
         presetTree.activeSkillsetIndex = -1;
         presetTree.loadout.clear();
@@ -409,6 +416,13 @@ namespace Engine {
     }
 
     TalentTree loadTreePreset(std::string treeRep) {
+        if (!repairTreeStringFormat(treeRep)) {
+            TalentTree emptyTree;
+            emptyTree.name = "Load error";
+            emptyTree.treeDescription = "Error when trying to load old version tree preset. It is recommended to update TTM and presets to the newest version.";
+            emptyTree.loadoutDescription = "Error when trying to load old version tree preset. It is recommended to update TTM and presets to the newest version.";
+            return emptyTree;
+        }
         return parseCustomTree(treeRep);
     }
 
