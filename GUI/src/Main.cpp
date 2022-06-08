@@ -94,7 +94,6 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
     talentTreeCollection.presets = Presets::LOAD_PRESETS();
     TTM::loadActiveIcons(uiData, talentTreeCollection);
-    TTM::testUpdateIcons(uiData);
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);
