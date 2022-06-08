@@ -25,8 +25,19 @@
 namespace TTM {
     void refreshIconList(UIData& uiData) {
         std::filesystem::path iconRootPath = "resources/icons/";
+        std::filesystem::path customIconPath = "resources/icons/custom";
         uiData.iconPathMap.clear();
-        for (auto& entry : std::filesystem::directory_iterator{ iconRootPath }) {
+        //first iterate through pre-shipped directories and add paths to map while skipping custom dir
+        for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
+            if (!std::filesystem::is_regular_file(entry)
+                || entry.path().parent_path().compare(customIconPath) == 0) {
+                continue;
+            }
+            if (entry.path().extension() == ".png") {
+                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
+            }
+        }
+        for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
             if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
                 uiData.iconPathMap[entry.path().filename().string()] = entry.path();
             }

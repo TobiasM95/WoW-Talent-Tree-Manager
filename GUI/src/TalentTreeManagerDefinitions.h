@@ -19,9 +19,9 @@ namespace TTM {
 		UPTODATE, OUTDATED, UPDATEERROR, NOTCHECKED, IGNOREUPDATE, UPDATEINITIATED, UPDATEINPROGRESS
 	};
 
-	static const int TTM_RESOURCE_TYPE_COUNT = 1;
+	static const int TTM_RESOURCE_TYPE_COUNT = 2;
 	enum class ResourceType {
-		PRESET = 0,
+		PRESET = 0, ICONS = 1
 	};
 
 	struct TextFilters

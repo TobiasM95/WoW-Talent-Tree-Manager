@@ -18,10 +18,18 @@
     Contact via https://github.com/TobiasM95/WoW-Talent-Tree-Manager/discussions or BuffMePls#2973 on Discord
 */
 
+#include <vector>
+#include <string>
+#include <filesystem>
+
 #include "ImageHandler.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
+#define __STDC_LIB_EXT1__
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 namespace TTM {
     // Simple helper function to load an image into a DX11 texture with common settings
@@ -154,5 +162,38 @@ namespace TTM {
         stbi_image_free(split_image_data);
 
         return true;
+    }
+
+    bool unpackIcons(const char* filename, std::vector<std::string> metaData) {
+        int iconWidth = std::stoi(metaData[0]);
+        int iconHeight = std::stoi(metaData[1]);
+        int iconCount = std::stoi(metaData[2]);
+        int packedWidth = std::stoi(metaData[3]);
+
+        std::filesystem::path rootIconPath("./resources/icons/");
+
+        // load packed image file from disk into a raw RGBA buffer
+        int image_width = 0;
+        int image_height = 0;
+        unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
+        if (image_data == NULL || image_width != iconWidth * iconHeight)
+            return false;
+
+        unsigned char* iconData = (unsigned char*)malloc(iconWidth * iconHeight * 4);
+        if (iconData == NULL) {
+            return false;
+        }
+        for (int i = 0; i < iconCount; i++) {
+            std::filesystem::path outPath(rootIconPath / metaData[i + 4]);
+            for (int pix = i * iconHeight * iconWidth; pix < (i+1) * iconHeight * iconWidth; pix++) {
+                *(iconData + 4 * (pix % (iconWidth * iconHeight)) + 0) = *(image_data + 4 * pix + 0);
+                *(iconData + 4 * (pix % (iconWidth * iconHeight)) + 1) = *(image_data + 4 * pix + 1);
+                *(iconData + 4 * (pix % (iconWidth * iconHeight)) + 2) = *(image_data + 4 * pix + 2);
+                *(iconData + 4 * (pix % (iconWidth * iconHeight)) + 3) = *(image_data + 4 * pix + 3);
+            }
+            stbi_write_png(outPath.string().c_str(), iconWidth, iconHeight, 4, iconData, iconWidth * 4);
+        }
+        stbi_image_free(image_data);
+        stbi_image_free(iconData);
     }
 }

@@ -109,7 +109,14 @@
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
+
+mkdir "$(OutputPath)resources\icons\"
+copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+del "$(OutputPath)resources\icons\icons_packed.png
+del "$(OutputPath)resources\icons\organize_pack_icons.py"
+del "$(OutputPath)resources\icons\icons_packed_meta.txt"
+
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd1.dll" "$(OutputPath)"
@@ -137,23 +144,40 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd.pdb" "$(Outpu
       <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(OutputPath)TalentTreeManager\"
-mkdir "$(OutputPath)TalentTreeManager\licenses\"
-mkdir "$(OutputPath)TalentTreeManager\resources\"
+      <Command>mkdir "$(OutputPath)resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+
+mkdir "$(OutputPath)resources\icons\"
+copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+del "$(OutputPath)resources\icons\icons_packed.png
+del "$(OutputPath)resources\icons\organize_pack_icons.py"
+del "$(OutputPath)resources\icons\icons_packed_meta.txt"
+
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
+
+mkdir "$(OutputPath)TalentTreeManager\"
 copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.exe"
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y
-copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
-mkdir "$(OutputPath)resources\"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
 copy "$(OutputPath)zlib1.dll" "$(OutputPath)TalentTreeManager\zlib1.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
+
+mkdir "$(OutputPath)TalentTreeManager\resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
+mkdir "$(OutputPath)TalentTreeManager\resources\icons\"
+copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)TalentTreeManager\resources\icons\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i
+del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed.png
+del "$(OutputPath)TalentTreeManager\resources\icons\organize_pack_icons.py"
+del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
+
+mkdir "$(OutputPath)TalentTreeManager\licenses\"
+copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
+
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -175,7 +199,14 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
+
+mkdir "$(OutputPath)resources\icons\"
+copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+del "$(OutputPath)resources\icons\icons_packed.png
+del "$(OutputPath)resources\icons\organize_pack_icons.py"
+del "$(OutputPath)resources\icons\icons_packed_meta.txt"
+
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd1.dll" "$(OutputPath)"
@@ -203,23 +234,40 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlibd.pdb" "$(Outpu
       <AdditionalLibraryDirectories>$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\lib</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir "$(OutputPath)TalentTreeManager\"
-mkdir "$(OutputPath)TalentTreeManager\licenses\"
-mkdir "$(OutputPath)TalentTreeManager\resources\"
+      <Command>mkdir "$(OutputPath)resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
+
+mkdir "$(OutputPath)resources\icons\"
+copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+del "$(OutputPath)resources\icons\icons_packed.png
+del "$(OutputPath)resources\icons\organize_pack_icons.py"
+del "$(OutputPath)resources\icons\icons_packed_meta.txt"
+
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
+
+mkdir "$(OutputPath)TalentTreeManager\"
 copy "$(OutputPath)GUI.exe" "$(OutputPath)TalentTreeManager\TalentTreeManager.exe"
 copy "$(SolutionDir)GUI\resources\releasedocs\README.txt" "$(OutputPath)TalentTreeManager\README.txt"
 copy "$(SolutionDir)GUI\resources\releasedocs\changelog.txt" "$(OutputPath)TalentTreeManager\changelog.txt"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y
-copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
-mkdir "$(OutputPath)resources\"
-copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 copy "$(OutputPath)libcurl.dll" "$(OutputPath)TalentTreeManager\libcurl.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
 copy "$(OutputPath)zlib1.dll" "$(OutputPath)TalentTreeManager\zlib1.dll"
-copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"</Command>
+copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPath)TalentTreeManager\licenses\libcurl_copyright"
+
+mkdir "$(OutputPath)TalentTreeManager\resources\"
+copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
+mkdir "$(OutputPath)TalentTreeManager\resources\icons\"
+copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)TalentTreeManager\resources\icons\"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i
+del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed.png
+del "$(OutputPath)TalentTreeManager\resources\icons\organize_pack_icons.py"
+del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
+
+mkdir "$(OutputPath)TalentTreeManager\licenses\"
+copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
+
+</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -256,6 +304,7 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     <ClInclude Include="src\libs\ImGui\imstb_truetype.h" />
     <ClInclude Include="src\libs\stb\stb_image.h" />
     <ClInclude Include="src\libs\stb\stb_image_resize.h" />
+    <ClInclude Include="src\libs\stb\stb_image_write.h" />
     <ClInclude Include="src\LoadoutEditorWindow.h" />
     <ClInclude Include="src\LoadoutSolverWindow.h" />
     <ClInclude Include="src\TalentTreeEditorWindow.h" />
@@ -283,14 +332,25 @@ copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\copyright" "$(OutputPat
     <Image Include="resources\gallery\TreeEditor1.png" />
     <Image Include="resources\gallery\TreeEditor2.png" />
     <Image Include="resources\icon1.ico" />
+    <Image Include="resources\icons\0\green_qmark.png" />
+    <Image Include="resources\icons\default.png" />
+    <Image Include="resources\icons\icons_packed.png" />
+    <Image Include="resources\updatertarget\icons_packed.png" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="resources\icons\icons_packed_meta.txt" />
     <Text Include="resources\releasedocs\changelog.txt" />
     <Text Include="resources\releasedocs\README.txt" />
     <Text Include="resources\resource_versions.txt" />
+    <Text Include="resources\updatertarget\icons_packed_meta.txt" />
+    <Text Include="resources\updatertarget\presets.txt" />
+    <Text Include="resources\updatertarget\resource_versions.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />
     <Text Include="src\libs\ImGui\LICENSE.txt" />
     <Text Include="src\libs\stb\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\icons\organize_pack_icons.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

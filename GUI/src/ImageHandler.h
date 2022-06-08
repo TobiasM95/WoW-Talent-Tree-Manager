@@ -17,4 +17,6 @@ namespace TTM {
 		int* out_height, 
 		ID3D11Device* g_pd3dDevice
 	);
+
+	bool unpackIcons(const char* filename, std::vector<std::string> metaData);
 }

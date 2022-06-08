@@ -39,6 +39,7 @@ namespace TTM {
     inline void flagAllResources(UIData& uiData) {
         uiData.updateStatus = UpdateStatus::OUTDATED;
         uiData.outOfDateResources.push_back(ResourceType::PRESET);
+        uiData.outOfDateResources.push_back(ResourceType::ICONS);
     }
 
     std::string checkForUpdate(UIData& uiData) {
@@ -53,14 +54,15 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/resource_versions.txt");
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/resource_versions.txt");
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
-            if (CURLE_OK != res) {
+            //TTMTODO: this seems very very very dangerous
+            if (CURLE_OK != res || result.find("404:") != std::string::npos) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 uiData.outOfDateResources.clear();
                 return "Failed to fetch remote resource file.";
@@ -152,6 +154,9 @@ namespace TTM {
             case ResourceType::PRESET: {
                 updatePresets(uiData);
             }break;
+            case ResourceType::ICONS: {
+                updateIcons(uiData);
+            }break;
             }
         }
 
@@ -162,14 +167,15 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/resource_versions.txt");
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/resource_versions.txt");
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
-            if (CURLE_OK != res) {
+            //TTMTODO: this seems very very very dangerous
+            if (CURLE_OK != res || result.find("404:") != std::string::npos) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
             }
@@ -203,14 +209,15 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/Engine/resources/presets.txt");
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/presets.txt");
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
-            if (CURLE_OK != res) {
+            //TTMTODO: this seems very very very dangerous
+            if (CURLE_OK != res || result.find("404:") != std::string::npos) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
             }
@@ -219,5 +226,99 @@ namespace TTM {
         localVersionFilePath = localVersionFilePath / "resources" / "presets.txt";
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
+    }
+
+    void updateIcons(UIData& uiData) {
+        std::string metaDataRaw;
+        CURL* curl;
+        CURLcode res;
+        curl = curl_easy_init();
+        if (curl) {
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/Engine/resources/updatertarget/icons_packed_meta.txt");
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &metaDataRaw);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            //TTMTODO: this seems very very very dangerous
+            if (CURLE_OK != res || metaDataRaw.find("404:") != std::string::npos) {
+                uiData.updateStatus = UpdateStatus::UPDATEERROR;
+                return;
+            }
+        }
+        std::vector<std::string> metaData = Engine::splitString(metaDataRaw, "\n");
+
+        std::string pathToPackedIcons("./resources/icons/icons_packed.png");
+        FILE* fp = nullptr;
+        curl = curl_easy_init();
+        if (curl) {
+            fp = fopen(pathToPackedIcons.c_str(), "wb");
+            if (fp == NULL) {
+                uiData.updateStatus = UpdateStatus::UPDATEERROR;
+                return;
+            }
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/Engine/resources/updatertarget/icons_packed.png");
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            //TTMTODO: this seems very very very dangerous
+            if (CURLE_OK != res || metaDataRaw.find("404:") != std::string::npos) {
+                uiData.updateStatus = UpdateStatus::UPDATEERROR;
+                return;
+            }
+            fclose(fp);
+        }
+
+
+        if (metaData.size() < 4) {
+            uiData.updateStatus = UpdateStatus::UPDATEERROR;
+            return;
+        }
+
+        if (!unpackIcons(pathToPackedIcons.c_str(), metaData)) {
+            uiData.updateStatus = UpdateStatus::UPDATEERROR;
+            return;
+        }
+
+        //we should also delete the temporary packed file!
+        std::filesystem::remove(pathToPackedIcons);
+    }
+
+    void testUpdateIcons(UIData& uiData) {
+        std::vector<std::string> metaData;
+
+        //Not a real thing in the live updater
+        //this should read the metaData from remote
+        std::filesystem::path pathToUpdaterTarget("../../../GUI/resources/updatertarget");
+        std::ifstream metaDataFile;
+        metaDataFile.open(pathToUpdaterTarget / "icons_packed_meta.txt");
+        if (metaDataFile.is_open()) {
+            std::string line;
+            while (std::getline(metaDataFile, line)) {
+                if (line != "") {
+                    metaData.push_back(line);
+                }
+            }
+        }
+        metaDataFile.close();
+        //this should download a packed icon file to icon directory and return the path
+        std::string pathToPackedIcons((pathToUpdaterTarget / "icons_packed.png").string());
+        //end
+        if (metaData.size() < 4) {
+            uiData.updateStatus = UpdateStatus::UPDATEERROR;
+            return;
+        }
+
+        if (!unpackIcons(pathToPackedIcons.c_str(), metaData)) {
+            uiData.updateStatus = UpdateStatus::UPDATEERROR;
+            return;
+        }
+
+        //we should also delete the temporary packed file!
+        //std::filesystem::remove(pathToPackedIcons);
     }
 }
