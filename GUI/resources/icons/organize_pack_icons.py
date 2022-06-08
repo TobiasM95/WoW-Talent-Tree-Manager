@@ -56,11 +56,13 @@ def organize_icons():
             if current_size < 100:
                 os.makedirs(current_directory, exist_ok=True)
                 os.rename(f"./{image_name}", current_directory + image_name)
+                current_size += 1
             else:
-                current_directory = "./" + str(int(current_directory)) + "/"
-                current_size = 0
+                current_dir_number = current_directory.split("/")[1]
+                current_directory = "./" + str(int(current_dir_number) + 1) + "/"
                 os.makedirs(current_directory, exist_ok=True)
                 os.rename(f"./{image_name}", current_directory + image_name)
+                current_size = 1
 
     print("Written files:", len(image_names))
     print("Including overwritten files:", len(overwritten_icons))

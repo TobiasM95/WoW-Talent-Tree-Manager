@@ -37,6 +37,9 @@ namespace TTM {
                 uiData.iconPathMap[entry.path().filename().string()] = entry.path();
             }
         }
+        if (!std::filesystem::is_directory(customIconPath)) {
+            return;
+        }
         for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
             if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
                 uiData.iconPathMap[entry.path().filename().string()] = entry.path();
