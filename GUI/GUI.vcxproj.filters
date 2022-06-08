@@ -131,6 +131,9 @@
     <ClInclude Include="src\ImageHandler.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\libs\stb\stb_image_write.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Font Include="resources\fonts\Roboto-Medium.ttf" />
@@ -156,6 +159,18 @@
     <Image Include="resources\gallery\TreeEditor2.png">
       <Filter>Ressourcendateien</Filter>
     </Image>
+    <Image Include="resources\icons\0\green_qmark.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="resources\icons\default.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="resources\icons\icons_packed.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="resources\updatertarget\icons_packed.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Text Include="resources\releasedocs\changelog.txt" />
@@ -164,5 +179,12 @@
     <Text Include="resources\resource_versions.txt" />
     <Text Include="src\libs\ImGui\LICENSE.txt" />
     <Text Include="src\libs\stb\LICENSE.txt" />
+    <Text Include="resources\updatertarget\resource_versions.txt" />
+    <Text Include="resources\updatertarget\presets.txt" />
+    <Text Include="resources\icons\icons_packed_meta.txt" />
+    <Text Include="resources\updatertarget\icons_packed_meta.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\icons\organize_pack_icons.py" />
   </ItemGroup>
 </Project>

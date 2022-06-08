@@ -1,0 +1,6 @@
+40
+40
+2
+1600
+default.png
+0/green_qmark.png

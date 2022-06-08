@@ -94,6 +94,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
     talentTreeCollection.presets = Presets::LOAD_PRESETS();
     TTM::loadActiveIcons(uiData, talentTreeCollection);
+    TTM::testUpdateIcons(uiData);
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);
@@ -144,7 +145,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        if (uiData.updateStatus != TTM::UpdateStatus::UPTODATE && uiData.updateStatus != TTM::UpdateStatus::IGNOREUPDATE) {
+        if (!(uiData.updateStatus == TTM::UpdateStatus::UPTODATE || uiData.updateStatus == TTM::UpdateStatus::UPDATEERROR || uiData.updateStatus == TTM::UpdateStatus::IGNOREUPDATE)) {
             TTM::RenderUpdateWindow(uiData, talentTreeCollection);
         } 
         else {
