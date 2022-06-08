@@ -185,6 +185,7 @@ namespace TTM {
         }
         for (int i = 0; i < iconCount; i++) {
             std::filesystem::path outPath(rootIconPath / metaData[i + 4]);
+            std::filesystem::create_directory(outPath.parent_path());
             for (int pix = i * iconHeight * iconWidth; pix < (i+1) * iconHeight * iconWidth; pix++) {
                 *(iconData + 4 * (pix % (iconWidth * iconHeight)) + 0) = *(image_data + 4 * pix + 0);
                 *(iconData + 4 * (pix % (iconWidth * iconHeight)) + 1) = *(image_data + 4 * pix + 1);
