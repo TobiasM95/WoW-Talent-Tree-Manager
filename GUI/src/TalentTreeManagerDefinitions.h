@@ -16,7 +16,7 @@
 
 namespace TTM {
 	enum class UpdateStatus {
-		UPTODATE, OUTDATED, UPDATEERROR, NOTCHECKED, IGNOREUPDATE
+		UPTODATE, OUTDATED, UPDATEERROR, NOTCHECKED, IGNOREUPDATE, UPDATEINITIATED, UPDATEINPROGRESS
 	};
 
 	static const int TTM_RESOURCE_TYPE_COUNT = 1;
@@ -76,13 +76,17 @@ namespace TTM {
 		std::filesystem::path defaultIconPath = "resources/icons/default.png";
 		std::map<std::string, std::filesystem::path> iconPathMap;
 		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMap;
+		std::map<int, TextureInfo> splitIconIndexMap;
 
 		//################# UPDATER #####################################
+		//used for displaying some warning messages for specific updates
+		std::string updateMessage;
 		//used for displaying the screen at least once before a long blocking operation is shown
 		bool renderedOnce = false;
 		UpdateStatus updateStatus = UpdateStatus::NOTCHECKED;
 		std::vector<ResourceType> outOfDateResources;
 		bool updateCurrentWorkspace = false;
+		bool presetToCustomOverride = false;
 
 		//################# TREE EDITOR VARIABLES #######################
 		TreeEditPage treeEditPage = TreeEditPage::TreeInformation;
@@ -207,6 +211,7 @@ namespace TTM {
 	void refreshIconList(UIData& uiData);
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
 	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first);
+	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight);
 
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,

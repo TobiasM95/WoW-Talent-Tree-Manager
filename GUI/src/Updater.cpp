@@ -18,11 +18,14 @@
     Contact via https://github.com/TobiasM95/WoW-Talent-Tree-Manager/discussions or BuffMePls#2973 on Discord
 */
 
+#include "Updater.h"
+
 #include <filesystem>
 #include <fstream>
 
-#include "Updater.h"
 #include "curl.h"
+
+#include "TTMEnginePresets.h"
 
 namespace TTM {
     static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param)
@@ -38,32 +41,12 @@ namespace TTM {
         uiData.outOfDateResources.push_back(ResourceType::PRESET);
     }
 
-    void checkForUpdate(UIData& uiData) {
+    std::string checkForUpdate(UIData& uiData) {
+        std::string additionalUpdateMessage;
+
         std::vector<ResourceType> outOfDate;
 
         std::string result;
-
-        //check if local version file exists, if not, all resources should be updated
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "resource_versions.txt";
-        if (!std::filesystem::is_regular_file(localVersionFilePath)) {
-            flagAllResources(uiData);
-            return;
-        }
-
-        //read contents from local version file
-        std::vector<std::string> localVersions;
-        try {
-            std::ifstream versionFile(localVersionFilePath);
-            std::string line;
-            while (std::getline(versionFile, line)) {
-                localVersions.push_back(line);
-            }
-        }
-        catch (std::ifstream::failure& e) {
-            flagAllResources(uiData);
-            return;
-        }
 
         //fetch version file from server
         CURL* curl;
@@ -80,19 +63,55 @@ namespace TTM {
             if (CURLE_OK != res) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 uiData.outOfDateResources.clear();
-                return;
+                return "Failed to fetch remote resource file.";
             }
         }
         std::vector<std::string> remoteVersions = Engine::splitString(result, "\n");
 
+        //check if local version file exists, if not, all resources should be updated
+        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
+        localVersionFilePath = localVersionFilePath / "resources" / "resource_versions.txt";
+        if (!std::filesystem::is_regular_file(localVersionFilePath)) {
+            flagAllResources(uiData);
+            return "No resource file found. Please update resources after updating TTM!";
+        }
+
+        //read contents from local version file
+        std::vector<std::string> localVersions;
+        try {
+            std::ifstream versionFile(localVersionFilePath);
+            std::string line;
+            while (std::getline(versionFile, line)) {
+                localVersions.push_back(line);
+            }
+        }
+        catch (std::ifstream::failure& e) {
+            if (compareVersions(Presets::TTM_VERSION, remoteVersions[static_cast<int>(ResourceType::PRESET)]) < 0) {
+                additionalUpdateMessage += "Preset version is higher than TTM version. If you update, presets might stop working. Presets in current workspace will be transformed to custom trees. Please update TTM before updating presets.\n";
+                uiData.presetToCustomOverride = true;
+            }
+            flagAllResources(uiData);
+            return additionalUpdateMessage + "Couldn't read Resource file. Please update resources after updating TTM!";
+        }
+
         //compare version files and append out of date resources
         if (localVersions.size() != remoteVersions.size()) {
+            if (compareVersions(Presets::TTM_VERSION, remoteVersions[static_cast<int>(ResourceType::PRESET)]) < 0) {
+                additionalUpdateMessage += "Preset version is higher than TTM version. If you update, presets might stop working. Presets in current workspace will be transformed to custom trees. Please update TTM before updating presets.\n";
+                uiData.presetToCustomOverride = true;
+            }
             flagAllResources(uiData);
-            return;
+            return additionalUpdateMessage + "New resources added. Please update resources after updating TTM!";
         }
         
         for (int i = 0; i < TTM_RESOURCE_TYPE_COUNT; i++) {
             if (localVersions[i] != remoteVersions[i]) {
+                if (static_cast<ResourceType>(i) == ResourceType::PRESET) {
+                    if (compareVersions(Presets::TTM_VERSION, remoteVersions[i]) < 0) {
+                        additionalUpdateMessage += "Preset version is higher than TTM version. If you update, presets might stop working. Presets in current workspace will be transformed to custom trees. Please update TTM before updating presets.\n";
+                        uiData.presetToCustomOverride = true;
+                    }
+                }
                 outOfDate.push_back(static_cast<ResourceType>(i));
             }
         }
@@ -100,10 +119,28 @@ namespace TTM {
         uiData.outOfDateResources = outOfDate;
         if (outOfDate.size() > 0) {
             uiData.updateStatus = UpdateStatus::OUTDATED;
+            return additionalUpdateMessage + "Resources outdated.";
         }
         else {
             uiData.updateStatus = UpdateStatus::UPTODATE;
+            return "Resources up to date.";
         }
+
+    }
+
+    int compareVersions(std::string clientVersion, std::string remoteVersion) {
+        //versions are always of the format ##..## . ##..## . ##..##
+        std::vector<std::string> clientVersionParts = Engine::splitString(clientVersion, ".");
+        std::vector<std::string> remoteVersionParts = Engine::splitString(remoteVersion, ".");
+        for (int i = 0; i < 3; i++) {
+            if (std::stoi(clientVersionParts[i]) < std::stoi(remoteVersionParts[i])) {
+                return -1;
+            }
+            else if (std::stoi(clientVersionParts[i]) > std::stoi(remoteVersionParts[i])) {
+                return 1;
+            }
+        }
+        return 0;
     }
 
     void updateResources(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
@@ -144,7 +181,7 @@ namespace TTM {
         uiData.updateStatus = UpdateStatus::UPTODATE;
 
         talentTreeCollection.presets = Presets::LOAD_PRESETS();
-        if (uiData.updateCurrentWorkspace) {
+        if (uiData.updateCurrentWorkspace && !uiData.presetToCustomOverride) {
             for (auto& tree : talentTreeCollection.trees) {
                 if (tree.tree.presetName != "custom" && talentTreeCollection.presets.count(tree.tree.presetName)) {
                     tree.tree = Engine::restorePreset(tree.tree, talentTreeCollection.presets[tree.tree.presetName]);

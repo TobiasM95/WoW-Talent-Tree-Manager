@@ -9,4 +9,12 @@ namespace TTM {
 	};
 
 	bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
+	bool LoadSplitTextureFromFile(
+		const char* filename1, 
+		const char* filename2, 
+		ID3D11ShaderResourceView** out_srv, 
+		int* out_width, 
+		int* out_height, 
+		ID3D11Device* g_pd3dDevice
+	);
 }

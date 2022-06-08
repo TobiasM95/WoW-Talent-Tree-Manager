@@ -7,7 +7,8 @@
 namespace TTM {
 	static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param);
 	inline void flagAllResources(UIData& uiData);
-	void checkForUpdate(UIData& uiData);
+	std::string checkForUpdate(UIData& uiData);
+	int compareVersions(std::string clientVersion, std::string remoteVersion);
 	void updateResources(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void updatePresets(UIData& uiData);
 }

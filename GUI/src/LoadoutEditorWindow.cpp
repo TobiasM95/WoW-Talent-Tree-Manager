@@ -54,25 +54,65 @@ namespace TTM {
                 ImGui::EndTooltip();
             }
             else {
-                ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent->getName().c_str());
-                ImGui::PopFont();
-                //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
-                ImGui::Text(idLabel.c_str());
-                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch, ctrl+click:");
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), (talent->getNameSwitch() + ")").c_str());
-                ImGui::PopTextWrapPos();
-                if (talent->preFilled) {
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                if (talent->points > 0) {
+                    ImGui::BeginTooltip();
+                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                    ImGui::Text(talent->getName().c_str());
+                    ImGui::PopFont();
+                    //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
+                    ImGui::Text(idLabel.c_str());
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch, ctrl+click:");
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), (talent->getNameSwitch() + ")").c_str());
+                    ImGui::PopTextWrapPos();
+                    if (talent->preFilled) {
+                        ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                    }
+                    ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                    ImGui::Spacing();
+                    ImGui::Spacing();
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
+                    ImGui::PopTextWrapPos();
                 }
-                ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
-                ImGui::Spacing();
-                ImGui::Spacing();
-                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
-                ImGui::PopTextWrapPos();
+                else {
+                    ImGui::BeginTooltip();
+                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                    ImGui::Text(talent->name.c_str());
+                    ImGui::PopFont();
+                    //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
+                    ImGui::Text(idLabel.c_str());
+                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
+                    if (talent->preFilled) {
+                        ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                    }
+                    ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                    
+                    ImGui::Spacing();
+                    ImGui::Spacing();
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[0].c_str());
+                    ImGui::PopTextWrapPos();
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                    ImGui::Text(talent->nameSwitch.c_str());
+                    ImGui::PopFont();
+                    //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
+                    ImGui::Text(idLabel.c_str());
+                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
+                    if (talent->preFilled) {
+                        ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
+                    }
+                    ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
+                    
+                    ImGui::Spacing();
+                    ImGui::Spacing();
+                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[1].c_str());
+                    ImGui::PopTextWrapPos();
+                }
 
                 ImGui::EndTooltip();
             }
@@ -318,11 +358,16 @@ namespace TTM {
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
             TextureInfo iconContent;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                if (talent.second->talentSwitch == 2) {
-                    iconContent = uiData.iconIndexMap[talent.second->index].second;
+                if (talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
+                    if (talent.second->talentSwitch == 2) {
+                        iconContent = uiData.iconIndexMap[talent.second->index].second;
+                    }
+                    else {
+                        iconContent = uiData.iconIndexMap[talent.second->index].first;
+                    }
                 }
                 else {
-                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                    iconContent = uiData.splitIconIndexMap[talent.second->index];
                 }
             }
             else {
@@ -343,6 +388,9 @@ namespace TTM {
                     if (isParentFilled && talentTreeCollection.activeSkillset()->talentPointsSpent >= talent.second->pointsRequired && talent.second->points < talent.second->maxPoints) {
                         talent.second->points += 1;
                         if (talent.second->type == Engine::TalentType::SWITCH) {
+                            if (talent.second->talentSwitch == 0) {
+                                talent.second->talentSwitch = 1;
+                            }
                             talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
                         }
                         else {
