@@ -245,6 +245,11 @@ namespace TTM {
                             const bool is_selected = (iconNameComboPreviewValue == iconNamePathPair.first);
                             if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
                                 uiData.treeEditorCreationTalent->iconName.first = iconNamePathPair.first;
+                                if (uiData.treeEditorCreationTalentIcons.first.texture) {
+                                    uiData.treeEditorCreationTalentIcons.first.texture->Release();
+                                    uiData.treeEditorCreationTalentIcons.first.texture = nullptr;
+                                }
+                                uiData.treeEditorCreationTalentIcons.first = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
                             }
 
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -252,6 +257,12 @@ namespace TTM {
                                 ImGui::SetItemDefaultFocus();
                         }
                         ImGui::EndCombo();
+                    }
+                    if(uiData.treeEditorCreationTalentIcons.first.texture){
+                        ImGui::Image(uiData.treeEditorCreationTalentIcons.first.texture, ImVec2(40, 40));
+                    }
+                    else {
+                        uiData.treeEditorCreationTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.first);
                     }
 
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
@@ -267,6 +278,11 @@ namespace TTM {
                             const bool is_selected = (iconNameSwitchComboPreviewValue == iconNamePathPair.first);
                             if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
                                 uiData.treeEditorCreationTalent->iconName.second = iconNamePathPair.first;
+                                if (uiData.treeEditorCreationTalentIcons.second.texture) {
+                                    uiData.treeEditorCreationTalentIcons.second.texture->Release();
+                                    uiData.treeEditorCreationTalentIcons.second.texture = nullptr;
+                                }
+                                uiData.treeEditorCreationTalentIcons.second = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
                             }
 
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -274,6 +290,14 @@ namespace TTM {
                                 ImGui::SetItemDefaultFocus();
                         }
                         ImGui::EndCombo();
+                    }
+                    if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH) {
+                        if (uiData.treeEditorCreationTalentIcons.second.texture) {
+                            ImGui::Image(uiData.treeEditorCreationTalentIcons.second.texture, ImVec2(40, 40));
+                        }
+                        else {
+                            uiData.treeEditorCreationTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.second);
+                        }
                     }
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
 
@@ -405,6 +429,11 @@ namespace TTM {
                                 const bool is_selected = (iconNameComboPreviewValue == iconNamePathPair.first);
                                 if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
                                     uiData.treeEditorSelectedTalent->iconName.first = iconNamePathPair.first;
+                                    if (uiData.treeEditorSelectedTalentIcons.first.texture) {
+                                        uiData.treeEditorSelectedTalentIcons.first.texture->Release();
+                                        uiData.treeEditorSelectedTalentIcons.first.texture = nullptr;
+                                    }
+                                    uiData.treeEditorSelectedTalentIcons.first = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
                                 }
 
                                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -412,6 +441,12 @@ namespace TTM {
                                     ImGui::SetItemDefaultFocus();
                             }
                             ImGui::EndCombo();
+                        }
+                        if (uiData.treeEditorSelectedTalentIcons.first.texture) {
+                            ImGui::Image(uiData.treeEditorSelectedTalentIcons.first.texture, ImVec2(40, 40));
+                        }
+                        else {
+                            uiData.treeEditorSelectedTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.first);
                         }
 
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
@@ -427,6 +462,11 @@ namespace TTM {
                                 const bool is_selected = (iconNameSwitchComboPreviewValue == iconNamePathPair.first);
                                 if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
                                     uiData.treeEditorSelectedTalent->iconName.second = iconNamePathPair.first;
+                                    if (uiData.treeEditorSelectedTalentIcons.second.texture) {
+                                        uiData.treeEditorSelectedTalentIcons.second.texture->Release();
+                                        uiData.treeEditorSelectedTalentIcons.second.texture = nullptr;
+                                    }
+                                    uiData.treeEditorSelectedTalentIcons.second = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
                                 }
 
                                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -434,6 +474,14 @@ namespace TTM {
                                     ImGui::SetItemDefaultFocus();
                             }
                             ImGui::EndCombo();
+                        }
+                        if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH) {
+                            if (uiData.treeEditorSelectedTalentIcons.second.texture) {
+                                ImGui::Image(uiData.treeEditorSelectedTalentIcons.second.texture, ImVec2(40, 40));
+                            }
+                            else {
+                                uiData.treeEditorSelectedTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.second);
+                            }
                         }
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
 
@@ -1212,6 +1260,18 @@ namespace TTM {
         uiData.treeEditorCreationTalent = std::make_shared<Engine::Talent>();
         uiData.treeEditorCreationTalentParentsPlaceholder.clear();
         uiData.treeEditorCreationTalentChildrenPlaceholder.clear();
+
+        if (uiData.treeEditorCreationTalentIcons.first.texture) {
+            uiData.treeEditorCreationTalentIcons.first.texture->Release();
+            uiData.treeEditorCreationTalentIcons.first.texture = nullptr;
+        }
+        uiData.treeEditorCreationTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.first);
+
+        if (uiData.treeEditorCreationTalentIcons.second.texture) {
+            uiData.treeEditorCreationTalentIcons.second.texture->Release();
+            uiData.treeEditorCreationTalentIcons.second.texture = nullptr;
+        }
+        uiData.treeEditorCreationTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.second);
     }
 
     void validateTalentUpdate(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, Engine::Talent_s> comboIndexTalentMap) {
@@ -1679,6 +1739,18 @@ namespace TTM {
             for (auto& child : uiData.treeEditorSelectedTalent->children)
                 uiData.treeEditorSelectedTalentChildrenPlaceholder.push_back(comboIndexTalentMap[child]);
         }
+
+        if (uiData.treeEditorSelectedTalentIcons.first.texture) {
+            uiData.treeEditorSelectedTalentIcons.first.texture->Release();
+            uiData.treeEditorSelectedTalentIcons.first.texture = nullptr;
+        }
+        uiData.treeEditorSelectedTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.first);
+
+        if (uiData.treeEditorSelectedTalentIcons.second.texture) {
+            uiData.treeEditorSelectedTalentIcons.second.texture->Release();
+            uiData.treeEditorSelectedTalentIcons.second.texture = nullptr;
+        }
+        uiData.treeEditorSelectedTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.second);
     }
 
     void repositionTalent(
