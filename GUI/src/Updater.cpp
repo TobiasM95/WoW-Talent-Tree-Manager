@@ -284,6 +284,7 @@ namespace TTM {
         }
 
         if (!unpackIcons(pathToPackedIcons.c_str(), metaData)) {
+            std::filesystem::remove(pathToPackedIcons);
             uiData.updateStatus = UpdateStatus::UPDATEERROR;
             return;
         }
