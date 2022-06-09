@@ -64,12 +64,12 @@ def organize_icons():
                 os.rename(f"./{image_name}", current_directory + image_name)
                 current_size = 1
 
-    print("Written files:", len(image_names))
-    print("Including overwritten files:", len(overwritten_icons))
     if len(overwritten_icons) > 0:
         print("Overwritten icons:")
         for ow_icon in overwritten_icons:
             print(ow_icon)
+    print("Written files:", len(image_names))
+    print("Including overwritten files:", len(overwritten_icons))
         
 
 def pack_icons():
