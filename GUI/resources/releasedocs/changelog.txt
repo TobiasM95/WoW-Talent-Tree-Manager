@@ -1,3 +1,14 @@
+v. 1.2.1:
+- Loadout editor bugfix
+- Small UI improvements
+- More update functions
+
+v. 1.2.0:
+- Icon display
+- Stability bugfixes
+- Tree string repair function
+- Solver bugfix
+
 v. 1.1.0:
 - Various UI bugfixes
 - Tree solver bugfixes
