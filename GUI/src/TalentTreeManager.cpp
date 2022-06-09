@@ -124,6 +124,53 @@ namespace TTM {
                     uiData.updateStatus = UpdateStatus::IGNOREUPDATE;
                 }
             }
+            else if (uiData.updateStatus == UpdateStatus::RESETRESOURCES) {
+                //center an information rectangle
+                ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+                float centerX = 0.5f * contentRegion.x;
+                float centerY = 0.5f * contentRegion.y;
+                float wrapWidth = 250;
+                float offsetY = -100;
+                float boxPadding = 8;
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
+                ImGui::SetCursorPos(pos);
+                ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+                ImGui::Text("Do you want to reset your resources? This has the same effect as an update would have and can help fix corrupted files.");
+                ImVec2 l1TopLeft = ImGui::GetItemRectMin();
+                ImVec2 l1BottomRight = ImGui::GetItemRectMax();
+                l1TopLeft.x -= boxPadding;
+                l1TopLeft.y -= boxPadding;
+                l1BottomRight.x += boxPadding;
+                l1BottomRight.y += boxPadding;
+
+                ImGui::Spacing();
+                ImGui::Spacing();
+
+                //ask for solver max talent points
+                ImGui::SetCursorPosX(pos.x);
+                ImGui::Text("Do you want to update the presets in your current workspace? This could invalidate and remove some of your loadouts.");
+                ImGui::SetCursorPosX(pos.x);
+                ImGui::Checkbox("Update current workspace##updateWindowWorkspace", &uiData.updateCurrentWorkspace);
+
+                ImVec2 l2BottomRight = ImGui::GetItemRectMax();
+                l2BottomRight.x += boxPadding;
+                l2BottomRight.y += boxPadding;
+
+                // Draw actual text bounding box, following by marker of our expected limit (should not overlap!)
+                draw_list->AddRect(l1TopLeft, ImVec2(l1TopLeft.x + wrapWidth + 2 * boxPadding, l2BottomRight.y), IM_COL32(200, 200, 200, 255));
+                ImGui::PopTextWrapPos();
+
+                //center a button
+                ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
+                if (ImGui::Button("Update", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
+                    uiData.updateStatus = UpdateStatus::UPDATEINITIATED;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Cancel", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
+                    uiData.updateStatus = UpdateStatus::UPTODATE;
+                }
+            }
             else if (uiData.updateStatus == UpdateStatus::UPDATEINITIATED) {
                 ImVec2 textSize = ImGui::CalcTextSize("Updating...");
                 ImVec2 contentRegion = ImGui::GetContentRegionAvail();
@@ -132,6 +179,7 @@ namespace TTM {
                 uiData.updateStatus = UpdateStatus::UPDATEINPROGRESS;
             }
             else if (uiData.updateStatus == UpdateStatus::UPDATEINPROGRESS) {
+                flagAllResources(uiData);
                 updateResources(uiData, talentTreeCollection);
                 loadActiveIcons(uiData, talentTreeCollection, true);
             }
@@ -181,8 +229,16 @@ namespace TTM {
                 if (ImGui::MenuItem("About TTM")) {
                     uiData.showAboutPopup = true;
                 }
+                if (ImGui::MenuItem("Check Updates")) {
+                    uiData.updateStatus = UpdateStatus::NOTCHECKED;
+                    uiData.renderedOnce = false;
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem("Reset TTM")) {
                     uiData.showResetPopup = true;
+                }
+                if (ImGui::MenuItem("Reset resources")) {
+                    uiData.updateStatus = UpdateStatus::RESETRESOURCES;
                 }
                 ImGui::EndMenu();
             }
