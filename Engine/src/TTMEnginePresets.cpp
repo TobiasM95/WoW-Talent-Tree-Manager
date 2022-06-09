@@ -116,10 +116,10 @@ namespace Presets {
 		}
 		case CLASS_IDS_MAGE: {
 			switch (specID) {
-			case MAGE_SPEC_IDS_ARCANE: return presets["mage_arcance"];
+			case MAGE_SPEC_IDS_ARCANE: return presets["mage_arcane"];
 			case MAGE_SPEC_IDS_FIRE: return presets["mage_fire"];
 			case MAGE_SPEC_IDS_FROST: return presets["mage_frost"];
-			case MAGE_SPEC_IDS_CLASS_ARCANCE: return presets["mage_class_arcance"];
+			case MAGE_SPEC_IDS_CLASS_ARCANCE: return presets["mage_class_arcane"];
 			case MAGE_SPEC_IDS_CLASS_FIRE: return presets["mage_class_fire"];
 			case MAGE_SPEC_IDS_CLASS_FROST: return presets["mage_class_frost"];
 			}
