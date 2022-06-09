@@ -919,7 +919,11 @@ namespace TTM {
                 if (ImGui::CollapsingHeader("Load preset"))
                 {
                     ImGui::Text("Class:");
+                    int oldClass = uiData.treeEditorPresetClassCombo;
                     ImGui::Combo("##treeEditorPresetClassCombo", &uiData.treeEditorPresetClassCombo, Presets::CLASSES, IM_ARRAYSIZE(Presets::CLASSES));
+                    if (oldClass != uiData.treeEditorPresetClassCombo) {
+                        uiData.treeEditorPresetSpecCombo = 0;
+                    }
                     ImGui::Text("Specialization:");
                     int specCount = Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo);
                     if (uiData.treeEditorPresetSpecCombo >= specCount) {

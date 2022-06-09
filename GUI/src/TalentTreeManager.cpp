@@ -370,16 +370,19 @@ namespace TTM {
                     loadActiveIcons(uiData, talentTreeCollection, true);
                     ImGui::CloseCurrentPopup();
                 }
-                //ImGui::SameLine();
                 ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                 ImGui::Text("or");
-                //ImGui::SameLine();
+
+                int oldClass = uiData.treeEditorPresetClassCombo;
                 ImGui::Combo("##treeEditorCreationPresetClassCombo", &uiData.treeEditorPresetClassCombo, Presets::CLASSES, IM_ARRAYSIZE(Presets::CLASSES));
-                //ImGui::SameLine();
+                if (oldClass != uiData.treeEditorPresetClassCombo) {
+                    uiData.treeEditorPresetSpecCombo = 0;
+                }
                 int specCount = Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo);
                 if (uiData.treeEditorPresetSpecCombo >= specCount) {
                     uiData.treeEditorPresetSpecCombo = specCount - 1;
                 }
+
                 ImGui::Combo(
                     "##treeEditorCreationPresetSpecCombo",
                     &uiData.treeEditorPresetSpecCombo,
