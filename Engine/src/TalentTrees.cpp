@@ -978,9 +978,17 @@ namespace Engine {
             talentsSelected.clear();
         }
 
+        //TTMTODO: Not sure why this exists, maybe failsafe? probably best to investigate and delete
         int pointsSpent = 0;
         for (auto& pointSpentPair : skillset->assignedSkillPoints) {
-            pointsSpent += pointSpentPair.second;
+            if (tree.orderedTalents[pointSpentPair.first]->type == TalentType::SWITCH) {
+                if (pointSpentPair.second > 0) {
+                    pointsSpent += 1;
+                }
+            }
+            else {
+                pointsSpent += pointSpentPair.second;
+            }
         }
         skillset->talentPointsSpent = pointsSpent;
 
