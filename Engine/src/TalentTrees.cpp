@@ -1744,7 +1744,7 @@ namespace Engine {
                     //If we don't reset this, talentSwitches can linger around which might be better UX
                     //tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
                 }
-                tree.loadout[index]->talentPointsSpent += indexPointsPair.second;
+                tree.loadout[index]->talentPointsSpent += 1;
             }
         }
     }
