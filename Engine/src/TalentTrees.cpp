@@ -1451,7 +1451,7 @@ namespace Engine {
             }
 
             for (int i = 0; i < formattedIconNames.size(); i++) {
-                int maxLength = 15;
+                size_t maxLength = 15;
                 maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
                 maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
                 if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {
@@ -1474,7 +1474,7 @@ namespace Engine {
                 }
 
                 for (int i = 0; i < formattedIconNames.size(); i++) {
-                    int maxLength = 15;
+                    size_t maxLength = 15;
                     maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
                     maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
                     if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {
