@@ -89,7 +89,8 @@ namespace TTM {
             }
         }
         catch (std::ifstream::failure& e) {
-            if (compareVersions(Presets::TTM_VERSION, remoteVersions[static_cast<int>(ResourceType::PRESET)]) < 0) {
+            std::string remotePresetVersion = Engine::splitString(remoteVersions[static_cast<int>(ResourceType::PRESET)], ";")[1];
+            if (compareVersions(Presets::TTM_VERSION, remotePresetVersion) < 0) {
                 additionalUpdateMessage += "Preset version is higher than TTM version. If you update, presets might stop working. Presets in current workspace will be transformed to custom trees. Please update TTM before updating presets.\n";
                 uiData.presetToCustomOverride = true;
             }
@@ -99,7 +100,8 @@ namespace TTM {
 
         //compare version files and append out of date resources
         if (localVersions.size() != remoteVersions.size()) {
-            if (compareVersions(Presets::TTM_VERSION, remoteVersions[static_cast<int>(ResourceType::PRESET)]) < 0) {
+            std::string remotePresetVersion = Engine::splitString(remoteVersions[static_cast<int>(ResourceType::PRESET)], ";")[1];
+            if (compareVersions(Presets::TTM_VERSION, remotePresetVersion) < 0) {
                 additionalUpdateMessage += "Preset version is higher than TTM version. If you update, presets might stop working. Presets in current workspace will be transformed to custom trees. Please update TTM before updating presets.\n";
                 uiData.presetToCustomOverride = true;
             }
@@ -110,7 +112,8 @@ namespace TTM {
         for (int i = 0; i < TTM_RESOURCE_TYPE_COUNT; i++) {
             if (localVersions[i] != remoteVersions[i]) {
                 if (static_cast<ResourceType>(i) == ResourceType::PRESET) {
-                    if (compareVersions(Presets::TTM_VERSION, remoteVersions[i]) < 0) {
+                    std::string remotePresetVersion = Engine::splitString(remoteVersions[i], ";")[1];
+                    if (compareVersions(Presets::TTM_VERSION, remotePresetVersion) < 0) {
                         additionalUpdateMessage += "Preset version is higher than TTM version. If you update, presets might stop working. Presets in current workspace will be transformed to custom trees. Please update TTM before updating presets.\n";
                         uiData.presetToCustomOverride = true;
                     }
