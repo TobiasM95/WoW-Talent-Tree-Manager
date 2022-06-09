@@ -200,5 +200,7 @@ namespace TTM {
         }
         stbi_image_free(image_data);
         stbi_image_free(iconData);
+
+        return true;
     }
 }
