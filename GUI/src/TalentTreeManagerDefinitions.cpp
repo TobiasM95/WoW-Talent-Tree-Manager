@@ -28,6 +28,9 @@ namespace TTM {
         std::filesystem::path customIconPath = "resources/icons/custom";
         uiData.iconPathMap.clear();
         //first iterate through pre-shipped directories and add paths to map while skipping custom dir
+        if (!std::filesystem::is_directory(iconRootPath)) {
+            return;
+        }
         for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
             if (!std::filesystem::is_regular_file(entry)
                 || entry.path().parent_path().compare(customIconPath) == 0) {
