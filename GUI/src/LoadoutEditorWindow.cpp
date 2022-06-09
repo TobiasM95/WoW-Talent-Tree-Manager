@@ -32,6 +32,9 @@ namespace TTM {
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
                 ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
+                if (uiData.iconIndexMap.count(talent->index)) {
+                    ImGui::Image(uiData.iconIndexMap.at(talent->index).first.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                }
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
                 std::string talentTypeString;
@@ -59,6 +62,14 @@ namespace TTM {
                     ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
                     ImGui::Text(talent->getName().c_str());
                     ImGui::PopFont();
+                    if (uiData.iconIndexMap.count(talent->index)) {
+                        if (talent->talentSwitch == 1) {
+                            ImGui::Image(uiData.iconIndexMap.at(talent->index).first.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                        }
+                        else if (talent->talentSwitch == 2) {
+                            ImGui::Image(uiData.iconIndexMap.at(talent->index).second.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                        }
+                    }
                     //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                     ImGui::Text(idLabel.c_str());
                     ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
@@ -80,6 +91,9 @@ namespace TTM {
                     ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
                     ImGui::Text(talent->name.c_str());
                     ImGui::PopFont();
+                    if (uiData.iconIndexMap.count(talent->index)) {
+                        ImGui::Image(uiData.iconIndexMap.at(talent->index).first.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                    }
                     //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                     ImGui::Text(idLabel.c_str());
                     ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
@@ -99,6 +113,9 @@ namespace TTM {
                     ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
                     ImGui::Text(talent->nameSwitch.c_str());
                     ImGui::PopFont();
+                    if (uiData.iconIndexMap.count(talent->index)) {
+                        ImGui::Image(uiData.iconIndexMap.at(talent->index).second.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                    }
                     //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                     ImGui::Text(idLabel.c_str());
                     ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
