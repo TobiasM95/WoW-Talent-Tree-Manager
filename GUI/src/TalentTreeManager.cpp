@@ -133,6 +133,7 @@ namespace TTM {
             }
             else if (uiData.updateStatus == UpdateStatus::UPDATEINPROGRESS) {
                 updateResources(uiData, talentTreeCollection);
+                loadActiveIcons(uiData, talentTreeCollection, true);
             }
         }
         ImGui::End();
@@ -366,6 +367,7 @@ namespace TTM {
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
+                    loadActiveIcons(uiData, talentTreeCollection, true);
                     ImGui::CloseCurrentPopup();
                 }
                 //ImGui::SameLine();
@@ -392,7 +394,7 @@ namespace TTM {
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
-
+                    loadActiveIcons(uiData, talentTreeCollection, true);
                     ImGui::CloseCurrentPopup(); 
                 }
                 ImGui::EndPopup();
@@ -459,6 +461,7 @@ namespace TTM {
                     if (uiData.deleteTreeIndex >= 0 && uiData.deleteTreeIndex < talentTreeCollection.trees.size()) {
                         talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
                         talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                        loadActiveIcons(uiData, talentTreeCollection, true);
                     }
                     if (talentTreeCollection.trees.size() == 0) {
                         uiData.editorView = EditorView::None;
