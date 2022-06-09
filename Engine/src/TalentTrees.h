@@ -1,12 +1,14 @@
 #pragma once
 
 #include <string>
+#include <locale>
 #include <set>
 #include <map>
 #include <unordered_set>
 #include <unordered_map>
 #include <memory>
 #include <algorithm>
+#include <vector>
 
 #include "TTMEnginePresets.h"
 
@@ -167,6 +169,7 @@ namespace Engine {
     void reindexTree(TalentTree& tree);
     void autoPointRequirements(TalentTree& tree);
     void autoShiftTreeToCorner(TalentTree& tree);
+    void autoInsertIconNames(std::vector<std::string> iconNames, TalentTree& tree);
 
     void expandTreeTalents(TalentTree& tree);
     void expandTalentAndAdvance(TalentTree& tree, Talent_s talent, int maxTalentPoints);
