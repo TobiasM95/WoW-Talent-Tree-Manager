@@ -1451,7 +1451,7 @@ namespace Engine {
             }
 
             for (int i = 0; i < formattedIconNames.size(); i++) {
-                int maxLength = 7;
+                int maxLength = 15;
                 maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
                 maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
                 if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {

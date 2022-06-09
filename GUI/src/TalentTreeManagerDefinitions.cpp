@@ -48,7 +48,7 @@ namespace TTM {
     }
 
     void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload) {
-        if (!forceReload && (talentTreeCollection.activeTreeIndex == -1 || uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
+        if (talentTreeCollection.activeTreeIndex == -1 || (!forceReload && uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
             return;
         }
         //FREE STUFF HERE
@@ -90,6 +90,7 @@ namespace TTM {
                 loadSplitIcon(uiData, talent.second, defaultTexture, defaultImageWidth, defaultImageHeight);
             }
         }
+        uiData.loadedIconTreeIndex = talentTreeCollection.activeTreeIndex;
     }
 
     void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first) {
