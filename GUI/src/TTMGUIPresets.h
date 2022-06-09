@@ -9,6 +9,13 @@ namespace Presets {
         COMPANY_GREY, PATH_OF_TALENT_TREE, LIGHT_MODE
     };
 
+    const ImVec4 TALENT_SELECTED_BORDER_COLOR = ImVec4(0.85f, 0.15f, 0.15f, 1.0f);
+    const ImVec4 TALENT_DEFAULT_BORDER_COLOR = ImVec4(0.25f, 0.25f, 0.25f, 1.0f);
+    const ImVec4 TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
+    const ImVec4 TALENT_MAXED_BORDER_COLOR = ImVec4(0.8f, 0.63f, 0.0f, 1.0f);
+    const ImVec4 TALENT_PARTIAL_BORDER_COLOR = ImVec4(0.1f, 0.8f, 0.1f, 1.0f);
+
+
     //GUI/STYLE PRESETS
     void SET_GUI_STYLE(STYLES style);
     void SET_GUI_STYLE_COMPANY_GREY();
