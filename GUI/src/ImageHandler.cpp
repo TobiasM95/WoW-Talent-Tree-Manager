@@ -61,6 +61,8 @@ namespace TTM {
         subResource.SysMemPitch = desc.Width * 4;
         subResource.SysMemSlicePitch = 0;
         g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+        if (pTexture == NULL)
+            return false;
 
         // Create texture view
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -144,6 +146,8 @@ namespace TTM {
         subResource.SysMemPitch = desc.Width * 4;
         subResource.SysMemSlicePitch = 0;
         g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+        if (pTexture == NULL)
+            return false;
 
         // Create texture view
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;

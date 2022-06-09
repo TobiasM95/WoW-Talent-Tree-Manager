@@ -64,8 +64,10 @@ namespace TTM {
             }
         }
         for (auto& indexTexInfoPair : uiData.splitIconIndexMap) {
-            indexTexInfoPair.second.texture->Release();
-            indexTexInfoPair.second.texture = nullptr;
+            if (indexTexInfoPair.second.texture) {
+                indexTexInfoPair.second.texture->Release();
+                indexTexInfoPair.second.texture = nullptr;
+            }
         }
         uiData.iconIndexMap.clear();
         uiData.splitIconIndexMap.clear();
