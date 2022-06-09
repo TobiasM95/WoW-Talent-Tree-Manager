@@ -93,7 +93,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     uiData.g_pd3dDevice = g_pd3dDevice;
     TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
     talentTreeCollection.presets = Presets::LOAD_PRESETS();
-    TTM::loadActiveIcons(uiData, talentTreeCollection);
+    TTM::loadActiveIcons(uiData, talentTreeCollection, true);
 
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);

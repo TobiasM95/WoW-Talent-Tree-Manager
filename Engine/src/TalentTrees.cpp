@@ -1416,6 +1416,76 @@ namespace Engine {
     }
 
     /*
+    Tries to automatically insert icon names based on talent names
+    */
+    void autoInsertIconNames(std::vector<std::string> iconNames, TalentTree& tree) {
+        //we do not try to wrangle any unicode business, simple transformation functions, if that fails then no icon change
+        std::vector<std::string> formattedIconNames;
+        for (auto& name : iconNames) {
+            std::string formattedIconName;
+            formattedIconName.reserve(name.length());
+            for (auto& ch : name) {
+                if (ch == '.') {
+                    break;
+                }
+                if (ch >= 'A' && ch <= 'Z') {
+                    formattedIconName += static_cast<char>(ch + 32);
+                }
+                if (ch >= 'a' && ch <= 'z') {
+                    formattedIconName += ch;
+                }
+            }
+            formattedIconNames.push_back(formattedIconName);
+        }
+        for (auto& talent : tree.orderedTalents) {
+            std::string talentName(talent.second->name);
+            std::string formattedTalentName;
+            formattedTalentName.reserve(talentName.size());
+            for (auto& ch : talentName) {
+                if (ch >= 'A' && ch <= 'Z') {
+                    formattedTalentName += static_cast<char>(ch + 32);
+                }
+                if (ch >= 'a' && ch <= 'z') {
+                    formattedTalentName += ch;
+                }
+            }
+
+            for (int i = 0; i < formattedIconNames.size(); i++) {
+                int maxLength = 7;
+                maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
+                maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
+                if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {
+                    talent.second->iconName.first = iconNames[i];
+                }
+            }
+
+
+            if (talent.second->type == TalentType::SWITCH) {
+                std::string switchTalentName(talent.second->nameSwitch);
+                formattedTalentName = "";
+                formattedTalentName.reserve(switchTalentName.size());
+                for (auto& ch : switchTalentName) {
+                    if (ch >= 'A' && ch <= 'Z') {
+                        formattedTalentName += static_cast<char>(ch + 32);
+                    }
+                    if (ch >= 'a' && ch <= 'z') {
+                        formattedTalentName += ch;
+                    }
+                }
+
+                for (int i = 0; i < formattedIconNames.size(); i++) {
+                    int maxLength = 15;
+                    maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
+                    maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
+                    if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {
+                        talent.second->iconName.second = iconNames[i];
+                    }
+                }
+            }
+        }
+    }
+
+    /*
     Transforms tree with "complex" talents (that can hold mutliple skill points) to "simple" tree with only talents that can hold a single talent point.
     In the process, all pre filled talents get deleted as they are irrelevant for loadout solving.
     */

@@ -391,7 +391,7 @@ namespace TTM {
                     if (ImGui::Button("Create Talent##talentCreationCreateButton")) {
                         //Validates talent and inserts it into tree, otherwise show modal popup
                         validateAndInsertTalent(uiData, talentTreeCollection, comboIndexTalentMap);
-                        loadActiveIcons(uiData, talentTreeCollection);
+                        loadActiveIcons(uiData, talentTreeCollection, true);
                     }
                 }
                 if (uiData.talentJustSelected) {
@@ -599,7 +599,7 @@ namespace TTM {
                         if (ImGui::Button("Update talent", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 0))) {
                             //Validates talent and inserts it into tree, otherwise show modal popup
                             validateTalentUpdate(uiData, talentTreeCollection, comboIndexTalentMap);
-                            loadActiveIcons(uiData, talentTreeCollection);
+                            loadActiveIcons(uiData, talentTreeCollection, true);
                         }
                         ImGui::SameLine();
                         if (ImGui::Button("Delete talent", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 0)) 
@@ -645,7 +645,7 @@ namespace TTM {
                             clearSolvingProcess(uiData, talentTreeCollection);
 
                             uiData.treeEditorSelectedTalent = nullptr;
-                            loadActiveIcons(uiData, talentTreeCollection);
+                            loadActiveIcons(uiData, talentTreeCollection, true);
                         }
                         ImGui::SameLine();
                         if (ImGui::Button("Clear selection", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
@@ -789,7 +789,7 @@ namespace TTM {
                             uiData.treeEditorEmptyPassiveNodes = 0;
                             uiData.treeEditorEmptySwitchNodes = 0;
 
-                            loadActiveIcons(uiData, talentTreeCollection);
+                            loadActiveIcons(uiData, talentTreeCollection, true);
                         }
                     }
                     ImGui::Separator();
@@ -813,7 +813,7 @@ namespace TTM {
 
                         uiData.treeEditorSelectedTalent = nullptr;
 
-                        loadActiveIcons(uiData, talentTreeCollection);
+                        loadActiveIcons(uiData, talentTreeCollection, true);
                     }
                     if (ImGui::Button("Auto set point requirements")) {
                         Engine::autoPointRequirements(talentTreeCollection.activeTree());
@@ -833,6 +833,21 @@ namespace TTM {
                         clearSolvingProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
+                    }
+                    if (ImGui::Button("Auto insert icon names")) {
+                        std::vector<std::string> iconNames;
+                        for (std::map<std::string, std::filesystem::path>::iterator it = uiData.iconPathMap.begin(); it != uiData.iconPathMap.end(); ++it) {
+                            iconNames.push_back(it->first);
+                        }
+                        Engine::autoInsertIconNames(iconNames, talentTreeCollection.activeTree());
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+
+                        loadActiveIcons(uiData, talentTreeCollection, true);
                     }
                 }
                 //Call all the different modal popups that can appear
@@ -1013,7 +1028,7 @@ namespace TTM {
                         else {
                             talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
                             uiData.treeEditorSelectedTalent = nullptr;
-                            loadActiveIcons(uiData, talentTreeCollection);
+                            loadActiveIcons(uiData, talentTreeCollection, true);
                             ImGui::OpenPopup("Tree import successful");
                         }
                     }
@@ -1041,7 +1056,7 @@ namespace TTM {
                         else {
                             talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         }
-                        loadActiveIcons(uiData, talentTreeCollection);
+                        loadActiveIcons(uiData, talentTreeCollection, true);
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::SameLine();
@@ -1062,7 +1077,7 @@ namespace TTM {
                             ImGui::CloseCurrentPopup();
                         }
                         uiData.treeEditorIsCustomTreeFileListValid = false;
-                        loadActiveIcons(uiData, talentTreeCollection);
+                        loadActiveIcons(uiData, talentTreeCollection, true);
                     }
                     ImGui::SameLine();
                     if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
