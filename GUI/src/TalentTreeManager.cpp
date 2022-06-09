@@ -164,6 +164,7 @@ namespace TTM {
                 //center a button
                 ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
                 if (ImGui::Button("Update", ImVec2(0.5f * wrapWidth + boxPadding - 4.0f, 25))) {
+                    flagAllResources(uiData);
                     uiData.updateStatus = UpdateStatus::UPDATEINITIATED;
                 }
                 ImGui::SameLine();
@@ -179,9 +180,11 @@ namespace TTM {
                 uiData.updateStatus = UpdateStatus::UPDATEINPROGRESS;
             }
             else if (uiData.updateStatus == UpdateStatus::UPDATEINPROGRESS) {
-                flagAllResources(uiData);
                 updateResources(uiData, talentTreeCollection);
                 loadActiveIcons(uiData, talentTreeCollection, true);
+                if (talentTreeCollection.activeTreeIndex >= 0 && talentTreeCollection.activeTreeIndex < talentTreeCollection.trees.size()) {
+                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeIndex);
+                }
             }
         }
         ImGui::End();
