@@ -545,16 +545,6 @@ namespace TTM {
 
         if (ImGui::BeginTabBar("TreeViewTabBar", tab_bar_flags))
         {
-            std::string treeEditDisplayTag = "Talent Tree Editor";
-            if (uiData.editorView == EditorView::TreeEdit) {
-                treeEditDisplayTag = "> " + treeEditDisplayTag;
-            }
-            if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
-            {
-                uiData.editorView = EditorView::TreeEdit;
-                uiData.isLoadoutInitValidated = false;
-                ImGui::EndTabItem();
-            }
             std::string loadoutEditDisplayTag = "Talent Loadout Editor";
             if (uiData.editorView == EditorView::LoadoutEdit) {
                 loadoutEditDisplayTag = "> " + loadoutEditDisplayTag;
@@ -586,6 +576,16 @@ namespace TTM {
             if (ImGui::BeginTabItem((loadoutSolverDisplayTag + "###LoadoutSolverTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
                 uiData.editorView = EditorView::LoadoutSolver;
+                uiData.isLoadoutInitValidated = false;
+                ImGui::EndTabItem();
+            }
+            std::string treeEditDisplayTag = "Talent Tree Editor";
+            if (uiData.editorView == EditorView::TreeEdit) {
+                treeEditDisplayTag = "> " + treeEditDisplayTag;
+            }
+            if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
+            {
+                uiData.editorView = EditorView::TreeEdit;
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
