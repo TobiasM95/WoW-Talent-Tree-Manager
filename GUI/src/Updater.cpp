@@ -254,6 +254,9 @@ namespace TTM {
         std::vector<std::string> metaData = Engine::splitString(metaDataRaw, "\n");
 
         std::string pathToPackedIcons("./resources/icons/icons_packed.png");
+        if (!std::filesystem::is_directory(std::filesystem::path(pathToPackedIcons).parent_path())) {
+            std::filesystem::create_directory(std::filesystem::path(pathToPackedIcons).parent_path());
+        }
         FILE* fp = nullptr;
         curl = curl_easy_init();
         if (curl) {
@@ -291,6 +294,7 @@ namespace TTM {
 
         //we should also delete the temporary packed file!
         std::filesystem::remove(pathToPackedIcons);
+        refreshIconList(uiData);
     }
 
     void testUpdateIcons(UIData& uiData) {
