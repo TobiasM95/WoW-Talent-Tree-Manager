@@ -1738,13 +1738,13 @@ namespace Engine {
                 if (indexPointsPair.second > 0) {
                     tree.orderedTalents[indexPointsPair.first]->points = 1;
                     tree.orderedTalents[indexPointsPair.first]->talentSwitch = indexPointsPair.second;
+                    tree.loadout[index]->talentPointsSpent += 1;
                 }
                 else {
                     tree.orderedTalents[indexPointsPair.first]->points = 0;
                     //If we don't reset this, talentSwitches can linger around which might be better UX
                     //tree.orderedTalents[indexPointsPair.first]->talentSwitch = 0;
                 }
-                tree.loadout[index]->talentPointsSpent += 1;
             }
         }
     }
