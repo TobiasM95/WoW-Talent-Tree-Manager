@@ -33,7 +33,10 @@ namespace TTM {
                 ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
                 if (uiData.iconIndexMap.count(talent->index)) {
-                    ImGui::Image(uiData.iconIndexMap.at(talent->index).first.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                    ImGui::Image(
+                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
+                    );
                 }
                 //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
@@ -64,10 +67,16 @@ namespace TTM {
                     ImGui::PopFont();
                     if (uiData.iconIndexMap.count(talent->index)) {
                         if (talent->talentSwitch == 1) {
-                            ImGui::Image(uiData.iconIndexMap.at(talent->index).first.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                            ImGui::Image(
+                                uiData.iconIndexMap.at(talent->index).first.texture, 
+                                ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
+                            );
                         }
                         else if (talent->talentSwitch == 2) {
-                            ImGui::Image(uiData.iconIndexMap.at(talent->index).second.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                            ImGui::Image(
+                                uiData.iconIndexMap.at(talent->index).second.texture, 
+                                ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
+                            );
                         }
                     }
                     //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
@@ -92,7 +101,10 @@ namespace TTM {
                     ImGui::Text(talent->name.c_str());
                     ImGui::PopFont();
                     if (uiData.iconIndexMap.count(talent->index)) {
-                        ImGui::Image(uiData.iconIndexMap.at(talent->index).first.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                        ImGui::Image(
+                            uiData.iconIndexMap.at(talent->index).first.texture, 
+                            ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
+                        );
                     }
                     //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                     ImGui::Text(idLabel.c_str());
@@ -114,7 +126,10 @@ namespace TTM {
                     ImGui::Text(talent->nameSwitch.c_str());
                     ImGui::PopFont();
                     if (uiData.iconIndexMap.count(talent->index)) {
-                        ImGui::Image(uiData.iconIndexMap.at(talent->index).second.texture, ImVec2(uiData.treeEditorBaseTalentSize, uiData.treeEditorBaseTalentSize));
+                        ImGui::Image(
+                            uiData.iconIndexMap.at(talent->index).second.texture, 
+                            ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
+                        );
                     }
                     //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                     ImGui::Text(idLabel.c_str());
