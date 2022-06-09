@@ -195,5 +195,6 @@ namespace Engine {
     bool checkTalentValidity(const TalentTree& tree);
 
     bool repairTreeStringFormat(std::string& treeRep);
+    bool repairToV121(std::string& treeRep);
     bool repairToV120(std::string& treeRep);
 }

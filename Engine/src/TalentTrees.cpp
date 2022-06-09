@@ -509,6 +509,13 @@ namespace Engine {
                 return false;
             }
         }
+        if (repairVersionStart || metaInfo[0] == "1.2.0") {
+            repairSuccess = repairToV121(treeRep);
+            repairVersionStart = true;
+            if (!repairSuccess) {
+                return false;
+            }
+        }
         /*
         In the future you can easily append:
         if (repairVersionStart || metaInfo[0] == "1.2.0" ) {
@@ -519,6 +526,34 @@ namespace Engine {
             }
         }
         */
+        return true;
+    }
+    /*
+    V. 1.2.1 didn't change any tree string formats. Just update the version number.
+    */
+    bool repairToV121(std::string& treeRep) {
+        std::stringstream treeRepStream;
+        std::stringstream treePartStream;
+        std::vector<std::string> treeParts = splitString(treeRep, ";");
+        //Expect meta info like: custom/preset : class/spec tree : tree name : tree desc : loadout desc : talent count : skillset count;
+        std::vector<std::string> metaInfo = splitString(treeParts[0], ":");
+
+        treePartStream << Presets::TTM_VERSION;
+        for (int i = 1; i < metaInfo.size(); i++) {
+            treePartStream << ":" << metaInfo[i];
+        }
+        treeParts[0] = treePartStream.str();
+        treePartStream.str(std::string());
+        treePartStream.clear();
+
+        //put everything back into treeRep
+        for (int i = 0; i < treeParts.size(); i++) {
+            if (treeParts[i] != "") {
+                treeRepStream << treeParts[i] << ";";
+            }
+        }
+
+        treeRep = treeRepStream.str();
         return true;
     }
 
@@ -571,7 +606,9 @@ namespace Engine {
 
         //put everything back into treeRep
         for (int i = 0; i < treeParts.size(); i++) {
-            treeRepStream << treeParts[i] << ";";
+            if (treeParts[i] != "") {
+                treeRepStream << treeParts[i] << ";";
+            }
         }
 
         treeRep = treeRepStream.str();
