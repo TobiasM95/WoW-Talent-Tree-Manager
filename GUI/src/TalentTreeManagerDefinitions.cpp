@@ -79,8 +79,11 @@ namespace TTM {
         int defaultImageHeight = 0;
         ID3D11ShaderResourceView* defaultTexture = NULL;
         std::string iconPath(uiData.defaultIconPath.string());
-        bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
-        if (!ret) {
+        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+        bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
+        bool greenGlowSuccess = LoadRedIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
+        bool goldGlowSuccess = LoadRedIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
+        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess)) {
             //TTMNOTE: this should not happen anymore
             throw std::runtime_error("Cannot create default icon!");
         }
