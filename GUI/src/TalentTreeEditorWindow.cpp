@@ -1617,6 +1617,10 @@ namespace TTM {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
+            //ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.redIconGlow.height - talentSize)));
+            //if (uiData.treeEditorSelectedTalent && uiData.treeEditorSelectedTalent->index == talent.second->index) {
+            //    ImGui::Image(uiData.redIconGlow.texture, ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height));
+            //}
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
 

@@ -84,6 +84,9 @@ namespace TTM {
 		std::map<std::string, std::filesystem::path> iconPathMap;
 		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMap;
 		std::map<int, TextureInfo> splitIconIndexMap;
+		TextureInfo redIconGlow;
+		TextureInfo greenIconGlow;
+		TextureInfo goldIconGlow;
 
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
