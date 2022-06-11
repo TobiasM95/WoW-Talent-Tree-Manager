@@ -79,10 +79,10 @@ namespace TTM {
         int defaultImageHeight = 0;
         ID3D11ShaderResourceView* defaultTexture = NULL;
         std::string iconPath(uiData.defaultIconPath.string());
-        bool ret = LoadTextureFromFile(iconPath.c_str(), &defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+        bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
         if (!ret) {
-            //TTMTODO: Implement programmatically created default texture to prevent this error!
-            throw std::runtime_error("Cannot open default icon!");
+            //TTMNOTE: this should not happen anymore
+            throw std::runtime_error("Cannot create default icon!");
         }
 
         //load individual icons or replace with default texture if error
@@ -103,28 +103,37 @@ namespace TTM {
         std::string path;
         if (uiData.iconPathMap.count(iconName)) {
             path = uiData.iconPathMap[iconName].string();
+            bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+            if (!ret) {
+                TextureInfo textureInfo;
+                textureInfo.texture = defaultTexture;
+                textureInfo.width = defaultImageWidth;
+                textureInfo.height = defaultImageHeight;
+                if (first) {
+                    uiData.iconIndexMap[index].first = textureInfo;
+                }
+                else {
+                    uiData.iconIndexMap[index].second = textureInfo;
+                }
+            }
+            else {
+                TextureInfo textureInfo;
+                textureInfo.texture = texture;
+                textureInfo.width = width;
+                textureInfo.height = height;
+                if (first) {
+                    uiData.iconIndexMap[index].first = textureInfo;
+                }
+                else {
+                    uiData.iconIndexMap[index].second = textureInfo;
+                }
+            }
         }
         else {
-            path = uiData.defaultIconPath.string();
-        }
-        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
-        if (!ret) {
             TextureInfo textureInfo;
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
             textureInfo.height = defaultImageHeight;
-            if (first) {
-                uiData.iconIndexMap[index].first = textureInfo;
-            }
-            else {
-                uiData.iconIndexMap[index].second = textureInfo;
-            }
-        }
-        else {
-            TextureInfo textureInfo;
-            textureInfo.texture = texture;
-            textureInfo.width = width;
-            textureInfo.height = height;
             if (first) {
                 uiData.iconIndexMap[index].first = textureInfo;
             }
@@ -188,10 +197,10 @@ namespace TTM {
             int defaultImageHeight = 0;
             ID3D11ShaderResourceView* defaultTexture = NULL;
             std::string iconPath(uiData.defaultIconPath.string());
-            bool ret = LoadTextureFromFile(iconPath.c_str(), &defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+            bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
             if (!ret) {
-                //TTMTODO: Implement programmatically created default texture to prevent this error!
-                throw std::runtime_error("Cannot open default icon!");
+                //TTMNOTE: This should not happen anymore
+                throw std::runtime_error("Cannot create default icon!");
             }
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
