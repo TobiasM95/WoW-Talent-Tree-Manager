@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include "imgui.h"
+#include "imgui_internal.h"
 
 #include "ImageHandler.h"
 #include "TalentTrees.h"
@@ -138,6 +139,7 @@ namespace TTM {
 		std::string treeEditorPastebinExportTreeString = "";
 		bool pastebinExportCooldownActive = false;
 		std::chrono::steady_clock::time_point lastPastebinExportTime = std::chrono::high_resolution_clock::now() - std::chrono::seconds(60);
+		std::string treeEditorReadableExportTreeString = "";
 
 		//Important constants
 		const int treeEditorBaseTalentHalfSpacing = 40;
@@ -155,6 +157,9 @@ namespace TTM {
 		ImVec2 treeEditorWindowSize;
 		ImVec2 treeEditorMousePos;
 		ImVec2 treeEditorRelWorldMousePos;
+
+		//This is updated each frame for screenshot taking
+		ImRect treeEditorTreeWindowInnerRect;
 
 		//############# LOADOUT EDITOR VARIABLES ########################
 		bool isLoadoutInitValidated = false;
