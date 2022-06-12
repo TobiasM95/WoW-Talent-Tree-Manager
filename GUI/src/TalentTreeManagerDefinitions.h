@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <filesystem>
+#include <chrono>
 
 #include "imgui.h"
 
@@ -134,6 +135,9 @@ namespace TTM {
 
 		std::string treeEditorImportTreeString = "";
 		std::string treeEditorExportTreeString = "";
+		std::string treeEditorPastebinExportTreeString = "";
+		bool pastebinExportCooldownActive = false;
+		std::chrono::steady_clock::time_point lastPastebinExportTime = std::chrono::high_resolution_clock::now() - std::chrono::seconds(60);
 
 		//Important constants
 		const int treeEditorBaseTalentHalfSpacing = 40;

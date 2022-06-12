@@ -309,6 +309,7 @@ copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManage
     <ClInclude Include="src\TalentTreeManager.h" />
     <ClInclude Include="src\TalentTreeManagerDefinitions.h" />
     <ClInclude Include="src\TTMGUIPresets.h" />
+    <ClInclude Include="src\TTMGUIPresetsInternal.h" />
     <ClInclude Include="src\Updater.h" />
   </ItemGroup>
   <ItemGroup>

@@ -367,3 +367,6 @@ GUI/resources/icons/*.png
 !GUI/resources/icons/default.png
 !GUI/resources/icons/icons_packed.png
 GUI/resources/icons/*/*.png
+
+# private files
+GUI/src/*Internal.h

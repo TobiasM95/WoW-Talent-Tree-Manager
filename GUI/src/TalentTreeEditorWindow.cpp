@@ -26,6 +26,7 @@
 #include <tuple>
 
 #include "TTMEnginePresets.h"
+#include "Updater.h" //for pastebin share
 
 namespace TTM {
     //Talent tooltip for the tree editor view
@@ -1060,6 +1061,34 @@ namespace TTM {
                     ImGui::SameLine();
                     if (ImGui::Button("Export##treeEditorExportTalentTreeButton")) {
                         uiData.treeEditorExportTreeString = Engine::createTreeStringRepresentation(talentTreeCollection.activeTree());
+                    }
+
+                    ImGui::Text("Export to pastebin (1 minute cooldown):");
+                    ImGui::InputText("##treeEditorPastebinExportTalentInput", &uiData.treeEditorPastebinExportTreeString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::SameLine();
+                    double timeSinceLastExport = 0.0;
+                    if (ImGui::Button("Export##treeEditorPastebinExportTalentTreeButton")) {
+                        auto currentTime = std::chrono::high_resolution_clock::now();
+                        timeSinceLastExport = std::chrono::duration<double>(currentTime - uiData.lastPastebinExportTime).count();
+                        if (timeSinceLastExport < Presets::PASTEBIN_EXPORT_COOLDOWN) {
+                            uiData.pastebinExportCooldownActive = true;
+                        }
+                        else {
+                            uiData.lastPastebinExportTime = currentTime;
+                            std::string treeRep = Engine::createTreeStringRepresentation(talentTreeCollection.activeTree());
+                            uiData.treeEditorPastebinExportTreeString = exportToPastebin(treeRep, talentTreeCollection.activeTree().name);
+                        }
+                    }
+                    if (uiData.pastebinExportCooldownActive) {
+                        auto currentTime = std::chrono::high_resolution_clock::now();
+                        timeSinceLastExport = std::chrono::duration<double>(currentTime - uiData.lastPastebinExportTime).count();
+                        ImGui::TextUnformattedColored(
+                            Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), 
+                            ("Please wait " + std::to_string(static_cast<int>(Presets::PASTEBIN_EXPORT_COOLDOWN - timeSinceLastExport)) + " seconds.").c_str()
+                        );
+                        if (timeSinceLastExport >= Presets::PASTEBIN_EXPORT_COOLDOWN) {
+                            uiData.pastebinExportCooldownActive = false;
+                        }
                     }
                 }
                 //Call all the different modal popups that can appear

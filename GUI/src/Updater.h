@@ -13,4 +13,6 @@ namespace TTM {
 	void updatePresets(UIData& uiData);
 	void updateIcons(UIData& uiData);
 	void testUpdateIcons(UIData& uiData);
+
+	std::string exportToPastebin(std::string treeRep, std::string treeName);
 }
