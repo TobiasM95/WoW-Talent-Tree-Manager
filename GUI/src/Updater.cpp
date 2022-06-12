@@ -28,6 +28,7 @@
 #include "curl.h"
 
 #include "TTMEnginePresets.h"
+#include "TTMGUIPresetsInternal.h"
 
 namespace TTM {
     static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param)
@@ -350,5 +351,50 @@ namespace TTM {
 
         //we should also delete the temporary packed file!
         //std::filesystem::remove(pathToPackedIcons);
+    }
+
+    std::string exportToPastebin(std::string treeRep, std::string treeName) {
+        std::string api_dev_key = "BCmGxHU-akWMjGYiXm5yL5An0aclmzOC";
+        std::string api_paste_code = treeRep;
+        std::string api_paste_name = treeName; // name or title of your paste
+        std::string api_user_key = ""; // if an invalid or expired api_user_key is used, an error will spawn. If no api_user_key is used, a guest paste will be created
+
+        CURL* curl;
+        CURLcode res;
+        std::string resultURL;
+
+        curl = curl_easy_init();
+        char* api_paste_name_enc = curl_easy_escape(curl, api_paste_name.c_str(), static_cast<int>(api_paste_name.length()));
+        char* api_paste_code_enc = curl_easy_escape(curl, api_paste_code.c_str(), static_cast<int>(api_paste_code.length()));
+
+        if (curl) {
+            std::string postfield =
+                (std::string)"api_option=paste" +
+                "&api_dev_key=" + Presets::PASTEBIN_API_DEV_KEY + 
+                "&api_paste_private=1" + // 0=public 1=unlisted 2=private
+                "&api_paste_name=" + std::string(api_paste_name_enc) +
+                "&api_paste_expire_date=10M" + //10M = 10 minutes
+                "&api_paste_code=" + std::string(api_paste_code_enc);
+            curl_easy_setopt(curl, CURLOPT_POST, true);
+            curl_easy_setopt(curl, CURLOPT_URL, "https://pastebin.com/api/api_post.php");
+            curl_easy_setopt(
+                curl, 
+                CURLOPT_POSTFIELDS, 
+                postfield.c_str()
+            );
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &resultURL);
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            if (CURLE_OK != res) {
+                return "Error: " + std::string(curl_easy_strerror(res));
+            }
+        }
+
+        curl_free(api_paste_name_enc);
+        curl_free(api_paste_code_enc);
+
+        return resultURL;
     }
 }

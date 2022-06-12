@@ -134,6 +134,9 @@
     <ClInclude Include="src\libs\stb\stb_image_write.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="src\TTMGUIPresetsInternal.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Font Include="resources\fonts\Roboto-Medium.ttf" />
