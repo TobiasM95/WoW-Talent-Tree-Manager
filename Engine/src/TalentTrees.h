@@ -133,6 +133,7 @@ namespace Engine {
     inline std::string cleanString(std::string s);
     inline std::string restoreString(std::string s);
     std::string createTreeStringRepresentation(TalentTree& tree);
+    std::string createReadableTreeString(TalentTree& tree);
     Talent_s createTalent(TalentTree& tree, std::string name, int maxPoints);
     bool validateAndRepairTreeStringFormat(std::string treeRep);
     bool validateTalentStringFormat(std::string talentString);

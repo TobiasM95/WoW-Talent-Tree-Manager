@@ -347,6 +347,49 @@ namespace Engine {
     }
 
     /*
+    Creates a human readable tree string that can be used to share the idea of a tree, not suitable for imports
+    */
+    std::string createReadableTreeString(TalentTree& tree) {
+        std::stringstream treeStream;
+        treeStream << tree.name << "\n";
+        treeStream << "Created with TTM Version " << Presets::TTM_VERSION << "\n";
+        treeStream << "Number of talents: " << tree.orderedTalents.size() << "\n";
+        treeStream << "Description:\n" << tree.treeDescription << "\n";
+        treeStream << "Loadout description:\n" << tree.loadoutDescription << "\n\n";
+
+        treeStream << "Talents:" << "\n";
+        for (auto& talent : tree.orderedTalents) {
+            treeStream << "#" << talent.first << " " << talent.second->name;
+            if (talent.second->type == TalentType::SWITCH) {
+                treeStream << " / " << talent.second->nameSwitch;
+            }
+            treeStream << "\n";
+            switch (talent.second->type) {
+            case TalentType::ACTIVE: treeStream << "Talent type: active" << "\n"; break;
+            case TalentType::PASSIVE: treeStream << "Talent type: passive" << "\n"; break;
+            case TalentType::SWITCH: treeStream << "Talent type: choice" << "\n"; break;
+            }
+            treeStream << "Max points: " << talent.second->maxPoints << " - Points requirement: " << talent.second->pointsRequired << "\n";
+            treeStream << "Descriptions:" << "\n";
+            for (auto& desc : talent.second->descriptions) {
+                treeStream << desc << "\n";
+            }
+            treeStream << "Parent talents: ";
+            for (auto& parent : talent.second->parents) {
+                treeStream << parent->index << ", ";
+            }
+            treeStream << "\n";
+            treeStream << "Child talents: ";
+            for (auto& child : talent.second->children) {
+                treeStream << child->index << ", ";
+            }
+            treeStream << "\n\n";
+        }
+
+        return treeStream.str();
+    }
+
+    /*
     Helper function that adds a talent and its children recursively to a map (and adds talent switch information if existing).
     */
     void addTalentAndChildrenToMap(Talent_s talent, std::unordered_map<std::string, int>& treeRepresentation) {

@@ -176,6 +176,7 @@ namespace TTM {
 
             ImGui::EndChild();
         }
+        uiData.treeEditorTreeWindowInnerRect = ImGui::GetCurrentWindow()->WorkRect;
         ImGui::End();
         ImGui::PopStyleVar();
         if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
@@ -1090,6 +1091,18 @@ namespace TTM {
                             uiData.pastebinExportCooldownActive = false;
                         }
                     }
+
+                    ImGui::Text("Export readable talent tree:");
+                    ImGui::InputText("##treeEditorReadableExportTalentInput", &uiData.treeEditorReadableExportTreeString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export##treeEditorReadableExportTalentTreeButton")) {
+                        uiData.treeEditorReadableExportTreeString = Engine::createReadableTreeString(talentTreeCollection.activeTree());
+                    }
+
+                    ImGui::Text("Screenshot of tree window:");
+                    if (ImGui::Button("To clipboard##treeEditorScreenshotExportTalentTreeButton")) {
+                        createScreenshotToClipboard(uiData);
+                    }
                 }
                 //Call all the different modal popups that can appear
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -1899,5 +1912,91 @@ namespace TTM {
                 }
             }
         } while (restoredTalentPositions > 0);
+    }
+
+    //I have no idea what I'm doing
+    void createScreenshotToClipboard(UIData& uiData) {
+
+        HWND activeWindow = GetActiveWindow();
+
+        RECT ttmWindowRect;
+        GetClientRect(activeWindow, &ttmWindowRect);
+
+        // copy screen to bitmap
+        HDC     hScreen = GetDC(NULL);
+        HDC     hDC = CreateCompatibleDC(hScreen);
+        HBITMAP hBitmap = CreateCompatibleBitmap(hScreen, ttmWindowRect.right - ttmWindowRect.left, ttmWindowRect.bottom - ttmWindowRect.top);
+        HGDIOBJ old_obj = SelectObject(hDC, hBitmap);
+        PrintWindow(activeWindow, hDC, PW_CLIENTONLY);
+
+        // Get the BITMAP from the HBITMAP
+        BITMAP bmpScreen;
+        GetObject(hBitmap, sizeof(BITMAP), &bmpScreen);
+
+        BITMAPINFOHEADER   bi;
+
+        bi.biSize = sizeof(BITMAPINFOHEADER);
+        bi.biWidth = bmpScreen.bmWidth;
+        bi.biHeight = bmpScreen.bmHeight;
+        bi.biPlanes = 1;
+        bi.biBitCount = 32;
+        bi.biCompression = BI_RGB;
+        bi.biSizeImage = 0;
+        bi.biXPelsPerMeter = 0;
+        bi.biYPelsPerMeter = 0;
+        bi.biClrUsed = 0;
+        bi.biClrImportant = 0;
+
+        DWORD dwBmpSize = ((bmpScreen.bmWidth * bi.biBitCount + 31) / 32) * 4 * bmpScreen.bmHeight;
+
+        // Starting with 32-bit Windows, GlobalAlloc and LocalAlloc are implemented as wrapper functions that 
+        // call HeapAlloc using a handle to the process's default heap. Therefore, GlobalAlloc and LocalAlloc 
+        // have greater overhead than HeapAlloc.
+        HANDLE hDIB = GlobalAlloc(GHND, dwBmpSize);
+        if (hDIB == 0) {
+            return;
+        }
+        char* lpbitmap = (char*)GlobalLock(hDIB);
+
+        // Gets the "bits" from the bitmap and copies them into a buffer 
+        // which is pointed to by lpbitmap.
+        GetDIBits(hDC, hBitmap, 0,
+            (UINT)bmpScreen.bmHeight,
+            lpbitmap,
+            (BITMAPINFO*)&bi, DIB_RGB_COLORS);
+
+        
+        int height = static_cast<int>(uiData.treeEditorTreeWindowInnerRect.GetHeight());
+        int width = static_cast<int>(uiData.treeEditorTreeWindowInnerRect.GetWidth());
+        int x0 = static_cast<int>(uiData.treeEditorTreeWindowInnerRect.Min.x);
+        int y0 = bi.biHeight - height - static_cast<int>(uiData.treeEditorTreeWindowInnerRect.Min.y);
+        char* cropBitmap = (char*)malloc(width * height * 4);
+        if (cropBitmap == NULL) {
+            return;
+        }
+        for (int y = y0; y < height + y0; y++) {
+            for (int x4 = 4 * x0; x4 < 4 * width + 4 * x0; x4++) {
+                *(cropBitmap + (y - y0) * 4 * width + (x4 - 4 * x0)) = *(lpbitmap + (height + 2 * y0 - 1 - y) * 4 * bi.biWidth + x4);
+            }
+        }
+        
+
+        HBITMAP newHBitmap = CreateBitmap(width, height, 1, 32, cropBitmap);
+
+        // save bitmap to clipboard
+        OpenClipboard(NULL);
+        EmptyClipboard();
+        SetClipboardData(CF_BITMAP, newHBitmap);
+        CloseClipboard();
+
+        // clean up
+        SelectObject(hDC, old_obj);
+        DeleteDC(hDC);
+        ReleaseDC(NULL, hScreen);
+        DeleteObject(hBitmap);
+
+        //Unlock and Free the DIB from the heap
+        GlobalUnlock(hDIB);
+        GlobalFree(hDIB);
     }
 }
