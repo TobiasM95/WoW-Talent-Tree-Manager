@@ -17,6 +17,7 @@
 
     Contact via https://github.com/TobiasM95/WoW-Talent-Tree-Manager/discussions or BuffMePls#2973 on Discord
 */
+//#define DEBUGREMOTE
 #pragma warning(disable : 4996)
 
 #include "Updater.h"
@@ -55,7 +56,11 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
+#ifdef DEBUGREMOTE
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/resource_versions.txt");
+#else
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/resource_versions.txt");
+#endif
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -171,7 +176,11 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
+#ifdef DEBUGREMOTE
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/resource_versions.txt");
+#else
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/resource_versions.txt");
+#endif
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -213,7 +222,11 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
+#ifdef DEBUGREMOTE
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/Engine/resources/presets.txt");
+#else
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/presets.txt");
+#endif
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -238,7 +251,11 @@ namespace TTM {
         CURLcode res;
         curl = curl_easy_init();
         if (curl) {
+#ifdef DEBUGREMOTE
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/icons/icons_packed_meta.txt");
+#else
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/icons_packed_meta.txt");
+#endif
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &metaDataRaw);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
@@ -265,7 +282,11 @@ namespace TTM {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
             }
+#ifdef DEBUGREMOTE
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/icons/icons_packed.png");
+#else
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/icons_packed.png");
+#endif
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
