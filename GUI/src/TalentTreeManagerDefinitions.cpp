@@ -594,17 +594,6 @@ namespace TTM {
                     pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
                     pos.y + talentSize * 0.5f + windowPos.y - scroll.y
                 ),
-                talentSize * 0.65f,
-                ImColor(colors[ImGuiCol_WindowBg]),
-                8,
-                10 * uiData.treeEditorZoomFactor,
-                IM_PI / 8.0f
-            );
-            drawList->AddNgonRotated(
-                ImVec2(
-                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
-                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
-                ),
                 talentSize * 0.65f - 3.5f * uiData.treeEditorZoomFactor,
                 ImColor(borderCol),
                 8,
@@ -618,16 +607,6 @@ namespace TTM {
                     pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
                     pos.y + talentSize * 0.5f + windowPos.y - scroll.y
                 ),
-                talentSize * 0.62f,
-                ImColor(colors[ImGuiCol_WindowBg]),
-                0,
-                10 * uiData.treeEditorZoomFactor
-            );
-            drawList->AddCircle(
-                ImVec2(
-                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
-                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
-                ),
                 talentSize * 0.62f - 3.5f * uiData.treeEditorZoomFactor,
                 ImColor(borderCol),
                 0,
@@ -635,20 +614,6 @@ namespace TTM {
             );
         }break;
         case Engine::TalentType::ACTIVE: {
-            drawList->AddRect(
-                ImVec2(
-                    pos.x + windowPos.x - scroll.x,
-                    pos.y + windowPos.y - scroll.y
-                ),
-                ImVec2(
-                    pos.x + talentSize + windowPos.x - scroll.x,
-                    pos.y + talentSize + windowPos.y - scroll.y
-                ),
-                ImColor(colors[ImGuiCol_WindowBg]),
-                0,
-                0,
-                4 * uiData.treeEditorZoomFactor
-            );
             drawList->AddRect(
                 ImVec2(
                     pos.x + windowPos.x - scroll.x,
@@ -871,7 +836,7 @@ namespace TTM {
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
         }
         ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
-        ImVec2 textSize = ImGui::CalcTextSize("X/X");
+        ImVec2 textSize = ImGui::CalcTextSize("9/9");
         drawList->AddRectFilled(
             ImVec2(
                 bottomRight.x - 0.65f * textSize.x - 0.05f * talentSize,
