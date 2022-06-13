@@ -1251,6 +1251,20 @@ namespace TTM {
             }
         }
         ImGui::End();
+        if (ImGui::Begin("SearchWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+            ImGui::Text("Search:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+            if (ImGui::InputText("##loadoutSolverSearchInput", &uiData.talentSearchString, ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters)) {
+                //update the filteredTalentList
+                uiData.searchedTalents.clear();
+
+                Engine::filterTalentSearch(uiData.talentSearchString, uiData.searchedTalents, talentTreeCollection.activeTree());
+            }
+            ImGui::SameLine();
+            ImGui::TextUnformatted("(also accepts \"active\", \"passive\", \"switch\")");
+        }
+        ImGui::End();
     }
 
     void validateAndInsertTalent(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, Engine::Talent_s> comboIndexTalentMap) {
@@ -1660,8 +1674,16 @@ namespace TTM {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && uiData.treeEditorSelectedTalent && uiData.treeEditorSelectedTalent->index == talent.second->index) {
+            if (uiData.enableGlow && uiData.talentSearchString == "" && uiData.treeEditorSelectedTalent && uiData.treeEditorSelectedTalent->index == talent.second->index) {
                 ImGui::Image(uiData.redIconGlow.texture, ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height));
+            }
+            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                ImGui::Image(
+                    uiData.blueIconGlow.texture,
+                    ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);

@@ -498,6 +498,10 @@ namespace TTM {
                             talentTreeCollection.activeTreeIndex = n;
                             uiData.treeEditorSelectedTalent = nullptr;
                             loadActiveIcons(uiData, talentTreeCollection);
+
+                            //clear the talent search field and results
+                            uiData.talentSearchString = "";
+                            uiData.searchedTalents.clear();
                         }
                     }
                     RenderTreeViewTabs(uiData, talentTreeCollection);
@@ -600,7 +604,7 @@ namespace TTM {
     }
 
     void SubmitDockSpace() {
-        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoResizeX;
+        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_NoResize;
 
         ImGuiID dockspace_id = ImGui::GetID("WorkAreaDockspace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
@@ -613,11 +617,13 @@ namespace TTM {
             ImGui::DockBuilderSetNodeSize(dockspace_id, ImGui::GetMainViewport()->Size);//ImGui::GetCurrentWindow()->Size);
 
             ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
-            ImGuiID dock_id_left, dock_id_right;
+            ImGuiID dock_id_left, dock_id_right, dock_id_bottom_left;
             ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.40f, &dock_id_right, &dock_id_left);
+            ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.045f, &dock_id_bottom_left, &dock_id_left);
 
             ImGui::DockBuilderDockWindow("TreeWindow", dock_id_left);
             ImGui::DockBuilderDockWindow("SettingsWindow", dock_id_right);
+            ImGui::DockBuilderDockWindow("SearchWindow", dock_id_bottom_left);
             ImGui::DockBuilderFinish(dockspace_id);
         }
     }

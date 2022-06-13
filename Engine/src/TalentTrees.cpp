@@ -2017,4 +2017,52 @@ namespace Engine {
         }
         return pairs;
     }
+
+    void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree) {
+
+        std::string formattedSearch;
+        formattedSearch.reserve(search.length());
+        for (auto& ch : search) {
+            if (ch == '.') {
+                break;
+            }
+            if (ch >= 'A' && ch <= 'Z') {
+                formattedSearch += static_cast<char>(ch + 32);
+            }
+            if (ch >= 'a' && ch <= 'z') {
+                formattedSearch += ch;
+            }
+        }
+
+        for (auto& talent : tree.orderedTalents) {
+            std::string formattedTalentName;
+            formattedTalentName.reserve(talent.second->name.length() + talent.second->nameSwitch.length());
+            for (auto& ch : talent.second->name + talent.second->nameSwitch) {
+                if (ch == '.') {
+                    break;
+                }
+                if (ch >= 'A' && ch <= 'Z') {
+                    formattedTalentName += static_cast<char>(ch + 32);
+                }
+                if (ch >= 'a' && ch <= 'z') {
+                    formattedTalentName += ch;
+                }
+            }
+            bool typeMatched = false;
+            switch (talent.second->type) {
+            case TalentType::ACTIVE: {
+                typeMatched = std::string("active").find(formattedSearch) != std::string::npos;
+            }break;
+            case TalentType::PASSIVE: {
+                typeMatched = std::string("passive").find(formattedSearch) != std::string::npos;
+            }break;
+            case TalentType::SWITCH: {
+                typeMatched = std::string("switch").find(formattedSearch) != std::string::npos;
+            }break;
+            }
+            if (formattedTalentName.find(formattedSearch) != std::string::npos || typeMatched) {
+                filteredTalents.push_back(talent.second);
+            }
+        }
+    }
 }

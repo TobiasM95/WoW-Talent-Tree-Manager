@@ -92,6 +92,9 @@ namespace TTM {
 		TextureInfo blueIconGlow;
 		bool enableGlow = true;
 
+		std::string talentSearchString = "";
+		Engine::TalentVec searchedTalents;
+
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
 		std::string updateMessage;

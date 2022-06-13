@@ -177,7 +177,7 @@ namespace TTM {
         ImGui::End();
         ImGui::PopStyleVar();
         if (talentTreeCollection.activeTreeData().isTreeSolveProcessed) {
-            if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
+            if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
                 switch (uiData.loadoutSolverPage) {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
@@ -288,6 +288,21 @@ namespace TTM {
                     }
                 }break;
                 }
+            }
+            if (ImGui::Begin("SearchWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
+                ImGui::Text("Search:");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+                if (ImGui::InputText("##loadoutSolverSearchInput", &uiData.talentSearchString, ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters)) {
+                    //update the filteredTalentList
+                    uiData.searchedTalents.clear();
+
+                    Engine::filterTalentSearch(uiData.talentSearchString, uiData.searchedTalents, talentTreeCollection.activeTree());
+                }
+                ImGui::SameLine();
+                ImGui::TextUnformatted("(also accepts \"active\", \"passive\", \"switch\")");
+            }
+            ImGui::End();
             ImVec2 center = ImGui::GetMainViewport()->GetCenter();
             ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
             if (ImGui::BeginPopupModal("Add to loadout successfull", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -410,7 +425,7 @@ namespace TTM {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow) {
+            if (uiData.enableGlow && uiData.talentSearchString == "") {
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == talent.second->maxPoints) {
                     ImGui::Image(
                         uiData.goldIconGlow.texture,
@@ -435,6 +450,14 @@ namespace TTM {
                         ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
                     );
                 }
+            }
+            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                ImGui::Image(
+                    uiData.blueIconGlow.texture,
+                    ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
