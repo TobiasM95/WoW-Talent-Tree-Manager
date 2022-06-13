@@ -223,6 +223,8 @@ namespace TTM {
                     Presets::SET_GUI_STYLE(Presets::STYLES::LIGHT_MODE);
                     uiData.style = Presets::STYLES::LIGHT_MODE;
                 }
+                ImGui::Separator();
+                ImGui::MenuItem("Show icon glow", NULL, &uiData.enableGlow);
 				ImGui::EndMenu();
 			}
             if (ImGui::BeginMenu("Help")) {
@@ -724,6 +726,12 @@ namespace TTM {
         case Presets::STYLES::PATH_OF_TALENT_TREE: {workspace += "PATH_OF_TALENT_TREE\n"; }break;
         case Presets::STYLES::LIGHT_MODE: {workspace += "LIGHT_MODE\n"; }break;
         }
+        if (uiData.enableGlow) {
+            workspace += "GLOW=1\n";
+        }
+        else {
+            workspace += "GLOW=0\n";
+        }
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
         }
@@ -739,7 +747,9 @@ namespace TTM {
         }
         std::ifstream workFile(appPath / "workspace.txt");
         std::string line;
+        //TTMTODO: this needs major reworks down the line
         bool firstLine = false;
+        bool secondLine = false;
         while (std::getline(workFile, line))
         {
             if (!firstLine) {
@@ -757,6 +767,13 @@ namespace TTM {
                     uiData.style = Presets::STYLES::LIGHT_MODE;
                 }
                 continue;
+            }
+            else if (!secondLine) {
+                secondLine = true;
+                if (line.substr(0, 4) == "GLOW") {
+                    uiData.enableGlow = line.substr(5, 1) == "1";
+                    continue;
+                }
             }
             if (line == "") {
                 break;

@@ -410,29 +410,31 @@ namespace TTM {
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == talent.second->maxPoints) {
-                ImGui::Image(
-                    uiData.goldIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] > 0) {
-                ImGui::Image(
-                    uiData.greenIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] < 0) {
-                ImGui::Image(
-                    uiData.redIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
+            if (uiData.enableGlow) {
+                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == talent.second->maxPoints) {
+                    ImGui::Image(
+                        uiData.goldIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] > 0) {
+                    ImGui::Image(
+                        uiData.greenIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] < 0) {
+                    ImGui::Image(
+                        uiData.redIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);

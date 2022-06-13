@@ -379,21 +379,23 @@ namespace TTM {
                 }
             }
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (talent.second->points == talent.second->maxPoints) {
-                ImGui::Image(
-                    uiData.goldIconGlow.texture, 
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
-                    ImVec2(0,0), ImVec2(1,1),
-                    ImVec4(1,1,1,1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
-            else if (talent.second->points > 0) {
-                ImGui::Image(
-                    uiData.greenIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
+            if (uiData.enableGlow) {
+                if (talent.second->points == talent.second->maxPoints) {
+                    ImGui::Image(
+                        uiData.goldIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talent.second->points > 0) {
+                    ImGui::Image(
+                        uiData.greenIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
