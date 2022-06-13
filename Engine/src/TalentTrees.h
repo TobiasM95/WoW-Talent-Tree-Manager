@@ -198,4 +198,7 @@ namespace Engine {
     bool repairTreeStringFormat(std::string& treeRep);
     bool repairToV121(std::string& treeRep);
     bool repairToV120(std::string& treeRep);
+
+    std::vector<double> getSimilarityRanking(std::string formattedTalentName, std::vector<std::string> formattedIconNames);
+    std::vector<std::string> createWordLetterPairs(std::string name);
 }
