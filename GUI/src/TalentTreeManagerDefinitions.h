@@ -166,6 +166,7 @@ namespace TTM {
 		LoadoutEditPage loadoutEditPage = LoadoutEditPage::LoadoutInformation;
 
 		int loadoutEditorRightClickIndex = 0;
+		int loadoutEditorMiddleClickIndex = 0;
 
 		std::string loadoutEditorExportActiveSkillsetString;
 		std::string loadoutEditorExportAllSkillsetsString;

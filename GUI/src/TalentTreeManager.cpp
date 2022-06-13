@@ -312,7 +312,7 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("The loadout editor allows you to create one or multiple skillsets inside the loadout, give it a description and import/export one or all skillsets.");
             ImGui::Bullet();
-            ImGui::Text("The left side shows the tree and all currently selected talents (and for switch talents the selected talent). Dragging the window around as well as zooming works the same way as the talent tree editor. You can select talents just like ingame by clicking on the talent. By pressing left Ctrl and clicking on a switch talent you can change the variant.");
+            ImGui::Text("The left side shows the tree and all currently selected talents (and for switch talents the selected talent). Dragging the window around as well as zooming works the same way as the talent tree editor. You can select talents just like ingame by clicking on the talent. By either pressing left Ctrl and clicking on a switch talent or using the middle mouse button you can change the variant.");
             ImGui::Bullet();
             ImGui::Text("In the \nEdit Skillsets\n page you can switch between skillsets, add/delete skillsets and importing/exporting a single skillset or all skillsets. This will only share the skillset, i.e. the assigned talent points, but not the loadout description. For this, you can share the full talent tree.");
             ImGui::Spacing();
