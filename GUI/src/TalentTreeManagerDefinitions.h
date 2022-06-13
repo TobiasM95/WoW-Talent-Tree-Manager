@@ -232,9 +232,9 @@ namespace TTM {
 
 	void refreshIconList(UIData& uiData);
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
-	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first);
+	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
 	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight);
-	TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName);
+	TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType = Engine::TalentType::ACTIVE);
 
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,
