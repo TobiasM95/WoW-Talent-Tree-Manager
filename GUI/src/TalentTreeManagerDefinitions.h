@@ -89,6 +89,7 @@ namespace TTM {
 		TextureInfo redIconGlow;
 		TextureInfo greenIconGlow;
 		TextureInfo goldIconGlow;
+		TextureInfo blueIconGlow;
 
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
