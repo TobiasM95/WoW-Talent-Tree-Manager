@@ -448,6 +448,9 @@ namespace TTM {
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
                 uiData.loadoutEditorRightClickIndex = talent.first;
             }
+            if (ImGui::IsItemClicked(ImGuiMouseButton_Middle)) {
+                uiData.loadoutEditorMiddleClickIndex = talent.first;
+            }
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && talent.first == uiData.loadoutEditorRightClickIndex) {
                 if (talent.second->points > 0) {
                     talent.second->points -= 1;
@@ -468,6 +471,14 @@ namespace TTM {
                             talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
                         }
                         talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
+                    }
+                }
+            }
+            if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Middle) && talent.first == uiData.loadoutEditorMiddleClickIndex) {
+                if (talent.second->type == Engine::TalentType::SWITCH) {
+                    talent.second->talentSwitch = talent.second->talentSwitch < 2 ? 2 : 1;
+                    if (talent.second->points > 0) {
+                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
                     }
                 }
             }
