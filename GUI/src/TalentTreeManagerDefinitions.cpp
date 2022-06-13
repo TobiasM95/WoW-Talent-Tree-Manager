@@ -81,8 +81,8 @@ namespace TTM {
         std::string iconPath(uiData.defaultIconPath.string());
         bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
         bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
-        bool greenGlowSuccess = LoadRedIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
-        bool goldGlowSuccess = LoadRedIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
+        bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
+        bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
         if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess)) {
             //TTMNOTE: this should not happen anymore
             throw std::runtime_error("Cannot create default icon!");
