@@ -1539,12 +1539,23 @@ namespace Engine {
             }
 
             for (int i = 0; i < formattedIconNames.size(); i++) {
-                size_t maxLength = 15;
+                //much faster but worse in some edge cases
+                /*size_t maxLength = 15;
                 maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
                 maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
                 if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {
                     talent.second->iconName.first = iconNames[i];
+                }*/
+                std::vector<double> similarityRanking = getSimilarityRanking(formattedTalentName, formattedIconNames);
+                int bestMatch = 0;
+                double bestRanking = -1;
+                for (i = 0; i < similarityRanking.size(); i++) {
+                    if (similarityRanking[i] > bestRanking) {
+                        bestMatch = i;
+                        bestRanking = similarityRanking[i];
+                    }
                 }
+                talent.second->iconName.first = iconNames[bestMatch];
             }
 
 
@@ -1562,12 +1573,23 @@ namespace Engine {
                 }
 
                 for (int i = 0; i < formattedIconNames.size(); i++) {
-                    size_t maxLength = 15;
+                    //much faster but worse in some edge cases
+                    /*size_t maxLength = 15;
                     maxLength = formattedIconNames[i].length() < maxLength ? formattedIconNames[i].length() : maxLength;
                     maxLength = formattedTalentName.length() < maxLength ? formattedTalentName.length() : maxLength;
                     if (formattedIconNames[i].substr(0, maxLength) == formattedTalentName.substr(0, maxLength)) {
                         talent.second->iconName.second = iconNames[i];
+                    }*/
+                    std::vector<double> similarityRanking = getSimilarityRanking(formattedTalentName, formattedIconNames);
+                    int bestMatch = 0;
+                    double bestRanking = -1;
+                    for (i = 0; i < similarityRanking.size(); i++) {
+                        if (similarityRanking[i] > bestRanking) {
+                            bestMatch = i;
+                            bestRanking = similarityRanking[i];
+                        }
                     }
+                    talent.second->iconName.second = iconNames[bestMatch];
                 }
             }
         }
@@ -1958,5 +1980,41 @@ namespace Engine {
         }
 
         return true;
+    }
+
+    std::vector<double> getSimilarityRanking(std::string formattedTalentName, std::vector<std::string> formattedIconNames) {
+        std::vector<double> ranking;
+        for (auto& iconName : formattedIconNames) {
+            std::vector<std::string> talentNamePairs = createWordLetterPairs(formattedTalentName);
+            std::vector<std::string> iconNamePairs = createWordLetterPairs(iconName);
+
+            size_t pairIntersection = 0;
+            size_t pairUnion = talentNamePairs.size()  + iconNamePairs.size();
+
+            for (int i = 0; i < talentNamePairs.size(); i++)
+            {
+                for (int j = 0; j < iconNamePairs.size(); j++)
+                {
+                    if (talentNamePairs[i] == iconNamePairs[j])
+                    {
+                        pairIntersection++;
+                        iconNamePairs.erase(iconNamePairs.begin() + j);
+
+                        break;
+                    }
+                }
+            }
+
+            ranking.push_back((2.0 * pairIntersection) / pairUnion);
+        }
+        return ranking;
+    }
+
+    std::vector<std::string> createWordLetterPairs(std::string name) {
+        std::vector<std::string> pairs;
+        for (int i = 0; i < name.length() - 1; i++) {
+            pairs.push_back(name.substr(i, 2));
+        }
+        return pairs;
     }
 }
