@@ -33,14 +33,41 @@
 
 namespace TTM {
     // Simple helper function to load an image into a DX11 texture with common settings
-    bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
+    bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice, Engine::TalentType talentType)
     {
+        const unsigned char* talentMask = nullptr;
+        int maskWidth = 0;
+        int maskHeight = 0;
+        switch (talentType) {
+        case Engine::TalentType::ACTIVE: {
+            talentMask = ACTIVE_TALENT_MASK_DATA; 
+            maskWidth = ACTIVE_TALENT_MASK_SIZE_W;
+            maskHeight = ACTIVE_TALENT_MASK_SIZE_H;
+        } break;
+        case Engine::TalentType::PASSIVE: {
+            talentMask = PASSIVE_TALENT_MASK_DATA;
+            maskWidth = PASSIVE_TALENT_MASK_SIZE_W;
+            maskHeight = PASSIVE_TALENT_MASK_SIZE_H;
+        } break;
+        case Engine::TalentType::SWITCH: {
+            talentMask = SWITCH_TALENT_MASK_DATA;
+            maskWidth = SWITCH_TALENT_MASK_SIZE_W;
+            maskHeight = SWITCH_TALENT_MASK_SIZE_H;
+        } break;
+        }
+
         // Load from disk into a raw RGBA buffer
         int image_width = 0;
         int image_height = 0;
         unsigned char* image_data = stbi_load(filename, &image_width, &image_height, NULL, 4);
         if (image_data == NULL)
             return false;
+
+        if (maskWidth == image_width && maskHeight == image_height) {
+            for (int i = 0; i < maskWidth * maskHeight; i++) {
+                *(image_data + 4 * i + 3) = *(talentMask + 4 * i + 3);
+            }
+        }
 
         // Create texture
         D3D11_TEXTURE2D_DESC desc;
@@ -81,8 +108,29 @@ namespace TTM {
         return true;
     }
 
-    bool LoadDefaultTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
+    bool LoadDefaultTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice, Engine::TalentType talentType)
     {
+        const unsigned char* talentMask = nullptr;
+        int maskWidth = 0;
+        int maskHeight = 0;
+        switch (talentType) {
+        case Engine::TalentType::ACTIVE: {
+            talentMask = ACTIVE_TALENT_MASK_DATA;
+            maskWidth = ACTIVE_TALENT_MASK_SIZE_W;
+            maskHeight = ACTIVE_TALENT_MASK_SIZE_H;
+        } break;
+        case Engine::TalentType::PASSIVE: {
+            talentMask = PASSIVE_TALENT_MASK_DATA;
+            maskWidth = PASSIVE_TALENT_MASK_SIZE_W;
+            maskHeight = PASSIVE_TALENT_MASK_SIZE_H;
+        } break;
+        case Engine::TalentType::SWITCH: {
+            talentMask = SWITCH_TALENT_MASK_DATA;
+            maskWidth = SWITCH_TALENT_MASK_SIZE_W;
+            maskHeight = SWITCH_TALENT_MASK_SIZE_H;
+        } break;
+        }
+
         // Load from disk into a raw RGBA buffer
         int image_width = DEFAULT_ICON_SIZE_W;
         int image_height = DEFAULT_ICON_SIZE_H;
@@ -91,6 +139,12 @@ namespace TTM {
             return false;
         for (int i = 0; i < 4 * image_width * image_height; i++) {
             *(image_data + i) = *(DEFAULT_ICON_DATA + i);
+        }
+
+        if (maskWidth == image_width && maskHeight == image_height) {
+            for (int i = 0; i < maskWidth * maskHeight; i++) {
+                *(image_data + 4 * i + 3) = *(talentMask + 4 * i + 3);
+            }
         }
 
         // Create texture
@@ -294,6 +348,10 @@ namespace TTM {
         ID3D11Device* g_pd3dDevice
     )
     {
+        const unsigned char* talentMask = SWITCH_TALENT_MASK_DATA;
+        int maskWidth = SWITCH_TALENT_MASK_SIZE_W;
+        int maskHeight = SWITCH_TALENT_MASK_SIZE_H;
+
         // Load from disk into a raw RGBA buffer
         int image_width_1 = 0;
         int image_height_1 = 0;
@@ -329,6 +387,12 @@ namespace TTM {
                 *(split_image_data + 4 * i + 3) = *(image_data_2 + 4 * i + 3);
             }
             
+        }
+
+        if (maskWidth == image_width_1 && maskHeight == image_height_1) {
+            for (int i = 0; i < maskWidth * maskHeight; i++) {
+                *(split_image_data + 4 * i + 3) = *(talentMask + 4 * i + 3);
+            }
         }
 
         // Create texture

@@ -1668,6 +1668,9 @@ namespace TTM {
 
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID(std::to_string(talent.second->index).c_str());
             TextureInfo iconContent;
             if (talent.second->type == Engine::TalentType::SWITCH) {
@@ -1720,7 +1723,7 @@ namespace TTM {
                 }
             }
             ImGui::PopID();
-            ImGui::PopStyleColor(2);
+            ImGui::PopStyleColor(5);
             drawTreeEditorShapeAroundTalent(
                 talent.second,
                 drawList,

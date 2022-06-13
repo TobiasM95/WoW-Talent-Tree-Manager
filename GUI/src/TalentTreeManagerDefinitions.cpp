@@ -79,7 +79,7 @@ namespace TTM {
         int defaultImageHeight = 0;
         ID3D11ShaderResourceView* defaultTexture = NULL;
         std::string iconPath(uiData.defaultIconPath.string());
-        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
         bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
         bool greenGlowSuccess = LoadRedIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
         bool goldGlowSuccess = LoadRedIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
@@ -90,8 +90,8 @@ namespace TTM {
 
         //load individual icons or replace with default texture if error
         for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
-            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultImageWidth, defaultImageHeight, true);
-            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultImageWidth, defaultImageHeight, false);
+            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultImageWidth, defaultImageHeight, true, talent.second->type);
+            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultImageWidth, defaultImageHeight, false, talent.second->type);
             if (talent.second->type == Engine::TalentType::SWITCH) {
                 loadSplitIcon(uiData, talent.second, defaultTexture, defaultImageWidth, defaultImageHeight);
             }
@@ -99,14 +99,14 @@ namespace TTM {
         uiData.loadedIconTreeIndex = talentTreeCollection.activeTreeIndex;
     }
 
-    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first) {
+    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
         std::string path;
         if (uiData.iconPathMap.count(iconName)) {
             path = uiData.iconPathMap[iconName].string();
-            bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+            bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice, talentType);
             if (!ret) {
                 TextureInfo textureInfo;
                 textureInfo.texture = defaultTexture;
@@ -181,7 +181,7 @@ namespace TTM {
         }
     }
 
-    TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName) {
+    TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType) {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
@@ -192,7 +192,7 @@ namespace TTM {
         else {
             path = uiData.defaultIconPath.string();
         }
-        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice, talentType);
         TextureInfo textureInfo;
         if (!ret) {
             //load default texture first
@@ -200,7 +200,7 @@ namespace TTM {
             int defaultImageHeight = 0;
             ID3D11ShaderResourceView* defaultTexture = NULL;
             std::string iconPath(uiData.defaultIconPath.string());
-            bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice);
+            bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, talentType);
             if (!ret) {
                 //TTMNOTE: This should not happen anymore
                 throw std::runtime_error("Cannot create default icon!");
