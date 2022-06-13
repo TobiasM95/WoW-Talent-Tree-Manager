@@ -380,17 +380,6 @@ namespace TTM {
                     pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
                     pos.y + talentSize * 0.5f + windowPos.y - scroll.y
                 ),
-                talentSize * 0.65f,
-                ImColor(colors[ImGuiCol_WindowBg]),
-                8,
-                10 * uiData.treeEditorZoomFactor,
-                IM_PI / 8.0f
-            );
-            drawList->AddNgonRotated(
-                ImVec2(
-                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
-                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
-                ),
                 talentSize * 0.65f - 3.5f * uiData.treeEditorZoomFactor,
                 ImColor(borderCol),
                 8,
@@ -399,16 +388,6 @@ namespace TTM {
             );
         }break;
         case Engine::TalentType::PASSIVE: {
-            drawList->AddCircle(
-                ImVec2(
-                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
-                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
-                ),
-                talentSize * 0.62f,
-                ImColor(colors[ImGuiCol_WindowBg]),
-                0,
-                10 * uiData.treeEditorZoomFactor
-            );
             drawList->AddCircle(
                 ImVec2(
                     pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
@@ -762,17 +741,6 @@ namespace TTM {
                     pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
                     pos.y + talentSize * 0.5f + windowPos.y - scroll.y
                 ),
-                talentSize * 0.65f,
-                ImColor(colors[ImGuiCol_WindowBg]),
-                8,
-                10 * uiData.treeEditorZoomFactor,
-                IM_PI / 8.0f
-            );
-            drawList->AddNgonRotated(
-                ImVec2(
-                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
-                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
-                ),
                 talentSize * 0.65f - 3.5f * uiData.treeEditorZoomFactor,
                 ImColor(borderCol),
                 8,
@@ -781,16 +749,6 @@ namespace TTM {
             );
         }break;
         case Engine::TalentType::PASSIVE: {
-            drawList->AddCircle(
-                ImVec2(
-                    pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
-                    pos.y + talentSize * 0.5f + windowPos.y - scroll.y
-                ),
-                talentSize * 0.62f,
-                ImColor(colors[ImGuiCol_WindowBg]),
-                0,
-                10 * uiData.treeEditorZoomFactor
-            );
             drawList->AddCircle(
                 ImVec2(
                     pos.x + talentSize * 0.5f + windowPos.x - scroll.x,
