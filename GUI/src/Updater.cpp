@@ -17,7 +17,7 @@
 
     Contact via https://github.com/TobiasM95/WoW-Talent-Tree-Manager/discussions or BuffMePls#2973 on Discord
 */
-#define DEBUGREMOTE
+//#define DEBUGREMOTE
 #pragma warning(disable : 4996)
 
 #include "Updater.h"
