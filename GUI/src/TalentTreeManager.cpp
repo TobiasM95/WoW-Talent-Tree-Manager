@@ -182,8 +182,9 @@ namespace TTM {
             else if (uiData.updateStatus == UpdateStatus::UPDATEINPROGRESS) {
                 updateResources(uiData, talentTreeCollection);
                 loadActiveIcons(uiData, talentTreeCollection, true);
-                if (talentTreeCollection.activeTreeIndex >= 0 && talentTreeCollection.activeTreeIndex < talentTreeCollection.trees.size()) {
-                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeIndex);
+                if (talentTreeCollection.activeTreeIndex >= 0 && talentTreeCollection.activeTreeIndex < talentTreeCollection.trees.size()
+                    && talentTreeCollection.activeTree().loadout.size() > 0) {
+                    Engine::activateSkillset(talentTreeCollection.activeTree(), talentTreeCollection.activeTree().activeSkillsetIndex);
                 }
             }
         }
