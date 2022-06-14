@@ -248,9 +248,7 @@ namespace TTM {
                 ImGui::EndMenu();
             }
             if (uiData.menuBarUpdateLabel.size() > 0) {
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.f, 0.f, 1.f));
-                ImGui::Text(uiData.menuBarUpdateLabel.c_str());
-                ImGui::PopStyleColor();
+                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), uiData.menuBarUpdateLabel.c_str());
             }
 			ImGui::EndMainMenuBar();
         }
@@ -270,7 +268,7 @@ namespace TTM {
         *close = true;
         if (ImGui::BeginPopupModal("About##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
         {
-            ImGui::Text("TTM Version: %s", Presets::TTM_VERSION);
+            ImGui::Text("TTM Version: %s", Presets::TTM_VERSION.c_str());
             ImGui::Text("Feedback and suggestions: BuffMePls#2973 (Discord)");
             ImGui::Text("Github: https://github.com/TobiasM95/WoW-Talent-Tree-Manager");
             ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
