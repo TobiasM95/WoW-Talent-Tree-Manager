@@ -163,9 +163,6 @@ namespace TTM {
 		ImVec2 treeEditorMousePos;
 		ImVec2 treeEditorRelWorldMousePos;
 
-		//This is updated each frame for screenshot taking
-		ImRect treeEditorTreeWindowInnerRect;
-
 		//############# LOADOUT EDITOR VARIABLES ########################
 		bool isLoadoutInitValidated = false;
 		LoadoutEditPage loadoutEditPage = LoadoutEditPage::LoadoutInformation;

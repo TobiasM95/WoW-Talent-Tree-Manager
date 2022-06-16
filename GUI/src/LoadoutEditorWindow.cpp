@@ -19,6 +19,7 @@
 */
 
 #include "LoadoutEditorWindow.h"
+#include "TalentTreeEditorWindow.h" // for screenshot TTMTODO: put screenshot function somewhere else
 #include "TTMGUIPresets.h"
 
 namespace TTM {
@@ -304,6 +305,11 @@ namespace TTM {
                         uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
                     }
                 }
+
+                ImGui::Text("Screenshot of loadout:");
+                if (ImGui::Button("To clipboard##treeEditorScreenshotExportTalentTreeButton")) {
+                    createScreenshotToClipboard(ImGui::FindWindowByName("TreeWindow")->WorkRect);
+                }
                 ImGui::Separator();
                 ImGui::Text("Hint: Loadouts are stored in trees. If you save a tree, this will include the loadout!");
             }break;
@@ -350,7 +356,7 @@ namespace TTM {
         }
         else if (tree.activeSkillsetIndex < 0) {
             //this should in theory not happen but failsave never hurts
-            tree.activeSkillsetIndex = 0;
+            Engine::activateSkillset(tree, 0);
         }
 
         //TTMTODO: Change button style layout to render base layout? This is messy af

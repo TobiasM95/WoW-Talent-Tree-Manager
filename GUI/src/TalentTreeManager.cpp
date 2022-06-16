@@ -495,6 +495,7 @@ namespace TTM {
                     if (open) {
                         if (talentTreeCollection.activeTreeIndex != n) {
                             talentTreeCollection.activeTreeIndex = n;
+                            uiData.isLoadoutInitValidated = false;
                             uiData.treeEditorSelectedTalent = nullptr;
                             loadActiveIcons(uiData, talentTreeCollection);
 

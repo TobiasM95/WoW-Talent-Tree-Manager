@@ -32,5 +32,5 @@ namespace TTM {
 		ImVec2 mouseClickedPos,
 		ImVec2 deltaMouseTot,
 		ImVec2 buttonPos);
-	void createScreenshotToClipboard(UIData& uiData);
+	void createScreenshotToClipboard(ImRect cropRect);
 }
