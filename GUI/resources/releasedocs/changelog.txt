@@ -1,3 +1,7 @@
+v. 1.3.1:
+- Skillset display bugfixes
+- Extended screenshot functionality
+
 v. 1.3.0:
 - Stability improvements
 - GUI QoL improvements
