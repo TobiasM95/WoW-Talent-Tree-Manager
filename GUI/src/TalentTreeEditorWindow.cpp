@@ -176,7 +176,6 @@ namespace TTM {
 
             ImGui::EndChild();
         }
-        uiData.treeEditorTreeWindowInnerRect = ImGui::GetCurrentWindow()->WorkRect;
         ImGui::End();
         ImGui::PopStyleVar();
         if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
@@ -1101,7 +1100,7 @@ namespace TTM {
 
                     ImGui::Text("Screenshot of tree window:");
                     if (ImGui::Button("To clipboard##treeEditorScreenshotExportTalentTreeButton")) {
-                        createScreenshotToClipboard(uiData);
+                        createScreenshotToClipboard(ImGui::FindWindowByName("TreeWindow")->WorkRect);
                     }
                 }
                 //Call all the different modal popups that can appear
@@ -1641,8 +1640,8 @@ namespace TTM {
                 std::vector<std::string> treeComponents = Engine::splitString(line, ";");
                 if (treeComponents.size() > 0) {
                     std::vector<std::string> treeInfo = Engine::splitString(treeComponents[0], ":");
-                    if (treeInfo.size() == 7) {
-                        treeName = treeInfo[2];
+                    if (treeInfo.size() == 8) {
+                        treeName = treeInfo[3];
                         readSuccessful = true;
                     }
                 }
@@ -1940,7 +1939,7 @@ namespace TTM {
     }
 
     //I have no idea what I'm doing
-    void createScreenshotToClipboard(UIData& uiData) {
+    void createScreenshotToClipboard(ImRect cropRect) {
 
         HWND activeWindow = GetActiveWindow();
 
@@ -1991,10 +1990,10 @@ namespace TTM {
             (BITMAPINFO*)&bi, DIB_RGB_COLORS);
 
         
-        int height = static_cast<int>(uiData.treeEditorTreeWindowInnerRect.GetHeight());
-        int width = static_cast<int>(uiData.treeEditorTreeWindowInnerRect.GetWidth());
-        int x0 = static_cast<int>(uiData.treeEditorTreeWindowInnerRect.Min.x);
-        int y0 = bi.biHeight - height - static_cast<int>(uiData.treeEditorTreeWindowInnerRect.Min.y);
+        int height = static_cast<int>(cropRect.GetHeight());
+        int width = static_cast<int>(cropRect.GetWidth());
+        int x0 = static_cast<int>(cropRect.Min.x);
+        int y0 = bi.biHeight - height - static_cast<int>(cropRect.Min.y);
         char* cropBitmap = (char*)malloc(width * height * 4);
         if (cropBitmap == NULL) {
             return;

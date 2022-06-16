@@ -889,7 +889,19 @@ namespace Engine {
                 int points = std::stoi(skillsetParts[i]);
                 skillset->assignedSkillPoints[std::stoi(splitString(treeDefinitionParts[i], ":")[0])] = points;
                 skillset->talentPointsSpent += points;
-                tree.orderedTalents[std::stoi(splitString(treeDefinitionParts[i], ":")[0])]->points = points;
+                Talent_s t = tree.orderedTalents[std::stoi(splitString(treeDefinitionParts[i], ":")[0])];
+                if (t->type == TalentType::SWITCH) {
+                    if (points > 0) {
+                        t->points = 1;
+                        t->talentSwitch = points > 1 ? 2 : 1;
+                    }
+                    else {
+                        t->points = 0;
+                    }
+                }
+                else {
+                    t->points = points;
+                }
             }
 
             if (validateSkillset(tree, skillset)) {
