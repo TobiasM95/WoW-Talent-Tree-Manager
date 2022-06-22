@@ -248,7 +248,8 @@ namespace TTM {
 		int talentHalfSpacing,
 		int talentSize,
 		float talentPadding,
-		UIData& uiData);
+		UIData& uiData,
+		bool colored = false);
 
 	void drawLoadoutEditorShapeAroundTalent(
 		Engine::Talent_s talent,

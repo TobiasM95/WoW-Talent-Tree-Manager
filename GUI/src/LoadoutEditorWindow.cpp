@@ -551,7 +551,8 @@ namespace TTM {
                     talentHalfSpacing,
                     talentSize,
                     talentPadding,
-                    uiData);
+                    uiData,
+                    true);
             }
         }
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
