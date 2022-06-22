@@ -228,15 +228,25 @@ namespace TTM {
         int talentHalfSpacing,
         int talentSize,
         float talentPadding,
-        UIData& uiData)
+        UIData& uiData,
+        bool colored)
     {
         //Arrow constants
         float thickness = 2.0f * uiData.treeEditorZoomFactor;
         float relArrowSpace = 0.15f; //how much space should be between arrow and connecting talents in terms of relative to talentSize
         float relArrowHeadSize = 0.15f; //how long should each side of the the arrow head triangle be in terms of relative to talentSize
         float relArrowHeadAngle = 2.1f;
-        //ImU32 color = ImColor(185, 166, 72, 255); //Gold
-        ImU32 color = ImColor(120, 120, 120, 255);
+        ImU32 color = ImColor(120, 120, 120, 255);;
+        if (colored) {
+            if (t2->points > 0 && t1->points == t1->maxPoints) {
+                if (t2->points == t2->maxPoints) {
+                    color = ImColor(Presets::TALENT_MAXED_BORDER_COLOR); //Gold
+                }
+                else {
+                    color = ImColor(Presets::TALENT_PARTIAL_BORDER_COLOR);
+                }
+            }
+        }
 
         float p1X, p1Y, p2X, p2Y;
         if (t1->column < t2->column) {
