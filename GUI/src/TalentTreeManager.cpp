@@ -726,63 +726,89 @@ namespace TTM {
 
     void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         std::filesystem::path appPath = getAppPath();
+        std::string settings = "";
         std::string workspace = "";
+        //TTMNOTE: settings can't have ":" char in them, messes with loadWorkspace
         switch (uiData.style) {
-        case Presets::STYLES::COMPANY_GREY: {workspace += "COMPANY_GREY\n"; }break;
-        case Presets::STYLES::PATH_OF_TALENT_TREE: {workspace += "PATH_OF_TALENT_TREE\n"; }break;
-        case Presets::STYLES::LIGHT_MODE: {workspace += "LIGHT_MODE\n"; }break;
+        case Presets::STYLES::COMPANY_GREY: {settings += "STYLE=COMPANY_GREY\n"; }break;
+        case Presets::STYLES::PATH_OF_TALENT_TREE: {settings += "STYLE=PATH_OF_TALENT_TREE\n"; }break;
+        case Presets::STYLES::LIGHT_MODE: {settings += "STYLE=LIGHT_MODE\n"; }break;
         }
         if (uiData.enableGlow) {
-            workspace += "GLOW=1\n";
+            settings += "GLOW=1\n";
         }
         else {
-            workspace += "GLOW=0\n";
+            settings += "GLOW=0\n";
         }
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
         }
+        std::ofstream setFile(appPath / "settings.txt");
+        setFile << settings;
         std::ofstream workFile(appPath / "workspace.txt");
         workFile << workspace;
     }
 
     TalentTreeCollection loadWorkspace(UIData& uiData) {
         std::filesystem::path appPath = getAppPath();
+        //restore settings
+        useDefaultSettings(uiData);
+        bool settingsFileExists = std::filesystem::is_regular_file(appPath / "settings.txt");
+        if (settingsFileExists) {
+            std::ifstream setFile(appPath / "settings.txt");
+            std::string line;
+            while (std::getline(setFile, line)) {
+                if (line.find("STYLE") != std::string::npos) {
+                    if (line.find("COMPANY_GREY") != std::string::npos) {
+                        Presets::SET_GUI_STYLE_COMPANY_GREY();
+                        uiData.style = Presets::STYLES::COMPANY_GREY;
+                    }
+                    else if (line.find("PATH_OF_TALENT_TREE") != std::string::npos) {
+                        Presets::SET_GUI_STYLE_PATH_OF_TALENT_TREE();
+                        uiData.style = Presets::STYLES::PATH_OF_TALENT_TREE;
+                    }
+                    else if (line.find("LIGHT_MODE") != std::string::npos) {
+                        Presets::SET_GUI_STYLE_LIGHT_MODE();
+                        uiData.style = Presets::STYLES::LIGHT_MODE;
+                    }
+                }
+                if (line.find("GLOW") != std::string::npos) {
+                    uiData.enableGlow = (line == "GLOW=1");
+                }
+            }
+        }
+        //init talent tree collection
         TalentTreeCollection col;
         if (!std::filesystem::is_regular_file(appPath / "workspace.txt")) {
             return col;
         }
         std::ifstream workFile(appPath / "workspace.txt");
         std::string line;
-        //TTMTODO: this needs major reworks down the line
-        bool firstLine = false;
-        bool secondLine = false;
+        //TTMTODO: might need major reworks down the line
         while (std::getline(workFile, line))
         {
-            if (!firstLine) {
-                firstLine = true;
-                if (line == "COMPANY_GREY") {
-                    Presets::SET_GUI_STYLE_COMPANY_GREY();
-                    uiData.style = Presets::STYLES::COMPANY_GREY;
-                }
-                else if (line == "PATH_OF_TALENT_TREE") {
-                    Presets::SET_GUI_STYLE_PATH_OF_TALENT_TREE();
-                    uiData.style = Presets::STYLES::PATH_OF_TALENT_TREE;
-                }
-                else if (line == "LIGHT_MODE") {
-                    Presets::SET_GUI_STYLE_LIGHT_MODE();
-                    uiData.style = Presets::STYLES::LIGHT_MODE;
-                }
+            if (line == "") {
                 continue;
             }
-            else if (!secondLine) {
-                secondLine = true;
-                if (line.substr(0, 4) == "GLOW") {
-                    uiData.enableGlow = line.substr(5, 1) == "1";
-                    continue;
+            //TTMNOTE: for backwards compatibility try to restore settings from workspace file
+            if (!settingsFileExists) {
+                if (line.find("STYLE") != std::string::npos) {
+                    if (line.find("COMPANY_GREY") != std::string::npos) {
+                        Presets::SET_GUI_STYLE_COMPANY_GREY();
+                        uiData.style = Presets::STYLES::COMPANY_GREY;
+                    }
+                    else if (line.find("PATH_OF_TALENT_TREE") != std::string::npos) {
+                        Presets::SET_GUI_STYLE_PATH_OF_TALENT_TREE();
+                        uiData.style = Presets::STYLES::PATH_OF_TALENT_TREE;
+                    }
+                    else if (line.find("LIGHT_MODE") != std::string::npos) {
+                        Presets::SET_GUI_STYLE_LIGHT_MODE();
+                        uiData.style = Presets::STYLES::LIGHT_MODE;
+                    }
                 }
-            }
-            if (line == "") {
-                break;
+                if (line.find("GLOW") != std::string::npos) {
+                    uiData.enableGlow = (line == "GLOW=1");
+                }
             }
             TalentTreeData data;
             if (Engine::validateAndRepairTreeStringFormat(line)) {
@@ -802,5 +828,11 @@ namespace TTM {
     void resetWorkspaceAndTrees() {
         std::filesystem::path appPath = getAppPath();
         std::filesystem::remove_all(appPath);
+    }
+
+    void useDefaultSettings(UIData& uiData) {
+        Presets::SET_GUI_STYLE_LIGHT_MODE();
+        uiData.style = Presets::STYLES::LIGHT_MODE;
+        uiData.enableGlow = false;
     }
 }
