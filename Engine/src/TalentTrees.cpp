@@ -1712,7 +1712,7 @@ namespace Engine {
             talentParts.push_back(talent);
             for (int i = 0; i < talent->maxPoints - 1; i++) {
                 Talent_s t = std::make_shared<Talent>();
-                t->index = talent->index * maxTalentPoints + i;
+                t->index = (talent->index + 1) * maxTalentPoints + i;
                 t->expansionIndex = i + 1;
                 t->isExpanded = true;
                 t->name = talent->name + "_" + std::to_string(i + 1);
