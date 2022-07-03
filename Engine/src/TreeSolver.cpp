@@ -433,7 +433,7 @@ namespace Engine {
                     expandedToCompactIndexMap[talent.second->index] = talent.second->index;
                 }
                 else {
-                    expandedToCompactIndexMap[talent.second->index * tree.maxTalentPoints + (i - 1)] = talent.second->index;
+                    expandedToCompactIndexMap[(talent.second->index + 1) * tree.maxTalentPoints + (i - 1)] = talent.second->index;
                 }
             }
         }
