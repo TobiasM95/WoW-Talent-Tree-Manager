@@ -22,6 +22,7 @@ namespace Engine {
         std::shared_ptr<TalentTree> processedTree;
         vec2d<std::pair<SIND, int>> allCombinations;
         vec2d<std::pair<SIND, int>> filteredCombinations;
+        double elapsedTime;
     }; 
 
     std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree, int talentPointsLimit);

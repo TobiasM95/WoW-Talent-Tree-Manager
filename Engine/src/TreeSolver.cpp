@@ -162,16 +162,17 @@ namespace Engine {
         for (auto& root : sortedTreeDAG.rootIndices) {
             possibleTalents.push_back(std::pair<int, int>(root, sortedTreeDAG.sortedTalents[root]->pointsRequired));
         }
+        auto t1 = std::chrono::high_resolution_clock::now();
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             //if (possibleTalents[i].second == 0)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
                 visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
         }
-        for (int i = 0; i < talentPoints; i++) {
-            std::cout << "Number of configurations for " << i + 1 << " talent points without switch talents: " << combinations[i].size() << " and with : " << allCombinations[i] << std::endl;
-        }
-        sortedTreeDAG.allCombinations = combinations;
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+        sortedTreeDAG.allCombinations = std::move(combinations);
+        sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
         return std::make_shared<TreeDAGInfo>(sortedTreeDAG);
     }
 

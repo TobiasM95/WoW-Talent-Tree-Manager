@@ -183,6 +183,7 @@ namespace TTM {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
                     ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points.",
                         talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, uiData.loadoutSolverTalentPointLimit);
+                    ImGui::Text("Processing took %.3f seconds.", talentTreeCollection.activeTreeData().treeDAGInfo->elapsedTime);
                     if (ImGui::Button("Reset solutions")) {
                         clearSolvingProcess(uiData, talentTreeCollection);
                     }
