@@ -354,11 +354,7 @@ namespace Engine {
     }
 
     void insertIntoVector(std::vector<std::pair<int, int>>& v, std::pair<int, int>& t) {
-        std::vector<std::pair<int, int>>::iterator i = std::lower_bound(v.begin(), v.end(), t, [](const std::pair<int, int>& a, const std::pair<int, int>& b){
-            if (a.second < b.second) return true;
-            if (a.second == b.second) return a.first < b.first;
-            return false;
-            });
+        std::vector<std::pair<int, int>>::iterator i = std::lower_bound(v.begin(), v.end(), t);
         if (i == v.end() || t < *i)
             v.insert(i, t);
     }
