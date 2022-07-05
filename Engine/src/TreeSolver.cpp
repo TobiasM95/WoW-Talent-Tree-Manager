@@ -203,7 +203,7 @@ namespace Engine {
         talentPointsLeft -= 1;
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
 
-        combinations[talentPointsSpent - 1].push_back(std::pair<SIND, int>(visitedTalents, currentMultiplier));
+        combinations[talentPointsSpent - 1].emplace_back(visitedTalents, currentMultiplier);
         allCombinations[talentPointsSpent - 1] += currentMultiplier;
         if (talentPointsLeft == 0)
             return;
