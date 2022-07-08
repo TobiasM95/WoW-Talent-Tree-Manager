@@ -376,11 +376,12 @@ namespace Engine {
             for (int i = 0; i < talent.second->maxPoints; i++) {
                 //this indexing is taken from TalentTrees.cpp expand talent tree routine and represents an arbitrary indexing
                 //for multipoint talents that doesn't collide for a use in a map
+                //TTMNOTE: If this changes, also change TalentTrees.cpp->expandTalentAndAdvance and TreeSolver.cpp->skillsetIndexToSkillset
                 if (i == 0) {
                     indices.push_back(talent.second->index);
                 }
                 else {
-                    indices.push_back(talent.second->index * tree.maxTalentPoints + (i - 1));
+                    indices.push_back((talent.second->index + 1) * tree.maxTalentPoints + (i - 1));
                 }
             }
             compactToExpandedIndexMap[talent.second->index] = indices;
@@ -426,6 +427,7 @@ namespace Engine {
             for (int i = 0; i < talent.second->maxPoints; i++) {
                 //this indexing is taken from TalentTrees.cpp expand talent tree routine and represents an arbitrary indexing
                 //for multipoint talents that doesn't collide for a use in a map
+                //TTMNOTE: If this changes, also change TalentTrees.cpp->expandTalentAndAdvance and TreeSolver.cpp->filterSolvedSkillsets
                 if (i == 0) {
                     expandedToCompactIndexMap[talent.second->index] = talent.second->index;
                 }
