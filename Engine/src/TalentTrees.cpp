@@ -1712,6 +1712,7 @@ namespace Engine {
             talentParts.push_back(talent);
             for (int i = 0; i < talent->maxPoints - 1; i++) {
                 Talent_s t = std::make_shared<Talent>();
+                //TTMNOTE: if this changes, also change TreeSolver.cpp->filterSolvedSkillsets and TreeSolver.cpp->skillsetIndexToSkillset
                 t->index = (talent->index + 1) * maxTalentPoints + i;
                 t->expansionIndex = i + 1;
                 t->isExpanded = true;
