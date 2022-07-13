@@ -1952,7 +1952,6 @@ namespace Engine {
     }
 
     bool checkTalentValidity(const TalentTree& tree) {
-        int pointsSpent = tree.loadout[tree.activeSkillsetIndex]->talentPointsSpent;
         int maxPointsRequirement = 0;
         //first check if at least one parent is filled
         for (auto& talent : tree.orderedTalents) {
@@ -1985,6 +1984,7 @@ namespace Engine {
                     talentPointsSpentUntil += reqSortedTalents[k][l]->points;
                 }
             }
+            talentPointsSpentUntil -= tree.preFilledTalentPoints;
             for (int j = 0; j < reqSortedTalents[i].size(); j++) {
                 if (reqSortedTalents[i][j]->points > 0 && talentPointsSpentUntil < i) {
                     return false;
