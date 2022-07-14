@@ -69,6 +69,9 @@
     <ClCompile Include="src\ImageHandler.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\SimAnalysisWindow.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\TalentTreeManager.h">
@@ -135,6 +138,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\TTMGUIPresetsInternal.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SimAnalysisWindow.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
