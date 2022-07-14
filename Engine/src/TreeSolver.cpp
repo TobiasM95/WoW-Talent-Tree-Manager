@@ -413,7 +413,7 @@ namespace Engine {
         }
 
         vec2d<std::pair<SIND, int>> filteredCombinations;
-        if (includeFilter == 0 && excludeFilter == 0) {
+        if (includeFilter == 0 && excludeFilter == 0 && orFilter == 0) {
             treeDAG->filteredCombinations = treeDAG->allCombinations;
             return;
         }
