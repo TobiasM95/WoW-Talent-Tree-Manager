@@ -363,6 +363,7 @@ namespace Engine {
     Filters the skillsets that are created by the tree solver with the given filter
     */
     void filterSolvedSkillsets(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter) {
+        treeDAG->filteredCombinations.clear();
         //skillset has compactTalentIndex information
         //treeDAG->sortedTalents containts index->expandedTalentIndex mapping
         //therefore we need compactTalentIndex->expandedTalentIndex mapping and reverse the index->expandedTalentIndex
@@ -388,8 +389,16 @@ namespace Engine {
         }
         SIND includeFilter = 0;
         SIND excludeFilter = 0;
+        SIND orFilter = 0;
         for (auto& indexFilterPair : filter->assignedSkillPoints) {
-            if (indexFilterPair.second == -1) {
+            if (indexFilterPair.second == -2) {
+                for (int i = 0; i < compactToExpandedIndexMap[indexFilterPair.first].size(); i++) {
+                    int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][i];
+                    int pos = expandedToPosIndexMap[expandedTalentIndex];
+                    setTalent(orFilter, pos);
+                }
+            }
+            else if (indexFilterPair.second == -1) {
                 int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][0];
                 int pos = expandedToPosIndexMap[expandedTalentIndex];
                 setTalent(excludeFilter, pos);
@@ -404,18 +413,23 @@ namespace Engine {
         }
 
         vec2d<std::pair<SIND, int>> filteredCombinations;
+        if (includeFilter == 0 && excludeFilter == 0) {
+            treeDAG->filteredCombinations = treeDAG->allCombinations;
+            return;
+        }
         for (int i = 0; i < treeDAG->allCombinations.size(); i++) {
             std::vector<std::pair<SIND, int>> combs;
+            combs.reserve(treeDAG->allCombinations[i].size());
             for (int j = 0; j < treeDAG->allCombinations[i].size(); j++) {
                 SIND skillset = treeDAG->allCombinations[i][j].first;
-                if ((skillset & excludeFilter) == 0 && ((~skillset) & includeFilter) == 0) {
+                if ((skillset & excludeFilter) == 0 && ((~skillset) & includeFilter) == 0 && (orFilter == 0 || (skillset & orFilter) > 0)) {
                     combs.push_back(std::pair<SIND, int>(skillset, treeDAG->allCombinations[i][j].second));
                 }
             }
             filteredCombinations.push_back(combs);
         }
 
-        treeDAG->filteredCombinations = filteredCombinations;
+        treeDAG->filteredCombinations = std::move(filteredCombinations);
     }
 
     /*
