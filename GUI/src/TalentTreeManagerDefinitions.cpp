@@ -354,35 +354,66 @@ namespace TTM {
         ImVec2 scroll,
         UIData& uiData,
         TalentTreeCollection& talentTreeCollection,
-        bool selected)
+        bool selected,
+        bool searchActive,
+        bool talentIsSearchedFor)
     {
         ImVec4 borderCol = colors[ImGuiCol_WindowBg];
         ImVec4 textColor = colors[ImGuiCol_Text];
         ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
         ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
-        if (selected) {
-            borderCol = Presets::TALENT_SELECTED_BORDER_COLOR;
-        }
-        else {
-            if (uiData.style == Presets::STYLES::COMPANY_GREY) {
-                borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
+        if (!searchActive) {
+            if (selected) {
+                borderCol = Presets::TALENT_SELECTED_BORDER_COLOR;
             }
             else {
-                borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
+                if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                    borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
+                }
+                else {
+                    borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
+                }
             }
+            textRectColor = ImVec4(
+                0.5f * textRectColor.x + 0.5f * borderCol.x,
+                0.5f * textRectColor.y + 0.5f * borderCol.y,
+                0.5f * textRectColor.z + 0.5f * borderCol.z,
+                0.5f * textRectColor.w + 0.5f * borderCol.w
+            );
+            textRectBorderColor = ImVec4(
+                0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
+                0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
+                0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
+                0.5f * textRectBorderColor.w + 0.5f * borderCol.w
+            );
         }
-        textRectColor = ImVec4(
-            0.5f * textRectColor.x + 0.5f * borderCol.x,
-            0.5f * textRectColor.y + 0.5f * borderCol.y,
-            0.5f * textRectColor.z + 0.5f * borderCol.z,
-            0.5f * textRectColor.w + 0.5f * borderCol.w
-        );
-        textRectBorderColor = ImVec4(
-            0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
-            0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
-            0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
-            0.5f * textRectBorderColor.w + 0.5f * borderCol.w
-        );
+        else {
+            if (talentIsSearchedFor) {
+                borderCol = Presets::TALENT_SEARCHED_BORDER_COLOR;
+            }
+            else {
+                if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                    borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
+                }
+                else {
+                    borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
+                }
+            }
+            textColor = colors[ImGuiCol_Text];
+            textRectColor = ImVec4(
+                0.5f * textRectColor.x + 0.5f * borderCol.x,
+                0.5f * textRectColor.y + 0.5f * borderCol.y,
+                0.5f * textRectColor.z + 0.5f * borderCol.z,
+                0.5f * textRectColor.w + 0.5f * borderCol.w
+            );
+            textRectBorderColor = ImVec4(
+                0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
+                0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
+                0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
+                0.5f * textRectBorderColor.w + 0.5f * borderCol.w
+            );
+        }
+
 
         switch (talent->type) {
         case Engine::TalentType::SWITCH: {
@@ -492,14 +523,99 @@ namespace TTM {
         ImVec2 scroll,
         UIData& uiData,
         TalentTreeCollection& talentTreeCollection,
-        float disabledAlpha)
+        float disabledAlpha,
+        bool searchActive,
+        bool talentIsSearchedFor)
     {
         ImVec4 borderCol = colors[ImGuiCol_WindowBg];
         ImVec4 textColor = colors[ImGuiCol_TextDisabled];
         ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
         ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
-        if (disabledAlpha >= 1.0f) {
-            if (talent->points == 0) {
+        if (!searchActive) {
+            if (disabledAlpha >= 1.0f) {
+                if (talent->points == 0) {
+                    if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                        borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
+                    }
+                    else {
+                        borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
+                    }
+                }
+                else if (talent->points == talent->maxPoints) {
+                    borderCol = Presets::TALENT_MAXED_BORDER_COLOR;
+                }
+                else {
+                    borderCol = Presets::TALENT_PARTIAL_BORDER_COLOR;
+                }
+                textColor = colors[ImGuiCol_Text];
+                textRectColor = ImVec4(
+                    disabledAlpha * (0.5f * textRectColor.x + 0.5f * borderCol.x),
+                    disabledAlpha * (0.5f * textRectColor.y + 0.5f * borderCol.y),
+                    disabledAlpha * (0.5f * textRectColor.z + 0.5f * borderCol.z),
+                    disabledAlpha * (0.5f * textRectColor.w + 0.5f * borderCol.w)
+                );
+                textRectBorderColor = ImVec4(
+                    disabledAlpha * (0.5f * textRectBorderColor.x + 0.5f * borderCol.x),
+                    disabledAlpha * (0.5f * textRectBorderColor.y + 0.5f * borderCol.y),
+                    disabledAlpha * (0.5f * textRectBorderColor.z + 0.5f * borderCol.z),
+                    disabledAlpha * (0.5f * textRectBorderColor.w + 0.5f * borderCol.w)
+                );
+            }
+            else if (talent->preFilled) {
+                borderCol = ImVec4(
+                    0.9f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
+                    0.73f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
+                    0.0f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
+                    1.0f);
+                textColor = colors[ImGuiCol_Text];
+                ImVec4 pBorderCol = Presets::TALENT_MAXED_BORDER_COLOR;
+                textRectColor = ImVec4(
+                    0.5f * textRectColor.x + 0.5f * pBorderCol.x,
+                    0.5f * textRectColor.y + 0.5f * pBorderCol.y,
+                    0.5f * textRectColor.z + 0.5f * pBorderCol.z,
+                    0.5f * textRectColor.w + 0.5f * pBorderCol.w
+                );
+                textRectBorderColor = ImVec4(
+                    0.5f * textRectBorderColor.x + 0.5f * pBorderCol.x,
+                    0.5f * textRectBorderColor.y + 0.5f * pBorderCol.y,
+                    0.5f * textRectBorderColor.z + 0.5f * pBorderCol.z,
+                    0.5f * textRectBorderColor.w + 0.5f * pBorderCol.w
+                );
+            }
+            else {
+                if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                    borderCol = ImVec4(
+                        Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY.x,
+                        Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY.y,
+                        Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY.z,
+                        disabledAlpha);
+                }
+                else {
+                    borderCol = ImVec4(
+                        Presets::TALENT_DEFAULT_BORDER_COLOR.x,
+                        Presets::TALENT_DEFAULT_BORDER_COLOR.y,
+                        Presets::TALENT_DEFAULT_BORDER_COLOR.z,
+                        disabledAlpha);
+                }
+                textRectColor = ImVec4(
+                    disabledAlpha * (0.5f * textRectColor.x + 0.5f * borderCol.x),
+                    disabledAlpha * (0.5f * textRectColor.y + 0.5f * borderCol.y),
+                    disabledAlpha * (0.5f * textRectColor.z + 0.5f * borderCol.z),
+                    disabledAlpha * (0.5f * textRectColor.w + 0.5f * borderCol.w)
+                );
+                textRectBorderColor = ImVec4(
+                    disabledAlpha * (0.5f * textRectBorderColor.x + 0.5f * borderCol.x),
+                    disabledAlpha * (0.5f * textRectBorderColor.y + 0.5f * borderCol.y),
+                    disabledAlpha * (0.5f * textRectBorderColor.z + 0.5f * borderCol.z),
+                    disabledAlpha * (0.5f * textRectBorderColor.w + 0.5f * borderCol.w)
+                );
+            }
+        }
+        else {
+            if (talentIsSearchedFor) {
+                borderCol = Presets::TALENT_SEARCHED_BORDER_COLOR;
+            }
+            else {
                 if (uiData.style == Presets::STYLES::COMPANY_GREY) {
                     borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
                 }
@@ -507,73 +623,18 @@ namespace TTM {
                     borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
                 }
             }
-            else if (talent->points == talent->maxPoints) {
-                borderCol = Presets::TALENT_MAXED_BORDER_COLOR;
-            }
-            else {
-                borderCol = Presets::TALENT_PARTIAL_BORDER_COLOR;
-            }
             textColor = colors[ImGuiCol_Text];
             textRectColor = ImVec4(
-                disabledAlpha * (0.5f * textRectColor.x + 0.5f * borderCol.x),
-                disabledAlpha * (0.5f * textRectColor.y + 0.5f * borderCol.y),
-                disabledAlpha * (0.5f * textRectColor.z + 0.5f * borderCol.z),
-                disabledAlpha * (0.5f * textRectColor.w + 0.5f * borderCol.w)
+                0.5f * textRectColor.x + 0.5f * borderCol.x,
+                0.5f * textRectColor.y + 0.5f * borderCol.y,
+                0.5f * textRectColor.z + 0.5f * borderCol.z,
+                0.5f * textRectColor.w + 0.5f * borderCol.w
             );
             textRectBorderColor = ImVec4(
-                disabledAlpha * (0.5f * textRectBorderColor.x + 0.5f * borderCol.x),
-                disabledAlpha * (0.5f * textRectBorderColor.y + 0.5f * borderCol.y),
-                disabledAlpha * (0.5f * textRectBorderColor.z + 0.5f * borderCol.z),
-                disabledAlpha * (0.5f * textRectBorderColor.w + 0.5f * borderCol.w)
-            );
-        }
-        else if (talent->preFilled) {
-            borderCol = ImVec4(
-                0.9f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha), 
-                0.73f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
-                0.0f * disabledAlpha + colors[ImGuiCol_WindowBg].x * (1.0f - disabledAlpha),
-                1.0f);
-            textColor = colors[ImGuiCol_Text];
-            ImVec4 pBorderCol = Presets::TALENT_MAXED_BORDER_COLOR;
-            textRectColor = ImVec4(
-                0.5f * textRectColor.x + 0.5f * pBorderCol.x,
-                0.5f * textRectColor.y + 0.5f * pBorderCol.y,
-                0.5f * textRectColor.z + 0.5f * pBorderCol.z,
-                0.5f * textRectColor.w + 0.5f * pBorderCol.w
-            );
-            textRectBorderColor = ImVec4(
-                0.5f * textRectBorderColor.x + 0.5f * pBorderCol.x,
-                0.5f * textRectBorderColor.y + 0.5f * pBorderCol.y,
-                0.5f * textRectBorderColor.z + 0.5f * pBorderCol.z,
-                0.5f * textRectBorderColor.w + 0.5f * pBorderCol.w
-            );
-        }
-        else {
-            if (uiData.style == Presets::STYLES::COMPANY_GREY) {
-                borderCol = ImVec4(
-                    Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY.x,
-                    Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY.y,
-                    Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY.z,
-                    disabledAlpha);
-            }
-            else {
-                borderCol = ImVec4(
-                    Presets::TALENT_DEFAULT_BORDER_COLOR.x, 
-                    Presets::TALENT_DEFAULT_BORDER_COLOR.y, 
-                    Presets::TALENT_DEFAULT_BORDER_COLOR.z, 
-                    disabledAlpha);
-            }
-            textRectColor = ImVec4(
-                disabledAlpha * (0.5f * textRectColor.x + 0.5f * borderCol.x),
-                disabledAlpha * (0.5f * textRectColor.y + 0.5f * borderCol.y),
-                disabledAlpha * (0.5f * textRectColor.z + 0.5f * borderCol.z),
-                disabledAlpha * (0.5f * textRectColor.w + 0.5f * borderCol.w)
-            );
-            textRectBorderColor = ImVec4(
-                disabledAlpha * (0.5f * textRectBorderColor.x + 0.5f * borderCol.x),
-                disabledAlpha * (0.5f * textRectBorderColor.y + 0.5f * borderCol.y),
-                disabledAlpha * (0.5f * textRectBorderColor.z + 0.5f * borderCol.z),
-                disabledAlpha * (0.5f * textRectBorderColor.w + 0.5f * borderCol.w)
+                0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
+                0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
+                0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
+                0.5f * textRectBorderColor.w + 0.5f * borderCol.w
             );
         }
 
@@ -685,29 +746,83 @@ namespace TTM {
         ImVec2 scroll,
         UIData& uiData,
         TalentTreeCollection& talentTreeCollection,
-        std::shared_ptr<Engine::TalentSkillset> skillsetFilter)
+        std::shared_ptr<Engine::TalentSkillset> skillsetFilter,
+        bool searchActive,
+        bool talentIsSearchedFor)
     {
         ImVec4 borderCol = colors[ImGuiCol_WindowBg];
         ImVec4 textColor = colors[ImGuiCol_TextDisabled];
         ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
         ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
-        if (!talent->preFilled) {
-            if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == 0) {
+        if (!searchActive) {
+            if (!talent->preFilled) {
+                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == 0) {
+                    if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                        borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
+                    }
+                    else {
+                        borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
+                    }
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == talent->maxPoints) {
+                    borderCol = Presets::TALENT_MAXED_BORDER_COLOR;
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -1) {
+                    borderCol = Presets::TALENT_SELECTED_BORDER_COLOR;
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -2) {
+                    borderCol = Presets::TALENT_SEARCHED_BORDER_COLOR;
+                }
+                else {
+                    borderCol = Presets::TALENT_PARTIAL_BORDER_COLOR;
+                }
+                textColor = colors[ImGuiCol_Text];
+                textRectColor = ImVec4(
+                    0.5f * textRectColor.x + 0.5f * borderCol.x,
+                    0.5f * textRectColor.y + 0.5f * borderCol.y,
+                    0.5f * textRectColor.z + 0.5f * borderCol.z,
+                    0.5f * textRectColor.w + 0.5f * borderCol.w
+                );
+                textRectBorderColor = ImVec4(
+                    0.5f * textRectBorderColor.x + 0.5f * borderCol.x,
+                    0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
+                    0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
+                    0.5f * textRectBorderColor.w + 0.5f * borderCol.w
+                );
+            }
+            else if (talent->preFilled) {
+                borderCol = ImVec4(
+                    0.9f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
+                    0.73f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
+                    0.0f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
+                    1.0f);
+                textColor = colors[ImGuiCol_Text];
+                ImVec4 pBorderCol = Presets::TALENT_MAXED_BORDER_COLOR;
+                textRectColor = ImVec4(
+                    0.5f * textRectColor.x + 0.5f * pBorderCol.x,
+                    0.5f * textRectColor.y + 0.5f * pBorderCol.y,
+                    0.5f * textRectColor.z + 0.5f * pBorderCol.z,
+                    0.5f * textRectColor.w + 0.5f * pBorderCol.w
+                );
+                textRectBorderColor = ImVec4(
+                    0.5f * textRectBorderColor.x + 0.5f * pBorderCol.x,
+                    0.5f * textRectBorderColor.y + 0.5f * pBorderCol.y,
+                    0.5f * textRectBorderColor.z + 0.5f * pBorderCol.z,
+                    0.5f * textRectBorderColor.w + 0.5f * pBorderCol.w
+                );
+            }
+        }
+        else {
+            if (talentIsSearchedFor) {
+                borderCol = Presets::TALENT_SEARCHED_BORDER_COLOR;
+            }
+            else {
                 if (uiData.style == Presets::STYLES::COMPANY_GREY) {
                     borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
                 }
                 else {
                     borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
                 }
-            }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == talent->maxPoints) {
-                borderCol = Presets::TALENT_MAXED_BORDER_COLOR;
-            }
-            else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] < 0) {
-                borderCol = Presets::TALENT_SELECTED_BORDER_COLOR;
-            }
-            else {
-                borderCol = Presets::TALENT_PARTIAL_BORDER_COLOR;
             }
             textColor = colors[ImGuiCol_Text];
             textRectColor = ImVec4(
@@ -721,27 +836,6 @@ namespace TTM {
                 0.5f * textRectBorderColor.y + 0.5f * borderCol.y,
                 0.5f * textRectBorderColor.z + 0.5f * borderCol.z,
                 0.5f * textRectBorderColor.w + 0.5f * borderCol.w
-            );
-        }
-        else if (talent->preFilled) {
-            borderCol = ImVec4(
-                0.9f * 0.35f+ colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
-                0.73f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
-                0.0f * 0.35f + colors[ImGuiCol_WindowBg].x * (1.0f - 0.35f),
-                1.0f);
-            textColor = colors[ImGuiCol_Text];
-            ImVec4 pBorderCol = Presets::TALENT_MAXED_BORDER_COLOR;
-            textRectColor = ImVec4(
-                0.5f * textRectColor.x + 0.5f * pBorderCol.x,
-                0.5f * textRectColor.y + 0.5f * pBorderCol.y,
-                0.5f * textRectColor.z + 0.5f * pBorderCol.z,
-                0.5f * textRectColor.w + 0.5f * pBorderCol.w
-            );
-            textRectBorderColor = ImVec4(
-                0.5f * textRectBorderColor.x + 0.5f * pBorderCol.x,
-                0.5f * textRectBorderColor.y + 0.5f * pBorderCol.y,
-                0.5f * textRectBorderColor.z + 0.5f * pBorderCol.z,
-                0.5f * textRectBorderColor.w + 0.5f * pBorderCol.w
             );
         }
 
@@ -839,8 +933,11 @@ namespace TTM {
         else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] >= 0) {
             buttonLabel = std::to_string(talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index]) + "/" + std::to_string(talent->maxPoints);
         }
-        else {
+        else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -1) {
             buttonLabel = "X/" + std::to_string(talent->maxPoints);
+        }
+        else {
+            buttonLabel = ">/" + std::to_string(talent->maxPoints);
         }
         drawList->AddText(
             ImVec2(

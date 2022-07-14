@@ -425,8 +425,10 @@ namespace TTM {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
+            bool talentIsSearchedFor = false;
+            bool searchActive = uiData.talentSearchString != "";
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && uiData.talentSearchString == "") {
+            if (uiData.enableGlow && !searchActive) {
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == talent.second->maxPoints) {
                     ImGui::Image(
                         uiData.goldIconGlow.texture,
@@ -443,7 +445,7 @@ namespace TTM {
                         ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
                     );
                 }
-                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] < 0) {
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -1) {
                     ImGui::Image(
                         uiData.redIconGlow.texture,
                         ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
@@ -451,8 +453,17 @@ namespace TTM {
                         ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
                     );
                 }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -2) {
+                    ImGui::Image(
+                        uiData.blueIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
             }
             else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                talentIsSearchedFor = true;
                 ImGui::Image(
                     uiData.blueIconGlow.texture,
                     ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
@@ -485,7 +496,7 @@ namespace TTM {
             )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
-                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -1;
+                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -2;
                 }
                 if (uiData.loadoutSolverAutoApplyFilter) {
                     Engine::filterSolvedSkillsets(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeData().treeDAGInfo, talentTreeCollection.activeTreeData().skillsetFilter);
@@ -507,13 +518,15 @@ namespace TTM {
                 ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
                 uiData,
                 talentTreeCollection,
-                talentTreeCollection.activeTreeData().skillsetFilter);
+                talentTreeCollection.activeTreeData().skillsetFilter,
+                searchActive,
+                talentIsSearchedFor);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
                 uiData.loadoutEditorRightClickIndex = talent.first;
             }
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && talent.first == uiData.loadoutEditorRightClickIndex) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] -= 1;
-                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < -1) {
+                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < -2) {
                     talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = talent.second->maxPoints;
                 }
                 if (uiData.loadoutSolverAutoApplyFilter) {
