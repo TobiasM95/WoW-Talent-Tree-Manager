@@ -282,6 +282,7 @@ copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManage
     <ClCompile Include="src\LoadoutEditorWindow.cpp" />
     <ClCompile Include="src\LoadoutSolverWindow.cpp" />
     <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\SimAnalysisWindow.cpp" />
     <ClCompile Include="src\TalentTreeEditorWindow.cpp" />
     <ClCompile Include="src\TalentTreeManager.cpp" />
     <ClCompile Include="src\TalentTreeManagerDefinitions.cpp" />
@@ -305,6 +306,7 @@ copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManage
     <ClInclude Include="src\libs\stb\stb_image_write.h" />
     <ClInclude Include="src\LoadoutEditorWindow.h" />
     <ClInclude Include="src\LoadoutSolverWindow.h" />
+    <ClInclude Include="src\SimAnalysisWindow.h" />
     <ClInclude Include="src\TalentTreeEditorWindow.h" />
     <ClInclude Include="src\TalentTreeManager.h" />
     <ClInclude Include="src\TalentTreeManagerDefinitions.h" />

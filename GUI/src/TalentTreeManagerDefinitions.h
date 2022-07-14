@@ -52,7 +52,7 @@ namespace TTM {
 	};
 
 	enum class EditorView {
-		None, TreeEdit, LoadoutEdit, LoadoutSolver
+		None, TreeEdit, LoadoutEdit, LoadoutSolver, SimAnalysis
 	};
 
 	enum class TreeEditPage {
@@ -192,6 +192,12 @@ namespace TTM {
 		std::vector<std::pair<Engine::SIND, int>> loadoutSolverPageResults;
 		int selectedFilteredSkillsetIndex = -1;
 		Engine::SIND selectedFilteredSkillset = 0;
+
+		//############# SIM ANALYSIS VARIABLES ########################
+		std::string raidbotsInputURL = "";
+		int simAnalysisIconRatingSwitch = 0;
+		int topMedianPerformanceSwitch = 0;
+		int relativeDpsRankingSwitch = 0;
 	};
 
 	struct TalentTreeData {

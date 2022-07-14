@@ -80,6 +80,44 @@ namespace Engine {
     };
 
     /*
+    A sim result is a struct that includes a name of the batch (e.g. part of the raidbots url), a vector of skillsets (or talents, whatever you can grab from raidbots), and dps values
+    */
+    struct SimResult {
+        std::string name;
+        std::vector<Engine::TalentSkillset> skillsets;
+        std::vector<float> dps;
+    };
+
+    /*
+    Talent performance info holds important information about how the talent performed in the sim result info
+    */
+    struct TalentPerformanceInfo {
+        std::pair<std::pair<std::string, std::string>, float> lowestDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> medianDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> highestDPSSkillset;
+
+        std::vector<float> skillsetDPS;
+    };
+
+    /*
+    Analysis result holds the full information about all talents and their performance
+    */
+    struct AnalysisResult {
+        int skillsetCount = 0;
+        std::pair<std::pair<std::string, std::string>, float> lowestDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> medianDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> highestDPSSkillset;
+
+        //contains the array col position given a talent index, additional ranks are just position + rank
+        std::map<int, int> indexToArrayColMap;
+        std::vector<std::vector<int>> talentArray;
+        std::vector<float> skillsetDPS;
+        std::vector<TalentPerformanceInfo> talentPerformances;
+
+        std::vector<float> talentRankings;
+    };
+
+    /*
     A tree has a name, (un)spent talent points and a list of root talents (talents without parents) that are the starting point
     */
     struct TalentTree {
@@ -101,6 +139,10 @@ namespace Engine {
         int maxID = 0;
         int maxCol = 0;
         std::map<int, int> talentsPerRow;
+
+        int selectedSimAnalysisRawResult = -1;
+        std::vector<SimResult> simAnalysisRawResults;
+        AnalysisResult analysisResult;
     };
 
     struct TreeCycleCheckFormat {

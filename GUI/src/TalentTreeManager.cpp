@@ -38,6 +38,7 @@
 #include "TalentTreeEditorWindow.h"
 #include "LoadoutEditorWindow.h"
 #include "LoadoutSolverWindow.h"
+#include "SimAnalysisWindow.h"
 
 //TTMTODO: Replace all talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree with talentTreeCollection.activeTree()
 namespace TTM {
@@ -588,6 +589,16 @@ namespace TTM {
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
+            std::string simAnalysisDisplayTag = "Sim Analysis";
+            if (uiData.editorView == EditorView::SimAnalysis) {
+                simAnalysisDisplayTag = "> " + simAnalysisDisplayTag;
+            }
+            if (ImGui::BeginTabItem((simAnalysisDisplayTag + "###SimAnalysisTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
+            {
+                uiData.editorView = EditorView::SimAnalysis;
+                uiData.isLoadoutInitValidated = false;
+                ImGui::EndTabItem();
+            }
             std::string treeEditDisplayTag = "Talent Tree Editor";
             if (uiData.editorView == EditorView::TreeEdit) {
                 treeEditDisplayTag = "> " + treeEditDisplayTag;
@@ -633,6 +644,7 @@ namespace TTM {
         case EditorView::TreeEdit: {RenderTalentTreeEditorWindow(uiData, talentTreeCollection); } break;
         case EditorView::LoadoutEdit: {RenderLoadoutEditorWindow(uiData, talentTreeCollection); } break;
         case EditorView::LoadoutSolver: {RenderLoadoutSolverWindow(uiData, talentTreeCollection); } break;
+        case EditorView::SimAnalysis: {RenderSimAnalysisWindow(uiData, talentTreeCollection); } break;
         }
         
     }
