@@ -14,6 +14,7 @@ namespace Presets {
     const ImVec4 TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY = ImVec4(0.05f, 0.05f, 0.05f, 1.0f);
     const ImVec4 TALENT_MAXED_BORDER_COLOR = ImVec4(0.8f, 0.63f, 0.0f, 1.0f);
     const ImVec4 TALENT_PARTIAL_BORDER_COLOR = ImVec4(0.1f, 0.8f, 0.1f, 1.0f);
+    const ImVec4 TALENT_SEARCHED_BORDER_COLOR = ImVec4(0.0f, 0.73f, 1.0f, 1.0f);
 
     const double PASTEBIN_EXPORT_COOLDOWN = 60.0;
 

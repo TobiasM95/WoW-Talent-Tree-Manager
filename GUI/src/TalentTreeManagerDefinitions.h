@@ -261,7 +261,9 @@ namespace TTM {
 		ImVec2 scroll,
 		UIData& uiData,
 		TalentTreeCollection& talentTreeCollection,
-		float disabledAlpha);
+		float disabledAlpha,
+		bool searchActive,
+		bool talentIsSearchedFor);
 
 	void drawTreeEditorShapeAroundTalent(
 		Engine::Talent_s talent,
@@ -273,7 +275,9 @@ namespace TTM {
 		ImVec2 scroll,
 		UIData& uiData,
 		TalentTreeCollection& talentTreeCollection,
-		bool selected);
+		bool selected,
+		bool searchActive,
+		bool talentIsSearchedFor);
 
 	void drawLoadoutSolverShapeAroundTalent(
 		Engine::Talent_s talent,
@@ -285,7 +289,9 @@ namespace TTM {
 		ImVec2 scroll,
 		UIData& uiData,
 		TalentTreeCollection& talentTreeCollection,
-		std::shared_ptr<Engine::TalentSkillset> skillsetFilter);
+		std::shared_ptr<Engine::TalentSkillset> skillsetFilter,
+		bool searchActive,
+		bool talentIsSearchedFor);
 
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 }

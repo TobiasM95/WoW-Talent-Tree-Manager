@@ -378,6 +378,8 @@ namespace TTM {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
+            bool talentIsSearchedFor = false;
+            bool searchActive = uiData.talentSearchString != "";
             bool talentDisabled = false;
             bool isParentFilled = talent.second->parents.size() == 0;
             for (auto& parent : talent.second->parents) {
@@ -399,7 +401,7 @@ namespace TTM {
                 }
             }
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && uiData.talentSearchString == "") {
+            if (uiData.enableGlow && !searchActive) {
                 if (talent.second->points == talent.second->maxPoints) {
                     ImGui::Image(
                         uiData.goldIconGlow.texture,
@@ -418,6 +420,7 @@ namespace TTM {
                 }
             }
             else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                talentIsSearchedFor = true;
                 ImGui::Image(
                     uiData.blueIconGlow.texture,
                     ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
@@ -494,7 +497,9 @@ namespace TTM {
                 ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()), 
                 uiData, 
                 talentTreeCollection,
-                1.0f - 0.65f * talentDisabled);
+                1.0f - 0.65f * talentDisabled,
+                searchActive,
+                talentIsSearchedFor);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
                 uiData.loadoutEditorRightClickIndex = talent.first;
             }

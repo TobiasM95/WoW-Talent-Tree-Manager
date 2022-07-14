@@ -1672,11 +1672,14 @@ namespace TTM {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
+            bool talentIsSearchedFor = false;
+            bool searchActive = uiData.talentSearchString != "";
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && uiData.talentSearchString == "" && uiData.treeEditorSelectedTalent && uiData.treeEditorSelectedTalent->index == talent.second->index) {
+            if (uiData.enableGlow && !searchActive && uiData.treeEditorSelectedTalent && uiData.treeEditorSelectedTalent->index == talent.second->index) {
                 ImGui::Image(uiData.redIconGlow.texture, ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height));
             }
-            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+            else if (searchActive && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                talentIsSearchedFor = true;
                 ImGui::Image(
                     uiData.blueIconGlow.texture,
                     ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
@@ -1755,7 +1758,9 @@ namespace TTM {
                 ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
                 uiData,
                 talentTreeCollection,
-                uiData.treeEditorSelectedTalent != nullptr && uiData.treeEditorSelectedTalent->index == talent.second->index);
+                uiData.treeEditorSelectedTalent != nullptr && uiData.treeEditorSelectedTalent->index == talent.second->index,
+                searchActive,
+                talentIsSearchedFor);
             ImGui::PopFont();
             if (ImGui::IsItemActive())
             {
