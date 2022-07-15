@@ -17,7 +17,8 @@ namespace TTM {
 
 	void placeSimAnalysisTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 
-	void AnalyzeRawResults(UIData& uiData, Engine::TalentTree& tree);
+	void AnalyzeRawResults(Engine::TalentTree& tree);
+	void CalculateAnalysisRankings(UIData& uiData, Engine::AnalysisResult& result);
 
 	//taken from: https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of
 	template <typename T, typename Compare>

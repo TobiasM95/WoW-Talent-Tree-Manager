@@ -88,6 +88,10 @@ namespace Engine {
         std::vector<float> dps;
     };
 
+    enum class PerformanceMetric {
+        TOP1, TOP3, TOP5, MEDIAN, TOPMEDIAN
+    };
+
     /*
     Talent performance info holds important information about how the talent performed in the sim result info
     */
@@ -114,7 +118,11 @@ namespace Engine {
         std::vector<float> skillsetDPS;
         std::vector<TalentPerformanceInfo> talentPerformances;
 
-        std::vector<float> talentRankings;
+        std::vector<float> talentAbsolutePositionRankings;
+        std::vector<float> talentRelativePerformanceRankings;
+        //don't put this here, keep engine and gui separated. put this in uiData somewhere and clear pointers in the function that updates this
+        //map or vector?
+        //std::map<int, std::pair<ImVec4, TextureInfo>> colorGlowTextures;
     };
 
     /*
