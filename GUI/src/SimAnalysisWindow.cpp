@@ -258,7 +258,8 @@ namespace TTM {
             ImGui::SameLine();
             if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
                 GenerateFakeData(talentTreeCollection.activeTree());
-                AnalyzeRawResults(uiData, talentTreeCollection.activeTree());
+                AnalyzeRawResults(talentTreeCollection.activeTree());
+                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
             }
 
             if (ImGui::BeginListBox("##simAnalysisResultsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
@@ -304,7 +305,7 @@ namespace TTM {
                 ImGui::Text("Skillset distribution:");
                 ImGui::PlotHistogram("##allSkillsetsDistributionHistogram",
                     &res.skillsetDPS[0],
-                    res.skillsetDPS.size(),
+                    static_cast<int>(res.skillsetDPS.size()),
                     0, NULL,
                     0.95f * res.lowestDPSSkillset.second,
                     1.05f * res.highestDPSSkillset.second,
@@ -316,13 +317,24 @@ namespace TTM {
             ImGui::Spacing();
             ImGui::Spacing();
             if (OptionSwitch("Talent Icon", "Rating", &uiData.simAnalysisIconRatingSwitch, 80.0f, true, "simAnalysisRatingSwitch")) {
-
-            }
-            if (OptionSwitch("Top performance", "Median performance", &uiData.topMedianPerformanceSwitch, 80.0f, true, "simAnalysisTopMedianPerformanceSwitch")) {
-
+                //probably needs nothing here
             }
             if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch")) {
-
+                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+            }
+            ImGui::Text("Ranking metric:");
+            int oldSetting = uiData.topMedianPerformanceSwitch;
+            ImGui::RadioButton("Top 1", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP1));
+            ImGui::SameLine();
+            ImGui::RadioButton("Top 3", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP3));
+            ImGui::SameLine();
+            ImGui::RadioButton("Top 5", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP5));
+            ImGui::SameLine();
+            ImGui::RadioButton("Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::MEDIAN));
+            ImGui::SameLine();
+            ImGui::RadioButton("Top 1 + Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOPMEDIAN));
+            if (oldSetting != uiData.topMedianPerformanceSwitch) {
+                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
             }
 
             ImGui::Separator();
@@ -615,12 +627,17 @@ namespace TTM {
         }
     }
 
-    void AnalyzeRawResults(UIData& uiData, Engine::TalentTree& tree) {
+    void AnalyzeRawResults(Engine::TalentTree& tree) {
         Engine::AnalysisResult result;
         int col = 0;
         for (auto& indexTalentPair : tree.orderedTalents) {
             result.indexToArrayColMap[indexTalentPair.first] = col;
-            col += indexTalentPair.second->maxPoints;
+            if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
+                col += 2;
+            }
+            else {
+                col += indexTalentPair.second->maxPoints;
+            }
         }
 
         std::vector<std::pair<std::string, std::string>> tempSkillsetNames;
@@ -637,7 +654,7 @@ namespace TTM {
                 result.skillsetDPS.push_back(simRes.dps[i]);
             }
         }
-        result.skillsetCount = result.skillsetDPS.size();
+        result.skillsetCount = static_cast<int>(result.skillsetDPS.size());
         if (result.skillsetCount == 0) {
             return;
         }
@@ -655,10 +672,113 @@ namespace TTM {
         result.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[result.skillsetCount - 1], result.skillsetDPS[result.skillsetCount - 1]);
 
         //calculate talent performances
-
-        //calculate rankings based on user preference
+        std::vector<std::pair<std::string, std::string>> tempTalentSkillsetNames;
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            int maxP = indexTalentPair.second->type == Engine::TalentType::SWITCH ? 2 : indexTalentPair.second->maxPoints;
+            for (int points = 1; points <= maxP; points++) {
+                int colIndex = result.indexToArrayColMap[indexTalentPair.first] + points - 1;
+                Engine::TalentPerformanceInfo tInfo;
+                tempTalentSkillsetNames.clear();
+                for (int i = 0; i < result.talentArray.size(); i++) {
+                    if (result.talentArray[i][colIndex] > 0) {
+                        tInfo.skillsetDPS.push_back(result.skillsetDPS[i]);
+                        tempTalentSkillsetNames.push_back(tempSkillsetNames[i]);
+                    }
+                }
+                tInfo.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[0], tInfo.skillsetDPS[0]);
+                size_t medianIndex = (tInfo.skillsetDPS.size() + 1) / 2;
+                tInfo.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[medianIndex], tInfo.skillsetDPS[medianIndex]);
+                tInfo.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[tInfo.skillsetDPS.size() - 1], tInfo.skillsetDPS[tInfo.skillsetDPS.size() - 1]);
+                result.talentPerformances.push_back(tInfo);
+            }
+        }
 
         tree.analysisResult = std::move(result);
+    }
+
+    void CalculateAnalysisRankings(UIData& uiData, Engine::AnalysisResult& result) {
+        if (result.skillsetCount == 0 || result.talentPerformances.size() == 0) {
+            return;
+        }
+
+        Engine::PerformanceMetric performanceMetric = static_cast<Engine::PerformanceMetric>(uiData.topMedianPerformanceSwitch);
+
+        const int DPS_SLOTS = 6;
+        std::vector<std::pair<int, std::vector<float>>> performance;
+        int numTalents = static_cast<int>(result.talentPerformances.size());
+        //TTMNOTE: dps[0] holds the relative performance value and is main sorting value, all additional criteria are put in dps[1...], relevant for TOPMEDIAN
+        for (int i = 0; i < numTalents; i++) {
+            switch (performanceMetric) {
+            case Engine::PerformanceMetric::TOP1: {
+                performance.emplace_back(i, std::vector<float>(DPS_SLOTS, result.talentPerformances[i].highestDPSSkillset.second));
+            }break;
+            case Engine::PerformanceMetric::TOP3: {
+                std::vector<float> dps(DPS_SLOTS, 0);
+                float avg = 0.0f;
+                for (int j = 0; j < 3; j++) {
+                    dps[j + 1] = result.talentPerformances[i].skillsetDPS[result.talentPerformances[i].skillsetDPS.size() - 1 - j];
+                    avg += dps[j + 1];
+                }
+                dps[0] = avg / 3;
+                performance.emplace_back(i, dps);
+            }break;
+            case Engine::PerformanceMetric::TOP5: {
+                std::vector<float> dps(DPS_SLOTS, 0);
+                float avg = 0.0f;
+                for (int j = 0; j < 5; j++) {
+                    dps[j + 1] = result.talentPerformances[i].skillsetDPS[result.talentPerformances[i].skillsetDPS.size() - 1 - j];
+                    avg += dps[j + 1];
+                }
+                dps[0] = avg / 5;
+                performance.emplace_back(i, dps);
+            }break;
+            case Engine::PerformanceMetric::MEDIAN: {
+                performance.emplace_back(i, std::vector<float>(DPS_SLOTS, result.talentPerformances[i].medianDPSSkillset.second));
+            }break;
+            case Engine::PerformanceMetric::TOPMEDIAN: {
+                std::vector<float> dps(DPS_SLOTS, 0);
+                dps[0] = result.talentPerformances[i].highestDPSSkillset.second;
+                dps[1] = result.talentPerformances[i].medianDPSSkillset.second;
+                performance.emplace_back(i, dps);
+            }break;
+            }
+        }
+        std::sort(performance.begin(), performance.end(), [](auto& left, auto& right) {
+            return left.second < right.second;
+            });
+        float minPerf = performance[0].second[0];
+        float maxPerf = performance[performance.size() - 1].second[0];
+        float minRelPerf = minPerf / maxPerf;
+
+        result.talentAbsolutePositionRankings.clear();
+        result.talentAbsolutePositionRankings.resize(numTalents);
+        result.talentRelativePerformanceRankings.clear();
+        result.talentRelativePerformanceRankings.resize(numTalents);
+        std::map<std::vector<float>, int> rankMap;
+        int rankCounter = 0;
+        for (int i = 0; i < numTalents; i++) {
+            if (!rankMap.count(performance[i].second)) {
+                rankMap[performance[i].second] = rankCounter;
+                rankCounter++;
+            }
+        }
+        for (int i = 0; i < numTalents; i++) {
+            result.talentAbsolutePositionRankings[performance[i].first] = rankMap[performance[i].second] * 1.0f / (rankCounter - 1);
+            result.talentRelativePerformanceRankings[performance[i].first] = performance[i].second[0] / maxPerf;
+        }
+
+        //create glows and colors
+        //glow always goes from red to green 
+        //but for absolute rankings red = 0, green = 1
+        //and for relative rankings red = minRelPerf, green = 1
+        //store pairs of (color, glowTexture) in AnalysisResult
+        bool calculateAbsolutePositionRanking = uiData.relativeDpsRankingSwitch;
+        if (calculateAbsolutePositionRanking) {
+
+        }
+        else {
+
+        }
     }
 
 
