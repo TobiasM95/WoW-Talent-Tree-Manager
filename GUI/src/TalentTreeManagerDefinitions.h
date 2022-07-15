@@ -198,6 +198,7 @@ namespace TTM {
 		int simAnalysisIconRatingSwitch = 0;
 		int topMedianPerformanceSwitch = 0;
 		int relativeDpsRankingSwitch = 0;
+		std::map<int, std::pair<ImVec4, TextureInfo>> simAnalysisColorGlowTextures;
 	};
 
 	struct TalentTreeData {
@@ -296,6 +297,19 @@ namespace TTM {
 		UIData& uiData,
 		TalentTreeCollection& talentTreeCollection,
 		std::shared_ptr<Engine::TalentSkillset> skillsetFilter,
+		bool searchActive,
+		bool talentIsSearchedFor);
+
+	void drawSimAnalysisShapeAroundTalent(
+		Engine::Talent_s talent,
+		ImDrawList* drawList,
+		ImVec4* colors,
+		ImVec2 pos,
+		int talentSize,
+		ImVec2 windowPos,
+		ImVec2 scroll,
+		UIData& uiData,
+		TalentTreeCollection& talentTreeCollection,
 		bool searchActive,
 		bool talentIsSearchedFor);
 

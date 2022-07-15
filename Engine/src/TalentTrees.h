@@ -118,11 +118,10 @@ namespace Engine {
         std::vector<float> skillsetDPS;
         std::vector<TalentPerformanceInfo> talentPerformances;
 
+        //this is needed for color glow texture generation, since that is a separate function
+        float minRelPerf = 0.0f;
         std::vector<float> talentAbsolutePositionRankings;
         std::vector<float> talentRelativePerformanceRankings;
-        //don't put this here, keep engine and gui separated. put this in uiData somewhere and clear pointers in the function that updates this
-        //map or vector?
-        //std::map<int, std::pair<ImVec4, TextureInfo>> colorGlowTextures;
     };
 
     /*

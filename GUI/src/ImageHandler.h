@@ -16,6 +16,7 @@ namespace TTM {
 	bool LoadGreenIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadGoldIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadBlueIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
+	bool CreateGlowTextureFromColor(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice, std::vector<unsigned char> rgb);
 	bool LoadSplitTextureFromFile(
 		const char* filename1, 
 		const char* filename2, 

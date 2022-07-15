@@ -80,7 +80,7 @@ namespace TTM {
 
     static void AttachSimAnalysisTooltip(const UIData& uiData, Engine::Talent_s talent)
     {
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        if (ImGui::IsItemHovered())
         {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
@@ -88,119 +88,23 @@ namespace TTM {
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
                 ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
-                if (uiData.iconIndexMap.count(talent->index)) {
-                    ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture,
-                        ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
-                    );
-                }
-                //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
                 ImGui::Text(idLabel.c_str());
-                std::string talentTypeString;
-                switch (talent->type) {
-                case Engine::TalentType::ACTIVE: {talentTypeString = "(active)"; }break;
-                case Engine::TalentType::PASSIVE: {talentTypeString = "(passive)"; }break;
-                }
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), talentTypeString.c_str());
-                if (talent->preFilled) {
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
-                }
-                ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
-                ImGui::Spacing();
-                ImGui::Spacing();
-
-                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
-                ImGui::PopTextWrapPos();
 
                 ImGui::EndTooltip();
             }
             else {
-                if (talent->points > 0) {
-                    ImGui::BeginTooltip();
-                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                    ImGui::Text(talent->getName().c_str());
-                    ImGui::PopFont();
-                    if (uiData.iconIndexMap.count(talent->index)) {
-                        if (talent->talentSwitch == 1) {
-                            ImGui::Image(
-                                uiData.iconIndexMap.at(talent->index).first.texture,
-                                ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
-                            );
-                        }
-                        else if (talent->talentSwitch == 2) {
-                            ImGui::Image(
-                                uiData.iconIndexMap.at(talent->index).second.texture,
-                                ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
-                            );
-                        }
-                    }
-                    //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
-                    ImGui::Text(idLabel.c_str());
-                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch, ctrl+click:");
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), (talent->getNameSwitch() + ")").c_str());
-                    ImGui::PopTextWrapPos();
-                    if (talent->preFilled) {
-                        ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
-                    }
-                    ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
-                    ImGui::Spacing();
-                    ImGui::Spacing();
-                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->getDescription().c_str());
-                    ImGui::PopTextWrapPos();
-                }
-                else {
-                    ImGui::BeginTooltip();
-                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                    ImGui::Text(talent->name.c_str());
-                    ImGui::PopFont();
-                    if (uiData.iconIndexMap.count(talent->index)) {
-                        ImGui::Image(
-                            uiData.iconIndexMap.at(talent->index).first.texture,
-                            ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
-                        );
-                    }
-                    //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
-                    ImGui::Text(idLabel.c_str());
-                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
-                    if (talent->preFilled) {
-                        ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
-                    }
-                    ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
-
-                    ImGui::Spacing();
-                    ImGui::Spacing();
-                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[0].c_str());
-                    ImGui::PopTextWrapPos();
-                    ImGui::Spacing();
-                    ImGui::Separator();
-                    ImGui::Spacing();
-                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                    ImGui::Text(talent->nameSwitch.c_str());
-                    ImGui::PopFont();
-                    if (uiData.iconIndexMap.count(talent->index)) {
-                        ImGui::Image(
-                            uiData.iconIndexMap.at(talent->index).second.texture,
-                            ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
-                        );
-                    }
-                    //ImGui::SameLine(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize(idLabel.c_str()).x);
-                    ImGui::Text(idLabel.c_str());
-                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(switch)");
-                    if (talent->preFilled) {
-                        ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(preselected)");
-                    }
-                    ImGui::Text(("Points: " + std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
-
-                    ImGui::Spacing();
-                    ImGui::Spacing();
-                    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
-                    ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style), talent->descriptions[1].c_str());
-                    ImGui::PopTextWrapPos();
-                }
+                ImGui::BeginTooltip();
+                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                ImGui::Text(talent->name.c_str());
+                ImGui::PopFont();
+                ImGui::Text(idLabel.c_str());
+                ImGui::Spacing();
+                ImGui::Separator();
+                ImGui::Spacing();
+                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                ImGui::Text(talent->nameSwitch.c_str());
+                ImGui::PopFont();
+                ImGui::Text(idLabel.c_str());
 
                 ImGui::EndTooltip();
             }
@@ -260,6 +164,7 @@ namespace TTM {
                 GenerateFakeData(talentTreeCollection.activeTree());
                 AnalyzeRawResults(talentTreeCollection.activeTree());
                 CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
             }
 
             if (ImGui::BeginListBox("##simAnalysisResultsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
@@ -283,6 +188,9 @@ namespace TTM {
                     talentTreeCollection.activeTree().simAnalysisRawResults.erase(
                         talentTreeCollection.activeTree().simAnalysisRawResults.begin() + 
                         talentTreeCollection.activeTree().selectedSimAnalysisRawResult);
+                    AnalyzeRawResults(talentTreeCollection.activeTree());
+                    CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
                 }
             }
             ImGui::Separator();
@@ -313,7 +221,7 @@ namespace TTM {
             }
             ImGui::Separator();
 
-            ImGui::Text("Settings");
+            ImGui::Text("Visualization settings:");
             ImGui::Spacing();
             ImGui::Spacing();
             if (OptionSwitch("Talent Icon", "Rating", &uiData.simAnalysisIconRatingSwitch, 80.0f, true, "simAnalysisRatingSwitch")) {
@@ -321,6 +229,7 @@ namespace TTM {
             }
             if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch")) {
                 CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
             }
             ImGui::Text("Ranking metric:");
             int oldSetting = uiData.topMedianPerformanceSwitch;
@@ -335,6 +244,7 @@ namespace TTM {
             ImGui::RadioButton("Top 1 + Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOPMEDIAN));
             if (oldSetting != uiData.topMedianPerformanceSwitch) {
                 CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
             }
 
             ImGui::Separator();
@@ -379,21 +289,6 @@ namespace TTM {
 
     void placeSimAnalysisTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
-
-        if (tree.loadout.size() == 0) {
-            ImGui::SetCursorPos(ImVec2(ImGui::GetContentRegionAvail().x * 0.5f - 75.0f, ImGui::GetContentRegionAvail().y * 0.5f - 12.5f));
-            if (ImGui::Button("Create first skillset", ImVec2(150, 25))) {
-                Engine::createSkillset(tree);
-                Engine::activateSkillset(tree, static_cast<int>(tree.loadout.size() - 1));
-            }
-            return;
-        }
-        else if (tree.activeSkillsetIndex < 0) {
-            //this should in theory not happen but failsave never hurts
-            Engine::activateSkillset(tree, 0);
-        }
-
-        //TTMTODO: Change button style layout to render base layout? This is messy af
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
         int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
         float talentWindowPaddingY = static_cast<float>(uiData.treeEditorTalentWindowPaddingY);
@@ -414,44 +309,14 @@ namespace TTM {
             float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
             bool talentIsSearchedFor = false;
             bool searchActive = uiData.talentSearchString != "";
-            bool talentDisabled = false;
-            bool isParentFilled = talent.second->parents.size() == 0;
-            for (auto& parent : talent.second->parents) {
-                if (parent->points == parent->maxPoints) {
-                    isParentFilled = true;
-                    break;
-                }
-            }
-            if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints || !isParentFilled || talent.second->preFilled) {
-                talentDisabled = true;
-            }
-            if (talent.second->preFilled) {
-                int assignedPoints = talent.second->maxPoints - talent.second->points;
-                talent.second->points += assignedPoints;
-                talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += assignedPoints;
-                talentTreeCollection.activeSkillset()->talentPointsSpent += assignedPoints;
-                if (talent.second->type == Engine::TalentType::SWITCH) {
-                    talent.second->talentSwitch = 1;
-                }
-            }
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && !searchActive) {
-                if (talent.second->points == talent.second->maxPoints) {
-                    ImGui::Image(
-                        uiData.goldIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-                else if (talent.second->points > 0) {
-                    ImGui::Image(
-                        uiData.greenIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
+            if (uiData.enableGlow && !searchActive && uiData.simAnalysisColorGlowTextures.count(talent.first)) {
+                ImGui::Image(
+                    uiData.simAnalysisColorGlowTextures[talent.first].second.texture,
+                    ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
             }
             else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
                 talentIsSearchedFor = true;
@@ -464,10 +329,6 @@ namespace TTM {
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            if (talentDisabled) {
-                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
-                ImGui::BeginDisabled();
-            }
 
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
@@ -477,17 +338,7 @@ namespace TTM {
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
             TextureInfo iconContent;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                if (talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
-                    if (talent.second->talentSwitch == 2) {
-                        iconContent = uiData.iconIndexMap[talent.second->index].second;
-                    }
-                    else {
-                        iconContent = uiData.iconIndexMap[talent.second->index].first;
-                    }
-                }
-                else {
-                    iconContent = uiData.splitIconIndexMap[talent.second->index];
-                }
+                iconContent = uiData.splitIconIndexMap[talent.second->index];
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;
@@ -495,33 +346,10 @@ namespace TTM {
             if (ImGui::ImageButton(iconContent.texture,
                 ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
             )) {
-                if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
-                    if (talent.second->type == Engine::TalentType::SWITCH) {
-                        talent.second->talentSwitch = talent.second->talentSwitch < 2 ? 2 : 1;
-                        if (talent.second->points > 0) {
-                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
-                        }
-                    }
-                }
-                else {
-                    if (isParentFilled && talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints >= talent.second->pointsRequired && talent.second->points < talent.second->maxPoints) {
-                        talent.second->points += 1;
-                        if (talent.second->type == Engine::TalentType::SWITCH) {
-                            if (talent.second->talentSwitch == 0) {
-                                talent.second->talentSwitch = 1;
-                            }
-                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
-                        }
-                        else {
-                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
-                        }
-                        talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
-                    }
-                }
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
-            drawLoadoutEditorShapeAroundTalent(
+            drawSimAnalysisShapeAroundTalent(
                 talent.second,
                 drawList,
                 imStyle.Colors,
@@ -531,50 +359,8 @@ namespace TTM {
                 ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
                 uiData,
                 talentTreeCollection,
-                1.0f - 0.65f * talentDisabled,
                 searchActive,
                 talentIsSearchedFor);
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
-                uiData.loadoutEditorRightClickIndex = talent.first;
-            }
-            if (ImGui::IsItemClicked(ImGuiMouseButton_Middle)) {
-                uiData.loadoutEditorMiddleClickIndex = talent.first;
-            }
-            if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && talent.first == uiData.loadoutEditorRightClickIndex) {
-                if (talent.second->points > 0) {
-                    talent.second->points -= 1;
-                    if (talent.second->type == Engine::TalentType::SWITCH) {
-                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = 0;
-                    }
-                    else {
-                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] -= 1;
-                    }
-                    talentTreeCollection.activeSkillset()->talentPointsSpent -= 1;
-                    bool allTalentsValid = Engine::checkTalentValidity(talentTreeCollection.activeTree());
-                    if (!allTalentsValid) {
-                        talent.second->points += 1;
-                        if (talent.second->type == Engine::TalentType::SWITCH) {
-                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
-                        }
-                        else {
-                            talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] += 1;
-                        }
-                        talentTreeCollection.activeSkillset()->talentPointsSpent += 1;
-                    }
-                }
-            }
-            if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Middle) && talent.first == uiData.loadoutEditorMiddleClickIndex) {
-                if (talent.second->type == Engine::TalentType::SWITCH) {
-                    talent.second->talentSwitch = talent.second->talentSwitch < 2 ? 2 : 1;
-                    if (talent.second->points > 0) {
-                        talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] = talent.second->talentSwitch;
-                    }
-                }
-            }
-            if (talentDisabled) {
-                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
-                ImGui::EndDisabled();
-            }
             ImGui::PopFont();
             AttachSimAnalysisTooltip(uiData, talent.second);
         }
@@ -656,6 +442,8 @@ namespace TTM {
         }
         result.skillsetCount = static_cast<int>(result.skillsetDPS.size());
         if (result.skillsetCount == 0) {
+            result.indexToArrayColMap.clear();
+            tree.analysisResult = std::move(result);
             return;
         }
         //sort talentArray and skillsetDPS vectors in the same order
@@ -685,10 +473,12 @@ namespace TTM {
                         tempTalentSkillsetNames.push_back(tempSkillsetNames[i]);
                     }
                 }
-                tInfo.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[0], tInfo.skillsetDPS[0]);
-                size_t medianIndex = (tInfo.skillsetDPS.size() + 1) / 2;
-                tInfo.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[medianIndex], tInfo.skillsetDPS[medianIndex]);
-                tInfo.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[tInfo.skillsetDPS.size() - 1], tInfo.skillsetDPS[tInfo.skillsetDPS.size() - 1]);
+                if (tempTalentSkillsetNames.size() > 0 && tInfo.skillsetDPS.size() > 0) {
+                    tInfo.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[0], tInfo.skillsetDPS[0]);
+                    size_t medianIndex = (tInfo.skillsetDPS.size() + 1) / 2;
+                    tInfo.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[medianIndex], tInfo.skillsetDPS[medianIndex]);
+                    tInfo.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[tInfo.skillsetDPS.size() - 1], tInfo.skillsetDPS[tInfo.skillsetDPS.size() - 1]);
+                }
                 result.talentPerformances.push_back(tInfo);
             }
         }
@@ -697,6 +487,9 @@ namespace TTM {
     }
 
     void CalculateAnalysisRankings(UIData& uiData, Engine::AnalysisResult& result) {
+        result.minRelPerf = 1.0f;
+        result.talentAbsolutePositionRankings.clear();
+        result.talentRelativePerformanceRankings.clear();
         if (result.skillsetCount == 0 || result.talentPerformances.size() == 0) {
             return;
         }
@@ -715,9 +508,11 @@ namespace TTM {
             case Engine::PerformanceMetric::TOP3: {
                 std::vector<float> dps(DPS_SLOTS, 0);
                 float avg = 0.0f;
-                for (int j = 0; j < 3; j++) {
-                    dps[j + 1] = result.talentPerformances[i].skillsetDPS[result.talentPerformances[i].skillsetDPS.size() - 1 - j];
-                    avg += dps[j + 1];
+                if (result.talentPerformances[i].skillsetDPS.size() >= 3) {
+                    for (int j = 0; j < 3; j++) {
+                        dps[j + 1] = result.talentPerformances[i].skillsetDPS[result.talentPerformances[i].skillsetDPS.size() - 1 - j];
+                        avg += dps[j + 1];
+                    }
                 }
                 dps[0] = avg / 3;
                 performance.emplace_back(i, dps);
@@ -725,9 +520,11 @@ namespace TTM {
             case Engine::PerformanceMetric::TOP5: {
                 std::vector<float> dps(DPS_SLOTS, 0);
                 float avg = 0.0f;
-                for (int j = 0; j < 5; j++) {
-                    dps[j + 1] = result.talentPerformances[i].skillsetDPS[result.talentPerformances[i].skillsetDPS.size() - 1 - j];
-                    avg += dps[j + 1];
+                if (result.talentPerformances[i].skillsetDPS.size() >= 5) {
+                    for (int j = 0; j < 5; j++) {
+                        dps[j + 1] = result.talentPerformances[i].skillsetDPS[result.talentPerformances[i].skillsetDPS.size() - 1 - j];
+                        avg += dps[j + 1];
+                    }
                 }
                 dps[0] = avg / 5;
                 performance.emplace_back(i, dps);
@@ -746,41 +543,113 @@ namespace TTM {
         std::sort(performance.begin(), performance.end(), [](auto& left, auto& right) {
             return left.second < right.second;
             });
-        float minPerf = performance[0].second[0];
         float maxPerf = performance[performance.size() - 1].second[0];
-        float minRelPerf = minPerf / maxPerf;
+        float minPerf = maxPerf;
+        for (auto& p : performance) {
+            if (p.second[0] > 0.0f && p.second[0] < minPerf) {
+                minPerf = p.second[0];
+            }
+        }
+        //this is needed for color glow texture generation, since that is a separate function
+        result.minRelPerf = minPerf / maxPerf;
 
-        result.talentAbsolutePositionRankings.clear();
         result.talentAbsolutePositionRankings.resize(numTalents);
-        result.talentRelativePerformanceRankings.clear();
         result.talentRelativePerformanceRankings.resize(numTalents);
+
         std::map<std::vector<float>, int> rankMap;
         int rankCounter = 0;
         for (int i = 0; i < numTalents; i++) {
-            if (!rankMap.count(performance[i].second)) {
+            if (performance[i].second[0] > 0.0f && !rankMap.count(performance[i].second)) {
                 rankMap[performance[i].second] = rankCounter;
                 rankCounter++;
             }
         }
         for (int i = 0; i < numTalents; i++) {
-            result.talentAbsolutePositionRankings[performance[i].first] = rankMap[performance[i].second] * 1.0f / (rankCounter - 1);
-            result.talentRelativePerformanceRankings[performance[i].first] = performance[i].second[0] / maxPerf;
+            result.talentAbsolutePositionRankings[performance[i].first] = performance[i].second[0] > 0.0f ? rankMap[performance[i].second] * 1.0f / (rankCounter - 1) : -1.0f;
+            result.talentRelativePerformanceRankings[performance[i].first] = performance[i].second[0] > 0.0f ? performance[i].second[0] / maxPerf : -1.0f;
         }
+    }
 
+
+    void UpdateColorGlowTextures(UIData& uiData, Engine::TalentTree& tree, Engine::AnalysisResult& result) {
         //create glows and colors
         //glow always goes from red to green 
         //but for absolute rankings red = 0, green = 1
         //and for relative rankings red = minRelPerf, green = 1
-        //store pairs of (color, glowTexture) in AnalysisResult
+        //store pairs of (color, glowTexture) in uiData
+        for (auto& indexColorGlowPair : uiData.simAnalysisColorGlowTextures) {
+            if (indexColorGlowPair.second.second.texture) {
+                indexColorGlowPair.second.second.texture->Release();
+                indexColorGlowPair.second.second.texture = nullptr;
+            }
+        }
+        uiData.simAnalysisColorGlowTextures.clear();
+
+        if (result.talentAbsolutePositionRankings.size() == 0 || result.talentRelativePerformanceRankings.size() == 0) {
+            return;
+        }
+
         bool calculateAbsolutePositionRanking = uiData.relativeDpsRankingSwitch;
-        if (calculateAbsolutePositionRanking) {
-
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            float highestRanking = -1.0f;
+            std::vector<unsigned char> color(3);
+            if (calculateAbsolutePositionRanking) {
+                //get highest position ranking value of multipoint/switch/regular talent
+                if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
+                    if (result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first]]
+                        > result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + 1]) {
+                        highestRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first]];
+                    }
+                    else {
+                        highestRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + 1];
+                    }
+                }
+                else {
+                    for (int i = 0; i < indexTalentPair.second->maxPoints; i++) {
+                        if (result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i] > highestRanking) {
+                            highestRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
+                        }
+                    }
+                }
+                //get interpolated red-green color for 0=red, 1=green
+                color[0] = 2.0f * (1.0f - highestRanking) >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * (1.0f - highestRanking) * 255);
+                color[1] = 2.0f * highestRanking >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * highestRanking * 255);
+                color[2] = 0;
+            }
+            else {
+                //get highest position ranking value of multipoint/switch/regular talent
+                if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
+                    if (result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first]]
+                        > result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + 1]) {
+                        highestRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first]];
+                    }
+                    else {
+                        highestRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + 1];
+                    }
+                }
+                else {
+                    for (int i = 0; i < indexTalentPair.second->maxPoints; i++) {
+                        if (result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i] > highestRanking) {
+                            highestRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
+                        }
+                    }
+                }
+                //get interpolated red-green color for minRelPerf=red, 1=green
+                float intermediate = (highestRanking - result.minRelPerf) / (1.0f - result.minRelPerf);
+                color[0] = 2.0f * (1.0f - intermediate) >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * (1.0f - intermediate) * 255);
+                color[1] = 2.0f * intermediate >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * intermediate * 255);
+                color[2] = 0;
+            }
+            if(highestRanking > 0.0f){
+                //create glow texture with that color
+                TextureInfo texInfo;
+                CreateGlowTextureFromColor(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, color);
+                //add it to map with talent index as key
+                uiData.simAnalysisColorGlowTextures[indexTalentPair.first] = std::pair<ImVec4, TextureInfo>(ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f), texInfo);
+            }
         }
-        else {
 
-        }
     }
-
 
     //taken from: https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of
     template <typename T, typename Compare>
