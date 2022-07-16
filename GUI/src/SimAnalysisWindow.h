@@ -8,9 +8,18 @@
 #include "imgui_stdlib.h"
 
 namespace TTM {
-	bool OptionSwitch(std::string leftText, std::string rightText, int* switchVariable, float switchWidth, bool centered, std::string uniqueSliderId);
+	bool OptionSwitch(
+		std::string leftText,
+		std::string rightText,
+		int* switchVariable,
+		float switchWidth,
+		bool centered,
+		std::string uniqueSliderId,
+		bool showHelperTooltip,
+		std::string helperTooltipHovered,
+		std::string helperTooltipHelptext);
 	static void HelperTooltip(std::string hovered, std::string helptext);
-	static void AttachSimAnalysisTooltip(const UIData& uiData, Engine::Talent_s talent);
+	static void AttachSimAnalysisTooltip(const UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent);
 
 	void RenderSimAnalysisWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 

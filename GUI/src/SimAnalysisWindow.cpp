@@ -21,6 +21,7 @@
 #include "SimAnalysisWindow.h"
 
 #include <numeric>
+#include <sstream>
 
 #include "TTMGUIPresets.h"
 
@@ -28,7 +29,16 @@
 #include <random>
 
 namespace TTM {
-    bool OptionSwitch(std::string leftText, std::string rightText, int* switchVariable, float switchWidth, bool centered, std::string uniqueSliderId) {
+    bool OptionSwitch(
+        std::string leftText, 
+        std::string rightText, 
+        int* switchVariable, 
+        float switchWidth, 
+        bool centered, 
+        std::string uniqueSliderId,
+        bool showHelperTooltip,
+        std::string helperTooltipHovered,
+        std::string helperTooltipHelptext) {
         float rowWidth = ImGui::GetContentRegionAvail().x;
         float leftTextWidth = ImGui::CalcTextSize(leftText.c_str()).x;
         float padding = ImGui::GetStyle().ItemSpacing.x;
@@ -48,6 +58,10 @@ namespace TTM {
 
             ImGui::SetCursorPos(ImVec2(start.x + 0.5f * rowWidth + 0.5f * switchWidth + padding, start.y));
             ImGui::Text(rightText.c_str());
+            if (showHelperTooltip) {
+                ImGui::SameLine();
+                HelperTooltip(helperTooltipHovered, helperTooltipHelptext);
+            }
             ImGui::Spacing();
             ImGui::Spacing();
         }
@@ -62,6 +76,10 @@ namespace TTM {
             ImGui::SameLine();
 
             ImGui::Text(rightText.c_str());
+            if (showHelperTooltip) {
+                ImGui::SameLine();
+                HelperTooltip(helperTooltipHovered, helperTooltipHelptext);
+            }
         }
 
         return eventFired;
@@ -78,10 +96,16 @@ namespace TTM {
         }
     }
 
-    static void AttachSimAnalysisTooltip(const UIData& uiData, Engine::Talent_s talent)
+    static void AttachSimAnalysisTooltip(const UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent)
     {
         if (ImGui::IsItemHovered())
         {
+            if (result.skillsetCount == 0) {
+                ImGui::BeginTooltip();
+                ImGui::Text("Analyze sim results to see details.");
+                ImGui::EndTooltip();
+                return;
+            }
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
                 ImGui::BeginTooltip();
@@ -89,6 +113,44 @@ namespace TTM {
                 ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
                 ImGui::Text(idLabel.c_str());
+
+                for (int i = 0; i < talent->maxPoints; i++) {
+                    ImGui::Text("Rank %d:", i + 1);
+                    int colIndex = result.indexToArrayColMap.at(talent->index) + i;
+                    const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                    size_t numSkillsets = talentPerf.skillsetDPS.size();
+                    ImGui::Text("Number of skillsets: %d", numSkillsets);
+                    if (numSkillsets > 0) {
+                        ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                            talentPerf.lowestDPSSkillset.first.second.c_str(),
+                            talentPerf.lowestDPSSkillset.first.first.c_str(),
+                            talentPerf.lowestDPSSkillset.second);
+                        ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                            talentPerf.medianDPSSkillset.first.second.c_str(),
+                            talentPerf.medianDPSSkillset.first.first.c_str(),
+                            talentPerf.medianDPSSkillset.second);
+                        ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                            talentPerf.highestDPSSkillset.first.second.c_str(),
+                            talentPerf.highestDPSSkillset.first.first.c_str(),
+                            talentPerf.highestDPSSkillset.second);
+                        ImGui::Spacing();
+                        ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
+                        ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
+                        ImGui::Text("Skillset distribution:");
+                        ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                            &talentPerf.skillsetDPS[0],
+                            static_cast<int>(numSkillsets),
+                            0, NULL,
+                            0.95f * result.lowestDPSSkillset.second,
+                            1.05f * result.highestDPSSkillset.second,
+                            ImVec2(0, 80.0f));
+                    }
+                    if (i < talent->maxPoints - 1) {
+                        ImGui::Spacing();
+                        ImGui::Separator();
+                        ImGui::Spacing();
+                    }
+                }
 
                 ImGui::EndTooltip();
             }
@@ -99,12 +161,76 @@ namespace TTM {
                 ImGui::PopFont();
                 ImGui::Text(idLabel.c_str());
                 ImGui::Spacing();
+
+                int colIndex = result.indexToArrayColMap.at(talent->index);
+                const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                size_t numSkillsets = talentPerf.skillsetDPS.size();
+                ImGui::Text("Number of skillsets: %d", numSkillsets);
+                if (numSkillsets > 0) {
+                    ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.lowestDPSSkillset.first.second.c_str(),
+                        talentPerf.lowestDPSSkillset.first.first.c_str(),
+                        talentPerf.lowestDPSSkillset.second);
+                    ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.medianDPSSkillset.first.second.c_str(),
+                        talentPerf.medianDPSSkillset.first.first.c_str(),
+                        talentPerf.medianDPSSkillset.second);
+                    ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.highestDPSSkillset.first.second.c_str(),
+                        talentPerf.highestDPSSkillset.first.first.c_str(),
+                        talentPerf.highestDPSSkillset.second);
+                    ImGui::Spacing();
+                    ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex]*100.0f);
+                    ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex]*100.0f);
+                    ImGui::Text("Skillset distribution:");
+                    ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                        &talentPerf.skillsetDPS[0],
+                        static_cast<int>(numSkillsets),
+                        0, NULL,
+                        0.95f * result.lowestDPSSkillset.second,
+                        1.05f * result.highestDPSSkillset.second,
+                        ImVec2(0, 80.0f));
+                }
+
+
+                ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
+
                 ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
                 ImGui::Text(talent->nameSwitch.c_str());
                 ImGui::PopFont();
                 ImGui::Text(idLabel.c_str());
+
+                colIndex += 1;
+                const Engine::TalentPerformanceInfo& talentPerfSwitch = result.talentPerformances[colIndex];
+                numSkillsets = talentPerfSwitch.skillsetDPS.size();
+                ImGui::Text("Number of skillsets: %d", numSkillsets);
+                if (numSkillsets > 0) {
+                    ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerfSwitch.lowestDPSSkillset.first.second.c_str(),
+                        talentPerfSwitch.lowestDPSSkillset.first.first.c_str(),
+                        talentPerfSwitch.lowestDPSSkillset.second);
+                    ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerfSwitch.medianDPSSkillset.first.second.c_str(),
+                        talentPerfSwitch.medianDPSSkillset.first.first.c_str(),
+                        talentPerfSwitch.medianDPSSkillset.second);
+                    ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerfSwitch.highestDPSSkillset.first.second.c_str(),
+                        talentPerfSwitch.highestDPSSkillset.first.first.c_str(),
+                        talentPerfSwitch.highestDPSSkillset.second);
+                    ImGui::Spacing();
+                    ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
+                    ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
+                    ImGui::Text("Skillset distribution:");
+                    ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                        &talentPerfSwitch.skillsetDPS[0],
+                        static_cast<int>(numSkillsets),
+                        0, NULL,
+                        0.95f * result.lowestDPSSkillset.second,
+                        1.05f * result.highestDPSSkillset.second,
+                        ImVec2(0, 80.0f));
+                }
 
                 ImGui::EndTooltip();
             }
@@ -224,14 +350,26 @@ namespace TTM {
             ImGui::Text("Visualization settings:");
             ImGui::Spacing();
             ImGui::Spacing();
-            if (OptionSwitch("Talent Icon", "Rating", &uiData.simAnalysisIconRatingSwitch, 80.0f, true, "simAnalysisRatingSwitch")) {
+            if (OptionSwitch("Talent Icon", "Rating", &uiData.simAnalysisIconRatingSwitch, 80.0f, true, "simAnalysisRatingSwitch", true, "(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).")) {
                 //probably needs nothing here
             }
-            if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch")) {
+            //ImGui::SameLine();
+            //HelperTooltip("(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).");
+            if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch", true, "(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.")) {
                 CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
                 UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
             }
+            //ImGui::SameLine();
+            //HelperTooltip("(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.");
+            if (OptionSwitch("Show lowest", "Show highest", &uiData.showLowestHighestSwitch, 80.0f, true, "simAnalysisLowestHighestSwitch", true, "(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.")) {
+                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+            }
+            //ImGui::SameLine();
+            //HelperTooltip("(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.");
             ImGui::Text("Ranking metric:");
+            ImGui::SameLine();
+            HelperTooltip("(?)", "Choose the metric that's used to calculate talent performances:\n\nTop X: Take the average of the top X skillsets where this talent is used.\n\nMedian: Take the median of all skillsets where this talent is used.\n\nTop 1 + Median: Take the top skillset but sort further using the median of all skillsets where this talent is used. The shown relative performance is still only top 1 skillset.");
             int oldSetting = uiData.topMedianPerformanceSwitch;
             ImGui::RadioButton("Top 1", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP1));
             ImGui::SameLine();
@@ -328,24 +466,60 @@ namespace TTM {
                 );
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
 
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
-            TextureInfo iconContent;
-            if (talent.second->type == Engine::TalentType::SWITCH) {
-                iconContent = uiData.splitIconIndexMap[talent.second->index];
+            if (uiData.simAnalysisIconRatingSwitch) {
+                std::string buttonText;
+                ImVec4 buttonCol;
+                if (uiData.simAnalysisButtonRankingText.count(talent.first) && uiData.simAnalysisColorGlowTextures.count(talent.first)) {
+                    buttonText = uiData.simAnalysisButtonRankingText[talent.first].c_str();
+                    buttonCol = uiData.simAnalysisColorGlowTextures[talent.second->index].first;
+                }
+                else {
+                    buttonText = "";
+                    if (uiData.style == Presets::STYLES::COMPANY_GREY) {
+                        buttonCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
+                    }
+                    else {
+                        buttonCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
+                    }
+                }
+                ImGui::PushStyleColor(ImGuiCol_Button, buttonCol);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, buttonCol);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, buttonCol);
+                if (talent.second->type != Engine::TalentType::ACTIVE) {
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 14.0f * uiData.treeEditorZoomFactor);
+                    ImGui::PushStyleVar(ImGuiStyleVar_GrabRounding, 14.0f * uiData.treeEditorZoomFactor);
+                }
+                if (buttonCol.y >= 0.5f) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 0, 1));
+                }
+                if (ImGui::Button(buttonText.c_str(), ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
+                }
+                if (buttonCol.y >= 0.5f) {
+                    ImGui::PopStyleColor();
+                }
+                if (talent.second->type != Engine::TalentType::ACTIVE) {
+                    ImGui::PopStyleVar(2);
+                }
             }
             else {
-                iconContent = uiData.iconIndexMap[talent.second->index].first;
-            }
-            if (ImGui::ImageButton(iconContent.texture,
-                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
-            )) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+                TextureInfo iconContent;
+                if (talent.second->type == Engine::TalentType::SWITCH) {
+                    iconContent = uiData.splitIconIndexMap[talent.second->index];
+                }
+                else {
+                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                }
+                if (ImGui::ImageButton(iconContent.texture,
+                    ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
+                )) {
+                }
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
@@ -361,8 +535,7 @@ namespace TTM {
                 talentTreeCollection,
                 searchActive,
                 talentIsSearchedFor);
-            ImGui::PopFont();
-            AttachSimAnalysisTooltip(uiData, talent.second);
+            AttachSimAnalysisTooltip(uiData, tree.analysisResult, talent.second);
         }
         for (auto& talent : tree.orderedTalents) {
             for (auto& child : talent.second->children) {
@@ -377,7 +550,7 @@ namespace TTM {
                     talentSize,
                     talentPadding,
                     uiData,
-                    true);
+                    false);
             }
         }
         //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
@@ -591,61 +764,72 @@ namespace TTM {
 
         bool calculateAbsolutePositionRanking = uiData.relativeDpsRankingSwitch;
         for (auto& indexTalentPair : tree.orderedTalents) {
-            float highestRanking = -1.0f;
+            float extremeRanking = uiData.showLowestHighestSwitch ? -1.0f : 2.0f;
             std::vector<unsigned char> color(3);
             if (calculateAbsolutePositionRanking) {
-                //get highest position ranking value of multipoint/switch/regular talent
+                int maxP = indexTalentPair.second->maxPoints;
                 if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
-                    if (result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first]]
-                        > result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + 1]) {
-                        highestRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first]];
-                    }
-                    else {
-                        highestRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + 1];
+                    maxP = 2;
+                }
+                if (uiData.showLowestHighestSwitch) {
+                    //get highest position ranking value of multipoint/switch/regular talent
+                    for (int i = 0; i < maxP; i++) {
+                        if (result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i] > extremeRanking) {
+                            extremeRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
+                        }
                     }
                 }
                 else {
-                    for (int i = 0; i < indexTalentPair.second->maxPoints; i++) {
-                        if (result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i] > highestRanking) {
-                            highestRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
+                    //get lowest position ranking value of multipoint/switch/regular talent
+                    for (int i = 0; i < maxP; i++) {
+                        if (result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i] >= 0.0f
+                            && result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i] < extremeRanking) {
+                            extremeRanking = result.talentAbsolutePositionRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
                         }
                     }
                 }
                 //get interpolated red-green color for 0=red, 1=green
-                color[0] = 2.0f * (1.0f - highestRanking) >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * (1.0f - highestRanking) * 255);
-                color[1] = 2.0f * highestRanking >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * highestRanking * 255);
+                color[0] = 2.0f * (1.0f - extremeRanking) >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * (1.0f - extremeRanking) * 255);
+                color[1] = 2.0f * extremeRanking >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * extremeRanking * 255);
                 color[2] = 0;
             }
             else {
                 //get highest position ranking value of multipoint/switch/regular talent
+                int maxP = indexTalentPair.second->maxPoints;
                 if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
-                    if (result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first]]
-                        > result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + 1]) {
-                        highestRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first]];
-                    }
-                    else {
-                        highestRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + 1];
+                    maxP = 2;
+                }
+                if (uiData.showLowestHighestSwitch) {
+                    for (int i = 0; i < maxP; i++) {
+                        if (result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i] > extremeRanking) {
+                            extremeRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
+                        }
                     }
                 }
                 else {
-                    for (int i = 0; i < indexTalentPair.second->maxPoints; i++) {
-                        if (result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i] > highestRanking) {
-                            highestRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
+                    for (int i = 0; i < maxP; i++) {
+                        if (result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i] >= 0.0f
+                            && result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i] < extremeRanking) {
+                            extremeRanking = result.talentRelativePerformanceRankings[result.indexToArrayColMap[indexTalentPair.first] + i];
                         }
                     }
                 }
                 //get interpolated red-green color for minRelPerf=red, 1=green
-                float intermediate = (highestRanking - result.minRelPerf) / (1.0f - result.minRelPerf);
+                float intermediate = (extremeRanking - result.minRelPerf) / (1.0f - result.minRelPerf);
                 color[0] = 2.0f * (1.0f - intermediate) >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * (1.0f - intermediate) * 255);
                 color[1] = 2.0f * intermediate >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * intermediate * 255);
                 color[2] = 0;
             }
-            if(highestRanking > 0.0f){
+            if(extremeRanking >= 0.0f && extremeRanking <= 1.0f){
                 //create glow texture with that color
                 TextureInfo texInfo;
                 CreateGlowTextureFromColor(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, color);
                 //add it to map with talent index as key
                 uiData.simAnalysisColorGlowTextures[indexTalentPair.first] = std::pair<ImVec4, TextureInfo>(ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f), texInfo);
+                std::stringstream stream;
+                int precision = (extremeRanking == 1.0f || extremeRanking == 0.0f) ? 0 : 1;
+                stream << std::fixed << std::setprecision(precision) << extremeRanking * 100.0f;
+                uiData.simAnalysisButtonRankingText[indexTalentPair.first] = stream.str();
             }
         }
 
@@ -690,6 +874,8 @@ namespace TTM {
                 Engine::TalentSkillset skillset;
                 skillset.name = "Skillset " + std::to_string(j);
                 for (auto& indexTalentPair : tree.orderedTalents) {
+                    if (indexTalentPair.second->index > 25)
+                        continue;
                     std::uniform_int_distribution<std::mt19937::result_type> randPoints(0, indexTalentPair.second->maxPoints);
                     skillset.assignedSkillPoints[indexTalentPair.first] = randPoints(rng);
                 }

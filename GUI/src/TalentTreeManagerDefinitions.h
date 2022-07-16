@@ -198,7 +198,9 @@ namespace TTM {
 		int simAnalysisIconRatingSwitch = 0;
 		int topMedianPerformanceSwitch = 0;
 		int relativeDpsRankingSwitch = 0;
+		int showLowestHighestSwitch = 0;
 		std::map<int, std::pair<ImVec4, TextureInfo>> simAnalysisColorGlowTextures;
+		std::map<int, std::string> simAnalysisButtonRankingText;
 	};
 
 	struct TalentTreeData {
