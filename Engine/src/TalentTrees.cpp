@@ -447,12 +447,15 @@ namespace Engine {
             return emptyTree;
         }
         TalentTree presetTree = parseCustomTree(treeRep);
-        presetTree.activeSkillsetIndex = -1;
+        presetTree.activeSkillsetIndex = tree.activeSkillsetIndex;
         presetTree.loadout.clear();
         for (auto& skillset : tree.loadout) {
             if (validateSkillset(presetTree, skillset)) {
                 presetTree.loadout.push_back(skillset);
             }
+        }
+        if (presetTree.activeSkillsetIndex >= presetTree.loadout.size()) {
+            presetTree.activeSkillsetIndex = presetTree.loadout.size() - 1;
         }
         presetTree.loadoutDescription = tree.loadoutDescription;
         return presetTree;
