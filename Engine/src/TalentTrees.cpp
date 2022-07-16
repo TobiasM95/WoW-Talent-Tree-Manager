@@ -455,7 +455,7 @@ namespace Engine {
             }
         }
         if (presetTree.activeSkillsetIndex >= presetTree.loadout.size()) {
-            presetTree.activeSkillsetIndex = presetTree.loadout.size() - 1;
+            presetTree.activeSkillsetIndex = static_cast<int>(presetTree.loadout.size() - 1);
         }
         presetTree.loadoutDescription = tree.loadoutDescription;
         return presetTree;
@@ -990,12 +990,12 @@ namespace Engine {
         }
         //check if points requirement is met by virtually assigning each point
         std::map<int, int> tempASP = skillset->assignedSkillPoints;
+        int pointsSpent = 0;
         while (true) {
             int talentsStart = static_cast<int>(tempASP.size());
             if (talentsStart == 0) {
                 break;
             }
-            int pointsSpent = 0;
             std::vector<int> talentsSelected;
             for (auto& indexPointsPair : tempASP) {
                 if (indexPointsPair.second == 0) {
@@ -1037,7 +1037,7 @@ namespace Engine {
         }
 
         //TTMTODO: Not sure why this exists, maybe failsafe? probably best to investigate and delete
-        int pointsSpent = 0;
+        pointsSpent = 0;
         for (auto& pointSpentPair : skillset->assignedSkillPoints) {
             if (tree.orderedTalents[pointSpentPair.first]->type == TalentType::SWITCH) {
                 if (pointSpentPair.second > 0) {
