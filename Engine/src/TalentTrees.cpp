@@ -2043,36 +2043,35 @@ namespace Engine {
         return pairs;
     }
 
-    void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree) {
-
-        std::string formattedSearch;
-        formattedSearch.reserve(search.length());
-        for (auto& ch : search) {
-            if (ch == '.') {
-                break;
-            }
+    /*
+    Helper function that transforms a string to a version with only lowercase letters stripping everything else
+    */
+    std::string simplifyString(const std::string& s) {
+        std::string ret = "";
+        ret.reserve(s.length());
+        for (auto& ch : s) {
             if (ch >= 'A' && ch <= 'Z') {
-                formattedSearch += static_cast<char>(ch + 32);
+                ret += static_cast<char>(ch + 32);
             }
             if (ch >= 'a' && ch <= 'z') {
-                formattedSearch += ch;
+                ret += ch;
             }
         }
+        return ret;
+    }
+
+    void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree) {
+        //TTMNOTE: Apparently we don't need to do any fancy search register caching and can just brute force everything all the time
+        std::string formattedSearch = simplifyString(search);
 
         for (auto& talent : tree.orderedTalents) {
-            std::string formattedTalentName;
-            formattedTalentName.reserve(talent.second->name.length() + talent.second->nameSwitch.length());
-            for (auto& ch : talent.second->name + talent.second->nameSwitch) {
-                if (ch == '.') {
-                    break;
-                }
-                if (ch >= 'A' && ch <= 'Z') {
-                    formattedTalentName += static_cast<char>(ch + 32);
-                }
-                if (ch >= 'a' && ch <= 'z') {
-                    formattedTalentName += ch;
-                }
+            std::string formattedTalentName = simplifyString(talent.second->name + talent.second->nameSwitch);
+            std::string concatTalentDescriptions = "";
+            int maxP = talent.second->type == TalentType::SWITCH ? 2 : talent.second->maxPoints;
+            for (int i = 0; i < maxP; i++) {
+                concatTalentDescriptions += talent.second->descriptions[i];
             }
+            std::string formattedTalentDescription = simplifyString(concatTalentDescriptions);
             bool typeMatched = false;
             switch (talent.second->type) {
             case TalentType::ACTIVE: {
@@ -2085,7 +2084,9 @@ namespace Engine {
                 typeMatched = std::string("switch").find(formattedSearch) != std::string::npos;
             }break;
             }
-            if (formattedTalentName.find(formattedSearch) != std::string::npos || typeMatched) {
+            if (formattedTalentName.find(formattedSearch) != std::string::npos 
+                || formattedTalentDescription.find(formattedSearch) != std::string::npos
+                || typeMatched) {
                 filteredTalents.push_back(talent.second);
             }
         }
