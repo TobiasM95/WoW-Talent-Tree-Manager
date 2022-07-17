@@ -1075,7 +1075,7 @@ namespace Engine {
         }
         std::string skillsetName = skillsetParts[0];
         if (skillsetName.find_first_not_of(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :()'-"
         ) != std::string::npos) {
             return false;
         }
