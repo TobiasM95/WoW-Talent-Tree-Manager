@@ -817,7 +817,9 @@ namespace Engine {
                 }
             }
             t->row = std::stoi(talentInfo[4]);
+            t->row = t->row > tree.maxRowLimit ? tree.maxRowLimit : t->row;
             t->column = std::stoi(talentInfo[5]);
+            t->column = t->column > tree.maxColumnLimit ? tree.maxColumnLimit : t->column;
             t->maxPoints = std::stoi(talentInfo[6]);
             while (t->descriptions.size() < t->maxPoints) {
                 t->descriptions.push_back("Undefined rank description");
@@ -1299,27 +1301,27 @@ namespace Engine {
         }
 
         //recursively position row nodes
-        bool isPositioned = autoPositionRowNodes(1, talentDepths);
+        bool isPositioned = autoPositionRowNodes(1, talentDepths, tree.maxRowLimit, tree.maxColumnLimit);
 
         return;
     }
 
-    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths) {
+    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths, int maxRow, int maxColumn) {
         vec2d<int> positions = createPositionIndices(row, talentDepths);
         bool isPositioned = false;
         for (auto& positionVec : positions) {
             do
             {
                 for (int i = 0; i < positionVec.size(); i++) {
-                    talentDepths[row][i]->row = row;
-                    talentDepths[row][i]->column = positionVec[i];
+                    talentDepths[row][i]->row = row > maxRow ? maxRow : row;
+                    talentDepths[row][i]->column = positionVec[i] > maxColumn ? maxColumn : positionVec[i];
                 }
                 bool isCrossing = checkForCrossing(row, talentDepths);
                 if (isCrossing) {
                     continue;
                 }
                 if (talentDepths.count(row + 1)) {
-                    isPositioned = autoPositionRowNodes(row + 1, talentDepths);
+                    isPositioned = autoPositionRowNodes(row + 1, talentDepths, maxRow, maxColumn);
                 }
                 else {
                     isPositioned = !isCrossing;
@@ -1481,12 +1483,19 @@ namespace Engine {
     Auto sets the point requirements for every talent according to Blizzards example trees.
     */
     void autoPointRequirements(TalentTree& tree) {
+        std::vector<int> uniqueRows;
         for (auto& talent : tree.orderedTalents) {
-            if (talent.second->row >= 8) {
+            if (std::find(uniqueRows.begin(), uniqueRows.end(), talent.second->index) == uniqueRows.end()) {
+                uniqueRows.push_back(talent.second->index);
+            }
+        }
+        std::sort(uniqueRows.begin(), uniqueRows.end());
+        for (auto& talent : tree.orderedTalents) {
+            if (talent.second->row > uniqueRows[6]) {
                 talent.second->pointsRequired = 20;
                 continue;
             }
-            if (talent.second->row >= 5) {
+            if (talent.second->row > uniqueRows[3]) {
                 talent.second->pointsRequired = 8;
                 continue;
             }
