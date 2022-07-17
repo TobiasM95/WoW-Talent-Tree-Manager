@@ -428,6 +428,7 @@ namespace TTM {
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
+                    uiData.treeEditorSelectedTalent = nullptr;
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
@@ -458,7 +459,26 @@ namespace TTM {
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
+                    uiData.treeEditorSelectedTalent = nullptr;
                     ImGui::CloseCurrentPopup(); 
+                }
+                ImGui::Text("or");
+                ImGui::InputText("##treeEditorCreationPopupImportText", &uiData.treeEditorImportTreeString);
+                if (ImGui::Button("Import tree##popup", ImVec2(-0.01f, 0))) {
+                    if (!Engine::validateAndRepairTreeStringFormat(uiData.treeEditorImportTreeString)) {
+                        uiData.treeEditorImportTreeString = "Invalid import string!";
+                    }
+                    else {
+                        TalentTreeData tree;
+                        tree.tree = Engine::parseTree(uiData.treeEditorImportTreeString);
+                        talentTreeCollection.trees.push_back(tree);
+                        talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                        uiData.treeEditorImportTreeString = "";
+                        uiData.treeEditorExportTreeString = "";
+                        loadActiveIcons(uiData, talentTreeCollection, true);
+                        uiData.treeEditorSelectedTalent = nullptr;
+                        ImGui::CloseCurrentPopup();
+                    }
                 }
                 ImGui::EndPopup();
             }

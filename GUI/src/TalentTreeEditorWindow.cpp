@@ -353,10 +353,10 @@ namespace TTM {
                     }
 
                     ImGui::Text("Talent row:");
-                    ImGui::SliderInt("##talentCreationRowSlider", &uiData.treeEditorCreationTalent->row, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##talentCreationRowSlider", &uiData.treeEditorCreationTalent->row, 1, talentTreeCollection.activeTree().maxRowLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                     ImGui::Text("Talent column:");
-                    ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##talentCreationColumnSlider", &uiData.treeEditorCreationTalent->column, 1, talentTreeCollection.activeTree().maxColumnLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                     std::vector<std::string> talentComboList;
                     std::map<int, Engine::Talent_s> comboIndexTalentMap;
@@ -537,10 +537,10 @@ namespace TTM {
                         }
 
                         ImGui::Text("Talent row:");
-                        ImGui::SliderInt("##talentEditRowSlider", &uiData.treeEditorSelectedTalent->row, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                        ImGui::SliderInt("##talentEditRowSlider", &uiData.treeEditorSelectedTalent->row, 1, talentTreeCollection.activeTree().maxRowLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                         ImGui::Text("Talent column:");
-                        ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 1, 20, "%d", ImGuiSliderFlags_AlwaysClamp);
+                        ImGui::SliderInt("##talentEditColumnSlider", &uiData.treeEditorSelectedTalent->column, 1, talentTreeCollection.activeTree().maxColumnLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
 
                         std::vector<std::string> talentComboList;
                         std::map<int, Engine::Talent_s> comboIndexTalentMap;
@@ -687,20 +687,20 @@ namespace TTM {
                     ImGui::Text("Shift all talents");
                     ImGui::Spacing();
                     ImGui::Text("Shift rows by:");
-                    ImGui::SliderInt("##treeEditAllRowSlider", &uiData.treeEditorShiftAllRowsBy, -19, 19, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##treeEditAllRowSlider", &uiData.treeEditorShiftAllRowsBy, -talentTreeCollection.activeTree().maxRowLimit + 1, talentTreeCollection.activeTree().maxRowLimit - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
                     ImGui::Text("Shift columns by:");
-                    ImGui::SliderInt("##reeEditAllColumnSlider", &uiData.treeEditorShiftAllColumnsBy, -19, 19, "%d", ImGuiSliderFlags_AlwaysClamp);
+                    ImGui::SliderInt("##reeEditAllColumnSlider", &uiData.treeEditorShiftAllColumnsBy, -talentTreeCollection.activeTree().maxColumnLimit + 1, talentTreeCollection.activeTree().maxColumnLimit - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (ImGui::Button("Shift talents")) {
-                        uiData.minRowShift = -19;
-                        uiData.maxRowShift = 19;
-                        uiData.minColShift = -19;
-                        uiData.maxColShift = 19;
+                        uiData.minRowShift = -talentTreeCollection.activeTree().maxRowLimit + 1;
+                        uiData.maxRowShift = talentTreeCollection.activeTree().maxRowLimit - 1;
+                        uiData.minColShift = -talentTreeCollection.activeTree().maxColumnLimit + 1;
+                        uiData.maxColShift = talentTreeCollection.activeTree().maxColumnLimit - 1;
                         bool shiftExceedsBounds = false;
                         for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
                             uiData.minRowShift = 1 - talent.second->row > uiData.minRowShift ? 1 - talent.second->row : uiData.minRowShift;
                             uiData.minColShift = 1 - talent.second->column > uiData.minColShift ? 1 - talent.second->column : uiData.minColShift;
-                            uiData.maxRowShift = 20 - talent.second->row < uiData.maxRowShift ? 20 - talent.second->row : uiData.maxRowShift;
-                            uiData.maxColShift = 20 - talent.second->column < uiData.maxColShift ? 20 - talent.second->column : uiData.maxColShift;
+                            uiData.maxRowShift = talentTreeCollection.activeTree().maxRowLimit - talent.second->row < uiData.maxRowShift ? talentTreeCollection.activeTree().maxRowLimit - talent.second->row : uiData.maxRowShift;
+                            uiData.maxColShift = talentTreeCollection.activeTree().maxColumnLimit - talent.second->column < uiData.maxColShift ? talentTreeCollection.activeTree().maxColumnLimit - talent.second->column : uiData.maxColShift;
                             if (uiData.treeEditorShiftAllRowsBy < uiData.minRowShift || uiData.treeEditorShiftAllRowsBy > uiData.maxRowShift
                                 || uiData.treeEditorShiftAllColumnsBy < uiData.minColShift || uiData.treeEditorShiftAllColumnsBy > uiData.maxColShift) {
                                 shiftExceedsBounds = true;
@@ -739,7 +739,7 @@ namespace TTM {
                     ImGui::SliderInt("##treeEditEmptySwitchSlider", &uiData.treeEditorEmptySwitchNodes, 0, 40, "%d", ImGuiSliderFlags_AlwaysClamp);
                     if (ImGui::Button("Insert talents")) {
                         if (uiData.treeEditorEmptyActiveNodes + uiData.treeEditorEmptyPassiveNodes
-                            + uiData.treeEditorEmptySwitchNodes + talentTreeCollection.activeTree().orderedTalents.size() > 20 * 20) { 
+                            + uiData.treeEditorEmptySwitchNodes + talentTreeCollection.activeTree().orderedTalents.size() > talentTreeCollection.activeTree().maxRowLimit * talentTreeCollection.activeTree().maxColumnLimit / 4) {
                             ImGui::OpenPopup("Too many talents inserted");
                         }
                         else {
@@ -750,13 +750,13 @@ namespace TTM {
                             int currentPosY = 1;
                             int currentTalentIndex = talentTreeCollection.activeTree().maxID;
                             Engine::vec2d<int> occupiedSpots;
-                            occupiedSpots.resize(20, std::vector<int>(20));
+                            occupiedSpots.resize(talentTreeCollection.activeTree().maxRowLimit, std::vector<int>(talentTreeCollection.activeTree().maxColumnLimit));
                             for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
                                 occupiedSpots[talent.second->row - 1][talent.second->column - 1] = 1;
                             }
                             while (an + pn + sn > 0) {
-                                if (currentPosX == 21 && currentPosY == 20) {
-                                    throw std::logic_error("Trying to insert talents beyond 400!");
+                                if (currentPosX == talentTreeCollection.activeTree().maxColumnLimit + 1 && currentPosY == talentTreeCollection.activeTree().maxRowLimit) {
+                                    break;
                                 }
                                 if (occupiedSpots[currentPosY - 1][currentPosX - 1] == 0) {
                                     Engine::Talent_s talent = std::make_shared<Engine::Talent>();
@@ -783,17 +783,18 @@ namespace TTM {
                                     talentTreeCollection.activeTree().talentRoots.push_back(talent);
                                     occupiedSpots[currentPosY - 1][currentPosX - 1] = 1;
                                 }
-                                currentPosX++;
-                                if (currentPosX == 11 && currentPosY < 20) {
-                                    currentPosY++;
-                                    currentPosX = 1;
+                                currentPosX += 2;
+                                //TTMNOTE: No idea if this breaks for different values of treeEditorMaxColumn/Row
+                                if (currentPosX > talentTreeCollection.activeTree().maxColumnLimit && currentPosY < talentTreeCollection.activeTree().maxRowLimit - 1) {
+                                    currentPosY += 2;
+                                    currentPosX = talentTreeCollection.activeTree().maxColumnLimit / 2 + 1;
                                 }
-                                else if (currentPosX == 11 && currentPosY == 20) {
+                                else if (currentPosX == talentTreeCollection.activeTree().maxColumnLimit / 2 + 1 && currentPosY + 2 > talentTreeCollection.activeTree().maxRowLimit) {
                                     currentPosY = 1;
                                 }
-                                else if (currentPosX == 21 && currentPosY < 20) {
-                                    currentPosY++;
-                                    currentPosX = 11;
+                                else if (currentPosX == talentTreeCollection.activeTree().maxColumnLimit / 2 + 1 && currentPosY + 2 <= talentTreeCollection.activeTree().maxRowLimit) {
+                                    currentPosY += 2;
+                                    currentPosX = 1;
                                 }
                             }
                             Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
@@ -817,6 +818,43 @@ namespace TTM {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+                    }
+                    if (ImGui::Button("Double talent positions")) {
+                        //add talents to vector so that we can sort vector to have bottom right talent first as we begin
+                        //to move talents from bottom right to top left so that talent old pos cannot occupy another talent's new pos
+                        std::vector<Engine::Talent_s> tempTalents;
+                        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+                            tempTalents.push_back(talent.second);
+                        }
+                        std::sort(tempTalents.begin(), tempTalents.end(), [](const Engine::Talent_s& a, const Engine::Talent_s& b) {
+                            if (a->row != b->row)
+                                return a->row > b->row;
+                            else
+                                return a->column > b->column;
+                            });
+                        for (auto& talent : tempTalents) {
+                            int newRow = talent->row * 2;
+                            newRow = newRow > talentTreeCollection.activeTree().maxRowLimit ? talentTreeCollection.activeTree().maxRowLimit : newRow;
+                            int newCol = talent->column * 2;
+                            newCol = newCol > talentTreeCollection.activeTree().maxColumnLimit ? talentTreeCollection.activeTree().maxColumnLimit : newCol;
+                            bool isOccupied = false;
+                            for (auto& occTalent : talentTreeCollection.activeTree().orderedTalents) {
+                                if (occTalent.second->row == newRow && occTalent.second->column == newCol) {
+                                    isOccupied = true;
+                                }
+                            }
+                            if (!isOccupied) {
+                                talent->row = newRow;
+                                talent->column = newCol;
+                            }
+                        }
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        //These two shouldn't be necessary but to keep it consistent
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -1883,8 +1921,14 @@ namespace TTM {
         if (uiData.treeEditorDragTalentStartRow + resDeltaGridY < 1) {
             resDeltaGridY = -uiData.treeEditorDragTalentStartRow + 1;
         }
+        if (uiData.treeEditorDragTalentStartRow + resDeltaGridY > talentTreeCollection.activeTree().maxRowLimit) {
+            resDeltaGridY = -uiData.treeEditorDragTalentStartRow + talentTreeCollection.activeTree().maxRowLimit;
+        }
         if (uiData.treeEditorDragTalentStartColumn + resDeltaGridX < 1) {
             resDeltaGridX = -uiData.treeEditorDragTalentStartColumn + 1;
+        }
+        if (uiData.treeEditorDragTalentStartColumn + resDeltaGridX > talentTreeCollection.activeTree().maxColumnLimit) {
+            resDeltaGridX = -uiData.treeEditorDragTalentStartColumn + talentTreeCollection.activeTree().maxColumnLimit;
         }
 
         for (auto& talent : talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.orderedTalents) {

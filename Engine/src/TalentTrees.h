@@ -101,6 +101,9 @@ namespace Engine {
         int maxID = 0;
         int maxCol = 0;
         std::map<int, int> talentsPerRow;
+
+        int maxRowLimit = 40;
+        int maxColumnLimit = 40;
     };
 
     struct TreeCycleCheckFormat {
@@ -159,7 +162,7 @@ namespace Engine {
     std::string getSwitchLabel(Talent_s talent);
 
     void autoPositionTreeNodes(TalentTree& tree);
-    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths);
+    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths, int maxRow, int maxColumn);
     vec2d<int> createPositionIndices(int row, std::map<int, TalentVec>& talentDepths);
     void expandPosition(int currentIndex, int currentPos, size_t indexSize, size_t additionalPos, std::vector<int> positionVec, vec2d<int>& positions);
     void findDepthRecursively(int depth, Talent_s talent, std::unordered_map<Talent_s, int>& maxDepthMap);
