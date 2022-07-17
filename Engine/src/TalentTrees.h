@@ -205,5 +205,6 @@ namespace Engine {
     std::vector<double> getSimilarityRanking(std::string formattedTalentName, std::vector<std::string> formattedIconNames);
     std::vector<std::string> createWordLetterPairs(std::string name);
 
+    std::string simplifyString(const std::string& s);
     void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree);
 }
