@@ -203,13 +203,16 @@ namespace TTM {
 	void RenderMenuBar(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool& done) {
 		if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Save")) {
+                if (ImGui::MenuItem("Save", "Ctrl+S")) {
                     saveWorkspace(uiData, talentTreeCollection);
                 }
                 if (ImGui::MenuItem("Close")) {
                     done = true;
                 }
                 ImGui::EndMenu();
+            }
+            if ((ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) && ImGui::IsKeyPressed(ImGuiKey_S)) {
+                saveWorkspace(uiData, talentTreeCollection);
             }
 			if (ImGui::BeginMenu("Styles")) {
                 if (ImGui::MenuItem("Company Grey")) {
@@ -429,6 +432,7 @@ namespace TTM {
                     uiData.treeEditorExportTreeString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
                     uiData.treeEditorSelectedTalent = nullptr;
+                    saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
@@ -460,6 +464,7 @@ namespace TTM {
                     uiData.treeEditorExportTreeString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
                     uiData.treeEditorSelectedTalent = nullptr;
+                    saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup(); 
                 }
                 ImGui::Text("or");
@@ -477,6 +482,7 @@ namespace TTM {
                         uiData.treeEditorExportTreeString = "";
                         loadActiveIcons(uiData, talentTreeCollection, true);
                         uiData.treeEditorSelectedTalent = nullptr;
+                        saveWorkspace(uiData, talentTreeCollection);
                         ImGui::CloseCurrentPopup();
                     }
                 }
@@ -489,6 +495,7 @@ namespace TTM {
                     talentTreeCollection.trees.clear();
                     talentTreeCollection.activeTreeIndex = -1;
                     uiData.editorView = EditorView::None;
+                    saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
@@ -515,6 +522,7 @@ namespace TTM {
                     if (open) {
                         if (talentTreeCollection.activeTreeIndex != n) {
                             talentTreeCollection.activeTreeIndex = n;
+                            uiData.editorView = EditorView::None;
                             uiData.isLoadoutInitValidated = false;
                             uiData.treeEditorSelectedTalent = nullptr;
                             loadActiveIcons(uiData, talentTreeCollection);
@@ -550,6 +558,7 @@ namespace TTM {
                         talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
                         talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                         loadActiveIcons(uiData, talentTreeCollection, true);
+                        saveWorkspace(uiData, talentTreeCollection);
                     }
                     if (talentTreeCollection.trees.size() == 0) {
                         uiData.editorView = EditorView::None;
@@ -580,7 +589,10 @@ namespace TTM {
             }
             if (ImGui::BeginTabItem((loadoutEditDisplayTag + "###LoadoutEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
-                uiData.editorView = EditorView::LoadoutEdit;
+                if (uiData.editorView != EditorView::LoadoutEdit) {
+                    uiData.editorView = EditorView::LoadoutEdit;
+                    saveWorkspace(uiData, talentTreeCollection);
+                }
                 if (!uiData.isLoadoutInitValidated) {
                     uiData.isLoadoutInitValidated = true;
                     Engine::validateLoadout(talentTreeCollection.activeTree(), true);
@@ -604,7 +616,10 @@ namespace TTM {
             }
             if (ImGui::BeginTabItem((loadoutSolverDisplayTag + "###LoadoutSolverTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
-                uiData.editorView = EditorView::LoadoutSolver;
+                if (uiData.editorView != EditorView::LoadoutSolver) {
+                    uiData.editorView = EditorView::LoadoutSolver;
+                    saveWorkspace(uiData, talentTreeCollection);
+                }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
@@ -614,7 +629,10 @@ namespace TTM {
             }
             if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
             {
-                uiData.editorView = EditorView::TreeEdit;
+                if (uiData.editorView != EditorView::TreeEdit) {
+                    uiData.editorView = EditorView::TreeEdit;
+                    saveWorkspace(uiData, talentTreeCollection);
+                }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
@@ -746,6 +764,22 @@ namespace TTM {
 
     void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         std::filesystem::path appPath = getAppPath();
+        //backup old files
+        if (std::filesystem::is_regular_file(appPath / "settings.txt")) {
+            std::ifstream oldSetFile(appPath / "settings.txt", std::ios::binary);
+            std::ofstream bkpSetFile(appPath / "settings_backup.txt", std::ios::binary);
+            bkpSetFile << oldSetFile.rdbuf();
+            oldSetFile.close();
+            bkpSetFile.close();
+        }
+        if (std::filesystem::is_regular_file(appPath / "workspace.txt")) {
+            std::ifstream oldWorkFile(appPath / "workspace.txt", std::ios::binary);
+            std::ofstream bkpWorkFile(appPath / "workscape_backup.txt", std::ios::binary);
+            bkpWorkFile << oldWorkFile.rdbuf();
+            oldWorkFile.close();
+            bkpWorkFile.close();
+        }
+
         std::string settings = "";
         std::string workspace = "";
         //TTMNOTE: settings can't have ":" char in them, messes with loadWorkspace

@@ -95,6 +95,9 @@ namespace TTM {
 		std::string talentSearchString = "";
 		Engine::TalentVec searchedTalents;
 
+		std::chrono::duration<long> autoSaveInterval = std::chrono::seconds(300);
+		std::chrono::steady_clock::time_point lastSaveTime = std::chrono::high_resolution_clock::now();
+
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
 		std::string updateMessage;

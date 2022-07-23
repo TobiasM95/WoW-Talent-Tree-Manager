@@ -124,6 +124,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
     // Main loop
     bool done = false;
+    auto currentTime = std::chrono::high_resolution_clock::now();
     while (!done)
     {
         // Poll and handle messages (inputs, window resize, etc.)
@@ -143,6 +144,12 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+
+        currentTime = std::chrono::high_resolution_clock::now();
+        if (currentTime - uiData.lastSaveTime > uiData.autoSaveInterval) {
+            uiData.lastSaveTime = currentTime;
+            TTM::saveWorkspace(uiData, talentTreeCollection);
+        }
 
         if (!(uiData.updateStatus == TTM::UpdateStatus::UPTODATE || uiData.updateStatus == TTM::UpdateStatus::UPDATEERROR || uiData.updateStatus == TTM::UpdateStatus::IGNOREUPDATE)) {
             TTM::RenderUpdateWindow(uiData, talentTreeCollection);
