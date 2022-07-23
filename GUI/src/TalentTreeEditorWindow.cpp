@@ -258,7 +258,7 @@ namespace TTM {
                     {
                         for (auto& iconNamePathPair : uiData.iconPathMap)
                         {
-                            if (uiData.treeEditorCreationIconNameFilter != "" && iconNamePathPair.first.find(uiData.treeEditorCreationIconNameFilter) == std::string::npos) {
+                            if (uiData.treeEditorCreationIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorCreationIconNameFilter)) == std::string::npos) {
                                 continue;
                             }
                             const bool is_selected = (iconNameComboPreviewValue == iconNamePathPair.first);
@@ -291,7 +291,7 @@ namespace TTM {
                     {
                         for (auto& iconNamePathPair : uiData.iconPathMap)
                         {
-                            if (uiData.treeEditorCreationIconNameFilter != "" && iconNamePathPair.first.find(uiData.treeEditorCreationIconNameFilter) == std::string::npos) {
+                            if (uiData.treeEditorCreationIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorCreationIconNameFilter)) == std::string::npos) {
                                 continue;
                             }
                             const bool is_selected = (iconNameSwitchComboPreviewValue == iconNamePathPair.first);
@@ -442,7 +442,7 @@ namespace TTM {
                         {
                             for (auto& iconNamePathPair : uiData.iconPathMap)
                             {
-                                if (uiData.treeEditorEditIconNameFilter != "" && iconNamePathPair.first.find(uiData.treeEditorEditIconNameFilter) == std::string::npos) {
+                                if (uiData.treeEditorEditIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorEditIconNameFilter)) == std::string::npos) {
                                     continue;
                                 }
                                 const bool is_selected = (iconNameComboPreviewValue == iconNamePathPair.first);
@@ -475,7 +475,7 @@ namespace TTM {
                         {
                             for (auto& iconNamePathPair : uiData.iconPathMap)
                             {
-                                if (uiData.treeEditorEditIconNameFilter != "" && iconNamePathPair.first.find(uiData.treeEditorEditIconNameFilter) == std::string::npos) {
+                                if (uiData.treeEditorEditIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorEditIconNameFilter)) == std::string::npos) {
                                     continue;
                                 }
                                 const bool is_selected = (iconNameSwitchComboPreviewValue == iconNamePathPair.first);
