@@ -406,25 +406,26 @@ namespace TTM {
             uiData.loadoutSolveInProgress = false;
         }
 
-        //TTMTODO: Change button style layout to render base layout? This is messy af
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
         int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
+        float talentWindowPaddingX = static_cast<float>(uiData.treeEditorTalentWindowPaddingX);
         float talentWindowPaddingY = static_cast<float>(uiData.treeEditorTalentWindowPaddingY);
+        ImVec2 origin = ImVec2(talentWindowPaddingX, talentWindowPaddingY);
+        //calculate full tree width and if that is < window width center tree
+        float fullTreeWidth = (tree.maxCol - 1) * 2.0f * talentHalfSpacing;
+        float windowWidth = ImGui::GetContentRegionAvail().x;
+        if (fullTreeWidth + 2 * origin.x < windowWidth) {
+            origin.x = 0.5f * (windowWidth - fullTreeWidth);
+        }
 
-        float talentWindowPaddingX = 0.5f * (ImGui::GetWindowWidth() - tree.maxCol * 2 * talentHalfSpacing);
-        float minXPadding = ImGui::GetCursorPosX();
-        float minYPadding = ImGui::GetCursorPosY();
-        if (talentWindowPaddingX < minXPadding)
-            talentWindowPaddingX = minXPadding;
-        float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
         int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
         for (auto& talent : tree.orderedTalents) {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
-            float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
-            float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
+            float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
+            float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
             bool talentIsSearchedFor = false;
             bool searchActive = uiData.talentSearchString != "";
             ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
@@ -552,20 +553,20 @@ namespace TTM {
                     drawList,
                     ImGui::GetWindowPos(),
                     ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
-                    ImVec2(talentWindowPaddingX, talentWindowPaddingY),
+                    origin,
                     talentHalfSpacing,
                     talentSize,
-                    talentPadding,
+                    0.0f,
                     uiData);
             }
         }
-        //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
-        ImGui::SetCursorPos(ImVec2(0, talentWindowPaddingY + maxRow * 2 * talentHalfSpacing));
+
+        ImGui::SetCursorPos(ImVec2(origin.x, 1.5f * origin.y + maxRow * 2 * talentHalfSpacing));
         ImGui::InvisibleButton(
             "##invisbuttonedit",
             ImVec2(
-                2.0f * talentWindowPaddingX + (tree.maxCol - 2) * 2 * talentHalfSpacing + 2.0f * talentPadding + talentSize,
-                talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding
+                origin.x + (tree.maxCol - 1) * 2 * talentHalfSpacing,
+                0.5f * origin.y
             )
         );
 
