@@ -495,7 +495,7 @@ namespace TTM {
                     talentTreeCollection.trees.clear();
                     talentTreeCollection.activeTreeIndex = -1;
                     uiData.editorView = EditorView::None;
-                    saveWorkspace(uiData, talentTreeCollection);
+                    //saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::SameLine();
@@ -558,7 +558,7 @@ namespace TTM {
                         talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
                         talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                         loadActiveIcons(uiData, talentTreeCollection, true);
-                        saveWorkspace(uiData, talentTreeCollection);
+                        //saveWorkspace(uiData, talentTreeCollection);
                     }
                     if (talentTreeCollection.trees.size() == 0) {
                         uiData.editorView = EditorView::None;
@@ -591,7 +591,7 @@ namespace TTM {
             {
                 if (uiData.editorView != EditorView::LoadoutEdit) {
                     uiData.editorView = EditorView::LoadoutEdit;
-                    saveWorkspace(uiData, talentTreeCollection);
+                    //saveWorkspace(uiData, talentTreeCollection);
                 }
                 if (!uiData.isLoadoutInitValidated) {
                     uiData.isLoadoutInitValidated = true;
@@ -618,7 +618,7 @@ namespace TTM {
             {
                 if (uiData.editorView != EditorView::LoadoutSolver) {
                     uiData.editorView = EditorView::LoadoutSolver;
-                    saveWorkspace(uiData, talentTreeCollection);
+                    //saveWorkspace(uiData, talentTreeCollection);
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
@@ -631,7 +631,7 @@ namespace TTM {
             {
                 if (uiData.editorView != EditorView::TreeEdit) {
                     uiData.editorView = EditorView::TreeEdit;
-                    saveWorkspace(uiData, talentTreeCollection);
+                    //saveWorkspace(uiData, talentTreeCollection);
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
