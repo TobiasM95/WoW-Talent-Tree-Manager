@@ -836,6 +836,7 @@ namespace TTM {
                             else
                                 return a->column > b->column;
                             });
+                        int maxCol = 0;
                         for (auto& talent : tempTalents) {
                             int newRow = talent->row * 2;
                             newRow = newRow > talentTreeCollection.activeTree().maxRowLimit ? talentTreeCollection.activeTree().maxRowLimit : newRow;
@@ -850,8 +851,12 @@ namespace TTM {
                             if (!isOccupied) {
                                 talent->row = newRow;
                                 talent->column = newCol;
+                                if (talent->column > maxCol) {
+                                    maxCol = talent->column;
+                                }
                             }
                         }
+                        talentTreeCollection.activeTree().maxCol = maxCol + 1;
 
                         talentTreeCollection.activeTree().presetName = "custom";
                         //These two shouldn't be necessary but to keep it consistent

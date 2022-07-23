@@ -1525,6 +1525,7 @@ namespace Engine {
                 tree.maxCol = talent.second->column;
             }
         }
+        tree.maxCol++;
     }
 
     /*
