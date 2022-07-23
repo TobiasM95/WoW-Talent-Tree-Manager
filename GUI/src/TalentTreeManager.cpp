@@ -517,7 +517,7 @@ namespace TTM {
                 if (n == talentTreeCollection.activeTreeIndex) {
                     displayTag = "> " + displayTag;
                 }
-                if (ImGui::BeginTabItem((displayTag + "###treetab" + std::to_string(n)).c_str(), &open, flag))
+                if (ImGui::BeginTabItemNoClose((displayTag + "###treetab" + std::to_string(n)).c_str(), &open, flag))
                 {
                     if (open) {
                         if (talentTreeCollection.activeTreeIndex != n) {
