@@ -152,6 +152,7 @@ namespace TTM {
 		//Important constants
 		const int treeEditorBaseTalentHalfSpacing = 20;
 		const int treeEditorBaseTalentSize = 40;
+		const int treeEditorTalentWindowPaddingX = 25;
 		const int treeEditorTalentWindowPaddingY = 25;
 
 		int treeEditorDragTalentStartRow = -1;
