@@ -95,6 +95,9 @@ namespace TTM {
 		std::string talentSearchString = "";
 		Engine::TalentVec searchedTalents;
 
+		std::chrono::duration<long> autoSaveInterval = std::chrono::seconds(300);
+		std::chrono::steady_clock::time_point lastSaveTime = std::chrono::high_resolution_clock::now();
+
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
 		std::string updateMessage;
@@ -147,8 +150,9 @@ namespace TTM {
 		std::string treeEditorReadableExportTreeString = "";
 
 		//Important constants
-		const int treeEditorBaseTalentHalfSpacing = 40;
+		const int treeEditorBaseTalentHalfSpacing = 20;
 		const int treeEditorBaseTalentSize = 40;
+		const int treeEditorTalentWindowPaddingX = 25;
 		const int treeEditorTalentWindowPaddingY = 25;
 
 		int treeEditorDragTalentStartRow = -1;

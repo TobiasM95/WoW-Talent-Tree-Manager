@@ -147,6 +147,9 @@ namespace Engine {
         int maxCol = 0;
         std::map<int, int> talentsPerRow;
 
+        int maxRowLimit = 40;
+        int maxColumnLimit = 40;
+
         int selectedSimAnalysisRawResult = -1;
         std::vector<SimResult> simAnalysisRawResults;
         AnalysisResult analysisResult;
@@ -208,7 +211,7 @@ namespace Engine {
     std::string getSwitchLabel(Talent_s talent);
 
     void autoPositionTreeNodes(TalentTree& tree);
-    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths);
+    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths, int maxRow, int maxColumn);
     vec2d<int> createPositionIndices(int row, std::map<int, TalentVec>& talentDepths);
     void expandPosition(int currentIndex, int currentPos, size_t indexSize, size_t additionalPos, std::vector<int> positionVec, vec2d<int>& positions);
     void findDepthRecursively(int depth, Talent_s talent, std::unordered_map<Talent_s, int>& maxDepthMap);
@@ -251,5 +254,6 @@ namespace Engine {
     std::vector<double> getSimilarityRanking(std::string formattedTalentName, std::vector<std::string> formattedIconNames);
     std::vector<std::string> createWordLetterPairs(std::string name);
 
+    std::string simplifyString(const std::string& s);
     void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree);
 }

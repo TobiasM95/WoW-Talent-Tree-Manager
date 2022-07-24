@@ -370,3 +370,4 @@ GUI/resources/icons/*/*.png
 
 # private files
 GUI/src/*Internal.h
+/GUI/resources/Logo.xcf
