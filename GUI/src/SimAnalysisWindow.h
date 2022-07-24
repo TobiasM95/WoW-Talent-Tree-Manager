@@ -18,8 +18,9 @@ namespace TTM {
 		bool showHelperTooltip,
 		std::string helperTooltipHovered,
 		std::string helperTooltipHelptext);
+	void PrintColoredRatio(float v1, float v2, float min, float max, int colorMode, std::string formatText);
 	static void HelperTooltip(std::string hovered, std::string helptext);
-	static void AttachSimAnalysisTooltip(const UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent);
+	static void AttachSimAnalysisTooltip(UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent);
 
 	void RenderSimAnalysisWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 

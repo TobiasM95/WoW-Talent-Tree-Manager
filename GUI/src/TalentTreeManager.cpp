@@ -526,6 +526,9 @@ namespace TTM {
                             uiData.editorView = EditorView::None;
                             uiData.isLoadoutInitValidated = false;
                             uiData.treeEditorSelectedTalent = nullptr;
+                            uiData.analysisTooltipLastTalentIndex = -1;
+                            uiData.analysisBreakdownTalentIndex = -1;
+                            uiData.simAnalysisPage = SimAnalysisPage::Settings;
                             loadActiveIcons(uiData, talentTreeCollection);
 
                             //clear the talent search field and results
