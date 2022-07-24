@@ -85,6 +85,41 @@ namespace TTM {
         return eventFired;
     }
 
+    void PrintColoredRatio(float v1, float v2, float min, float max, int colorMode, std::string formatText) {
+        if (v2 == 0.0f) {
+            return;
+        }
+        float ratio = v1 / v2 - 1.0f;
+        float interpolationValue;
+        if (max == min) {
+            interpolationValue = 1.0f;
+        }
+        else {
+            interpolationValue = (ratio - min) / (max - min);
+            interpolationValue = ratio  < min ? 0.0f : interpolationValue;
+            interpolationValue = ratio > max ? 1.0f : interpolationValue;
+        }
+
+        ImVec4 interpolatedColor(0,0,0,0);
+        switch (colorMode) {
+        case 1: {//from green to red over yellow
+            interpolatedColor.x = interpolationValue >= 0.5f ? 1.0f : 2.0f * interpolationValue; 
+            interpolatedColor.y = interpolationValue <= 0.5f ? 1.0f : 2.0f - 2.0f * interpolationValue;
+            interpolatedColor.z = 0.0f;
+            interpolatedColor.w = 1.0f;
+        }break;
+        case 0: //from red to green over yellow, also default case
+        default: {
+            interpolatedColor.x = interpolationValue <= 0.5f ? 1.0f : 2.0f - 2.0f * interpolationValue;
+            interpolatedColor.y = interpolationValue >= 0.5f ? 1.0f : 2.0f * interpolationValue;
+            interpolatedColor.z = 0.0f;
+            interpolatedColor.w = 1.0f;
+        }break;
+        }
+
+        ImGui::TextColored(interpolatedColor, formatText.c_str(), ratio * 100.0f);
+    }
+
     static void HelperTooltip(std::string hovered, std::string helptext) {
         ImGui::TextUnformattedColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), hovered.c_str());
         if (ImGui::IsItemHovered()) {
@@ -96,15 +131,43 @@ namespace TTM {
         }
     }
 
-    static void AttachSimAnalysisTooltip(const UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent)
+    static void AttachSimAnalysisTooltip(UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent)
     {
         if (ImGui::IsItemHovered())
         {
             if (result.skillsetCount == 0) {
                 ImGui::BeginTooltip();
-                ImGui::Text("Analyze sim results to see details.");
+                ImGui::Text("Analyze sim results that include that talent to see details.");
                 ImGui::EndTooltip();
                 return;
+            }
+            if (talent->index != uiData.analysisTooltipLastTalentIndex) {
+                uiData.analysisTooltipLastTalentIndex = talent->index;
+                uiData.analysisTooltipTalentRank = 0;
+            }
+            if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    uiData.simAnalysisPage = SimAnalysisPage::Breakdown;
+                    uiData.analysisBreakdownTalentIndex = talent->index;
+                }
+            }
+            else {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    if (talent->type != Engine::TalentType::SWITCH) {
+                        uiData.analysisTooltipTalentRank = uiData.analysisTooltipTalentRank + 1 == talent->maxPoints ? 0 : uiData.analysisTooltipTalentRank + 1;
+                    }
+                    else {
+                        uiData.analysisTooltipTalentRank = uiData.analysisTooltipTalentRank == 1 ? 0 : 1;
+                    }
+                }
+                else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                    if (talent->type != Engine::TalentType::SWITCH) {
+                        uiData.analysisTooltipTalentRank = uiData.analysisTooltipTalentRank == 0 ? talent->maxPoints - 1 : uiData.analysisTooltipTalentRank - 1;
+                    }
+                    else {
+                        uiData.analysisTooltipTalentRank = uiData.analysisTooltipTalentRank == 1 ? 0 : 1;
+                    }
+                }
             }
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
@@ -113,60 +176,18 @@ namespace TTM {
                 ImGui::Text(talent->getName().c_str());
                 ImGui::PopFont();
                 ImGui::Text(idLabel.c_str());
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(click: switch rank)");
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(ctrl+click: select talent)");
+                ImGui::Separator();
 
-                for (int i = 0; i < talent->maxPoints; i++) {
-                    ImGui::Text("Rank %d:", i + 1);
-                    int colIndex = result.indexToArrayColMap.at(talent->index) + i;
-                    const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
-                    size_t numSkillsets = talentPerf.skillsetDPS.size();
-                    ImGui::Text("Number of skillsets: %d", numSkillsets);
-                    if (numSkillsets > 0) {
-                        ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
-                            talentPerf.lowestDPSSkillset.first.second.c_str(),
-                            talentPerf.lowestDPSSkillset.first.first.c_str(),
-                            talentPerf.lowestDPSSkillset.second);
-                        ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
-                            talentPerf.medianDPSSkillset.first.second.c_str(),
-                            talentPerf.medianDPSSkillset.first.first.c_str(),
-                            talentPerf.medianDPSSkillset.second);
-                        ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
-                            talentPerf.highestDPSSkillset.first.second.c_str(),
-                            talentPerf.highestDPSSkillset.first.first.c_str(),
-                            talentPerf.highestDPSSkillset.second);
-                        ImGui::Spacing();
-                        ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
-                        ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
-                        ImGui::Text("Skillset distribution:");
-                        ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
-                            &talentPerf.skillsetDPS[0],
-                            static_cast<int>(numSkillsets),
-                            0, NULL,
-                            0.95f * result.lowestDPSSkillset.second,
-                            1.05f * result.highestDPSSkillset.second,
-                            ImVec2(0, 80.0f));
-                    }
-                    if (i < talent->maxPoints - 1) {
-                        ImGui::Spacing();
-                        ImGui::Separator();
-                        ImGui::Spacing();
-                    }
-                }
-
-                ImGui::EndTooltip();
-            }
-            else {
-                ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent->name.c_str());
-                ImGui::PopFont();
-                ImGui::Text(idLabel.c_str());
+                ImGui::Text("Rank %d:", uiData.analysisTooltipTalentRank + 1);
                 ImGui::Spacing();
-
-                int colIndex = result.indexToArrayColMap.at(talent->index);
+                int colIndex = result.indexToArrayColMap.at(talent->index) + uiData.analysisTooltipTalentRank;
                 const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
                 size_t numSkillsets = talentPerf.skillsetDPS.size();
                 ImGui::Text("Number of skillsets: %d", numSkillsets);
                 if (numSkillsets > 0) {
+                    ImGui::Separator();
                     ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
                         talentPerf.lowestDPSSkillset.first.second.c_str(),
                         talentPerf.lowestDPSSkillset.first.first.c_str(),
@@ -179,7 +200,97 @@ namespace TTM {
                         talentPerf.highestDPSSkillset.first.second.c_str(),
                         talentPerf.highestDPSSkillset.first.first.c_str(),
                         talentPerf.highestDPSSkillset.second);
-                    ImGui::Spacing();
+                    ImGui::Text("Average skillset dps: %.1f",
+                        talentPerf.averageDPSSkillset.second);
+                    ImGui::Separator();
+                    ImGui::Text("Lowest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
+                        talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
+                        talentPerf.lowestDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
+                        talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
+                        talentPerf.medianDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
+                        talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
+                        talentPerf.highestDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    ImGui::Text("Average skillset dps without this talent: %.1f",
+                        talentPerf.averageDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    ImGui::Separator();
+                    ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
+                    ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
+                    ImGui::Text("Skillset distribution:");
+                    ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                        &talentPerf.skillsetDPS[0],
+                        static_cast<int>(numSkillsets),
+                        0, NULL,
+                        0.95f * result.lowestDPSSkillset.second,
+                        1.05f * result.highestDPSSkillset.second,
+                        ImVec2(0, 80.0f));
+                }
+
+                ImGui::EndTooltip();
+            }
+            else {
+                ImGui::BeginTooltip();
+                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                if (uiData.analysisTooltipTalentRank == 0) {
+                    ImGui::Text(talent->name.c_str());
+                }
+                else {
+                    ImGui::Text(talent->nameSwitch.c_str());
+                }
+                ImGui::PopFont();
+                ImGui::Text(idLabel.c_str());
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(click: switch talent choice)");
+                ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(ctrl+click: select talent)");
+                ImGui::Separator();
+
+                int colIndex = result.indexToArrayColMap.at(talent->index) + uiData.analysisTooltipTalentRank;
+                const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                size_t numSkillsets = talentPerf.skillsetDPS.size();
+                ImGui::Text("Number of skillsets: %d", numSkillsets);
+                if (numSkillsets > 0) {
+                    ImGui::Separator();
+                    ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.lowestDPSSkillset.first.second.c_str(),
+                        talentPerf.lowestDPSSkillset.first.first.c_str(),
+                        talentPerf.lowestDPSSkillset.second);
+                    ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.medianDPSSkillset.first.second.c_str(),
+                        talentPerf.medianDPSSkillset.first.first.c_str(),
+                        talentPerf.medianDPSSkillset.second);
+                    ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.highestDPSSkillset.first.second.c_str(),
+                        talentPerf.highestDPSSkillset.first.first.c_str(),
+                        talentPerf.highestDPSSkillset.second);
+                    ImGui::Text("Average skillset dps: %.1f",
+                        talentPerf.averageDPSSkillset.second);
+                    ImGui::Separator();
+                    ImGui::Text("Lowest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
+                        talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
+                        talentPerf.lowestDPSSkillsetWithoutTalent.second);
+                    ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
+                        talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
+                        talentPerf.medianDPSSkillsetWithoutTalent.second);
+                    ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                        talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
+                        talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
+                        talentPerf.highestDPSSkillsetWithoutTalent.second);
+                    ImGui::Text("Average skillset dps without this talent: %.1f",
+                        talentPerf.averageDPSSkillsetWithoutTalent.second);
+                    ImGui::Separator();
                     ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex]*100.0f);
                     ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex]*100.0f);
                     ImGui::Text("Skillset distribution:");
@@ -191,47 +302,6 @@ namespace TTM {
                         1.05f * result.highestDPSSkillset.second,
                         ImVec2(0, 80.0f));
                 }
-
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-                ImGui::Text(talent->nameSwitch.c_str());
-                ImGui::PopFont();
-                ImGui::Text(idLabel.c_str());
-
-                colIndex += 1;
-                const Engine::TalentPerformanceInfo& talentPerfSwitch = result.talentPerformances[colIndex];
-                numSkillsets = talentPerfSwitch.skillsetDPS.size();
-                ImGui::Text("Number of skillsets: %d", numSkillsets);
-                if (numSkillsets > 0) {
-                    ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
-                        talentPerfSwitch.lowestDPSSkillset.first.second.c_str(),
-                        talentPerfSwitch.lowestDPSSkillset.first.first.c_str(),
-                        talentPerfSwitch.lowestDPSSkillset.second);
-                    ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
-                        talentPerfSwitch.medianDPSSkillset.first.second.c_str(),
-                        talentPerfSwitch.medianDPSSkillset.first.first.c_str(),
-                        talentPerfSwitch.medianDPSSkillset.second);
-                    ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
-                        talentPerfSwitch.highestDPSSkillset.first.second.c_str(),
-                        talentPerfSwitch.highestDPSSkillset.first.first.c_str(),
-                        talentPerfSwitch.highestDPSSkillset.second);
-                    ImGui::Spacing();
-                    ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
-                    ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
-                    ImGui::Text("Skillset distribution:");
-                    ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
-                        &talentPerfSwitch.skillsetDPS[0],
-                        static_cast<int>(numSkillsets),
-                        0, NULL,
-                        0.95f * result.lowestDPSSkillset.second,
-                        1.05f * result.highestDPSSkillset.second,
-                        ImVec2(0, 80.0f));
-                }
-
                 ImGui::EndTooltip();
             }
         }
@@ -274,139 +344,330 @@ namespace TTM {
         ImGui::End();
         ImGui::PopStyleVar();
         if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
-            if (ImGui::Button("Sim Analysis Settings", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
-                //potentially multiple sim analysis pages
+            if (ImGui::Button("Sim Analysis Settings", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 25))) {
+                uiData.simAnalysisPage = SimAnalysisPage::Settings;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Talent Breakdown", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
+                uiData.simAnalysisPage = SimAnalysisPage::Breakdown;
             }
             ImGui::Spacing();
-            //switch (uiData.loadoutEditPage) {
-            //case LoadoutEditPage::LoadoutInformation: {
 
-            ImGui::Text("Import Raidbots results:");
-            ImGui::SameLine();
-            HelperTooltip("(?)", "In order to use the sim analysis tool, create a Raidbots sim with copies (not profilesets!) that are named after your loadout skillsets.\n\nIf you have multiple skillsets with the same name, the first one is used! If no skillset matches the sim import then that dps value is discarded.\n\nIf your sim is done, take the result URL and paste it here.");
-            ImGui::InputText("##simAnalysisRaidbotsInputText", &uiData.raidbotsInputURL, ImGuiInputTextFlags_AutoSelectAll);
-            ImGui::SameLine();
-            if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
-                GenerateFakeData(talentTreeCollection.activeTree());
-                AnalyzeRawResults(talentTreeCollection.activeTree());
-                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
-            }
-
-            if (ImGui::BeginListBox("##simAnalysisResultsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
-            {
-                for (int n = 0; n < talentTreeCollection.activeTree().simAnalysisRawResults.size(); n++)
-                {
-                    const bool is_selected = (talentTreeCollection.activeTree().selectedSimAnalysisRawResult == n);
-                    if (ImGui::Selectable((talentTreeCollection.activeTree().simAnalysisRawResults[n].name + "##" + std::to_string(n)).c_str(), is_selected)) {
-                        talentTreeCollection.activeTree().selectedSimAnalysisRawResult = n;
-                    }
-
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndListBox();
-            }
-            if (ImGui::Button("Remove result##simAnalysisRaidbotsRemoveResultButton")) {
-                if (talentTreeCollection.activeTree().selectedSimAnalysisRawResult >= 0
-                    && talentTreeCollection.activeTree().selectedSimAnalysisRawResult < talentTreeCollection.activeTree().simAnalysisRawResults.size()) {
-                    talentTreeCollection.activeTree().simAnalysisRawResults.erase(
-                        talentTreeCollection.activeTree().simAnalysisRawResults.begin() + 
-                        talentTreeCollection.activeTree().selectedSimAnalysisRawResult);
+            switch (uiData.simAnalysisPage) {
+            case SimAnalysisPage::Settings: {
+                ImGui::Text("Import Raidbots results:");
+                ImGui::SameLine();
+                HelperTooltip("(?)", "In order to use the sim analysis tool, create a Raidbots sim with copies (not profilesets!) that are named after your loadout skillsets.\n\nIf you have multiple skillsets with the same name, the first one is used! If no skillset matches the sim import then that dps value is discarded.\n\nIf your sim is done, take the result URL and paste it here.");
+                ImGui::InputText("##simAnalysisRaidbotsInputText", &uiData.raidbotsInputURL, ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
+                    GenerateFakeData(talentTreeCollection.activeTree());
                     AnalyzeRawResults(talentTreeCollection.activeTree());
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
                     UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
                 }
-            }
-            ImGui::Separator();
 
-            Engine::AnalysisResult& res = talentTreeCollection.activeTree().analysisResult;
-            ImGui::Text("Currently analyzed skillsets: %d", res.skillsetCount);
-            if (res.skillsetDPS.size() > 0) {
-                ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f", 
-                    res.lowestDPSSkillset.first.second.c_str(),
-                    res.lowestDPSSkillset.first.first.c_str(),
-                    res.lowestDPSSkillset.second);
-                ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
-                    res.medianDPSSkillset.first.second.c_str(),
-                    res.medianDPSSkillset.first.first.c_str(),
-                    res.medianDPSSkillset.second);
-                ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
-                    res.highestDPSSkillset.first.second.c_str(),
-                    res.highestDPSSkillset.first.first.c_str(),
-                    res.highestDPSSkillset.second);
-                ImGui::Text("Skillset distribution:");
-                ImGui::PlotHistogram("##allSkillsetsDistributionHistogram",
-                    &res.skillsetDPS[0],
-                    static_cast<int>(res.skillsetDPS.size()),
-                    0, NULL,
-                    0.95f * res.lowestDPSSkillset.second,
-                    1.05f * res.highestDPSSkillset.second,
-                    ImVec2(0, 80.0f));
-            }
-            ImGui::Separator();
+                if (ImGui::BeginListBox("##simAnalysisResultsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+                {
+                    for (int n = 0; n < talentTreeCollection.activeTree().simAnalysisRawResults.size(); n++)
+                    {
+                        const bool is_selected = (talentTreeCollection.activeTree().selectedSimAnalysisRawResult == n);
+                        if (ImGui::Selectable((talentTreeCollection.activeTree().simAnalysisRawResults[n].name + "##" + std::to_string(n)).c_str(), is_selected)) {
+                            talentTreeCollection.activeTree().selectedSimAnalysisRawResult = n;
+                        }
 
-            ImGui::Text("Visualization settings:");
-            ImGui::Spacing();
-            ImGui::Spacing();
-            if (OptionSwitch("Talent Icon", "Rating", &uiData.simAnalysisIconRatingSwitch, 80.0f, true, "simAnalysisRatingSwitch", true, "(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).")) {
-                //probably needs nothing here
-            }
-            //ImGui::SameLine();
-            //HelperTooltip("(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).");
-            if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch", true, "(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.")) {
-                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
-            }
-            //ImGui::SameLine();
-            //HelperTooltip("(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.");
-            if (OptionSwitch("Show lowest", "Show highest", &uiData.showLowestHighestSwitch, 80.0f, true, "simAnalysisLowestHighestSwitch", true, "(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.")) {
-                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
-            }
-            //ImGui::SameLine();
-            //HelperTooltip("(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.");
-            ImGui::Text("Ranking metric:");
-            ImGui::SameLine();
-            HelperTooltip("(?)", "Choose the metric that's used to calculate talent performances:\n\nTop X: Take the average of the top X skillsets where this talent is used.\n\nMedian: Take the median of all skillsets where this talent is used.\n\nTop 1 + Median: Take the top skillset but sort further using the median of all skillsets where this talent is used. The shown relative performance is still only top 1 skillset.");
-            int oldSetting = uiData.topMedianPerformanceSwitch;
-            ImGui::RadioButton("Top 1", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP1));
-            ImGui::SameLine();
-            ImGui::RadioButton("Top 3", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP3));
-            ImGui::SameLine();
-            ImGui::RadioButton("Top 5", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP5));
-            ImGui::SameLine();
-            ImGui::RadioButton("Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::MEDIAN));
-            ImGui::SameLine();
-            ImGui::RadioButton("Top 1 + Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOPMEDIAN));
-            if (oldSetting != uiData.topMedianPerformanceSwitch) {
-                CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
-            }
-
-            ImGui::Separator();
-            ImGui::Text("Export:");
-            ImGui::Spacing();
-            ImGui::Spacing();
-            if (ImGui::Button("Put past top performing skillset in loadout")) {
-
-            }
-            if (ImGui::Button("Create actual top performing skillset")) {
-
-            }
-
-            /*if (ImGui::BeginPopupModal("Import skillsets result", NULL, ImGuiWindowFlags_AlwaysAutoResize))
-            {
-                ImGui::Text("Imported %d skillsets!\n(%d skillsets might have been discarded due to mismatched trees\nor corrupted import strings.)",
-                    uiData.loadoutEditorImportSkillsetsResult.first, uiData.loadoutEditorImportSkillsetsResult.second);
-
-                ImGui::SetItemDefaultFocus();
-                if (ImGui::Button("OK", ImVec2(120, 0))) {
-                    ImGui::CloseCurrentPopup();
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndListBox();
                 }
-                ImGui::EndPopup();
-            }*/
+                if (ImGui::Button("Remove result##simAnalysisRaidbotsRemoveResultButton")) {
+                    if (talentTreeCollection.activeTree().selectedSimAnalysisRawResult >= 0
+                        && talentTreeCollection.activeTree().selectedSimAnalysisRawResult < talentTreeCollection.activeTree().simAnalysisRawResults.size()) {
+                        talentTreeCollection.activeTree().simAnalysisRawResults.erase(
+                            talentTreeCollection.activeTree().simAnalysisRawResults.begin() +
+                            talentTreeCollection.activeTree().selectedSimAnalysisRawResult);
+                        AnalyzeRawResults(talentTreeCollection.activeTree());
+                        CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                        UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                    }
+                }
+                ImGui::Separator();
+
+                Engine::AnalysisResult& res = talentTreeCollection.activeTree().analysisResult;
+                ImGui::Text("Currently analyzed skillsets: %d", res.skillsetCount);
+                if (res.skillsetDPS.size() > 0) {
+                    ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        res.lowestDPSSkillset.first.second.c_str(),
+                        res.lowestDPSSkillset.first.first.c_str(),
+                        res.lowestDPSSkillset.second);
+                    ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                        res.medianDPSSkillset.first.second.c_str(),
+                        res.medianDPSSkillset.first.first.c_str(),
+                        res.medianDPSSkillset.second);
+                    ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                        res.highestDPSSkillset.first.second.c_str(),
+                        res.highestDPSSkillset.first.first.c_str(),
+                        res.highestDPSSkillset.second);
+                    ImGui::Text("Average skillset dps: %.1f",
+                        res.averageDPSSkillset.second);
+                    ImGui::Text("Skillset distribution:");
+                    ImGui::PlotHistogram("##allSkillsetsDistributionHistogram",
+                        &res.skillsetDPS[0],
+                        static_cast<int>(res.skillsetDPS.size()),
+                        0, NULL,
+                        0.95f * res.lowestDPSSkillset.second,
+                        1.05f * res.highestDPSSkillset.second,
+                        ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+                }
+                ImGui::Separator();
+
+                ImGui::Text("Visualization settings:");
+                ImGui::Spacing();
+                ImGui::Spacing();
+                if (OptionSwitch("Talent Icon", "Rating", &uiData.simAnalysisIconRatingSwitch, 80.0f, true, "simAnalysisRatingSwitch", true, "(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).")) {
+                    //probably needs nothing here
+                }
+                //ImGui::SameLine();
+                //HelperTooltip("(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).");
+                if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch", true, "(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.")) {
+                    CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                }
+                //ImGui::SameLine();
+                //HelperTooltip("(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.");
+                if (OptionSwitch("Show lowest", "Show highest", &uiData.showLowestHighestSwitch, 80.0f, true, "simAnalysisLowestHighestSwitch", true, "(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.")) {
+                    CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                }
+                //ImGui::SameLine();
+                //HelperTooltip("(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.");
+                ImGui::Text("Ranking metric:");
+                ImGui::SameLine();
+                HelperTooltip("(?)", "Choose the metric that's used to calculate talent performances:\n\nTop X: Take the average of the top X skillsets where this talent is used.\n\nMedian: Take the median of all skillsets where this talent is used.\n\nTop 1 + Median: Take the top skillset but sort further using the median of all skillsets where this talent is used. The shown relative performance is still only top 1 skillset.");
+                int oldSetting = uiData.topMedianPerformanceSwitch;
+                ImGui::RadioButton("Top 1", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP1));
+                ImGui::SameLine();
+                ImGui::RadioButton("Top 3", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP3));
+                ImGui::SameLine();
+                ImGui::RadioButton("Top 5", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP5));
+                ImGui::SameLine();
+                ImGui::RadioButton("Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::MEDIAN));
+                ImGui::SameLine();
+                ImGui::RadioButton("Average", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::AVERAGE));
+                ImGui::SameLine();
+                ImGui::RadioButton("Top 1 + Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOPMEDIAN));
+                if (oldSetting != uiData.topMedianPerformanceSwitch) {
+                    CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                }
+
+                ImGui::Separator();
+                ImGui::Text("Export:");
+                ImGui::Spacing();
+                ImGui::Spacing();
+                if (ImGui::Button("Put past top performing skillset in loadout")) {
+
+                }
+                if (ImGui::Button("Create actual top performing skillset")) {
+
+                }
+            }break;
+            case SimAnalysisPage::Breakdown: {
+                if (!talentTreeCollection.activeTree().analysisResult.indexToArrayColMap.count(uiData.analysisBreakdownTalentIndex)) {
+                    uiData.analysisBreakdownTalentIndex = -1;
+                }
+                if (uiData.analysisBreakdownTalentIndex == -1) {
+                    ImGui::Text("Select talent to display breakdown. (ctrl+click)");
+                }
+                else {
+                    Engine::Talent_s talent = talentTreeCollection.activeTree().orderedTalents[uiData.analysisBreakdownTalentIndex];
+                    Engine::AnalysisResult& result = talentTreeCollection.activeTree().analysisResult;
+                    std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
+                    if (talent->type != Engine::TalentType::SWITCH) {
+                        ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                        ImGui::Text(talent->getName().c_str());
+                        ImGui::PopFont();
+                        ImGui::Text(idLabel.c_str());
+                        ImGui::Separator();
+                        for (int i = 0; i < talent->maxPoints; i++) {
+                            ImGui::Text("Rank %d:", i + 1);
+                            ImGui::Spacing();
+                            int colIndex = result.indexToArrayColMap.at(talent->index) + i;
+                            const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                            size_t numSkillsets = talentPerf.skillsetDPS.size();
+                            ImGui::Text("Number of skillsets: %d", numSkillsets);
+                            if (numSkillsets > 0) {
+                                ImGui::Separator();
+                                ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                                    talentPerf.lowestDPSSkillset.first.second.c_str(),
+                                    talentPerf.lowestDPSSkillset.first.first.c_str(),
+                                    talentPerf.lowestDPSSkillset.second);
+                                ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                                    talentPerf.medianDPSSkillset.first.second.c_str(),
+                                    talentPerf.medianDPSSkillset.first.first.c_str(),
+                                    talentPerf.medianDPSSkillset.second);
+                                ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                                    talentPerf.highestDPSSkillset.first.second.c_str(),
+                                    talentPerf.highestDPSSkillset.first.first.c_str(),
+                                    talentPerf.highestDPSSkillset.second);
+                                ImGui::Text("Average skillset dps: %.1f",
+                                    talentPerf.averageDPSSkillset.second);
+                                ImGui::Separator();
+                                ImGui::Text("Lowest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                    talentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
+                                    talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
+                                    talentPerf.lowestDPSSkillsetWithoutTalent.second);
+                                ImGui::SameLine();
+                                PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                    talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
+                                    talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
+                                    talentPerf.medianDPSSkillsetWithoutTalent.second);
+                                ImGui::SameLine();
+                                PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                    talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
+                                    talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
+                                    talentPerf.highestDPSSkillsetWithoutTalent.second);
+                                ImGui::SameLine();
+                                PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                ImGui::Text("Average skillset dps without this talent: %.1f",
+                                    talentPerf.averageDPSSkillsetWithoutTalent.second);
+                                ImGui::SameLine();
+                                PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                ImGui::Separator();
+                                ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
+                                ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
+                                ImGui::Text("Skillset distribution:");
+                                ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                                    &talentPerf.skillsetDPS[0],
+                                    static_cast<int>(numSkillsets),
+                                    0, NULL,
+                                    0.95f * result.lowestDPSSkillset.second,
+                                    1.05f * result.highestDPSSkillset.second,
+                                    ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+                            }
+                            if (i < talent->maxPoints - 1) {
+                                ImGui::Separator();
+                            }
+                        }
+                    }
+                    else {
+                        ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                        ImGui::Text(talent->name.c_str());
+                        ImGui::PopFont();
+                        ImGui::Text(idLabel.c_str());
+                        ImGui::Separator();
+
+                        int colIndex = result.indexToArrayColMap.at(talent->index);
+                        const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                        size_t numSkillsets = talentPerf.skillsetDPS.size();
+                        ImGui::Text("Number of skillsets: %d", numSkillsets);
+                        if (numSkillsets > 0) {
+                            ImGui::Separator();
+                            ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                                talentPerf.lowestDPSSkillset.first.second.c_str(),
+                                talentPerf.lowestDPSSkillset.first.first.c_str(),
+                                talentPerf.lowestDPSSkillset.second);
+                            ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                                talentPerf.medianDPSSkillset.first.second.c_str(),
+                                talentPerf.medianDPSSkillset.first.first.c_str(),
+                                talentPerf.medianDPSSkillset.second);
+                            ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                                talentPerf.highestDPSSkillset.first.second.c_str(),
+                                talentPerf.highestDPSSkillset.first.first.c_str(),
+                                talentPerf.highestDPSSkillset.second);
+                            ImGui::Text("Average skillset dps: %.1f",
+                                talentPerf.averageDPSSkillset.second);
+                            ImGui::Separator();
+                            ImGui::Text("Lowest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                talentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
+                                talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
+                                talentPerf.lowestDPSSkillsetWithoutTalent.second);
+                            ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
+                                talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
+                                talentPerf.medianDPSSkillsetWithoutTalent.second);
+                            ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
+                                talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
+                                talentPerf.highestDPSSkillsetWithoutTalent.second);
+                            ImGui::Text("Average skillset dps without this talent: %.1f",
+                                talentPerf.averageDPSSkillsetWithoutTalent.second);
+                            ImGui::Separator();
+                            ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
+                            ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
+                            ImGui::Text("Skillset distribution:");
+                            ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                                &talentPerf.skillsetDPS[0],
+                                static_cast<int>(numSkillsets),
+                                0, NULL,
+                                0.95f * result.lowestDPSSkillset.second,
+                                1.05f * result.highestDPSSkillset.second,
+                                ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+                        }
+
+                        ImGui::Separator();
+
+                        ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                        ImGui::Text(talent->nameSwitch.c_str());
+                        ImGui::PopFont();
+                        ImGui::Text(idLabel.c_str());
+                        ImGui::Separator();
+                        
+                        colIndex = result.indexToArrayColMap.at(talent->index) + 1;
+                        const Engine::TalentPerformanceInfo& switchTalentPerf = result.talentPerformances[colIndex];
+                        numSkillsets = switchTalentPerf.skillsetDPS.size();
+                        ImGui::Text("Number of skillsets: %d", numSkillsets);
+                        if (numSkillsets > 0) {
+                            ImGui::Separator();
+                            ImGui::Text("Lowest skillset \"%s\" in import \"%s\" dps: %.1f",
+                                switchTalentPerf.lowestDPSSkillset.first.second.c_str(),
+                                switchTalentPerf.lowestDPSSkillset.first.first.c_str(),
+                                switchTalentPerf.lowestDPSSkillset.second);
+                            ImGui::Text("Median skillset \"%s\" in import \"%s\" dps: %.1f",
+                                switchTalentPerf.medianDPSSkillset.first.second.c_str(),
+                                switchTalentPerf.medianDPSSkillset.first.first.c_str(),
+                                switchTalentPerf.medianDPSSkillset.second);
+                            ImGui::Text("Highest skillset \"%s\" in import \"%s\" dps: %.1f",
+                                switchTalentPerf.highestDPSSkillset.first.second.c_str(),
+                                switchTalentPerf.highestDPSSkillset.first.first.c_str(),
+                                switchTalentPerf.highestDPSSkillset.second);
+                            ImGui::Text("Average skillset dps: %.1f",
+                                switchTalentPerf.averageDPSSkillset.second);
+                            ImGui::Separator();
+                            ImGui::Text("Lowest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                switchTalentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
+                                switchTalentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
+                                switchTalentPerf.lowestDPSSkillsetWithoutTalent.second);
+                            ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                switchTalentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
+                                switchTalentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
+                                switchTalentPerf.medianDPSSkillsetWithoutTalent.second);
+                            ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
+                                switchTalentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
+                                switchTalentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
+                                switchTalentPerf.highestDPSSkillsetWithoutTalent.second);
+                            ImGui::Text("Average skillset dps without this talent: %.1f",
+                                switchTalentPerf.averageDPSSkillsetWithoutTalent.second);
+                            ImGui::Separator();
+                            ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
+                            ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
+                            ImGui::Text("Skillset distribution:");
+                            ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                                &switchTalentPerf.skillsetDPS[0],
+                                static_cast<int>(numSkillsets),
+                                0, NULL,
+                                0.95f * result.lowestDPSSkillset.second,
+                                1.05f * result.highestDPSSkillset.second,
+                                ImVec2(ImGui::GetContentRegionAvail().x, 80.0f));
+                        }
+                    }
+                }
+            }break;
+            }
         }
         ImGui::End();
         if (ImGui::Begin("SearchWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
@@ -630,28 +891,61 @@ namespace TTM {
         result.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[0], result.skillsetDPS[0]);
         int medianIndex = (result.skillsetCount + 1) / 2;
         result.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[medianIndex], result.skillsetDPS[medianIndex]);
+        float totalDPS = 0.0f;
+        for (float dps : result.skillsetDPS) {
+            totalDPS += dps;
+        }
+        result.averageDPSSkillset = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, totalDPS / result.skillsetDPS.size());
         result.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[result.skillsetCount - 1], result.skillsetDPS[result.skillsetCount - 1]);
 
         //calculate talent performances
         std::vector<std::pair<std::string, std::string>> tempTalentSkillsetNames;
+        std::vector<std::pair<std::string, std::string>> tempWithoutTalentSkillsetNames;
         for (auto& indexTalentPair : tree.orderedTalents) {
             int maxP = indexTalentPair.second->type == Engine::TalentType::SWITCH ? 2 : indexTalentPair.second->maxPoints;
             for (int points = 1; points <= maxP; points++) {
                 int colIndex = result.indexToArrayColMap[indexTalentPair.first] + points - 1;
                 Engine::TalentPerformanceInfo tInfo;
+                Engine::TalentPerformanceInfo withoutTInfo;
                 tempTalentSkillsetNames.clear();
+                tempWithoutTalentSkillsetNames.clear();
                 for (int i = 0; i < result.talentArray.size(); i++) {
                     if (result.talentArray[i][colIndex] > 0) {
                         tInfo.skillsetDPS.push_back(result.skillsetDPS[i]);
                         tempTalentSkillsetNames.push_back(tempSkillsetNames[i]);
+                    }
+                    else {
+                        withoutTInfo.skillsetDPS.push_back(result.skillsetDPS[i]);
+                        tempWithoutTalentSkillsetNames.push_back(tempSkillsetNames[i]);
                     }
                 }
                 if (tempTalentSkillsetNames.size() > 0 && tInfo.skillsetDPS.size() > 0) {
                     tInfo.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[0], tInfo.skillsetDPS[0]);
                     size_t medianIndex = (tInfo.skillsetDPS.size() + 1) / 2;
                     tInfo.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[medianIndex], tInfo.skillsetDPS[medianIndex]);
+                    float totalDPS = 0.0f;
+                    for (float dps : tInfo.skillsetDPS) {
+                        totalDPS += dps;
+                    }
+                    tInfo.averageDPSSkillset = std::pair<std::pair<std::string, std::string>, float>({"N/A", "N/A"}, totalDPS / tInfo.skillsetDPS.size());
                     tInfo.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[tInfo.skillsetDPS.size() - 1], tInfo.skillsetDPS[tInfo.skillsetDPS.size() - 1]);
+                    
+                    tInfo.lowestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[0], withoutTInfo.skillsetDPS[0]);
+                    medianIndex = (withoutTInfo.skillsetDPS.size() + 1) / 2;
+                    tInfo.medianDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[medianIndex], withoutTInfo.skillsetDPS[medianIndex]);
+                    totalDPS = 0.0f;
+                    for (float dps : withoutTInfo.skillsetDPS) {
+                        totalDPS += dps;
+                    }
+                    if (withoutTInfo.skillsetDPS.size() > 0) {
+                        tInfo.averageDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, totalDPS / withoutTInfo.skillsetDPS.size());
+                    }
+                    else {
+                        tInfo.averageDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, 0.0f);
+                    }
+                    tInfo.highestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[withoutTInfo.skillsetDPS.size() - 1], withoutTInfo.skillsetDPS[withoutTInfo.skillsetDPS.size() - 1]);
                 }
+
                 result.talentPerformances.push_back(tInfo);
             }
         }
@@ -704,6 +998,9 @@ namespace TTM {
             }break;
             case Engine::PerformanceMetric::MEDIAN: {
                 performance.emplace_back(i, std::vector<float>(DPS_SLOTS, result.talentPerformances[i].medianDPSSkillset.second));
+            }break;
+            case Engine::PerformanceMetric::AVERAGE: {
+                performance.emplace_back(i, std::vector<float>(DPS_SLOTS, result.talentPerformances[i].averageDPSSkillset.second));
             }break;
             case Engine::PerformanceMetric::TOPMEDIAN: {
                 std::vector<float> dps(DPS_SLOTS, 0);

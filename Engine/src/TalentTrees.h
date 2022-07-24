@@ -89,7 +89,7 @@ namespace Engine {
     };
 
     enum class PerformanceMetric {
-        TOP1, TOP3, TOP5, MEDIAN, TOPMEDIAN
+        TOP1, TOP3, TOP5, MEDIAN, AVERAGE, TOPMEDIAN
     };
 
     /*
@@ -98,7 +98,12 @@ namespace Engine {
     struct TalentPerformanceInfo {
         std::pair<std::pair<std::string, std::string>, float> lowestDPSSkillset;
         std::pair<std::pair<std::string, std::string>, float> medianDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> averageDPSSkillset;
         std::pair<std::pair<std::string, std::string>, float> highestDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> lowestDPSSkillsetWithoutTalent;
+        std::pair<std::pair<std::string, std::string>, float> medianDPSSkillsetWithoutTalent;
+        std::pair<std::pair<std::string, std::string>, float> averageDPSSkillsetWithoutTalent;
+        std::pair<std::pair<std::string, std::string>, float> highestDPSSkillsetWithoutTalent;
 
         std::vector<float> skillsetDPS;
     };
@@ -110,6 +115,7 @@ namespace Engine {
         int skillsetCount = 0;
         std::pair<std::pair<std::string, std::string>, float> lowestDPSSkillset;
         std::pair<std::pair<std::string, std::string>, float> medianDPSSkillset;
+        std::pair<std::pair<std::string, std::string>, float> averageDPSSkillset;
         std::pair<std::pair<std::string, std::string>, float> highestDPSSkillset;
 
         //contains the array col position given a talent index, additional ranks are just position + rank

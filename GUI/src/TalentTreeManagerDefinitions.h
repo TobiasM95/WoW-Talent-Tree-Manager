@@ -67,6 +67,10 @@ namespace TTM {
 		SolutionResults
 	};
 
+	enum class SimAnalysisPage {
+		Settings, Breakdown
+	};
+
 	struct UIData {
 		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
@@ -198,6 +202,7 @@ namespace TTM {
 		Engine::SIND selectedFilteredSkillset = 0;
 
 		//############# SIM ANALYSIS VARIABLES ########################
+		SimAnalysisPage simAnalysisPage = SimAnalysisPage::Settings;
 		std::string raidbotsInputURL = "";
 		int simAnalysisIconRatingSwitch = 0;
 		int topMedianPerformanceSwitch = 0;
@@ -205,6 +210,9 @@ namespace TTM {
 		int showLowestHighestSwitch = 0;
 		std::map<int, std::pair<ImVec4, TextureInfo>> simAnalysisColorGlowTextures;
 		std::map<int, std::string> simAnalysisButtonRankingText;
+		int analysisTooltipLastTalentIndex = -1;
+		int analysisTooltipTalentRank = -1;
+		int analysisBreakdownTalentIndex = -1;
 	};
 
 	struct TalentTreeData {
