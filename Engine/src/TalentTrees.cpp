@@ -455,7 +455,7 @@ namespace Engine {
             }
         }
         if (presetTree.activeSkillsetIndex >= presetTree.loadout.size()) {
-            presetTree.activeSkillsetIndex = presetTree.loadout.size() - 1;
+            presetTree.activeSkillsetIndex = static_cast<int>(presetTree.loadout.size() - 1);
         }
         presetTree.loadoutDescription = tree.loadoutDescription;
         return presetTree;
@@ -817,7 +817,9 @@ namespace Engine {
                 }
             }
             t->row = std::stoi(talentInfo[4]);
+            t->row = t->row > tree.maxRowLimit ? tree.maxRowLimit : t->row;
             t->column = std::stoi(talentInfo[5]);
+            t->column = t->column > tree.maxColumnLimit ? tree.maxColumnLimit : t->column;
             t->maxPoints = std::stoi(talentInfo[6]);
             while (t->descriptions.size() < t->maxPoints) {
                 t->descriptions.push_back("Undefined rank description");
@@ -990,12 +992,12 @@ namespace Engine {
         }
         //check if points requirement is met by virtually assigning each point
         std::map<int, int> tempASP = skillset->assignedSkillPoints;
+        int pointsSpent = 0;
         while (true) {
             int talentsStart = static_cast<int>(tempASP.size());
             if (talentsStart == 0) {
                 break;
             }
-            int pointsSpent = 0;
             std::vector<int> talentsSelected;
             for (auto& indexPointsPair : tempASP) {
                 if (indexPointsPair.second == 0) {
@@ -1037,7 +1039,7 @@ namespace Engine {
         }
 
         //TTMTODO: Not sure why this exists, maybe failsafe? probably best to investigate and delete
-        int pointsSpent = 0;
+        pointsSpent = 0;
         for (auto& pointSpentPair : skillset->assignedSkillPoints) {
             if (tree.orderedTalents[pointSpentPair.first]->type == TalentType::SWITCH) {
                 if (pointSpentPair.second > 0) {
@@ -1073,7 +1075,7 @@ namespace Engine {
         }
         std::string skillsetName = skillsetParts[0];
         if (skillsetName.find_first_not_of(
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :()'-"
         ) != std::string::npos) {
             return false;
         }
@@ -1299,27 +1301,27 @@ namespace Engine {
         }
 
         //recursively position row nodes
-        bool isPositioned = autoPositionRowNodes(1, talentDepths);
+        bool isPositioned = autoPositionRowNodes(1, talentDepths, tree.maxRowLimit, tree.maxColumnLimit);
 
         return;
     }
 
-    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths) {
+    bool autoPositionRowNodes(int row, std::map<int, TalentVec>& talentDepths, int maxRow, int maxColumn) {
         vec2d<int> positions = createPositionIndices(row, talentDepths);
         bool isPositioned = false;
         for (auto& positionVec : positions) {
             do
             {
                 for (int i = 0; i < positionVec.size(); i++) {
-                    talentDepths[row][i]->row = row;
-                    talentDepths[row][i]->column = positionVec[i];
+                    talentDepths[row][i]->row = row > maxRow ? maxRow : row;
+                    talentDepths[row][i]->column = positionVec[i] > maxColumn ? maxColumn : positionVec[i];
                 }
                 bool isCrossing = checkForCrossing(row, talentDepths);
                 if (isCrossing) {
                     continue;
                 }
                 if (talentDepths.count(row + 1)) {
-                    isPositioned = autoPositionRowNodes(row + 1, talentDepths);
+                    isPositioned = autoPositionRowNodes(row + 1, talentDepths, maxRow, maxColumn);
                 }
                 else {
                     isPositioned = !isCrossing;
@@ -1481,12 +1483,19 @@ namespace Engine {
     Auto sets the point requirements for every talent according to Blizzards example trees.
     */
     void autoPointRequirements(TalentTree& tree) {
+        std::vector<int> uniqueRows;
         for (auto& talent : tree.orderedTalents) {
-            if (talent.second->row >= 8) {
+            if (std::find(uniqueRows.begin(), uniqueRows.end(), talent.second->index) == uniqueRows.end()) {
+                uniqueRows.push_back(talent.second->index);
+            }
+        }
+        std::sort(uniqueRows.begin(), uniqueRows.end());
+        for (auto& talent : tree.orderedTalents) {
+            if (talent.second->row > uniqueRows[6]) {
                 talent.second->pointsRequired = 20;
                 continue;
             }
-            if (talent.second->row >= 5) {
+            if (talent.second->row > uniqueRows[3]) {
                 talent.second->pointsRequired = 8;
                 continue;
             }
@@ -1516,6 +1525,7 @@ namespace Engine {
                 tree.maxCol = talent.second->column;
             }
         }
+        tree.maxCol++;
     }
 
     /*
@@ -2034,36 +2044,35 @@ namespace Engine {
         return pairs;
     }
 
-    void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree) {
-
-        std::string formattedSearch;
-        formattedSearch.reserve(search.length());
-        for (auto& ch : search) {
-            if (ch == '.') {
-                break;
-            }
+    /*
+    Helper function that transforms a string to a version with only lowercase letters stripping everything else
+    */
+    std::string simplifyString(const std::string& s) {
+        std::string ret = "";
+        ret.reserve(s.length());
+        for (auto& ch : s) {
             if (ch >= 'A' && ch <= 'Z') {
-                formattedSearch += static_cast<char>(ch + 32);
+                ret += static_cast<char>(ch + 32);
             }
             if (ch >= 'a' && ch <= 'z') {
-                formattedSearch += ch;
+                ret += ch;
             }
         }
+        return ret;
+    }
+
+    void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree) {
+        //TTMNOTE: Apparently we don't need to do any fancy search register caching and can just brute force everything all the time
+        std::string formattedSearch = simplifyString(search);
 
         for (auto& talent : tree.orderedTalents) {
-            std::string formattedTalentName;
-            formattedTalentName.reserve(talent.second->name.length() + talent.second->nameSwitch.length());
-            for (auto& ch : talent.second->name + talent.second->nameSwitch) {
-                if (ch == '.') {
-                    break;
-                }
-                if (ch >= 'A' && ch <= 'Z') {
-                    formattedTalentName += static_cast<char>(ch + 32);
-                }
-                if (ch >= 'a' && ch <= 'z') {
-                    formattedTalentName += ch;
-                }
+            std::string formattedTalentName = simplifyString(talent.second->name + talent.second->nameSwitch);
+            std::string concatTalentDescriptions = "";
+            int maxP = talent.second->type == TalentType::SWITCH ? 2 : talent.second->maxPoints;
+            for (int i = 0; i < maxP; i++) {
+                concatTalentDescriptions += talent.second->descriptions[i];
             }
+            std::string formattedTalentDescription = simplifyString(concatTalentDescriptions);
             bool typeMatched = false;
             switch (talent.second->type) {
             case TalentType::ACTIVE: {
@@ -2076,7 +2085,9 @@ namespace Engine {
                 typeMatched = std::string("switch").find(formattedSearch) != std::string::npos;
             }break;
             }
-            if (formattedTalentName.find(formattedSearch) != std::string::npos || typeMatched) {
+            if (formattedTalentName.find(formattedSearch) != std::string::npos 
+                || formattedTalentDescription.find(formattedSearch) != std::string::npos
+                || typeMatched) {
                 filteredTalents.push_back(talent.second);
             }
         }
