@@ -1131,4 +1131,22 @@ namespace TTM {
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
         talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
     }
+
+    void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        uiData.simAnalysisPage = SimAnalysisPage::Settings;
+        uiData.raidbotsInputURL = "";
+        for (auto& indexTexInfo : uiData.simAnalysisColorGlowTextures) {
+            indexTexInfo.second.second.texture->Release();
+            indexTexInfo.second.second.texture = nullptr;
+        }
+        uiData.simAnalysisColorGlowTextures.clear();
+        uiData.simAnalysisButtonRankingText.clear();
+        uiData.analysisTooltipLastTalentIndex = -1;
+        uiData.analysisTooltipTalentRank = -1;
+        uiData.analysisBreakdownTalentIndex = -1;
+
+        talentTreeCollection.activeTree().analysisResult = Engine::AnalysisResult();
+        talentTreeCollection.activeTree().selectedSimAnalysisRawResult = -1;
+        talentTreeCollection.activeTree().simAnalysisRawResults.clear();
+    }
 }
