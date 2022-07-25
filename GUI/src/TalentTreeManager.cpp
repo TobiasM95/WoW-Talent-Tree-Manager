@@ -319,7 +319,7 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("The left side shows the tree and all currently selected talents (and for switch talents the selected talent). Dragging the window around as well as zooming works the same way as the talent tree editor. You can select talents just like ingame by clicking on the talent. By either pressing left Ctrl and clicking on a switch talent or using the middle mouse button you can change the variant.");
             ImGui::Bullet();
-            ImGui::Text("In the \nEdit Skillsets\n page you can switch between skillsets, add/delete skillsets and importing/exporting a single skillset or all skillsets. This will only share the skillset, i.e. the assigned talent points, but not the loadout description. For this, you can share the full talent tree.");
+            ImGui::Text("In the \"Edit Skillsets\" page you can switch between skillsets, add/delete skillsets and importing/exporting a single skillset or all skillsets. This will only share the skillset, i.e. the assigned talent points, but not the loadout description. For this, you can share the full talent tree.");
             ImGui::Spacing();
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
             ImGui::Text("Loadout solver");
@@ -333,6 +333,15 @@ namespace TTM {
             ImGui::Text("You can then press the filter button to display the filtered skillset selection. The first list box shows all possible talent points and in brackets the number of viable skillsets. You can restrict the skill points to a single number or selecting the desired number in the list.");
             ImGui::Bullet();
             ImGui::Text("After selecting the skill point number you can choose individual skillsets and transfer them to your loadout to view and edit them. You can also add all shown skillsets on the current page to your loadout to have a selection of skillsets ready.");
+            ImGui::Spacing();
+            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            ImGui::Text("Sim analysis");
+            ImGui::PopFont();
+            ImGui::Separator();
+            ImGui::Bullet();
+            ImGui::Text("The sim analysis screen allows you to import a raidbots mass sim result and analyze the performance of individual talents and their ranks.");
+            ImGui::Bullet();
+            ImGui::Text("For more instructions hover over the (?) marks in the screen. A more in-depth explanation might be added in the future.");
             ImGui::Spacing();
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
             ImGui::Spacing();
