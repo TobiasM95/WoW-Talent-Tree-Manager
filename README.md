@@ -1,4 +1,5 @@
-# WoW Talent Tree Manager
+![TTM Banner](/GUI/resources/TTM_Banner.png?raw=true "TTM Banner")
+
 ## What is the WoW Talent Tree Manager?
 For the return of talent trees in the upcoming World of Warcraft expansion Dragonflight, this project aims to give players the possibility to easily create, change and share talent tree setups for all classes and even create completely new and custom talent trees for fun. It does provide a simple and clean interface to make the exploration of new talent setups as smooth as possible.
 ## Features
