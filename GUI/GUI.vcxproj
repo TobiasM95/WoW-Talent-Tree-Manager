@@ -334,6 +334,7 @@ copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManage
     <Image Include="resources\icons\0\green_qmark.png" />
     <Image Include="resources\icons\default.png" />
     <Image Include="resources\icons\icons_packed.png" />
+    <Image Include="resources\TTM_icon.ico" />
     <Image Include="resources\updatertarget\icons_packed.png" />
   </ItemGroup>
   <ItemGroup>
