@@ -1118,7 +1118,7 @@ namespace TTM {
         ImGui::PopFont();
     }
 
-    void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+    void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData) {
         uiData.loadoutSolverAllCombinationsAdded = 0;
         uiData.loadoutSolverTalentPointSelection = -1;
         uiData.loadoutSolverSkillsetResultPage = -1;
@@ -1126,13 +1126,17 @@ namespace TTM {
         uiData.selectedFilteredSkillset = 0;
         uiData.selectedFilteredSkillsetIndex = -1;
         uiData.loadoutSolverAutoApplyFilter = false;
+        if (onlyUIData) {
+            return;
+        }
+
         talentTreeCollection.activeTreeData().isTreeSolveProcessed = false;
         talentTreeCollection.activeTreeData().isTreeSolveFiltered = false;
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
         talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
     }
 
-    void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+    void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData) {
         uiData.simAnalysisPage = SimAnalysisPage::Settings;
         uiData.raidbotsInputURL = "";
         for (auto& indexTexInfo : uiData.simAnalysisColorGlowTextures) {
@@ -1144,6 +1148,9 @@ namespace TTM {
         uiData.analysisTooltipLastTalentIndex = -1;
         uiData.analysisTooltipTalentRank = -1;
         uiData.analysisBreakdownTalentIndex = -1;
+        if (onlyUIData) {
+            return;
+        }
 
         talentTreeCollection.activeTree().analysisResult = Engine::AnalysisResult();
         talentTreeCollection.activeTree().selectedSimAnalysisRawResult = -1;

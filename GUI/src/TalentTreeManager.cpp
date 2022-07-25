@@ -529,6 +529,9 @@ namespace TTM {
                             uiData.analysisTooltipLastTalentIndex = -1;
                             uiData.analysisBreakdownTalentIndex = -1;
                             uiData.simAnalysisPage = SimAnalysisPage::Settings;
+                            clearSolvingProcess(uiData, talentTreeCollection, true);
+                            clearSimAnalysisProcess(uiData, talentTreeCollection, true);
+                            UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
                             loadActiveIcons(uiData, talentTreeCollection);
 
                             //clear the talent search field and results
