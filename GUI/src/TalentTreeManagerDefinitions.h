@@ -328,4 +328,5 @@ namespace TTM {
 		bool talentIsSearchedFor);
 
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 }

@@ -214,6 +214,7 @@ namespace TTM {
                     talentTreeCollection.activeTree().presetName = "custom";
                     Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                     clearSolvingProcess(uiData, talentTreeCollection);
+                    clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                     uiData.treeEditorSelectedTalent = nullptr;
                 }
@@ -662,6 +663,7 @@ namespace TTM {
                             talentTreeCollection.activeTree().presetName = "custom";
                             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                             clearSolvingProcess(uiData, talentTreeCollection);
+                            clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                             uiData.treeEditorSelectedTalent = nullptr;
                             loadActiveIcons(uiData, talentTreeCollection, true);
@@ -725,6 +727,7 @@ namespace TTM {
                         talentTreeCollection.activeTree().presetName = "custom";
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
@@ -803,6 +806,7 @@ namespace TTM {
                             talentTreeCollection.activeTree().presetName = "custom";
                             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                             clearSolvingProcess(uiData, talentTreeCollection);
+                            clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                             uiData.treeEditorSelectedTalent = nullptr;
                             uiData.treeEditorEmptyActiveNodes = 0;
@@ -820,6 +824,7 @@ namespace TTM {
                         talentTreeCollection.activeTree().presetName = "custom";
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
@@ -862,6 +867,7 @@ namespace TTM {
                         //These two shouldn't be necessary but to keep it consistent
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
@@ -872,6 +878,7 @@ namespace TTM {
                         //loadout gets cleared anyway since it will be nonsensical
                         //Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
 
@@ -883,6 +890,7 @@ namespace TTM {
                         talentTreeCollection.activeTree().presetName = "custom";
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
@@ -893,6 +901,7 @@ namespace TTM {
                         //These two shouldn't be necessary but to keep it consistent
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
@@ -906,6 +915,7 @@ namespace TTM {
                         talentTreeCollection.activeTree().presetName = "custom";
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
                         uiData.treeEditorSelectedTalent = nullptr;
 
@@ -1095,6 +1105,8 @@ namespace TTM {
                             talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
                             uiData.treeEditorSelectedTalent = nullptr;
                             loadActiveIcons(uiData, talentTreeCollection, true);
+                            clearSolvingProcess(uiData, talentTreeCollection);
+                            clearSimAnalysisProcess(uiData, talentTreeCollection);
                             ImGui::OpenPopup("Tree import successful");
                         }
                     }
@@ -1163,6 +1175,8 @@ namespace TTM {
                             talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         }
                         loadActiveIcons(uiData, talentTreeCollection, true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::SameLine();
@@ -1184,6 +1198,8 @@ namespace TTM {
                         }
                         uiData.treeEditorIsCustomTreeFileListValid = false;
                         loadActiveIcons(uiData, talentTreeCollection, true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+                        clearSimAnalysisProcess(uiData, talentTreeCollection);
                     }
                     ImGui::SameLine();
                     if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -1389,6 +1405,7 @@ namespace TTM {
         talentTreeCollection.activeTree().presetName = "custom";
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
         clearSolvingProcess(uiData, talentTreeCollection);
+        clearSimAnalysisProcess(uiData, talentTreeCollection);
 
         uiData.treeEditorSelectedTalent = nullptr;
 
@@ -1541,6 +1558,7 @@ namespace TTM {
         talentTreeCollection.activeTree().presetName = "custom";
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
         clearSolvingProcess(uiData, talentTreeCollection);
+        clearSimAnalysisProcess(uiData, talentTreeCollection);
     }
 
     bool updateCustomTreeFileList(UIData& uiData) {
@@ -1785,6 +1803,7 @@ namespace TTM {
                     talentTreeCollection.activeTree().presetName = "custom";
                     Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                     clearSolvingProcess(uiData, talentTreeCollection);
+                    clearSimAnalysisProcess(uiData, talentTreeCollection);
                 }
                 //regular talent selection
                 else {
@@ -1966,6 +1985,7 @@ namespace TTM {
             talentTreeCollection.activeTree().presetName = "custom";
             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
             clearSolvingProcess(uiData, talentTreeCollection);
+            clearSimAnalysisProcess(uiData, talentTreeCollection);
             Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
         }
         int restoredTalentPositions;
