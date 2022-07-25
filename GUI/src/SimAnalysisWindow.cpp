@@ -208,28 +208,28 @@ namespace TTM {
                         talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
                         talentPerf.lowestDPSSkillsetWithoutTalent.second);
                     ImGui::SameLine();
-                    PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                         talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
                         talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
                         talentPerf.medianDPSSkillsetWithoutTalent.second);
                     ImGui::SameLine();
-                    PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                         talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
                         talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
                         talentPerf.highestDPSSkillsetWithoutTalent.second);
                     ImGui::SameLine();
-                    PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Text("Average skillset dps without this talent: %.1f",
                         talentPerf.averageDPSSkillsetWithoutTalent.second);
                     ImGui::SameLine();
-                    PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                    PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Separator();
                     ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
                     ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
                     ImGui::Text("Skillset distribution:");
-                    ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                    ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                         &talentPerf.skillsetDPS[0],
                         static_cast<int>(numSkillsets),
                         0, NULL,
@@ -280,21 +280,29 @@ namespace TTM {
                         talentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
                         talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
                         talentPerf.lowestDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                         talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
                         talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
                         talentPerf.medianDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                         talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
                         talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
                         talentPerf.highestDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Text("Average skillset dps without this talent: %.1f",
                         talentPerf.averageDPSSkillsetWithoutTalent.second);
+                    ImGui::SameLine();
+                    PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                     ImGui::Separator();
                     ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex]*100.0f);
                     ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex]*100.0f);
                     ImGui::Text("Skillset distribution:");
-                    ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                    ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                         &talentPerf.skillsetDPS[0],
                         static_cast<int>(numSkillsets),
                         0, NULL,
@@ -413,7 +421,7 @@ namespace TTM {
                     ImGui::Text("Average skillset dps: %.1f",
                         res.averageDPSSkillset.second);
                     ImGui::Text("Skillset distribution:");
-                    ImGui::PlotHistogram("##allSkillsetsDistributionHistogram",
+                    ImGui::PlotHistogramRedGreen("##allSkillsetsDistributionHistogram",
                         &res.skillsetDPS[0],
                         static_cast<int>(res.skillsetDPS.size()),
                         0, NULL,
@@ -445,7 +453,7 @@ namespace TTM {
                 //HelperTooltip("(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.");
                 ImGui::Text("Ranking metric:");
                 ImGui::SameLine();
-                HelperTooltip("(?)", "Choose the metric that's used to calculate talent performances:\n\nTop X: Take the average of the top X skillsets where this talent is used.\n\nMedian: Take the median of all skillsets where this talent is used.\n\nTop 1 + Median: Take the top skillset but sort further using the median of all skillsets where this talent is used. The shown relative performance is still only top 1 skillset.");
+                HelperTooltip("(?)", "Choose the metric that's used to calculate talent performances:\n\nTop X: Take the average of the top X skillsets where this talent is used.\n\nMedian: Take the median of all skillsets where this talent is used.\n\nAverage: Take the average of all skillsets where this talent is used.\n\nTop 1 + Median: Take the top skillset but sort further using the median of all skillsets where this talent is used. The shown relative performance is still only top 1 skillset.");
                 int oldSetting = uiData.topMedianPerformanceSwitch;
                 ImGui::RadioButton("Top 1", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOP1));
                 ImGui::SameLine();
@@ -520,28 +528,28 @@ namespace TTM {
                                     talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
                                     talentPerf.lowestDPSSkillsetWithoutTalent.second);
                                 ImGui::SameLine();
-                                PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                                 ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                                     talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
                                     talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
                                     talentPerf.medianDPSSkillsetWithoutTalent.second);
                                 ImGui::SameLine();
-                                PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                                 ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                                     talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
                                     talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
                                     talentPerf.highestDPSSkillsetWithoutTalent.second);
                                 ImGui::SameLine();
-                                PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                                 ImGui::Text("Average skillset dps without this talent: %.1f",
                                     talentPerf.averageDPSSkillsetWithoutTalent.second);
                                 ImGui::SameLine();
-                                PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%.1f%%)");
+                                PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                                 ImGui::Separator();
                                 ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
                                 ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
                                 ImGui::Text("Skillset distribution:");
-                                ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                                ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                                     &talentPerf.skillsetDPS[0],
                                     static_cast<int>(numSkillsets),
                                     0, NULL,
@@ -586,21 +594,29 @@ namespace TTM {
                                 talentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
                                 talentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
                                 talentPerf.lowestDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                                 talentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
                                 talentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
                                 talentPerf.medianDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                                 talentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
                                 talentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
                                 talentPerf.highestDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Text("Average skillset dps without this talent: %.1f",
                                 talentPerf.averageDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Separator();
                             ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
                             ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
                             ImGui::Text("Skillset distribution:");
-                            ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                            ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                                 &talentPerf.skillsetDPS[0],
                                 static_cast<int>(numSkillsets),
                                 0, NULL,
@@ -642,21 +658,29 @@ namespace TTM {
                                 switchTalentPerf.lowestDPSSkillsetWithoutTalent.first.second.c_str(),
                                 switchTalentPerf.lowestDPSSkillsetWithoutTalent.first.first.c_str(),
                                 switchTalentPerf.lowestDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.lowestDPSSkillsetWithoutTalent.second, talentPerf.lowestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Text("Median skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                                 switchTalentPerf.medianDPSSkillsetWithoutTalent.first.second.c_str(),
                                 switchTalentPerf.medianDPSSkillsetWithoutTalent.first.first.c_str(),
                                 switchTalentPerf.medianDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.medianDPSSkillsetWithoutTalent.second, talentPerf.medianDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Text("Highest skillset without this talent \"%s\" in import \"%s\" dps: %.1f",
                                 switchTalentPerf.highestDPSSkillsetWithoutTalent.first.second.c_str(),
                                 switchTalentPerf.highestDPSSkillsetWithoutTalent.first.first.c_str(),
                                 switchTalentPerf.highestDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.highestDPSSkillsetWithoutTalent.second, talentPerf.highestDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Text("Average skillset dps without this talent: %.1f",
                                 switchTalentPerf.averageDPSSkillsetWithoutTalent.second);
+                            ImGui::SameLine();
+                            PrintColoredRatio(talentPerf.averageDPSSkillsetWithoutTalent.second, talentPerf.averageDPSSkillset.second, -0.5f, 0.5f, 1, "(%+.1f%%)");
                             ImGui::Separator();
                             ImGui::Text("Absolute ranking: %.2f%%", result.talentAbsolutePositionRankings[colIndex] * 100.0f);
                             ImGui::Text("Relative performance: %.2f%%", result.talentRelativePerformanceRankings[colIndex] * 100.0f);
                             ImGui::Text("Skillset distribution:");
-                            ImGui::PlotHistogram("##tooltipSkillsetsDistributionHistogram",
+                            ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                                 &switchTalentPerf.skillsetDPS[0],
                                 static_cast<int>(numSkillsets),
                                 0, NULL,
