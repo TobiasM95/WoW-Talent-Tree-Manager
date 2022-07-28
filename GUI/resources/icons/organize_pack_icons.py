@@ -8,7 +8,7 @@ from collections import defaultdict
 import numpy as np
 from PIL import Image
 
-icon_directory = r"C:\Users\Tobi\Documents\Programming\Small_projects\wow_talent_tree_scraper\wowhead_trees\icons"
+icon_directory = r"C:\Users\Tobi\Documents\Programming\Small_projects\wow_talent_tree_scraper\wowhead_trees_fast\icons"
 
 pack_name = "icons_packed.png"
 
