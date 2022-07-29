@@ -1163,6 +1163,7 @@ namespace TTM {
                             talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         }
                         loadActiveIcons(uiData, talentTreeCollection, true);
+                        uiData.treeEditorSelectedTalent = nullptr;
                         ImGui::CloseCurrentPopup();
                     }
                     ImGui::SameLine();
@@ -1184,6 +1185,7 @@ namespace TTM {
                         }
                         uiData.treeEditorIsCustomTreeFileListValid = false;
                         loadActiveIcons(uiData, talentTreeCollection, true);
+                        uiData.treeEditorSelectedTalent = nullptr;
                     }
                     ImGui::SameLine();
                     if (ImGui::Button("Cancel", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
