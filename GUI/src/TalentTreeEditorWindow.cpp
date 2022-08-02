@@ -1093,6 +1093,9 @@ namespace TTM {
                         }
                         else {
                             talentTreeCollection.activeTree() = Engine::parseTree(uiData.treeEditorImportTreeString);
+                            Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                            clearSolvingProcess(uiData, talentTreeCollection);
+
                             uiData.treeEditorSelectedTalent = nullptr;
                             loadActiveIcons(uiData, talentTreeCollection, true);
                             ImGui::OpenPopup("Tree import successful");
@@ -1162,6 +1165,9 @@ namespace TTM {
                         else {
                             talentTreeCollection.activeTree() = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                         }
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
                         loadActiveIcons(uiData, talentTreeCollection, true);
                         uiData.treeEditorSelectedTalent = nullptr;
                         ImGui::CloseCurrentPopup();
@@ -1184,6 +1190,9 @@ namespace TTM {
                             ImGui::CloseCurrentPopup();
                         }
                         uiData.treeEditorIsCustomTreeFileListValid = false;
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
                         loadActiveIcons(uiData, talentTreeCollection, true);
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
