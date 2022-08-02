@@ -85,7 +85,9 @@ namespace TTM {
 		std::filesystem::path defaultIconPath = "resources/icons/default.png";
 		std::map<std::string, std::filesystem::path> iconPathMap;
 		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMap;
+		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMapGrayed;
 		std::map<int, TextureInfo> splitIconIndexMap;
+		std::map<int, TextureInfo> splitIconIndexMapGrayed;
 		TextureInfo redIconGlow;
 		TextureInfo greenIconGlow;
 		TextureInfo goldIconGlow;
@@ -239,8 +241,8 @@ namespace TTM {
 
 	void refreshIconList(UIData& uiData);
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
-	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
-	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight);
+	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
+	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight);
 	TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType = Engine::TalentType::ACTIVE);
 
 	void drawArrowBetweenTalents(

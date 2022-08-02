@@ -481,7 +481,7 @@ namespace TTM {
             ImGui::SetCursorPos(ImVec2(posX, posY));
             ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
             if (talentDisabled) {
-                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.20f;
                 ImGui::BeginDisabled();
             }
 
@@ -502,11 +502,16 @@ namespace TTM {
                     }
                 }
                 else {
-                    iconContent = uiData.splitIconIndexMap[talent.second->index];
+                    iconContent = uiData.splitIconIndexMapGrayed[talent.second->index];
                 }
             }
             else {
-                iconContent = uiData.iconIndexMap[talent.second->index].first;
+                if (talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
+                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                }
+                else {
+                    iconContent = uiData.iconIndexMapGrayed[talent.second->index].first;
+                }
             }
             if (ImGui::ImageButton(iconContent.texture,
                 ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
@@ -547,7 +552,7 @@ namespace TTM {
                 ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()), 
                 uiData, 
                 talentTreeCollection,
-                1.0f - 0.65f * talentDisabled,
+                1.0f - 0.8f * talentDisabled,
                 searchActive,
                 talentIsSearchedFor);
             if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
