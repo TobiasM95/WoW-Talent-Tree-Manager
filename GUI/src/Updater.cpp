@@ -379,7 +379,7 @@ namespace TTM {
                 "&api_dev_key=" + Presets::PASTEBIN_API_DEV_KEY + 
                 "&api_paste_private=1" + // 0=public 1=unlisted 2=private
                 "&api_paste_name=" + std::string(api_paste_name_enc) +
-                "&api_paste_expire_date=10M" + //10M = 10 minutes
+                "&api_paste_expire_date=1W" + //1W = 1 week
                 "&api_paste_code=" + std::string(api_paste_code_enc);
             curl_easy_setopt(curl, CURLOPT_POST, true);
             curl_easy_setopt(curl, CURLOPT_URL, "https://pastebin.com/api/api_post.php");
