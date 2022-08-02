@@ -299,4 +299,5 @@ namespace TTM {
 		bool talentIsSearchedFor);
 
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list);
 }

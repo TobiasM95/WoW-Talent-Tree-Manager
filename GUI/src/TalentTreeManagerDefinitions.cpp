@@ -963,4 +963,60 @@ namespace TTM {
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
         talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
     }
+
+    void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list) {
+        float padFactor = 2.4f;
+        std::vector<std::string> words = Engine::splitString(text, " ");
+        std::string renderText = "";
+        renderText.reserve(text.size() * 2);
+        float spaceWidth = ImGui::CalcTextSize(" ").x;
+        float widthLeft = maxWidth - padFactor * padding;
+        for (std::string& word : words) {
+            float wordWidth = ImGui::CalcTextSize(word.c_str()).x;
+            if (wordWidth > maxWidth - padFactor * padding) {
+                //not even single word fits in line
+                for (const char& ch : word) {
+                    float charWidth = ImGui::CalcTextSize(&ch, &ch + 1).x;
+                    if (charWidth > widthLeft + padding) {
+                        if (ImGui::CalcTextSize((renderText + "\n" + ch).c_str()).y > maxHeight - padFactor * padding) {
+                            if (ImGui::CalcTextSize((renderText + "...").c_str()).x <= maxWidth - padFactor * padding) {
+                                renderText += "...";
+                            }
+                            else {
+                                renderText = renderText.substr(0, renderText.size() - 3) + "...";
+                            }
+                            draw_list->AddText(ImVec2(position.x + padding, position.y + padding), ImColor(color), renderText.c_str());
+                            return;
+                        }
+                        renderText += "\n";
+                        widthLeft = maxWidth - padFactor * padding;
+                    }
+                    renderText += ch;
+                    widthLeft -= charWidth;
+                }
+                renderText += " ";
+                widthLeft -= spaceWidth;
+            }
+            else if (wordWidth > widthLeft) {
+                //full word doesn't fit on line
+                if (ImGui::CalcTextSize((renderText + "\n" + word).c_str()).y > maxHeight - padFactor * padding) {
+                    if (ImGui::CalcTextSize((renderText + "...").c_str()).x <= maxWidth - padFactor * padding) {
+                        renderText += "...";
+                    }
+                    else {
+                        renderText = renderText.substr(0, renderText.size() - 3) + "...";
+                    }
+                    break;
+                }
+                renderText += "\n" + word + " ";
+                widthLeft = maxWidth - padFactor * padding - wordWidth + spaceWidth;
+            }
+            else {
+                renderText += word + " ";
+                widthLeft -= wordWidth + spaceWidth;
+            }
+        }
+        draw_list->AddText(ImVec2(position.x + padding, position.y + padding), ImColor(color), renderText.c_str());
+    }
+
 }
