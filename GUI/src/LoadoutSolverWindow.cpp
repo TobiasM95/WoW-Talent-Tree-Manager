@@ -653,13 +653,16 @@ namespace TTM {
             uiData.loadoutSolverSkillsetResultPage = maxPage;
             uiData.selectedFilteredSkillsetIndex = 0;
         }
-        if (ImGui::Button("Add to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex >= 0) {
+        ImGui::Text("Prefix:");
+        ImGui::InputText("##loadoutSolverSkillsetPrefixInputText", &uiData.loadoutSolverSkillsetPrefix, 0, TextFilters::FilterNameLetters);
+        if (ImGui::Button("Add selected to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex >= 0) {
             std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                 talentTreeCollection.activeTree(),
                 talentTreeCollection.activeTreeData().treeDAGInfo,
                 uiData.selectedFilteredSkillset
             );
-            sk->name = "Solved loadout " + std::to_string(uiData.selectedFilteredSkillset);
+            std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+            sk->name = prefix + std::to_string(uiData.selectedFilteredSkillset);
             Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
             talentTreeCollection.activeTree().loadout.push_back(sk);
             ImGui::OpenPopup("Add to loadout successfull");
@@ -671,7 +674,8 @@ namespace TTM {
                     talentTreeCollection.activeTreeData().treeDAGInfo,
                     skillsetIndexPair.first
                 );
-                sk->name = "Solved loadout " + std::to_string(skillsetIndexPair.first);
+                std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+                sk->name = prefix + std::to_string(skillsetIndexPair.first);
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
