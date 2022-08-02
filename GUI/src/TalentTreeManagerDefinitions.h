@@ -191,6 +191,7 @@ namespace TTM {
 		bool loadoutSolverAutoApplyFilter = false;
 		//the selected/requested page of skillset results
 		int loadoutSolverSkillsetResultPage = -1;
+		std::string loadoutSolverSkillsetPrefix = "";
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
 		int loadoutSolverBufferedPage = -1;
 		std::vector<std::pair<Engine::SIND, int>> loadoutSolverPageResults;
