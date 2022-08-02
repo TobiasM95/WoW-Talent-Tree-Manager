@@ -112,7 +112,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -149,7 +149,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -201,7 +201,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -238,7 +238,7 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
