@@ -381,10 +381,49 @@ namespace TTM {
             origin.x = 0.5f * (windowWidth - fullTreeWidth);
         }
 
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+
         int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
+
+
+        for (auto& talent : tree.orderedTalents) {
+            for (auto& child : talent.second->children) {
+                drawArrowBetweenTalents(
+                    talent.second,
+                    child,
+                    drawList,
+                    windowPos,
+                    scrollOffset,
+                    origin,
+                    talentHalfSpacing,
+                    talentSize,
+                    0.0f,
+                    uiData,
+                    true);
+            }
+        }
+        for (auto& reqInfo : tree.requirementSeparatorInfo) {
+            ImVec4 separatorColor = Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style);
+            if (talentTreeCollection.activeSkillset()->talentPointsSpent >= reqInfo.first) {
+                separatorColor.w = 0.4f;
+            }
+            drawList->AddLine(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImVec2(windowPos.x - scrollOffset.x + origin.x + (tree.maxCol + 2) * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(separatorColor),
+                2.0f
+            );
+            drawList->AddText(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(separatorColor),
+                (std::to_string(talentTreeCollection.activeSkillset()->talentPointsSpent) + " / " + std::to_string(reqInfo.first) + " points").c_str()
+            );
+        }
+
         for (auto& talent : tree.orderedTalents) {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
@@ -554,22 +593,6 @@ namespace TTM {
             }
             ImGui::PopFont();
             AttachLoadoutEditTooltip(uiData, talent.second);
-        }
-        for (auto& talent : tree.orderedTalents) {
-            for (auto& child : talent.second->children) {
-                drawArrowBetweenTalents(
-                    talent.second,
-                    child,
-                    drawList,
-                    ImGui::GetWindowPos(),
-                    ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
-                    origin,
-                    talentHalfSpacing,
-                    talentSize,
-                    0.0f,
-                    uiData,
-                    true);
-            }
         }
         if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
             for (auto& talent : tree.orderedTalents) {

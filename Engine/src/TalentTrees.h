@@ -98,6 +98,8 @@ namespace Engine {
         std::vector<std::shared_ptr<TalentSkillset>> loadout;
         int activeSkillsetIndex = -1;
 
+        std::vector<std::pair<int, float>> requirementSeparatorInfo;
+
         int maxID = 0;
         int maxCol = 0;
         std::map<int, int> talentsPerRow;
@@ -126,6 +128,7 @@ namespace Engine {
     void updateNodeCountAndMaxTalentPointsAndMaxID(TalentTree& tree);
     void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::map<int, int>& preFilledTalentCountMap, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent);
     void updateOrderedTalentList(TalentTree& tree);
+    void updateRequirementSeparatorInfo(TalentTree& tree);
     void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s child);
 
     void addChild(Talent_s parent, Talent_s child);
