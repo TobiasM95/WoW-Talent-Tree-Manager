@@ -828,6 +828,9 @@ namespace TTM {
                 else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -2) {
                     borderCol = Presets::TALENT_SEARCHED_BORDER_COLOR;
                 }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -3) {
+                    borderCol = Presets::TALENT_PURPLE_BORDER_COLOR;
+                }
                 else {
                     borderCol = Presets::TALENT_PARTIAL_BORDER_COLOR;
                 }
@@ -1074,4 +1077,14 @@ namespace TTM {
         draw_list->AddText(ImVec2(position.x + padding, position.y + padding), ImColor(color), renderText.c_str());
     }
 
+    void HelperTooltip(std::string hovered, std::string helptext) {
+        ImGui::TextUnformattedColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), hovered.c_str());
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+            ImGui::TextUnformatted(helptext.c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
+    }
 }
