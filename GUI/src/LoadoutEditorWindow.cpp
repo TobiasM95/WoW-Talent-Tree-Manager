@@ -222,6 +222,16 @@ namespace TTM {
                     if (minLevel > 70) {
                         ImGui::Text("Required level is greater than current max level (70)!");
                     }
+                    if (ImGui::Button("Reset skillset##loadoutEditorResetSkillsetButton")) {
+                        talentTreeCollection.activeSkillset()->talentPointsSpent = 0;
+                        for (auto& p : talentTreeCollection.activeSkillset()->assignedSkillPoints) {
+                            p.second = 0;
+                        }
+                        for (auto& t : talentTreeCollection.activeTree().orderedTalents) {
+                            t.second->points = 0;
+                            t.second->talentSwitch = 0;
+                        }
+                    }
                 }
                 else {
                     ImGui::Text("Skillset name: [none]");
