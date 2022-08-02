@@ -32,5 +32,6 @@ namespace TTM {
 		ImVec2 mouseClickedPos,
 		ImVec2 deltaMouseTot,
 		ImVec2 buttonPos);
+	void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight);
 	void createScreenshotToClipboard(ImRect cropRect);
 }

@@ -1852,6 +1852,24 @@ namespace TTM {
                     uiData);
             }
         }
+        if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+            for (auto& talent : tree.orderedTalents) {
+                float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
+                float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
+                ImVec2 textBoxPos = ImVec2(
+                    posX - 0.5f * talentSize + ImGui::GetWindowPos().x - ImGui::GetScrollX(),
+                    posY - 0.5f * talentSize + ImGui::GetWindowPos().y - ImGui::GetScrollY()
+                );
+                ImVec2 bounds = ImVec2(textBoxPos.x + 2.0f * talentSize, textBoxPos.y + 2.0f * talentSize);
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                draw_list->AddRectFilled(textBoxPos, bounds, IM_COL32(0, 0, 0, 255));
+                draw_list->AddRect(textBoxPos, bounds, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
+                std::string infoText = talent.second->type == Engine::TalentType::SWITCH ? talent.second->getName() + " / " + talent.second->getNameSwitch() : talent.second->getName();
+                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+                AddWrappedText(infoText, textBoxPos, 5.0f, ImVec4(1.0f, 1.0f, 1.0f, 1.0f), 2.0f*talentSize, 2.0f*talentSize, ImGui::GetWindowDrawList());
+                ImGui::PopFont();
+            }
+        }
 
         ImGui::SetCursorPos(ImVec2(origin.x, 1.5f * origin.y + maxRow * 2 * talentHalfSpacing));
         ImGui::InvisibleButton(
