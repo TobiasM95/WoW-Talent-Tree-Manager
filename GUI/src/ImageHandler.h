@@ -10,8 +10,23 @@ namespace TTM {
 		int height = 0;
 	};
 
-	bool LoadTextureFromFile(const char* filename, ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice, Engine::TalentType talentType);
-	bool LoadDefaultTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice, Engine::TalentType talentType);
+	bool LoadTextureFromFile(
+		const char* filename, 
+		ID3D11ShaderResourceView** out_srv, 
+		ID3D11ShaderResourceView** out_srv_gray, 
+		int* out_width, 
+		int* out_height, 
+		ID3D11Device* g_pd3dDevice, 
+		Engine::TalentType talentType
+	);
+	bool LoadDefaultTexture(
+		ID3D11ShaderResourceView** out_srv, 
+		ID3D11ShaderResourceView** out_srv_gray, 
+		int* out_width,
+		int* out_height,
+		ID3D11Device* g_pd3dDevice,
+		Engine::TalentType talentType
+	);
 	bool LoadRedIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadGreenIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadGoldIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
@@ -20,6 +35,7 @@ namespace TTM {
 		const char* filename1, 
 		const char* filename2, 
 		ID3D11ShaderResourceView** out_srv, 
+		ID3D11ShaderResourceView** out_srv_gray,
 		int* out_width, 
 		int* out_height, 
 		ID3D11Device* g_pd3dDevice

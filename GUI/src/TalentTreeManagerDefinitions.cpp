@@ -72,14 +72,33 @@ namespace TTM {
                 indexTexInfoPair.second.texture = nullptr;
             }
         }
+        for (auto& indexTexInfoPair : uiData.iconIndexMapGrayed) {
+            if (indexTexInfoPair.second.first.texture) {
+                indexTexInfoPair.second.first.texture->Release();
+                indexTexInfoPair.second.first.texture = nullptr;
+            }
+            if (indexTexInfoPair.second.second.texture) {
+                indexTexInfoPair.second.second.texture->Release();
+                indexTexInfoPair.second.second.texture = nullptr;
+            }
+        }
+        for (auto& indexTexInfoPair : uiData.splitIconIndexMapGrayed) {
+            if (indexTexInfoPair.second.texture) {
+                indexTexInfoPair.second.texture->Release();
+                indexTexInfoPair.second.texture = nullptr;
+            }
+        }
         uiData.iconIndexMap.clear();
         uiData.splitIconIndexMap.clear();
+        uiData.iconIndexMapGrayed.clear();
+        uiData.splitIconIndexMapGrayed.clear();
         //load default texture first
         int defaultImageWidth = 0;
         int defaultImageHeight = 0;
         ID3D11ShaderResourceView* defaultTexture = NULL;
+        ID3D11ShaderResourceView* defaultTextureGray = NULL;
         std::string iconPath(uiData.defaultIconPath.string());
-        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
+        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
         bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
         bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
         bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
@@ -91,33 +110,40 @@ namespace TTM {
 
         //load individual icons or replace with default texture if error
         for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
-            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultImageWidth, defaultImageHeight, true, talent.second->type);
-            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultImageWidth, defaultImageHeight, false, talent.second->type);
+            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultTextureGray, defaultImageWidth, defaultImageHeight, true, talent.second->type);
+            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultTextureGray, defaultImageWidth, defaultImageHeight, false, talent.second->type);
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                loadSplitIcon(uiData, talent.second, defaultTexture, defaultImageWidth, defaultImageHeight);
+                loadSplitIcon(uiData, talent.second, defaultTexture, defaultTextureGray, defaultImageWidth, defaultImageHeight);
             }
         }
         uiData.loadedIconTreeIndex = talentTreeCollection.activeTreeIndex;
     }
 
-    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
+    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
+        ID3D11ShaderResourceView* textureGray = NULL;
         std::string path;
         if (uiData.iconPathMap.count(iconName)) {
             path = uiData.iconPathMap[iconName].string();
-            bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice, talentType);
+            bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, talentType);
             if (!ret) {
                 TextureInfo textureInfo;
                 textureInfo.texture = defaultTexture;
                 textureInfo.width = defaultImageWidth;
                 textureInfo.height = defaultImageHeight;
+                TextureInfo textureInfoGray;
+                textureInfoGray.texture = defaultTextureGray;
+                textureInfoGray.width = defaultImageWidth;
+                textureInfoGray.height = defaultImageHeight;
                 if (first) {
                     uiData.iconIndexMap[index].first = textureInfo;
+                    uiData.iconIndexMapGrayed[index].first = textureInfoGray;
                 }
                 else {
                     uiData.iconIndexMap[index].second = textureInfo;
+                    uiData.iconIndexMapGrayed[index].second = textureInfoGray;
                 }
             }
             else {
@@ -125,11 +151,17 @@ namespace TTM {
                 textureInfo.texture = texture;
                 textureInfo.width = width;
                 textureInfo.height = height;
+                TextureInfo textureInfoGray;
+                textureInfoGray.texture = textureGray;
+                textureInfoGray.width = width;
+                textureInfoGray.height = height;
                 if (first) {
                     uiData.iconIndexMap[index].first = textureInfo;
+                    uiData.iconIndexMapGrayed[index].first = textureInfoGray;
                 }
                 else {
                     uiData.iconIndexMap[index].second = textureInfo;
+                    uiData.iconIndexMapGrayed[index].second = textureInfoGray;
                 }
             }
         }
@@ -138,19 +170,26 @@ namespace TTM {
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
             textureInfo.height = defaultImageHeight;
+            TextureInfo textureInfoGray;
+            textureInfoGray.texture = defaultTextureGray;
+            textureInfoGray.width = defaultImageWidth;
+            textureInfoGray.height = defaultImageHeight;
             if (first) {
                 uiData.iconIndexMap[index].first = textureInfo;
+                uiData.iconIndexMapGrayed[index].first = textureInfoGray;
             }
             else {
                 uiData.iconIndexMap[index].second = textureInfo;
+                uiData.iconIndexMapGrayed[index].second= textureInfoGray;
             }
         }
     }
 
-    void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight) {
+    void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight) {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
+        ID3D11ShaderResourceView* textureGray = NULL;
         std::string path1;
         std::string path2;
         if (uiData.iconPathMap.count(talent->iconName.first)) {
@@ -165,20 +204,30 @@ namespace TTM {
         else {
             path2 = uiData.defaultIconPath.string();
         }
-        bool ret = LoadSplitTextureFromFile(path1.c_str(), path2.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+        bool ret = LoadSplitTextureFromFile(path1.c_str(), path2.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice);
         if (!ret) {
             TextureInfo textureInfo;
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
             textureInfo.height = defaultImageHeight;
+            TextureInfo textureInfoGray;
+            textureInfoGray.texture = defaultTextureGray;
+            textureInfoGray.width = defaultImageWidth;
+            textureInfoGray.height = defaultImageHeight;
             uiData.splitIconIndexMap[talent->index] = textureInfo;
+            uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
         }
         else {
             TextureInfo textureInfo;
             textureInfo.texture = texture;
             textureInfo.width = width;
             textureInfo.height = height;
+            TextureInfo textureInfoGray;
+            textureInfoGray.texture = textureGray;
+            textureInfoGray.width = width;
+            textureInfoGray.height = height;
             uiData.splitIconIndexMap[talent->index] = textureInfo;
+            uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
         }
     }
 
@@ -186,6 +235,7 @@ namespace TTM {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
+        ID3D11ShaderResourceView* textureGray = NULL;
         std::string path;
         if (uiData.iconPathMap.count(iconName)) {
             path = uiData.iconPathMap[iconName].string();
@@ -193,15 +243,16 @@ namespace TTM {
         else {
             path = uiData.defaultIconPath.string();
         }
-        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice, talentType);
+        bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, talentType);
         TextureInfo textureInfo;
         if (!ret) {
             //load default texture first
             int defaultImageWidth = 0;
             int defaultImageHeight = 0;
             ID3D11ShaderResourceView* defaultTexture = NULL;
+            ID3D11ShaderResourceView* defaultTextureGray = NULL;
             std::string iconPath(uiData.defaultIconPath.string());
-            bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, talentType);
+            bool ret = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, talentType);
             if (!ret) {
                 //TTMNOTE: This should not happen anymore
                 throw std::runtime_error("Cannot create default icon!");
@@ -209,12 +260,16 @@ namespace TTM {
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
             textureInfo.height = defaultImageHeight;
+            defaultTextureGray->Release();
+            defaultTextureGray = nullptr;
         }
         else {
             textureInfo.texture = texture;
             textureInfo.width = width;
             textureInfo.height = height;
         }
+        textureGray->Release();
+        textureGray = nullptr;
         return textureInfo;
     }
 
