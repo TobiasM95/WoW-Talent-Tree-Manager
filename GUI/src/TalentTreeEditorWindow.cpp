@@ -212,6 +212,9 @@ namespace TTM {
                 if (static_cast<Engine::TreeType>(currentTreeType) != talentTreeCollection.activeTree().type) {
                     talentTreeCollection.activeTree().type = static_cast<Engine::TreeType>(currentTreeType);
                     talentTreeCollection.activeTree().presetName = "custom";
+                    Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                    Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                    Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                     Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                     clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -660,6 +663,9 @@ namespace TTM {
                             Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
 
                             talentTreeCollection.activeTree().presetName = "custom";
+                            Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                            Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                            Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                             clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -723,6 +729,9 @@ namespace TTM {
                         }
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -799,8 +808,12 @@ namespace TTM {
                             }
                             Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
                             Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                            Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
 
                             talentTreeCollection.activeTree().presetName = "custom";
+                            Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                            Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                            Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                             clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -818,6 +831,9 @@ namespace TTM {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -859,6 +875,9 @@ namespace TTM {
                         talentTreeCollection.activeTree().maxCol = maxCol + 1;
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         //These two shouldn't be necessary but to keep it consistent
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
@@ -869,6 +888,9 @@ namespace TTM {
                         Engine::reindexTree(talentTreeCollection.activeTree());
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         //loadout gets cleared anyway since it will be nonsensical
                         //Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
@@ -881,6 +903,9 @@ namespace TTM {
                         Engine::autoPointRequirements(talentTreeCollection.activeTree());
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -890,6 +915,9 @@ namespace TTM {
                         Engine::autoShiftTreeToCorner(talentTreeCollection.activeTree());
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         //These two shouldn't be necessary but to keep it consistent
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
@@ -904,6 +932,9 @@ namespace TTM {
                         Engine::autoInsertIconNames(iconNames, talentTreeCollection.activeTree());
 
                         talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -1396,8 +1427,12 @@ namespace TTM {
         //call updateNodeCountAndMaxTalentPointsAndMaxID and updateOrderedTalentList
         Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
         Engine::updateOrderedTalentList(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
+        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
 
         talentTreeCollection.activeTree().presetName = "custom";
+        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
         clearSolvingProcess(uiData, talentTreeCollection);
 
@@ -1550,6 +1585,9 @@ namespace TTM {
         Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
 
         talentTreeCollection.activeTree().presetName = "custom";
+        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
         Engine::validateLoadout(talentTreeCollection.activeTree(), true);
         clearSolvingProcess(uiData, talentTreeCollection);
     }
@@ -1720,10 +1758,43 @@ namespace TTM {
             origin.x = 0.5f * (windowWidth - fullTreeWidth);
         }
 
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+
         int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
+
+        for (auto& talent : tree.orderedTalents) {
+            for (auto& child : talent.second->children) {
+                drawArrowBetweenTalents(
+                    talent.second,
+                    child,
+                    drawList,
+                    windowPos,
+                    scrollOffset,
+                    origin,
+                    talentHalfSpacing,
+                    talentSize,
+                    0.0f,
+                    uiData);
+            }
+        }
+        for (auto& reqInfo : tree.requirementSeparatorInfo) {
+            drawList->AddLine(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImVec2(windowPos.x - scrollOffset.x + origin.x + (tree.maxCol + 2) * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style)),
+                2.0f
+                );
+            drawList->AddText(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style)),
+                (std::to_string(reqInfo.first) + " points").c_str()
+                );
+        }
+
         for (auto& talent : tree.orderedTalents) {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
@@ -1794,6 +1865,9 @@ namespace TTM {
                     }
 
                     talentTreeCollection.activeTree().presetName = "custom";
+                    Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                    Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                    Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
                     Engine::validateLoadout(talentTreeCollection.activeTree(), true);
                     clearSolvingProcess(uiData, talentTreeCollection);
                 }
@@ -1835,21 +1909,6 @@ namespace TTM {
             }
             else {
                 AttachTalentEditTooltip(uiData, talent.second);
-            }
-        }
-        for (auto& talent : tree.orderedTalents) {
-            for (auto& child : talent.second->children) {
-                drawArrowBetweenTalents(
-                    talent.second,
-                    child,
-                    drawList,
-                    ImGui::GetWindowPos(),
-                    ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
-                    origin,
-                    talentHalfSpacing,
-                    talentSize,
-                    0.0f,
-                    uiData);
             }
         }
         if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
@@ -1993,9 +2052,11 @@ namespace TTM {
 
         if (resDeltaGridX != 0 || resDeltaGridY != 0) {
             talentTreeCollection.activeTree().presetName = "custom";
+            Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+            Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+            Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
             Engine::validateLoadout(talentTreeCollection.activeTree(), true);
             clearSolvingProcess(uiData, talentTreeCollection);
-            Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
         }
         int restoredTalentPositions;
         do {

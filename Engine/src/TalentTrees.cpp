@@ -207,6 +207,7 @@ namespace Engine {
         for (auto& rowIndices : talentIndexInRow) {
             tree.talentsPerRow[rowIndices.first] = static_cast<int>(rowIndices.second.size());
         }
+
     }
 
     void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::map<int, int>& preFilledTalentCountMap, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
@@ -236,6 +237,37 @@ namespace Engine {
             orderTalentsRecursively(tree.orderedTalents, root);
         }
     }
+
+    void updateRequirementSeparatorInfo(TalentTree& tree) {
+        //stores the min and max height of each occurring point requirement (key of map) to calculate the separator positions next
+        std::map<int, std::pair<int, int>> requirementRowMap;
+        for (auto& talent : tree.orderedTalents) {
+            int tRow = talent.second->row;
+            int tReq = talent.second->pointsRequired;
+            if (!requirementRowMap.count(tReq)) {
+                requirementRowMap[tReq] = { tRow, tRow };
+            }
+            else {
+                if (tRow < requirementRowMap[tReq].first) {
+                    requirementRowMap[tReq].first = tRow;
+                }
+                if (tRow > requirementRowMap[tReq].second) {
+                    requirementRowMap[tReq].second = tRow;
+                }
+            }
+        }
+
+        auto it = requirementRowMap.begin();
+        for (int i = 0; i < requirementRowMap.size() - 1; i++) {
+            std::pair<int, int> r1 = it->second;
+            std::pair<int, int> r2 = (++it)->second;
+            int req = it->first;
+            if (r2.first > r1.second) {
+                tree.requirementSeparatorInfo.push_back({ req, 0.5f * (r1.second + r2.first + 1) });
+            }
+        }
+    }
+
     void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s talent) {
         talentMap[talent->index] = talent;
         for (auto& child : talent->children) {
@@ -879,6 +911,7 @@ namespace Engine {
 
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
+        updateRequirementSeparatorInfo(tree);
 
         for (int i = numTalents + 1; i < numTalents + numLoadouts + 1; i++) {
             if (treeDefinitionParts[i] == "")
@@ -1665,6 +1698,7 @@ namespace Engine {
         }
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
+        updateRequirementSeparatorInfo(tree);
     }
 
     /*
@@ -1774,6 +1808,7 @@ namespace Engine {
         }
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
+        updateRequirementSeparatorInfo(tree);
     }
 
     /*
