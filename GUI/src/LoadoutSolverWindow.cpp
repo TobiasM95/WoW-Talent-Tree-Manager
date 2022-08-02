@@ -187,7 +187,10 @@ namespace TTM {
                     if (ImGui::Button("Reset solutions")) {
                         clearSolvingProcess(uiData, talentTreeCollection);
                     }
-                    ImGui::Text("Hint: Include/Exclude talents on the left, then press filter to view all valid combinations. Green/Yellow = must have, Red = must not have.");
+                    ImGui::Text("Hint: Include/Exclude talents on the left, then press filter to view all valid combinations.");
+                    ImGui::Text("Different colors mean different things.");
+                    ImGui::SameLine();
+                    TTM::HelperTooltip("(?)", "Green/Yellow: At least selected points spent in this talent.\n\nRed: No points in this talent.\n\nBlue: At least one of all blue talents must have at least 1 point.\n\nPurple: Exactly one talent must be maxed out.");
                     ImGui::PopTextWrapPos();
                     if (ImGui::Checkbox("Auto apply filter", &uiData.loadoutSolverAutoApplyFilter)) {
                         if (uiData.loadoutSolverAutoApplyFilter) {
@@ -495,6 +498,14 @@ namespace TTM {
                         ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
                     );
                 }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -3) {
+                    ImGui::Image(
+                        uiData.blueIconGlow.texture,
+                        ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
             }
             else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
                 talentIsSearchedFor = true;
@@ -530,7 +541,7 @@ namespace TTM {
             )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
-                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -2;
+                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -3;
                 }
                 if (uiData.loadoutSolverAutoApplyFilter) {
                     Engine::filterSolvedSkillsets(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeData().treeDAGInfo, talentTreeCollection.activeTreeData().skillsetFilter);
@@ -560,7 +571,7 @@ namespace TTM {
             }
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && talent.first == uiData.loadoutEditorRightClickIndex) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] -= 1;
-                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < -2) {
+                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < -3) {
                     talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = talent.second->maxPoints;
                 }
                 if (uiData.loadoutSolverAutoApplyFilter) {

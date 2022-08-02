@@ -387,10 +387,35 @@ namespace Engine {
             }
             compactToExpandedIndexMap[talent.second->index] = indices;
         }
-        SIND includeFilter = 0;
-        SIND excludeFilter = 0;
-        SIND orFilter = 0;
+        SIND includeFilter = 0; //this talent has to have exactly the specified amount of talent points
+        SIND excludeFilter = 0; //this talent must not have any talent points assigned
+        SIND orFilter = 0; //this group of talents has to have at least one talent point assigned
+        std::vector<std::pair<SIND, SIND>> oneFilter; //exactly one talent in this group has to be maxed while all others must not have any points
         for (auto& indexFilterPair : filter->assignedSkillPoints) {
+            if (indexFilterPair.second == -3) {
+                SIND inc = 0;
+                SIND exc = 0;
+                for (auto& iFP : filter->assignedSkillPoints) {
+                    if (iFP.second != -3) {
+                        continue;
+                    }
+                    if (iFP.first == indexFilterPair.first) {
+                        for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
+                            int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][i];
+                            int pos = expandedToPosIndexMap[expandedTalentIndex];
+                            setTalent(inc, pos);
+                        }
+                    }
+                    else {
+                        for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
+                            int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][i];
+                            int pos = expandedToPosIndexMap[expandedTalentIndex];
+                            setTalent(exc, pos);
+                        }
+                    }
+                }
+                oneFilter.push_back({ inc, exc });
+            }
             if (indexFilterPair.second == -2) {
                 for (int i = 0; i < compactToExpandedIndexMap[indexFilterPair.first].size(); i++) {
                     int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][i];
@@ -413,7 +438,7 @@ namespace Engine {
         }
 
         vec2d<std::pair<SIND, int>> filteredCombinations;
-        if (includeFilter == 0 && excludeFilter == 0 && orFilter == 0) {
+        if (includeFilter == 0 && excludeFilter == 0 && orFilter == 0 && oneFilter.size() == 0) {
             treeDAG->filteredCombinations = treeDAG->allCombinations;
             return;
         }
@@ -423,7 +448,20 @@ namespace Engine {
             for (int j = 0; j < treeDAG->allCombinations[i].size(); j++) {
                 SIND skillset = treeDAG->allCombinations[i][j].first;
                 if ((skillset & excludeFilter) == 0 && ((~skillset) & includeFilter) == 0 && (orFilter == 0 || (skillset & orFilter) > 0)) {
-                    combs.push_back(std::pair<SIND, int>(skillset, treeDAG->allCombinations[i][j].second));
+                    if (oneFilter.size() == 0) {
+                        combs.push_back(std::pair<SIND, int>(skillset, treeDAG->allCombinations[i][j].second));
+                    }
+                    else {
+                        size_t matches = 0;
+                        for (auto& filterPair : oneFilter) {
+                            if (((~skillset) & filterPair.first) == 0 && (skillset & filterPair.second) == 0) {
+                                matches += 1;
+                            }
+                        }
+                        if (matches == 1) {
+                            combs.push_back(std::pair<SIND, int>(skillset, treeDAG->allCombinations[i][j].second));
+                        }
+                    }
                 }
             }
             filteredCombinations.push_back(combs);
