@@ -369,7 +369,7 @@ namespace Engine {
             if (!validateSkillset(tree, skillset)) {
                 continue;
             }
-            treeRep << skillset->name;
+            treeRep << skillset->name << "," + std::to_string(skillset->levelCap) << "," + std::to_string(skillset->useLevelCap);
             for (auto& skillPoint : skillset->assignedSkillPoints) {
                 treeRep << ":" << skillPoint.second;
             }
@@ -776,7 +776,12 @@ namespace Engine {
                 break;
             std::vector<std::string> skillsetParts = splitString(treeDefinitionParts[i], ":");
             std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-            skillset->name = skillsetParts[0];
+            std::vector<std::string> skillsetMetadata = splitString(skillsetParts[0], ",");
+            skillset->name = skillsetMetadata[0];
+            if (skillsetMetadata.size() > 2) {
+                skillset->levelCap = std::stoi(skillsetMetadata[1]);
+                skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
+            }
 
             if (skillsetParts.size() - 1 != numTalents)
                 continue;
@@ -918,7 +923,12 @@ namespace Engine {
                 break;
             std::vector<std::string> skillsetParts = splitString(treeDefinitionParts[i], ":");
             std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-            skillset->name = skillsetParts[0];
+            std::vector<std::string> skillsetMetadata = splitString(skillsetParts[0], ",");
+            skillset->name = skillsetMetadata[0];
+            if (skillsetMetadata.size() > 2) {
+                skillset->levelCap = std::stoi(skillsetMetadata[1]);
+                skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
+            }
 
             if (skillsetParts.size() - 1 != numTalents)
                 continue;
