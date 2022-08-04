@@ -78,6 +78,7 @@ namespace Engine {
         std::map<int, int> assignedSkillPoints;
         int talentPointsSpent = 0;
         int levelCap = 70;
+        bool useLevelCap = true;
     };
 
     /*

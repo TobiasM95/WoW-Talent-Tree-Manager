@@ -1110,7 +1110,10 @@ namespace Engine {
         if (skillsetName.find_first_not_of(
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :()'-"
         ) != std::string::npos) {
-            return false;
+            //accept either no "," or exactly 2 "," to define levelCap and useLevelCap for backwards compatibility
+            if (splitString(skillsetName, ",").size() != 3) {
+                return false;
+            }
         }
         for (int i = 1; i < skillsetParts.size(); i++) {
             if ((skillsetParts[i] == "" && i < skillsetParts.size() - 1)
@@ -1918,6 +1921,9 @@ namespace Engine {
                 }
             }
         }
+        if (tree.loadout[index]->talentPointsSpent > tree.loadout[index]->levelCap) {
+            tree.loadout[index]->useLevelCap = false;
+        }
     }
 
     void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
@@ -1943,7 +1949,12 @@ namespace Engine {
             }
             std::vector<std::string> skillsetParts = splitString(skillsetsString[i], ":");
             std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-            skillset->name = skillsetParts[0];
+            std::vector<std::string> skillsetMetadata = splitString(skillsetParts[0], ",");
+            skillset->name = skillsetMetadata[0];
+            if (skillsetMetadata.size() > 2) {
+                skillset->levelCap = std::stoi(skillsetMetadata[1]);
+                skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
+            }
 
             if (skillsetParts.size() - 1 != tree.orderedTalents.size())
                 continue;
@@ -1971,7 +1982,7 @@ namespace Engine {
     }
 
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset) {
-        std::string rep = skillset->name;
+        std::string rep = skillset->name + "," + std::to_string(skillset->levelCap) + "," + std::to_string(skillset->useLevelCap);
         for (auto& indexPointsPair : skillset->assignedSkillPoints) {
             rep += ":" + std::to_string(indexPointsPair.second);
         }
