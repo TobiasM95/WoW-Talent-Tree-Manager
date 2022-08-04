@@ -207,6 +207,19 @@ namespace TTM {
                     ImGui::Text("Skillset name:");
                     ImGui::InputText("##loadoutEditorSkillsetNameInput", &talentTreeCollection.activeSkillset()->name, 
                         ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
+                    ImGui::Text("Set level cap:");
+                    ImGui::SliderInt("##loadoutEditorLevelCapSlider", &talentTreeCollection.activeSkillset()->levelCap, 11, 70, "Level %d", ImGuiSliderFlags_AlwaysClamp);
+                    bool disableLevelCapCheckbox = false;
+                    if (Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree())
+                        > talentTreeCollection.activeSkillset()->levelCap) {
+                        talentTreeCollection.activeSkillset()->useLevelCap = false;
+                        disableLevelCapCheckbox = true;
+                        ImGui::BeginDisabled();
+                    }
+                    ImGui::Checkbox("Activate level cap##loadoutEditorActivateLevelCapCheckbox", &talentTreeCollection.activeSkillset()->useLevelCap);
+                    if (disableLevelCapCheckbox) {
+                        ImGui::EndDisabled();
+                    }
                     ImGui::Text("Skillset points spent: %d (+%d)", talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints, talentTreeCollection.activeTree().preFilledTalentPoints);
                     int minLevel = Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree());
                     ImGui::Text("Required level: %d", minLevel);
