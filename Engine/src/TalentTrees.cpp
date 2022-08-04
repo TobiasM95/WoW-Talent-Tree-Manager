@@ -1999,6 +1999,24 @@ namespace Engine {
         return rep;
     }
 
+    int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset) {
+        return getLevelRequirement(sk.talentPointsSpent, tree);
+    }
+
+    int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset) {
+        int minLevel = 0;
+        if (pointsSpent > tree.preFilledTalentPoints) {
+            minLevel += 10;
+            if (tree.type == Engine::TreeType::CLASS) {
+                minLevel += (pointsSpent + offset - tree.preFilledTalentPoints) * 2 - 2;
+            }
+            else {
+                minLevel += (pointsSpent + offset - tree.preFilledTalentPoints) * 2 - 1;
+            }
+        }
+        return minLevel;
+    }
+
     bool checkTalentValidity(const TalentTree& tree) {
         int maxPointsRequirement = 0;
         //first check if at least one parent is filled

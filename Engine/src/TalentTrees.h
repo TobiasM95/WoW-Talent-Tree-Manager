@@ -77,6 +77,7 @@ namespace Engine {
         std::string name;
         std::map<int, int> assignedSkillPoints;
         int talentPointsSpent = 0;
+        int levelCap = 70;
     };
 
     /*
@@ -193,6 +194,8 @@ namespace Engine {
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
+    int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
+    int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 
     /*
     Checks if the currently assigned talent points fulfill all the requirements and are valid (in case

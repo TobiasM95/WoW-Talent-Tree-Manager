@@ -208,16 +208,7 @@ namespace TTM {
                     ImGui::InputText("##loadoutEditorSkillsetNameInput", &talentTreeCollection.activeSkillset()->name, 
                         ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
                     ImGui::Text("Skillset points spent: %d (+%d)", talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints, talentTreeCollection.activeTree().preFilledTalentPoints);
-                    int minLevel = 0;
-                    if (talentTreeCollection.activeSkillset()->talentPointsSpent > talentTreeCollection.activeTree().preFilledTalentPoints) {
-                        minLevel += 10;
-                        if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
-                            minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints) * 2 - 2;
-                        }
-                        else {
-                            minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints)* 2 - 1;
-                        }
-                    }
+                    int minLevel = Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree());
                     ImGui::Text("Required level: %d", minLevel);
                     if (minLevel > 70) {
                         ImGui::Text("Required level is greater than current max level (70)!");
@@ -408,7 +399,7 @@ namespace TTM {
         }
         for (auto& reqInfo : tree.requirementSeparatorInfo) {
             ImVec4 separatorColor = Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style);
-            if (talentTreeCollection.activeSkillset()->talentPointsSpent >= reqInfo.first) {
+            if (talentTreeCollection.activeSkillset()->talentPointsSpent - tree.preFilledTalentPoints >= reqInfo.first) {
                 separatorColor.w = 0.4f;
             }
             drawList->AddLine(
@@ -420,7 +411,7 @@ namespace TTM {
             drawList->AddText(
                 ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
                 ImColor(separatorColor),
-                (std::to_string(talentTreeCollection.activeSkillset()->talentPointsSpent) + " / " + std::to_string(reqInfo.first) + " points").c_str()
+                (std::to_string(talentTreeCollection.activeSkillset()->talentPointsSpent - tree.preFilledTalentPoints) + " / " + std::to_string(reqInfo.first) + " points").c_str()
             );
         }
 
