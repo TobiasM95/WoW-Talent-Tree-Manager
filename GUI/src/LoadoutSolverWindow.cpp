@@ -24,6 +24,8 @@
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 
+#include <random>
+
 namespace TTM {
     static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent, int assignedPointsTarget)
     {
@@ -714,7 +716,7 @@ namespace TTM {
             talentTreeCollection.activeTree().loadout.push_back(sk);
             ImGui::OpenPopup("Add to loadout successfull");
         }
-        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllToLoadoutButton")) {
+        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllInPageToLoadoutButton")) {
             for (auto& skillsetIndexPair : uiData.loadoutSolverPageResults) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
@@ -728,6 +730,61 @@ namespace TTM {
             }
             ImGui::OpenPopup("Add to loadout successfull");
         }
+        int maxAddRandomLimit = static_cast<int>(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection].size());
+        ImGui::SliderInt("##loadoutSolverAddRandomToLoadoutSlider", &uiData.loadoutSolverAddRandomLoadoutCount, 1, uiData.loadoutSolverAddAllLimit > maxAddRandomLimit ? maxAddRandomLimit : uiData.loadoutSolverAddAllLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::Button(("Add " + std::to_string(uiData.loadoutSolverAddRandomLoadoutCount) + " random skillsets to loadout").c_str())) {
+            std::random_device rd;     // only used once to initialise (seed) engine
+            std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+
+            auto& SINDintPairs = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
+            if (uiData.loadoutSolverAddRandomLoadoutCount > SINDintPairs.size()) {
+                uiData.loadoutSolverAddRandomLoadoutCount = static_cast<int>(SINDintPairs.size());
+            }
+            std::vector<int> randomIndices;
+            randomIndices.reserve(uiData.loadoutSolverAddRandomLoadoutCount);
+
+            int startIndex = -1;
+            while (randomIndices.size() < uiData.loadoutSolverAddRandomLoadoutCount) {
+                //get random number between int(SINDintPairs.size() * 1.0f / uiData.loadoutSolverAddRandomLoadoutCount + 0.5f)
+                int randomIncrementInterval = static_cast<int>((SINDintPairs.size() - startIndex - 1) * 1.0f / (uiData.loadoutSolverAddRandomLoadoutCount - randomIndices.size()) + 0.5f);
+                std::uniform_int_distribution<int> uni(1, randomIncrementInterval); // guaranteed unbiased
+                startIndex += uni(rng);
+                randomIndices.emplace_back(startIndex);
+            }
+
+            for (int randomIndex : randomIndices) {
+                std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
+                    talentTreeCollection.activeTree(),
+                    talentTreeCollection.activeTreeData().treeDAGInfo,
+                    talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex].first
+                );
+                std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+                sk->name = prefix + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex].first);
+                Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
+                talentTreeCollection.activeTree().loadout.push_back(sk);
+            }
+        }
+        if (ImGui::Button("Add all to loadout##loadoutSolverAddAllToLoadoutButton")) {
+            size_t count = 0;
+            for (auto& skillsetIndexPair : talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection]) {
+                std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
+                    talentTreeCollection.activeTree(),
+                    talentTreeCollection.activeTreeData().treeDAGInfo,
+                    skillsetIndexPair.first
+                );
+                std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+                sk->name = prefix + std::to_string(skillsetIndexPair.first);
+                Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
+                talentTreeCollection.activeTree().loadout.push_back(sk);
+                count++;
+                if (count >= uiData.loadoutSolverAddAllLimit) {
+                    break;
+                }
+            }
+            ImGui::OpenPopup("Add to loadout successfull");
+        }
+        ImGui::SameLine();
+        ImGui::Text("(Limited to %d)", uiData.loadoutSolverAddAllLimit);
     }
 
     int getResultsPage(UIData& uiData, TalentTreeCollection& talentTreeCollection, int pageNumber) {

@@ -194,6 +194,8 @@ namespace TTM {
 		//the selected/requested page of skillset results
 		int loadoutSolverSkillsetResultPage = -1;
 		std::string loadoutSolverSkillsetPrefix = "";
+		int loadoutSolverAddRandomLoadoutCount = 1;
+		const int loadoutSolverAddAllLimit = 5000;
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
 		int loadoutSolverBufferedPage = -1;
 		std::vector<std::pair<Engine::SIND, int>> loadoutSolverPageResults;
