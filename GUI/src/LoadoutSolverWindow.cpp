@@ -326,7 +326,37 @@ namespace TTM {
     void placeLoadoutSolverTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
 
-        if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed && !uiData.loadoutSolveInitiated) {
+        if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+            //center an information rectangle
+            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            float centerX = 0.5f * contentRegion.x;
+            float centerY = 0.5f * contentRegion.y;
+            float wrapWidth = 250;
+            float offsetY = -100;
+            float boxPadding = 8;
+            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
+            ImGui::SetCursorPos(pos);
+            ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
+            ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not support class trees at the moment, since class trees are sometimes way too large to properly solve.\n\nThere will be a safety guard in the future.");
+            ImVec2 l1TopLeft = ImGui::GetItemRectMin();
+            ImVec2 l1BottomRight = ImGui::GetItemRectMax();
+            l1TopLeft.x -= boxPadding;
+            l1TopLeft.y -= boxPadding;
+            l1BottomRight.x += boxPadding;
+            l1BottomRight.y += boxPadding;
+            
+            ImVec2 l2BottomRight = ImGui::GetItemRectMax();
+            l2BottomRight.x += boxPadding;
+            l2BottomRight.y += boxPadding;
+
+            // Draw actual text bounding box, following by marker of our expected limit (should not overlap!)
+            draw_list->AddRect(l1TopLeft, ImVec2(l1TopLeft.x + wrapWidth + 2 * boxPadding, l2BottomRight.y), IM_COL32(200, 200, 200, 255));
+            ImGui::PopTextWrapPos();
+
+            return;
+        }
+        else if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed && !uiData.loadoutSolveInitiated) {
             //center an information rectangle
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
             float centerX = 0.5f * contentRegion.x;
@@ -346,7 +376,12 @@ namespace TTM {
             l1BottomRight.x += boxPadding;
             l1BottomRight.y += boxPadding;
             ImGui::SetCursorPosX(pos.x);
-            ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            if (talentTreeCollection.activeTree().presetName == "custom") {
+                ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "Solving custom trees might crash your PC if trees are way too big, continue with care! A safety guard will be implemented in the future.\n\nThe solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            }
+            else {
+                ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            }
 
             //ask for solver max talent points
             ImGui::SetCursorPosX(pos.x);
