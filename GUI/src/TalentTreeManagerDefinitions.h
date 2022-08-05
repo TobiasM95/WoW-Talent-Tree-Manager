@@ -198,7 +198,7 @@ namespace TTM {
 		const int loadoutSolverAddAllLimit = 5000;
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
 		int loadoutSolverBufferedPage = -1;
-		std::vector<std::pair<Engine::SIND, int>> loadoutSolverPageResults;
+		std::vector<Engine::SIND> loadoutSolverPageResults;
 		int selectedFilteredSkillsetIndex = -1;
 		Engine::SIND selectedFilteredSkillset = 0;
 	};
