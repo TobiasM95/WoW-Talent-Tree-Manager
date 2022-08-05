@@ -411,7 +411,7 @@ namespace TTM {
             talentTreeCollection.activeTreeData().treeDAGInfo = Engine::countConfigurationsParallel(tree, uiData.loadoutSolverTalentPointLimit);
             talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
             for (auto& talentPointsCombinations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
-                uiData.loadoutSolverAllCombinationsAdded += talentPointsCombinations.size();
+                uiData.loadoutSolverAllCombinationsAdded += static_cast<int>(talentPointsCombinations.size());
             }
             uiData.loadoutSolveInitiated = false;
             uiData.loadoutSolveInProgress = false;
@@ -661,9 +661,9 @@ namespace TTM {
             for (int n = 0; n < uiData.loadoutSolverPageResults.size(); n++)
             {
                 const bool is_selected = (uiData.selectedFilteredSkillsetIndex == n);
-                if (ImGui::Selectable(("Id: " + std::to_string(uiData.loadoutSolverPageResults[n].first)).c_str(), is_selected)) {
+                if (ImGui::Selectable(("Id: " + std::to_string(uiData.loadoutSolverPageResults[n])).c_str(), is_selected)) {
                     uiData.selectedFilteredSkillsetIndex = n;
-                    uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[n].first;
+                    uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[n];
                 }
 
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -723,14 +723,14 @@ namespace TTM {
             ImGui::OpenPopup("Add to loadout successfull");
         }
         if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllInPageToLoadoutButton")) {
-            for (auto& skillsetIndexPair : uiData.loadoutSolverPageResults) {
+            for (uint64_t& skillsetIndex : uiData.loadoutSolverPageResults) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
                     talentTreeCollection.activeTreeData().treeDAGInfo,
-                    skillsetIndexPair.first
+                    skillsetIndex
                 );
                 std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-                sk->name = prefix + std::to_string(skillsetIndexPair.first);
+                sk->name = prefix + std::to_string(skillsetIndex);
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
@@ -762,24 +762,24 @@ namespace TTM {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
                     talentTreeCollection.activeTreeData().treeDAGInfo,
-                    talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex].first
+                    talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]
                 );
                 std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-                sk->name = prefix + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex].first);
+                sk->name = prefix + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]);
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
         }
         if (ImGui::Button("Add all to loadout##loadoutSolverAddAllToLoadoutButton")) {
             size_t count = 0;
-            for (auto& skillsetIndexPair : talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection]) {
+            for (uint64_t& skillsetIndex : talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection]) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
                     talentTreeCollection.activeTreeData().treeDAGInfo,
-                    skillsetIndexPair.first
+                    skillsetIndex
                 );
                 std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-                sk->name = prefix + std::to_string(skillsetIndexPair.first);
+                sk->name = prefix + std::to_string(skillsetIndex);
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
                 count++;
@@ -794,7 +794,7 @@ namespace TTM {
     }
 
     int getResultsPage(UIData& uiData, TalentTreeCollection& talentTreeCollection, int pageNumber) {
-        std::vector<std::pair<Engine::SIND, int>>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
+        std::vector<Engine::SIND>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
         int maxPage = static_cast<int>((filteredResults.size() - 1) / uiData.loadoutSolverResultsPerPage);
         if (pageNumber == uiData.loadoutSolverBufferedPage) {
             return maxPage;
@@ -810,7 +810,7 @@ namespace TTM {
             uiData.loadoutSolverPageResults.push_back(filteredResults[i]);
         }
         if (uiData.loadoutSolverPageResults.size() > 0) {
-            uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[0].first;
+            uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[0];
         }
         return maxPage;
     }
