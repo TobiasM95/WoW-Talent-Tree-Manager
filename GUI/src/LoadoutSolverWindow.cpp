@@ -183,7 +183,10 @@ namespace TTM {
                 switch (uiData.loadoutSolverPage) {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
-                    ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points.",
+                    if (talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuardTriggered) {
+                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggerd! There were more than %d combinations in total! Values below will not be accurate!", MAX_NUMBER_OF_SOLVED_COMBINATIONS);
+                    }
+                    ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
                         talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, uiData.loadoutSolverTalentPointLimit);
                     ImGui::Text("Processing took %.3f seconds.", talentTreeCollection.activeTreeData().treeDAGInfo->elapsedTime);
                     if (ImGui::Button("Reset solutions")) {
@@ -326,49 +329,19 @@ namespace TTM {
     void placeLoadoutSolverTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
 
-        if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+        if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed && !uiData.loadoutSolveInitiated) {
             //center an information rectangle
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
             float centerX = 0.5f * contentRegion.x;
             float centerY = 0.5f * contentRegion.y;
             float wrapWidth = 250;
-            float offsetY = -100;
+            float offsetY = -200;
             float boxPadding = 8;
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
             ImGui::SetCursorPos(pos);
             ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
-            ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not support class trees at the moment, since class trees are sometimes way too large to properly solve.\n\nThere will be a safety guard in the future.");
-            ImVec2 l1TopLeft = ImGui::GetItemRectMin();
-            ImVec2 l1BottomRight = ImGui::GetItemRectMax();
-            l1TopLeft.x -= boxPadding;
-            l1TopLeft.y -= boxPadding;
-            l1BottomRight.x += boxPadding;
-            l1BottomRight.y += boxPadding;
-            
-            ImVec2 l2BottomRight = ImGui::GetItemRectMax();
-            l2BottomRight.x += boxPadding;
-            l2BottomRight.y += boxPadding;
-
-            // Draw actual text bounding box, following by marker of our expected limit (should not overlap!)
-            draw_list->AddRect(l1TopLeft, ImVec2(l1TopLeft.x + wrapWidth + 2 * boxPadding, l2BottomRight.y), IM_COL32(200, 200, 200, 255));
-            ImGui::PopTextWrapPos();
-
-            return;
-        }
-        else if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed && !uiData.loadoutSolveInitiated) {
-            //center an information rectangle
-            ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-            float centerX = 0.5f * contentRegion.x;
-            float centerY = 0.5f * contentRegion.y;
-            float wrapWidth = 250;
-            float offsetY = -100;
-            float boxPadding = 8;
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
-            ImGui::SetCursorPos(pos);
-            ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
-            ImGui::Text("Select the number of talent points to spend at most (higher count means longer runtime). Maximum value is 64 for now (should be enough for all retail talent trees).");
+            ImGui::Text("Select the number of talent points to spend at most (higher count means longer runtime). Maximum value is 64 for now (should be enough for all retail talent trees).\n\nThe maximum limit of generated combinations is 500 million, this requires a system with at least 16 GB of RAM. If you are below that threshold it is recommended to be careful when using this tool and increment the talent points slowly from 20 upwards while checking your resources.");
             ImVec2 l1TopLeft = ImGui::GetItemRectMin();
             ImVec2 l1BottomRight = ImGui::GetItemRectMax();
             l1TopLeft.x -= boxPadding;
@@ -376,8 +349,8 @@ namespace TTM {
             l1BottomRight.x += boxPadding;
             l1BottomRight.y += boxPadding;
             ImGui::SetCursorPosX(pos.x);
-            if (talentTreeCollection.activeTree().presetName == "custom") {
-                ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "Solving custom trees might crash your PC if trees are way too big, continue with care! A safety guard will be implemented in the future.\n\nThe solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            if (talentTreeCollection.activeTree().presetName == "custom" || talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+                ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "Solving class/custom trees is very RAM intensive, continue with care!\n\nThe solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
             }
             else {
                 ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
@@ -437,10 +410,8 @@ namespace TTM {
             Engine::clearTree(tree);
             talentTreeCollection.activeTreeData().treeDAGInfo = Engine::countConfigurationsParallel(tree, uiData.loadoutSolverTalentPointLimit);
             talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
-            for (auto& talentPointsCombinbations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
-                for (auto& combinations : talentPointsCombinbations) {
-                    uiData.loadoutSolverAllCombinationsAdded += combinations.second;
-                }
+            for (auto& talentPointsCombinations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
+                uiData.loadoutSolverAllCombinationsAdded += talentPointsCombinations.size();
             }
             uiData.loadoutSolveInitiated = false;
             uiData.loadoutSolveInProgress = false;

@@ -6,6 +6,8 @@
 #include "TTMEnginePresets.h"
 #include "TalentTrees.h"
 
+#define MAX_NUMBER_OF_SOLVED_COMBINATIONS 500000000
+
 namespace Engine {
 
     /*
@@ -22,7 +24,8 @@ namespace Engine {
         std::shared_ptr<TalentTree> processedTree;
         vec2d<std::pair<SIND, int>> allCombinations;
         vec2d<std::pair<SIND, int>> filteredCombinations;
-        double elapsedTime;
+        double elapsedTime = 0.0;
+        bool safetyGuardTriggered = false;
     }; 
 
     std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree, int talentPointsLimit);
@@ -50,7 +53,9 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         vec2d<std::pair< SIND, int>>& combinations,
-        std::vector<int>& allCombinations
+        std::vector<int>& allCombinations,
+        int& runningCount,
+        bool& safetyGuardTriggered
     );
     inline void setTalent(SIND& talent, int index);
 
