@@ -163,11 +163,17 @@ namespace Engine {
             possibleTalents.push_back(std::pair<int, int>(root, sortedTreeDAG.sortedTalents[root]->pointsRequired));
         }
         auto t1 = std::chrono::high_resolution_clock::now();
+        //this is used for safeguarding solving process for trees that are too big
+        int runningCount = 0;
+        bool safetyGuardTriggered = false;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             //if (possibleTalents[i].second == 0)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
-                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations, runningCount, safetyGuardTriggered);
+        }
+        if (safetyGuardTriggered) {
+            sortedTreeDAG.safetyGuardTriggered = true;
         }
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
@@ -189,8 +195,14 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         vec2d<std::pair< SIND, int>>& combinations,
-        std::vector<int>& allCombinations
+        std::vector<int>& allCombinations,
+        int& runningCount,
+        bool& safetyGuardTriggered
     ) {
+        if (runningCount >= MAX_NUMBER_OF_SOLVED_COMBINATIONS) {
+            safetyGuardTriggered = true;
+            return;
+        }
         /*
         for each node visited add child nodes(in DAG array) to the vector of possible nodesand reduce talent points left
         check if talent points left == 0 (finish) or num_nodes - current_node < talent_points_left (check for off by one error) (cancel cause talent tree can't be filled)
@@ -205,6 +217,7 @@ namespace Engine {
 
         combinations[talentPointsSpent - 1].emplace_back(visitedTalents, currentMultiplier);
         allCombinations[talentPointsSpent - 1] += currentMultiplier;
+        runningCount++;
         if (talentPointsLeft == 0)
             return;
 
@@ -219,7 +232,7 @@ namespace Engine {
             //check order is correct and if talentPointsSpent is >= next talent points required
             if (possibleTalents[i].first > talentIndexReqPair.first &&
                 talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired) {
-                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations, runningCount, safetyGuardTriggered);
             }
         }
     }
