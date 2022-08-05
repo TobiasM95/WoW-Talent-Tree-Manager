@@ -442,7 +442,11 @@ namespace TTM {
                     break;
                 }
             }
-            if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints || !isParentFilled || talent.second->preFilled) {
+            if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints 
+                || !isParentFilled || talent.second->preFilled
+                || (talentTreeCollection.activeSkillset()->useLevelCap 
+                    && Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree(), 1) > talentTreeCollection.activeSkillset()->levelCap
+                    && talent.second->points == 0)) {
                 talentDisabled = true;
             }
             if (talent.second->preFilled) {
@@ -529,7 +533,11 @@ namespace TTM {
                     }
                 }
                 else {
-                    if (isParentFilled && talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints >= talent.second->pointsRequired && talent.second->points < talent.second->maxPoints) {
+                    if (isParentFilled 
+                        && talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints >= talent.second->pointsRequired 
+                        && talent.second->points < talent.second->maxPoints
+                        && (!talentTreeCollection.activeSkillset()->useLevelCap
+                        || Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree(), 1) <= talentTreeCollection.activeSkillset()->levelCap)) {
                         talent.second->points += 1;
                         if (talent.second->type == Engine::TalentType::SWITCH) {
                             if (talent.second->talentSwitch == 0) {

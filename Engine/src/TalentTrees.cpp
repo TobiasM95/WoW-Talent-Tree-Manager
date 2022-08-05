@@ -2021,7 +2021,7 @@ namespace Engine {
     }
 
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset) {
-        return getLevelRequirement(sk.talentPointsSpent, tree);
+        return getLevelRequirement(sk.talentPointsSpent, tree, offset);
     }
 
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset) {
