@@ -29,7 +29,7 @@
 namespace TTM {
     static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent, int assignedPointsTarget)
     {
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && !ImGui::IsKeyDown(ImGuiKey_LeftAlt))
         {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
@@ -591,7 +591,7 @@ namespace TTM {
             ImGui::PopFont();
             AttachLoadoutSolverTooltip(uiData, talent.second, talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]);
         }
-        if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+        if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
             for (auto& talent : tree.orderedTalents) {
                 float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
                 float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
