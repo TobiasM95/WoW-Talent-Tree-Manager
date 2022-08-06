@@ -648,7 +648,7 @@ namespace TTM {
         int iconCount = std::stoi(metaData[2]);
         int packedWidth = std::stoi(metaData[3]);
 
-        std::filesystem::path rootIconPath("./resources/icons/");
+        std::filesystem::path rootIconPath = Presets::getAppPath() / "resources" / "icons";
 
         // load packed image file from disk into a raw RGBA buffer
         int image_width = 0;

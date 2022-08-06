@@ -274,14 +274,14 @@ namespace TTM {
         }
         std::vector<std::string> metaData = Engine::splitString(metaDataRaw, "\n");
 
-        std::string pathToPackedIcons("./resources/icons/icons_packed.png");
-        if (!std::filesystem::is_directory(std::filesystem::path(pathToPackedIcons).parent_path())) {
-            std::filesystem::create_directory(std::filesystem::path(pathToPackedIcons).parent_path());
+        std::filesystem::path pathToPackedIcons = Presets::getAppPath() / "resources" / "icons" / "icons_packed.png";
+        if (!std::filesystem::is_directory(pathToPackedIcons.parent_path())) {
+            std::filesystem::create_directory(pathToPackedIcons.parent_path());
         }
         FILE* fp = nullptr;
         curl = curl_easy_init();
         if (curl) {
-            fp = fopen(pathToPackedIcons.c_str(), "wb");
+            fp = fopen(pathToPackedIcons.string().c_str(), "wb");
             if (fp == NULL) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
@@ -311,7 +311,7 @@ namespace TTM {
             return;
         }
 
-        if (!unpackIcons(pathToPackedIcons.c_str(), metaData)) {
+        if (!unpackIcons(pathToPackedIcons.string().c_str(), metaData)) {
             std::filesystem::remove(pathToPackedIcons);
             uiData.updateStatus = UpdateStatus::UPDATEERROR;
             return;
@@ -376,7 +376,7 @@ namespace TTM {
                 "&api_dev_key=" + Presets::PASTEBIN_API_DEV_KEY + 
                 "&api_paste_private=1" + // 0=public 1=unlisted 2=private
                 "&api_paste_name=" + std::string(api_paste_name_enc) +
-                "&api_paste_expire_date=1W" + //1W = 1 week
+                "&api_paste_expire_date=1M" + //1W = 1 week
                 "&api_paste_code=" + std::string(api_paste_code_enc);
             curl_easy_setopt(curl, CURLOPT_POST, true);
             curl_easy_setopt(curl, CURLOPT_URL, "https://pastebin.com/api/api_post.php");
