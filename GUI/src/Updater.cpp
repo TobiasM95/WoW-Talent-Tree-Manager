@@ -78,8 +78,7 @@ namespace TTM {
         std::vector<std::string> remoteVersions = Engine::splitString(result, "\n");
 
         //check if local version file exists, if not, all resources should be updated
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "resource_versions.txt";
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "resource_versions.txt";
         if (!std::filesystem::is_regular_file(localVersionFilePath)) {
             flagAllResources(uiData);
             return "No resource file found. Please update resources after updating TTM!";
@@ -200,8 +199,7 @@ namespace TTM {
                 return;
             }
         }
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "resource_versions.txt";
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "resource_versions.txt";
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
         uiData.updateStatus = UpdateStatus::UPTODATE;
@@ -246,8 +244,7 @@ namespace TTM {
                 return;
             }
         }
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "presets.txt";
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "presets.txt";
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
     }

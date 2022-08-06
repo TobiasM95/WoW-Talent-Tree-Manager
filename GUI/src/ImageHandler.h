@@ -19,6 +19,12 @@ namespace TTM {
 		ID3D11Device* g_pd3dDevice, 
 		Engine::TalentType talentType
 	);
+	bool LoadTTMBanner(
+		ID3D11ShaderResourceView** out_srv,
+		int* out_width,
+		int* out_height,
+		ID3D11Device* g_pd3dDevice
+	);
 	bool LoadDefaultTexture(
 		ID3D11ShaderResourceView** out_srv, 
 		ID3D11ShaderResourceView** out_srv_gray, 
