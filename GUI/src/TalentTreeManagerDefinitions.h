@@ -92,6 +92,7 @@ namespace TTM {
 		TextureInfo greenIconGlow;
 		TextureInfo goldIconGlow;
 		TextureInfo blueIconGlow;
+		TextureInfo purpleIconGlow;
 		bool enableGlow = true;
 
 		std::string talentSearchString = "";

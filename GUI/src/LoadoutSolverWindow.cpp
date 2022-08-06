@@ -57,8 +57,14 @@ namespace TTM {
                 if (assignedPointsTarget >= 0) {
                     ImGui::Text(("Points: " + std::to_string(assignedPointsTarget) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 }
-                else {
+                else if (assignedPointsTarget == -1) {
                     ImGui::Text(("Points: exclude, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else if (assignedPointsTarget == -2) {
+                    ImGui::Text(("Points: at least 1 point in group, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else if (assignedPointsTarget == -3) {
+                    ImGui::Text(("Points: exactly 1 in group maxed, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 }
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -508,7 +514,7 @@ namespace TTM {
                 }
                 else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -3) {
                     ImGui::Image(
-                        uiData.blueIconGlow.texture,
+                        uiData.purpleIconGlow.texture,
                         ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
                         ImVec2(0, 0), ImVec2(1, 1),
                         ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
@@ -769,6 +775,7 @@ namespace TTM {
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
+            ImGui::OpenPopup("Add to loadout successfull");
         }
         if (ImGui::Button("Add all to loadout##loadoutSolverAddAllToLoadoutButton")) {
             size_t count = 0;
