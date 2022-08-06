@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <map>
@@ -165,6 +166,7 @@ namespace Presets {//ENGINE PRESETS
     const char** RETURN_SPECS(int classID);
     const std::string RETURN_PRESET(std::map<std::string, std::string> presets, int classID, int specID);
 
+    std::filesystem::path getAppPath();
     std::map<std::string, std::string> LOAD_PRESETS();
 
     /*

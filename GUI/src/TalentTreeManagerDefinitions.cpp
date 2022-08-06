@@ -19,13 +19,14 @@
 */
 
 #include "TalentTreeManagerDefinitions.h"
+#include "TTMEnginePresets.h"
 
 #include "imgui_internal.h"
 
 namespace TTM {
     void refreshIconList(UIData& uiData) {
-        std::filesystem::path iconRootPath = "resources/icons/";
-        std::filesystem::path customIconPath = "resources/icons/custom";
+        std::filesystem::path iconRootPath = Presets::getAppPath() / "resources"/ "icons";
+        std::filesystem::path customIconPath = Presets::getAppPath() / "resources" / "icons" / "custom";
         uiData.iconPathMap.clear();
         //first iterate through pre-shipped directories and add paths to map while skipping custom dir
         if (!std::filesystem::is_directory(iconRootPath)) {
@@ -97,7 +98,6 @@ namespace TTM {
         int defaultImageHeight = 0;
         ID3D11ShaderResourceView* defaultTexture = NULL;
         ID3D11ShaderResourceView* defaultTextureGray = NULL;
-        std::string iconPath(uiData.defaultIconPath.string());
         bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
         bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
         bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);

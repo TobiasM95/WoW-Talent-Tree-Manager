@@ -83,21 +83,11 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-    std::string IniPath = std::string((TTM::getAppPath() / "imgui.ini").string());
-    std::string LogPath = std::string((TTM::getAppPath() / "imgui_log.txt").string());
-    io.IniFilename = IniPath.c_str();
-    io.LogFilename = LogPath.c_str();
-
-    TTM::UIData uiData;
-    TTM::refreshIconList(uiData);
-    uiData.g_pd3dDevice = g_pd3dDevice;
-    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
-    talentTreeCollection.presets = Presets::LOAD_PRESETS();
-    TTM::loadActiveIcons(uiData, talentTreeCollection, true);
-
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+    ImVec4 clear_color = ImVec4(0.f, 0.f, 0.f, 1.00f);
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -119,9 +109,59 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 27.0f);
     io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 14.0f);
 
+    int banner_width = 0;
+    int banner_height = 0;
+    ID3D11ShaderResourceView* TTMBannerRV;
+    bool banner_success = TTM::LoadTTMBanner(&TTMBannerRV, &banner_width, &banner_height, g_pd3dDevice);
 
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    // Start the Dear ImGui frame
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
+    if (ImGui::Begin("MainWindow", nullptr, ImGuiWindowFlags_NoDecoration))
+    {
+        ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+        ImGui::Text("Initialize workspace (can take a while on first open)...");
+        if (banner_success) {
+            ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * banner_width, 0.5f * contentRegion.y - 0.5f * banner_height));
+            ImGui::Image(
+                TTMBannerRV,
+                ImVec2(static_cast<float>(banner_width), static_cast<float>(banner_height)),
+                ImVec2(0, 0), ImVec2(1, 1),
+                ImVec4(1.0f, 1.0f, 1.0f, 1.0f)
+            );
+        }
+    }
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::Render();
+    const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+    g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
+    g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    g_pSwapChain->Present(1, 0); // Present with vsync
+    //g_pSwapChain->Present(0, 0); // Present without vsync
+    
+
+    std::string IniPath = std::string((Presets::getAppPath() / "imgui.ini").string());
+    std::string LogPath = std::string((Presets::getAppPath() / "imgui_log.txt").string());
+    io.IniFilename = IniPath.c_str();
+    io.LogFilename = LogPath.c_str();
+
+    TTM::initWorkspace();
+
+    TTM::UIData uiData;
+    TTM::refreshIconList(uiData);
+    uiData.g_pd3dDevice = g_pd3dDevice;
+    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
+    talentTreeCollection.presets = Presets::LOAD_PRESETS();
+    TTM::loadActiveIcons(uiData, talentTreeCollection, true);
+   
     // Main loop
     bool done = false;
     auto currentTime = std::chrono::high_resolution_clock::now();

@@ -20,9 +20,6 @@
 
 #include "TalentTreeManager.h"
 
-#include <windows.h>
-#include <shlobj.h>
-
 #include <fstream>
 #include <algorithm>
 
@@ -707,43 +704,8 @@ namespace TTM {
         }
 	}
 
-    std::filesystem::path getAppPath() {
-        std::filesystem::path path;
-        PWSTR path_tmp;
-
-        /* Attempt to get user's AppData folder
-         *
-         * This breaks Windows XP and earlier support!
-         *
-         * Microsoft Docs:
-         * https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-         * https://docs.microsoft.com/en-us/windows/win32/shell/knownfolderid
-         */
-        auto get_folder_path_ret = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_tmp);
-
-        /* Error check */
-        if (get_folder_path_ret != S_OK) {
-            CoTaskMemFree(path_tmp);
-            throw std::system_error::exception("Could not open/find Roaming App Data path!");
-        }
-
-        /* Convert the Windows path type to a C++ path */
-        path = path_tmp;
-        std::filesystem::path appPath = path / "WoWTalentTreeManager";
-
-        /* Free memory :) */
-        CoTaskMemFree(path_tmp);
-
-        //create app folder if it doesn't exist
-        if (!std::filesystem::is_directory(appPath)) {
-            std::filesystem::create_directory(appPath);
-        }
-
-        return appPath;
-    }
-
     std::filesystem::path getCustomTreePath() {
-        std::filesystem::path treePath = getAppPath() / "CustomTrees";
+        std::filesystem::path treePath = Presets::getAppPath() / "CustomTrees";
 
         //create custom tree folder if it doesn't exist
         if (!std::filesystem::is_directory(treePath)) {
@@ -753,8 +715,21 @@ namespace TTM {
         return treePath;
     }
 
+    void initWorkspace() {
+        std::filesystem::path appPath = Presets::getAppPath(); //if appPath directory doesn't exist it will be auto created here
+        std::filesystem::path shippedResourcesDir = "./resources/";
+        if (!std::filesystem::is_directory(appPath / "resources")) {
+            std::filesystem::create_directory(appPath / "resources");
+        }
+        std::filesystem::copy_file(shippedResourcesDir / "resource_versions.txt", appPath / "resources" / "resource_versions.txt", std::filesystem::copy_options::skip_existing);
+        std::filesystem::copy_file(shippedResourcesDir / "presets.txt", appPath / "resources" / "presets.txt", std::filesystem::copy_options::skip_existing);
+        if (!std::filesystem::is_directory(appPath / "resources" / "icons")) {
+            std::filesystem::copy(shippedResourcesDir / "icons", appPath / "resources" / "icons", std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
+        }
+    }
+
     void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
-        std::filesystem::path appPath = getAppPath();
+        std::filesystem::path appPath = Presets::getAppPath();
         //backup old files
         if (std::filesystem::is_regular_file(appPath / "settings.txt")) {
             std::ifstream oldSetFile(appPath / "settings.txt", std::ios::binary);
@@ -795,7 +770,7 @@ namespace TTM {
     }
 
     TalentTreeCollection loadWorkspace(UIData& uiData) {
-        std::filesystem::path appPath = getAppPath();
+        std::filesystem::path appPath = Presets::getAppPath();
         //restore settings
         useDefaultSettings(uiData);
         bool settingsFileExists = std::filesystem::is_regular_file(appPath / "settings.txt");
@@ -871,7 +846,7 @@ namespace TTM {
     }
 
     void resetWorkspaceAndTrees() {
-        std::filesystem::path appPath = getAppPath();
+        std::filesystem::path appPath = Presets::getAppPath();
         std::filesystem::remove_all(appPath);
     }
 
