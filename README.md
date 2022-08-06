@@ -1,7 +1,7 @@
 ![TTM Banner](/GUI/resources/TTM_Banner.png?raw=true "TTM Banner")
 
 
-[<img alt="TTM download button" src="/GUI/resources/TTM_download_button.png" />](https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases/download/v1.3.5/TalentTreeManager.zip)
+[<img alt="TTM download button" src="/GUI/resources/TTM_download_button.png" />](https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases/download/v1.3.6/TalentTreeManager.zip)
 
 
 ## What is the WoW Talent Tree Manager?
