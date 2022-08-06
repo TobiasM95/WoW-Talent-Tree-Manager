@@ -1,3 +1,14 @@
+v. 1.3.6:
+- Pastebin uploads are valid for 1 month now
+- Press shift when viewing a tree to see talent names
+- Tree solving performance improvements and new filter group
+- Many loadout editor improvements:
+-- Reset button
+-- Level cap setting
+-- Visual improvements with grayscale & disabled icons, requirement separation lines
+- Stability improvements
+- Resources are now saved in AppData/Roaming/TalentTreeManager and should not crash on update anymore
+
 v. 1.3.5:
 - Expanded loadout solver functionality with or-talents
 - Talent search functionality cleanup and expansion as well as other GUI improvements (no more tree closing flickering!)
