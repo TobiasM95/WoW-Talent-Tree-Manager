@@ -103,7 +103,8 @@ namespace TTM {
         bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
         bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
         bool blueGlowSuccess = LoadBlueIconGlowTexture(&uiData.blueIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
-        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess)) {
+        bool purpleGlowSuccess = LoadPurpleIconGlowTexture(&uiData.purpleIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
+        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess && purpleGlowSuccess)) {
             //TTMNOTE: this should not happen anymore
             throw std::runtime_error("Cannot create default icon!");
         }
@@ -994,8 +995,11 @@ namespace TTM {
         else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -1) {
             buttonLabel = "X/" + std::to_string(talent->maxPoints);
         }
-        else {
+        else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -2) {
             buttonLabel = ">/" + std::to_string(talent->maxPoints);
+        }
+        else {
+            buttonLabel = "=/" + std::to_string(talent->maxPoints);
         }
         drawList->AddText(
             ImVec2(
