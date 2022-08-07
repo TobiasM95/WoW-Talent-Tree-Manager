@@ -174,10 +174,10 @@
     <Image Include="resources\TTM_icon.ico">
       <Filter>Ressourcendateien</Filter>
     </Image>
-    <Image Include="resources\updatertarget\icons_packed.png">
+    <Image Include="resources\TTM_Banner.png">
       <Filter>Ressourcendateien</Filter>
     </Image>
-    <Image Include="resources\TTM_Banner.png">
+    <Image Include="resources\updatertarget\icons_packed.png">
       <Filter>Ressourcendateien</Filter>
     </Image>
   </ItemGroup>
@@ -189,8 +189,8 @@
     <Text Include="src\libs\ImGui\LICENSE.txt" />
     <Text Include="src\libs\stb\LICENSE.txt" />
     <Text Include="resources\icons\icons_packed_meta.txt" />
-    <Text Include="resources\updatertarget\resource_versions.txt" />
     <Text Include="resources\updatertarget\icons_packed_meta.txt" />
+    <Text Include="resources\updatertarget\resource_versions.txt" />
     <Text Include="resources\updatertarget\presets.txt" />
   </ItemGroup>
   <ItemGroup>

@@ -1,6 +1,6 @@
 40
 40
-1772
+1780
 1600
 default.png
 0/abominationLimb.png
@@ -903,12 +903,19 @@ default.png
 16/mortalStrike.png
 16/neverSurrender.png
 16/odynsFury.png
+17/afterimage.png
+17/aurasOfSwiftVengeance.png
+17/aurasOfTheResolute.png
+17/coordinatedAssaultNyi.png
+17/coordinatedKillNyi.png
+17/deadlyDuoNyi.png
 17/onehandedWeaponSpecialization.png
 17/onslaught.png
 17/onyxLegacy.png
 17/outburst.png
 17/overpower.png
 17/overwhelmingRage.png
+17/owlkinFrenzy.png
 17/painAndGain.png
 17/piercingHowl.png
 17/piercingVerdict.png
@@ -930,6 +937,7 @@ default.png
 17/secondWind.png
 17/seismicReverberation.png
 17/sharpenedBlades.png
+17/shatteringStar.png
 17/shatteringThrow.png
 17/shieldCharge.png
 17/shieldSpecialization.png
