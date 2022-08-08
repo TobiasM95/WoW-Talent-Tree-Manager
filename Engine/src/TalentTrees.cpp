@@ -239,6 +239,7 @@ namespace Engine {
     }
 
     void updateRequirementSeparatorInfo(TalentTree& tree) {
+        tree.requirementSeparatorInfo.clear();
         //stores the min and max height of each occurring point requirement (key of map) to calculate the separator positions next
         std::map<int, std::pair<int, int>> requirementRowMap;
         for (auto& talent : tree.orderedTalents) {
@@ -257,13 +258,31 @@ namespace Engine {
             }
         }
 
-        auto it = requirementRowMap.begin();
-        for (int i = 0; i < requirementRowMap.size() - 1; i++) {
-            std::pair<int, int> r1 = it->second;
-            std::pair<int, int> r2 = (++it)->second;
-            int req = it->first;
-            if (r2.first > r1.second) {
+        std::map<int, std::pair<int, int>>::iterator it1;
+        std::map<int, std::pair<int, int>>::iterator it2;
+        for (it1 = requirementRowMap.begin(); it1 != std::prev(requirementRowMap.end());) {
+            const std::pair<int, int>& r1 = it1->second;
+            bool frontValid = true;
+            bool backValid = true;
+            for (it2 = requirementRowMap.begin(); it2 != it1; it2++) {
+                if (it2->second.second >= r1.first) {
+                    frontValid = false;
+                    break;
+                }
+            }
+            for (it2 = std::next(it1); it2 != requirementRowMap.end(); it2++) {
+                if (r1.second >= it2->second.second) {
+                    backValid = false;
+                    break;
+                }
+            }
+            if (frontValid && backValid) {
+                const std::pair<int, int>& r2 = (++it1)->second;
+                const int& req = it1->first;
                 tree.requirementSeparatorInfo.push_back({ req, 0.5f * (r1.second + r2.first + 1) });
+            }
+            else {
+                it1++;
             }
         }
     }

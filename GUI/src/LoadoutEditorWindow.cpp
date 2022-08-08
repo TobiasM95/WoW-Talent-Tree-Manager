@@ -417,7 +417,7 @@ namespace TTM {
             }
             drawList->AddLine(
                 ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
-                ImVec2(windowPos.x - scrollOffset.x + origin.x + (tree.maxCol + 2) * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImVec2(windowPos.x - scrollOffset.x + origin.x + (tree.maxCol + 1) * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
                 ImColor(separatorColor),
                 2.0f
             );
