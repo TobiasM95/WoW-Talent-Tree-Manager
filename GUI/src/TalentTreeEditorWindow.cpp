@@ -942,6 +942,23 @@ namespace TTM {
 
                         loadActiveIcons(uiData, talentTreeCollection, true);
                     }
+                    if (ImGui::Button("Remove all connections")) {
+                        talentTreeCollection.activeTree().talentRoots.clear();
+                        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+                            talent.second->children.clear();
+                            talent.second->parents.clear();
+                            talentTreeCollection.activeTree().talentRoots.push_back(talent.second);
+                        }
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
+                        Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+                    }
                 }
                 //Call all the different modal popups that can appear
                 ImVec2 center = ImGui::GetMainViewport()->GetCenter();
