@@ -260,29 +260,43 @@ namespace Engine {
 
         std::map<int, std::pair<int, int>>::iterator it1;
         std::map<int, std::pair<int, int>>::iterator it2;
-        for (it1 = requirementRowMap.begin(); it1 != std::prev(requirementRowMap.end());) {
-            const std::pair<int, int>& r1 = it1->second;
-            bool frontValid = true;
-            bool backValid = true;
-            for (it2 = requirementRowMap.begin(); it2 != it1; it2++) {
-                if (it2->second.second >= r1.first) {
-                    frontValid = false;
-                    break;
+        for (it1 = std::next(requirementRowMap.begin()); it1 != requirementRowMap.end();it1++) {
+            bool valid = true;
+            for (it2 = requirementRowMap.begin(); it2 != requirementRowMap.end(); it2++) {
+                if (it2->first == it1->first) {
+                    continue;
                 }
-            }
-            for (it2 = std::next(it1); it2 != requirementRowMap.end(); it2++) {
-                if (r1.second >= it2->second.second) {
-                    backValid = false;
-                    break;
+                if (it2->first > it1->first) {
+                    //regions with lower pts requirement should end before or at the same point as it2
+                    if (it2->second.first < it1->second.first) {
+                        valid = false;
+                        break;
+                    }
                 }
+                
+                if (it2->first < it1->first) {
+                    //regions with higher pts requirement should start after it2
+                    if (it2->second.second >= it1->second.first) {
+                        valid = false;
+                        break;
+                    }
+                }
+                
             }
-            if (frontValid && backValid) {
-                const std::pair<int, int>& r2 = (++it1)->second;
-                const int& req = it1->first;
-                tree.requirementSeparatorInfo.push_back({ req, 0.5f * (r1.second + r2.first + 1) });
-            }
-            else {
-                it1++;
+            if (valid) {
+                int closestRow = -INT_MAX;
+                for (it2 = requirementRowMap.begin(); it2 != requirementRowMap.end(); it2++) {
+                    //select the closest region that has a lower pts requirement
+                    if (it2->first >= it1->first) {
+                        continue;
+                    }
+                    if (it2->second.second > closestRow) {
+                        closestRow = it2->second.second;
+                    }
+                }
+                if (closestRow > -INT_MAX) {
+                    tree.requirementSeparatorInfo.push_back({ it1->first, 0.5f * (it1->second.first + closestRow + 1) });
+                }
             }
         }
     }
