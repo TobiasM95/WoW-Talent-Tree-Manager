@@ -5,6 +5,10 @@
 #include "imgui.h"
 
 namespace Presets {
+    enum class FONTSIZE {
+        MINI, SMALL, DEFAULT, LARGE, HUGE
+    };
+
     enum class STYLES {
         COMPANY_GREY, PATH_OF_TALENT_TREE, LIGHT_MODE
     };
@@ -33,4 +37,7 @@ namespace Presets {
     
     ImVec4 GET_TOOLTIP_TALENT_TYPE_COLOR(STYLES style);
     ImVec4 GET_TOOLTIP_TALENT_DESC_COLOR(STYLES style);
+
+    void PUSH_FONT(FONTSIZE fs, int index);
+    void POP_FONT();
 }
