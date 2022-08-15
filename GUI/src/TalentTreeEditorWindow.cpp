@@ -826,6 +826,22 @@ namespace TTM {
                         }
                     }
                     ImGui::Separator();
+                    if (ImGui::Button("Cleanup tree (deletes loadout!)")) {
+                        Engine::reindexTree(talentTreeCollection.activeTree());
+                        Engine::autoShiftTreeToCorner(talentTreeCollection.activeTree());
+                        Engine::autoPointRequirements(talentTreeCollection.activeTree());
+
+                        talentTreeCollection.activeTree().presetName = "custom";
+                        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
+                        Engine::updateOrderedTalentList(talentTreeCollection.activeTree());
+                        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
+                        clearSolvingProcess(uiData, talentTreeCollection);
+
+                        uiData.treeEditorSelectedTalent = nullptr;
+
+                        loadActiveIcons(uiData, talentTreeCollection, true);
+                    }
+                    ImGui::Separator();
                     ImGui::Text("Warning: Potentially very long runtime/unstable (beta feature)");
                     if (ImGui::Button("Auto position talents in tree")) {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
