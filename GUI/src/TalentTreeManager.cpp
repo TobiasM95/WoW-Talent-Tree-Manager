@@ -380,7 +380,7 @@ namespace TTM {
             Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
-            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the %APPDATA%(Roaming)/Wow Talent Tree Manager/resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
+            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the %%APPDATA%%(Roaming)/Wow Talent Tree Manager/resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
             ImGui::Spacing();
             ImGui::PopTextWrapPos();
 
