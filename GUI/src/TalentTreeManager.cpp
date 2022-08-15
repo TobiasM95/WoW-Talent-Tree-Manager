@@ -346,7 +346,7 @@ namespace TTM {
             ImGui::PopFont();
             ImGui::Separator();
             ImGui::Bullet();
-            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
+            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the %APPDATA%(Roaming)/Wow Talent Tree Manager/resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
             ImGui::Spacing();
             ImGui::PopTextWrapPos();
 
@@ -432,6 +432,8 @@ namespace TTM {
                     saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup();
                 }
+
+
                 ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                 ImGui::Text("or");
 
@@ -457,6 +459,7 @@ namespace TTM {
                     tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                    talentTreeCollection.activeTree().activeSkillsetIndex = -1;
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
@@ -464,8 +467,64 @@ namespace TTM {
                     saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup(); 
                 }
+
+                if (!uiData.treeEditorIsCustomTreeFileListValid) {
+                    updateCustomTreeFileList(uiData);
+                    uiData.treeEditorIsCustomTreeFileListValid = true;
+                }
+                if (uiData.treeEditorCustomTreeFileList.size() > 0) {
+                    ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
+                    ImGui::Text("or");
+                    //uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].first
+                    uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent < 0 ? 0 : uiData.treeEditorCustomTreeListCurrent;
+                    uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent >= uiData.treeEditorCustomTreeFileList.size() ? static_cast<int>(uiData.treeEditorCustomTreeFileList.size()) : uiData.treeEditorCustomTreeListCurrent;
+                    const char* comboPreviewValue = uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].second.c_str();
+                    if (ImGui::BeginCombo("##talentCreationIconNameCombo", comboPreviewValue))
+                    {
+                        for (size_t n = 0; n < uiData.treeEditorCustomTreeFileList.size(); n++)
+                        {
+                            auto& customTreePathNamePair = uiData.treeEditorCustomTreeFileList[n];
+                            const bool is_selected = (comboPreviewValue == customTreePathNamePair.second.c_str());
+                            if (ImGui::Selectable(customTreePathNamePair.second.c_str(), is_selected)) {
+                                uiData.treeEditorCustomTreeListCurrent = static_cast<int>(n);
+                            }
+
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+                    //ImGui::SameLine();
+                    if (ImGui::Button("Load custom tree", ImVec2(-0.01f, 0))) {
+                        TalentTreeData tree;
+                        talentTreeCollection.trees.push_back(tree);
+                        talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                        talentTreeCollection.activeTree().activeSkillsetIndex = -1;
+                        if (!loadTreeFromFile(uiData, talentTreeCollection)) {
+                            ImGui::CloseCurrentPopup();
+                            ImGui::OpenPopup("Tree load error");
+                        }
+                        else {
+                            uiData.treeEditorIsCustomTreeFileListValid = false;
+                            Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                            clearSolvingProcess(uiData, talentTreeCollection);
+
+                            loadActiveIcons(uiData, talentTreeCollection, true);
+                            uiData.treeEditorSelectedTalent = nullptr;
+
+                            uiData.treeEditorImportTreeString = "";
+                            uiData.treeEditorExportTreeString = "";
+                            saveWorkspace(uiData, talentTreeCollection);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+
+
+                ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                 ImGui::Text("or");
-                ImGui::InputText("##treeEditorCreationPopupImportText", &uiData.treeEditorImportTreeString);
+                ImGui::InputText("##treeEditorCreationPopupImportText", &uiData.treeEditorImportTreeString, ImGuiInputTextFlags_AutoSelectAll);
                 if (ImGui::Button("Import tree##popup", ImVec2(-0.01f, 0))) {
                     if (!Engine::validateAndRepairTreeStringFormat(uiData.treeEditorImportTreeString)) {
                         uiData.treeEditorImportTreeString = "Invalid import string!";
@@ -498,6 +557,14 @@ namespace TTM {
                 ImGui::SameLine();
                 if (ImGui::Button("Cancel", ImVec2(80, 0))) {
                     uiData.deleteTreeIndex = -1;
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+            if (ImGui::BeginPopupModal("Tree load error", close, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("This custom tree was unable to be loaded. It might be corrupted or out of date.");
+                if (ImGui::Button("Ok", ImVec2(80, 0))) {
                     ImGui::CloseCurrentPopup();
                 }
                 ImGui::EndPopup();
