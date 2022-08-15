@@ -1,3 +1,10 @@
+v. 1.3.7:
+- Fixed tree separator functionality
+- Expand tree edit misc functionality
+- Fixed help text for custom icons
+- Added Github visit buttons
+- Variable fontsizes
+
 v. 1.3.6:
 - Pastebin uploads are valid for 1 month now
 - Press shift when viewing a tree to see talent names
