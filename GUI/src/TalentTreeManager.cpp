@@ -226,6 +226,32 @@ namespace TTM {
                 }
                 ImGui::Separator();
                 ImGui::MenuItem("Show icon glow", NULL, &uiData.enableGlow);
+                ImGui::Separator();
+                bool sel = uiData.fontsize == Presets::FONTSIZE::MINI;
+                ImGui::MenuItem("Font mini", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::MINI;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::SMALL;
+                ImGui::MenuItem("Font small", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::SMALL;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::DEFAULT;
+                ImGui::MenuItem("Font default", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::DEFAULT;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::LARGE;
+                ImGui::MenuItem("Font large", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::LARGE;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::HUGE;
+                ImGui::MenuItem("Font huge", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::HUGE;
+                }
 				ImGui::EndMenu();
 			}
             if (ImGui::BeginMenu("Help")) {
@@ -291,13 +317,13 @@ namespace TTM {
         if (ImGui::BeginPopupModal("Controls & Tips##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::PushTextWrapPos(1000);
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
             ImGui::Spacing();
             ImGui::Text("Controls");
-            ImGui::PopFont();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::POP_FONT();
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Tree editor");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("The talent tree editor allows you to create your own custom trees or edit one of the included specialization presets. You can edit the tree name, the description, add/edit/delete nodes as well as importing and exporting trees. If you just want to check out a spec preset and create a loadout then you don't need to use the talent tree editor much. Feel free to skip ahead to the loadout editor or solver.");
@@ -314,9 +340,9 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("Under the \"Misc.\" header there are some useful tools to create trees from scratch. You can shift the whole tree by a given row/column number, insert many empty talents at once or let TTM place nodes automatically (it tries to place them without crossing any connections between talents but it is not extensively tested and might run slow for larger trees, use it with caution and only after saving!).");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Loadout editor");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("The loadout editor allows you to create one or multiple skillsets inside the loadout, give it a description and import/export one or all skillsets.");
@@ -325,9 +351,9 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("In the \nEdit Skillsets\n page you can switch between skillsets, add/delete skillsets and importing/exporting a single skillset or all skillsets. This will only share the skillset, i.e. the assigned talent points, but not the loadout description. For this, you can share the full talent tree.");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Loadout solver");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("The loadout solver gives you the ability to automatically create skillsets based on talent preferences and filters. It will find all possible combinations for every number of talent points and will display them for you to dynamically filter important ones.");
@@ -338,20 +364,20 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("After selecting the skill point number you can choose individual skillsets and transfer them to your loadout to view and edit them. You can also add all shown skillsets on the current page to your loadout to have a selection of skillsets ready.");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
             ImGui::Spacing();
             ImGui::Text("Tips");
-            ImGui::PopFont();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::POP_FONT();
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Simulationcraft");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("To quickly sim different skillsets you can manually add multiple skillsets to your loadout and export to simc (to be implemented in the future) or you can use the loadout solver -> process tree -> filter down to a suitable number of skillsets -> add all to loadout -> export all skillsets to simc -> sim.");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Custom icons");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the %APPDATA%(Roaming)/Wow Talent Tree Manager/resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
@@ -826,12 +852,21 @@ namespace TTM {
         case Presets::STYLES::COMPANY_GREY: {settings += "STYLE=COMPANY_GREY\n"; }break;
         case Presets::STYLES::PATH_OF_TALENT_TREE: {settings += "STYLE=PATH_OF_TALENT_TREE\n"; }break;
         case Presets::STYLES::LIGHT_MODE: {settings += "STYLE=LIGHT_MODE\n"; }break;
+        default: {settings += "STYLE=COMPANY_GREY\n"; }break;
         }
         if (uiData.enableGlow) {
             settings += "GLOW=1\n";
         }
         else {
             settings += "GLOW=0\n";
+        }
+        switch (uiData.fontsize) {
+        case Presets::FONTSIZE::MINI: {settings += "FONTSIZE=MINI\n"; } break;
+        case Presets::FONTSIZE::SMALL: {settings += "FONTSIZE=SMALL\n"; } break;
+        case Presets::FONTSIZE::DEFAULT: {settings += "FONTSIZE=DEFAULT\n"; } break;
+        case Presets::FONTSIZE::LARGE: {settings += "FONTSIZE=LARGE\n"; } break;
+        case Presets::FONTSIZE::HUGE: {settings += "FONTSIZE=HUGE\n"; } break;
+        default: {settings += "FONTSIZE=DEFAULT\n"; } break;
         }
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
@@ -868,6 +903,23 @@ namespace TTM {
                 if (line.find("GLOW") != std::string::npos) {
                     uiData.enableGlow = (line == "GLOW=1");
                 }
+                if (line.find("FONTSIZE") != std::string::npos) {
+                    if (line.find("MINI") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::MINI;
+                    }
+                    else if (line.find("SMALL") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::SMALL;
+                    }
+                    else if (line.find("DEFAULT") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::DEFAULT;
+                    }
+                    else if (line.find("LARGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::LARGE;
+                    }
+                    else if (line.find("HUGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::HUGE;
+                    }
+                }
             }
         }
         //init talent tree collection
@@ -902,6 +954,24 @@ namespace TTM {
                 if (line.find("GLOW") != std::string::npos) {
                     uiData.enableGlow = (line == "GLOW=1");
                 }
+                //TTMNOTE: This couldn't ever be in the workspace file but just to be unnecessarily safe
+                if (line.find("FONTSIZE") != std::string::npos) {
+                    if (line.find("MINI") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::MINI;
+                    }
+                    else if (line.find("SMALL") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::SMALL;
+                    }
+                    else if (line.find("DEFAULT") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::DEFAULT;
+                    }
+                    else if (line.find("LARGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::LARGE;
+                    }
+                    else if (line.find("HUGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::HUGE;
+                    }
+                }
             }
             TalentTreeData data;
             if (Engine::validateAndRepairTreeStringFormat(line)) {
@@ -927,5 +997,6 @@ namespace TTM {
         Presets::SET_GUI_STYLE_LIGHT_MODE();
         uiData.style = Presets::STYLES::LIGHT_MODE;
         uiData.enableGlow = false;
+        uiData.fontsize = Presets::FONTSIZE::DEFAULT;
     }
 }

@@ -95,6 +95,8 @@ namespace TTM {
 		TextureInfo purpleIconGlow;
 		bool enableGlow = true;
 
+		Presets::FONTSIZE fontsize = Presets::FONTSIZE::DEFAULT;
+
 		std::string talentSearchString = "";
 		Engine::TalentVec searchedTalents;
 

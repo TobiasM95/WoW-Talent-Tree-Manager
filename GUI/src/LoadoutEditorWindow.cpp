@@ -30,9 +30,9 @@ namespace TTM {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
                 ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                Presets::PUSH_FONT(uiData.fontsize, 1);
                 ImGui::Text(talent->getName().c_str());
-                ImGui::PopFont();
+                Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
                         uiData.iconIndexMap.at(talent->index).first.texture, 
@@ -63,9 +63,9 @@ namespace TTM {
             else {
                 if (talent->points > 0) {
                     ImGui::BeginTooltip();
-                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                    Presets::PUSH_FONT(uiData.fontsize, 1);
                     ImGui::Text(talent->getName().c_str());
-                    ImGui::PopFont();
+                    Presets::POP_FONT();
                     if (uiData.iconIndexMap.count(talent->index)) {
                         if (talent->talentSwitch == 1) {
                             ImGui::Image(
@@ -98,9 +98,9 @@ namespace TTM {
                 }
                 else {
                     ImGui::BeginTooltip();
-                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                    Presets::PUSH_FONT(uiData.fontsize, 1);
                     ImGui::Text(talent->name.c_str());
-                    ImGui::PopFont();
+                    Presets::POP_FONT();
                     if (uiData.iconIndexMap.count(talent->index)) {
                         ImGui::Image(
                             uiData.iconIndexMap.at(talent->index).first.texture, 
@@ -123,9 +123,9 @@ namespace TTM {
                     ImGui::Spacing();
                     ImGui::Separator();
                     ImGui::Spacing();
-                    ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                    Presets::PUSH_FONT(uiData.fontsize, 1);
                     ImGui::Text(talent->nameSwitch.c_str());
-                    ImGui::PopFont();
+                    Presets::POP_FONT();
                     if (uiData.iconIndexMap.count(talent->index)) {
                         ImGui::Image(
                             uiData.iconIndexMap.at(talent->index).second.texture, 
@@ -487,7 +487,7 @@ namespace TTM {
                 );
             }
             ImGui::SetCursorPos(ImVec2(posX, posY));
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             if (talentDisabled) {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.20f;
                 ImGui::BeginDisabled();
@@ -608,7 +608,7 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
                 ImGui::EndDisabled();
             }
-            ImGui::PopFont();
+            Presets::POP_FONT();
             AttachLoadoutEditTooltip(uiData, talent.second);
         }
         if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
@@ -624,9 +624,9 @@ namespace TTM {
                 draw_list->AddRectFilled(textBoxPos, bounds, IM_COL32(0, 0, 0, 255));
                 draw_list->AddRect(textBoxPos, bounds, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
                 std::string infoText = talent.second->type == Engine::TalentType::SWITCH ? talent.second->getName() + " / " + talent.second->getNameSwitch() : talent.second->getName();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+                Presets::PUSH_FONT(uiData.fontsize, 3);
                 AddWrappedText(infoText, textBoxPos, 5.0f, ImVec4(1.0f, 1.0f, 1.0f, 1.0f), 2.0f * talentSize, 2.0f * talentSize, ImGui::GetWindowDrawList());
-                ImGui::PopFont();
+                Presets::POP_FONT();
             }
         }
 

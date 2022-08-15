@@ -104,11 +104,13 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
     //io.Fonts->AddFontDefault(); //Size 13
-    float baseSize = 17.0f;
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, baseSize);
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, baseSize + 3.0f);
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, baseSize + 10.0f);
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, baseSize - 3.0f);
+    float baseSizes[5] = { 11.0f, 14.0f, 17.0f, 22.0f, 27.0f };
+    for (auto& size : baseSizes) {
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size);
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size + 3.0f);
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size + 10.0f);
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size - 3.0f);
+    }
 
     int banner_width = 0;
     int banner_height = 0;
@@ -124,6 +126,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 
+    Presets::PUSH_FONT(Presets::FONTSIZE::DEFAULT, 0);
     if (ImGui::Begin("MainWindow", nullptr, ImGuiWindowFlags_NoDecoration))
     {
         ImVec2 contentRegion = ImGui::GetContentRegionAvail();
@@ -140,6 +143,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     }
     ImGui::End();
     ImGui::PopStyleVar();
+    Presets::POP_FONT();
     ImGui::Render();
     const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
     g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
@@ -162,7 +166,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
     talentTreeCollection.presets = Presets::LOAD_PRESETS();
     TTM::loadActiveIcons(uiData, talentTreeCollection, true);
-   
+
     // Main loop
     bool done = false;
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -186,6 +190,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
+        Presets::PUSH_FONT(uiData.fontsize, 0);
+
         currentTime = std::chrono::high_resolution_clock::now();
         if (currentTime - uiData.lastSaveTime > uiData.autoSaveInterval) {
             uiData.lastSaveTime = currentTime;
@@ -198,6 +204,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         else {
             TTM::RenderMainWindow(uiData, talentTreeCollection, done);
         }
+
+        Presets::POP_FONT();
 
         // Rendering
         ImGui::Render();

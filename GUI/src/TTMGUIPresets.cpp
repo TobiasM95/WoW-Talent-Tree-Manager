@@ -19,6 +19,7 @@
 */
 
 #include "TTMGUIPresets.h"
+#include "imgui_internal.h"
 
 namespace Presets {
 
@@ -509,5 +510,21 @@ namespace Presets {
 		else {
 			return ImVec4(0.633f, 0.633f, 1.0f, 1.0f);
 		}
+	}
+
+	void PUSH_FONT(FONTSIZE fs, int index) {
+		int resIndex = index;
+		switch (fs) {
+		case FONTSIZE::MINI: break;
+		case FONTSIZE::SMALL: {resIndex += 4; } break;
+		case FONTSIZE::DEFAULT: {resIndex += 8; } break;
+		case FONTSIZE::LARGE: {resIndex += 12; } break;
+		case FONTSIZE::HUGE: {resIndex += 16; } break;
+		}
+		ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[resIndex]);
+	}
+
+	void POP_FONT() {
+		ImGui::PopFont();
 	}
 }
