@@ -1550,8 +1550,8 @@ namespace Engine {
     void autoPointRequirements(TalentTree& tree) {
         std::vector<int> uniqueRows;
         for (auto& talent : tree.orderedTalents) {
-            if (std::find(uniqueRows.begin(), uniqueRows.end(), talent.second->index) == uniqueRows.end()) {
-                uniqueRows.push_back(talent.second->index);
+            if (std::find(uniqueRows.begin(), uniqueRows.end(), talent.second->row) == uniqueRows.end()) {
+                uniqueRows.push_back(talent.second->row);
             }
         }
         std::sort(uniqueRows.begin(), uniqueRows.end());
