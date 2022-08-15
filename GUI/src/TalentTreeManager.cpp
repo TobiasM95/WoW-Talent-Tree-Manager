@@ -235,6 +235,9 @@ namespace TTM {
                 if (ImGui::MenuItem("About TTM")) {
                     uiData.showAboutPopup = true;
                 }
+                if (ImGui::MenuItem("Visit Github")) {
+                    ShellExecute(0, 0, L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager", 0, 0, SW_SHOW);
+                }
                 if (ImGui::MenuItem("Check Updates")) {
                     uiData.updateStatus = UpdateStatus::NOTCHECKED;
                     uiData.renderedOnce = false;
@@ -249,6 +252,11 @@ namespace TTM {
                 ImGui::EndMenu();
             }
             if (uiData.menuBarUpdateLabel.size() > 0) {
+                ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style));
+                if(ImGui::MenuItem("> Press here to open Github to download newest version <")){
+                    ShellExecute(0, 0, L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases", 0, 0, SW_SHOW);
+                }
+                ImGui::PopStyleColor();
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), uiData.menuBarUpdateLabel.c_str());
             }
 			ImGui::EndMainMenuBar();
@@ -468,16 +476,14 @@ namespace TTM {
                     ImGui::CloseCurrentPopup(); 
                 }
 
-                if (!uiData.treeEditorIsCustomTreeFileListValid) {
-                    updateCustomTreeFileList(uiData);
-                    uiData.treeEditorIsCustomTreeFileListValid = true;
-                }
+                updateCustomTreeFileList(uiData);
+                uiData.treeEditorIsCustomTreeFileListValid = true;
                 if (uiData.treeEditorCustomTreeFileList.size() > 0) {
                     ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                     ImGui::Text("or");
                     //uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].first
                     uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent < 0 ? 0 : uiData.treeEditorCustomTreeListCurrent;
-                    uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent >= uiData.treeEditorCustomTreeFileList.size() ? static_cast<int>(uiData.treeEditorCustomTreeFileList.size()) : uiData.treeEditorCustomTreeListCurrent;
+                    uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent >= uiData.treeEditorCustomTreeFileList.size() ? static_cast<int>(uiData.treeEditorCustomTreeFileList.size() - 1) : uiData.treeEditorCustomTreeListCurrent;
                     const char* comboPreviewValue = uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].second.c_str();
                     if (ImGui::BeginCombo("##talentCreationIconNameCombo", comboPreviewValue))
                     {
