@@ -842,6 +842,7 @@ namespace TTM {
                         loadActiveIcons(uiData, talentTreeCollection, true);
                     }
                     ImGui::Separator();
+                    /*
                     ImGui::Text("Warning: Potentially very long runtime/unstable (beta feature)");
                     if (ImGui::Button("Auto position talents in tree")) {
                         Engine::autoPositionTreeNodes(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
@@ -855,6 +856,7 @@ namespace TTM {
 
                         uiData.treeEditorSelectedTalent = nullptr;
                     }
+                    */
                     if (ImGui::Button("Double talent positions")) {
                         //add talents to vector so that we can sort vector to have bottom right talent first as we begin
                         //to move talents from bottom right to top left so that talent old pos cannot occupy another talent's new pos
