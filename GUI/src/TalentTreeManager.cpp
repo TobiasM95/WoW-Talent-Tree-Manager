@@ -847,6 +847,7 @@ namespace TTM {
 
         std::string settings = "";
         std::string workspace = "";
+        // save settings
         //TTMNOTE: settings can't have ":" char in them, messes with loadWorkspace
         switch (uiData.style) {
         case Presets::STYLES::COMPANY_GREY: {settings += "STYLE=COMPANY_GREY\n"; }break;
@@ -868,6 +869,24 @@ namespace TTM {
         case Presets::FONTSIZE::HUGE: {settings += "FONTSIZE=HUGE\n"; } break;
         default: {settings += "FONTSIZE=DEFAULT\n"; } break;
         }
+        WINDOWPLACEMENT wp = { 0 };
+        wp.length = sizeof(wp);
+        if (GetWindowPlacement(GetActiveWindow(), &wp))
+        {
+            // save wp values somewhere...
+            settings += "WINDOWPLACEMENT="
+                + std::to_string(wp.rcNormalPosition.top)
+                + "," + std::to_string(wp.rcNormalPosition.left)
+                + "," + std::to_string(wp.rcNormalPosition.bottom)
+                + "," + std::to_string(wp.rcNormalPosition.right)
+                + "," + std::to_string(wp.showCmd);
+        }
+        else {
+            auto ec = GetLastError();
+            int i = 0;
+        }
+
+        // save talent tree collection
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
         }
@@ -991,6 +1010,33 @@ namespace TTM {
     void resetWorkspaceAndTrees() {
         std::filesystem::path appPath = Presets::getAppPath();
         std::filesystem::remove_all(appPath);
+    }
+
+    WINDOWPLACEMENT loadWindowPlacement() {
+        WINDOWPLACEMENT wp = { 0 };
+        wp.length = sizeof(wp);
+        wp.showCmd = 1;
+        wp.rcNormalPosition = { 100, 100, 1700, 1000 };
+
+        std::filesystem::path appPath = Presets::getAppPath();
+        bool settingsFileExists = std::filesystem::is_regular_file(appPath / "settings.txt");
+        if (settingsFileExists) {
+            std::ifstream setFile(appPath / "settings.txt");
+            std::string line;
+            while (std::getline(setFile, line)) {
+                if (line.find("WINDOWPLACEMENT=") != std::string::npos) {
+                    std::vector<std::string> wpSaved = Engine::splitString(line.substr(16), ",");
+                    wp.showCmd = static_cast<UINT>(std::stoi(wpSaved[4]));
+                    wp.rcNormalPosition = {
+                        std::stoi(wpSaved[0]),
+                        std::stoi(wpSaved[1]),
+                        std::stoi(wpSaved[2]),
+                        std::stoi(wpSaved[3]),
+                    };
+                }
+            }
+        }
+        return wp;
     }
 
     void useDefaultSettings(UIData& uiData) {
