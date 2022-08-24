@@ -35,6 +35,8 @@
 
 #include "TTMGUIPresets.h"
 
+#define WM_SAVEBEFOREDESTROY (WM_APP + 0)
+
 // Data
 static ID3D11Device* g_pd3dDevice = NULL;
 static ID3D11DeviceContext* g_pd3dDeviceContext = NULL;
@@ -62,6 +64,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
     ::RegisterClassEx(&wc);
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("Talent Tree Manager"), WS_OVERLAPPEDWINDOW, 100, 100, 1600, 900, NULL, NULL, wc.hInstance, NULL);
+    
+    WINDOWPLACEMENT wp = TTM::loadWindowPlacement();
+    SetWindowPlacement(hwnd, &wp);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -72,7 +77,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     }
 
     // Show the window
-    ::ShowWindow(hwnd, SW_SHOWDEFAULT);
+    ::ShowWindow(hwnd, SW_SHOW);
     ::UpdateWindow(hwnd);
 
     // Setup Dear ImGui context
@@ -177,6 +182,10 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         MSG msg;
         while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
         {
+            if (msg.message == WM_SAVEBEFOREDESTROY && !uiData.resetWorkspace) {
+                TTM::saveWorkspace(uiData, talentTreeCollection);
+                ::DefWindowProc(hwnd, WM_CLOSE, 0, 0);
+            }
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
             if (msg.message == WM_QUIT)
@@ -216,10 +225,6 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
         g_pSwapChain->Present(1, 0); // Present with vsync
         //g_pSwapChain->Present(0, 0); // Present without vsync
-    }
-
-    if (!uiData.resetWorkspace) {
-        TTM::saveWorkspace(uiData, talentTreeCollection);
     }
 
     // Cleanup
@@ -318,6 +323,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);
+        return 0;
+    case WM_CLOSE:
+        ::PostMessage(NULL, WM_SAVEBEFOREDESTROY, 0, 0);
         return 0;
     }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
