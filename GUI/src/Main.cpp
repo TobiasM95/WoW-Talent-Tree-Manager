@@ -130,12 +130,13 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     ImGui::SetNextWindowPos(viewport->WorkPos);
     ImGui::SetNextWindowSize(viewport->WorkSize);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
 
     Presets::PUSH_FONT(Presets::FONTSIZE::DEFAULT, 0);
     if (ImGui::Begin("MainWindow", nullptr, ImGuiWindowFlags_NoDecoration))
     {
         ImVec2 contentRegion = ImGui::GetContentRegionAvail();
-        ImGui::Text("Initialize workspace (can take a while on first open)...");
+        ImGui::Text("Initialize workspace (can take a while on first open) and load resources...");
         if (banner_success) {
             ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * banner_width, 0.5f * contentRegion.y - 0.5f * banner_height));
             ImGui::Image(
@@ -148,6 +149,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     }
     ImGui::End();
     ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
     Presets::POP_FONT();
     ImGui::Render();
     const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
@@ -166,8 +168,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     TTM::initWorkspace();
 
     TTM::UIData uiData;
-    TTM::refreshIconList(uiData);
     uiData.g_pd3dDevice = g_pd3dDevice;
+    TTM::refreshIconMap(uiData);
     TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
     talentTreeCollection.presets = Presets::LOAD_PRESETS();
     TTM::loadActiveIcons(uiData, talentTreeCollection, true);

@@ -82,12 +82,12 @@ namespace TTM {
 		//################# GENERAL #####################################
 		int loadedIconTreeIndex = -1;
 		ID3D11Device* g_pd3dDevice;
-		std::filesystem::path defaultIconPath = "resources/icons/default.png";
-		std::map<std::string, std::filesystem::path> iconPathMap;
-		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMap;
-		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMapGrayed;
-		std::map<int, TextureInfo> splitIconIndexMap;
-		std::map<int, TextureInfo> splitIconIndexMapGrayed;
+		//This stores the base texture of the icon as well as its gray counterpart
+		std::map<std::string, std::pair<TextureInfo, TextureInfo>> iconMap;
+		std::map<int, std::pair<TextureInfo*, TextureInfo*>> iconIndexMap;
+		std::map<int, std::pair<TextureInfo*, TextureInfo*>> iconIndexMapGrayed;
+		TextureInfo defaultIcon;
+		TextureInfo defaultIconGray;
 		TextureInfo redIconGlow;
 		TextureInfo greenIconGlow;
 		TextureInfo goldIconGlow;
@@ -119,14 +119,14 @@ namespace TTM {
 		std::vector<std::tuple<Engine::Talent_s, int, int, int>> treeEditorTempReplacedTalents;
 
 		Engine::Talent_s treeEditorCreationTalent = std::make_shared<Engine::Talent>();
-		std::pair<TextureInfo, TextureInfo> treeEditorCreationTalentIcons;
+		std::pair<TextureInfo*, TextureInfo*> treeEditorCreationTalentIcons;
 		std::string treeEditorCreationIconNameFilter;
 		std::vector<int> treeEditorCreationTalentParentsPlaceholder;
 		std::vector<int> treeEditorCreationTalentChildrenPlaceholder;
 
 		bool talentJustSelected = false;
 		Engine::Talent_s treeEditorSelectedTalent = nullptr;
-		std::pair<TextureInfo, TextureInfo> treeEditorSelectedTalentIcons;
+		std::pair<TextureInfo*, TextureInfo*> treeEditorSelectedTalentIcons;
 		std::string treeEditorEditIconNameFilter;
 		std::vector<int> treeEditorSelectedTalentParentsPlaceholder;
 		std::vector<int> treeEditorSelectedTalentChildrenPlaceholder;
@@ -244,11 +244,11 @@ namespace TTM {
 		}
 	};
 
-	void refreshIconList(UIData& uiData);
+	void refreshIconMap(UIData& uiData);
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
-	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
-	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight);
-	TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType = Engine::TalentType::ACTIVE);
+	//void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
+	//void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight);
+	std::pair<TextureInfo, TextureInfo> loadTextureInfoFromFile(UIData& uiData, std::string path);
 
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,

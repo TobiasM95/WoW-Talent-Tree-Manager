@@ -319,7 +319,7 @@ namespace TTM {
 
         //we should also delete the temporary packed file!
         std::filesystem::remove(pathToPackedIcons);
-        refreshIconList(uiData);
+        refreshIconMap(uiData);
     }
 
     void testUpdateIcons(UIData& uiData) {

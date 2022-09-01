@@ -24,10 +24,21 @@
 #include "imgui_internal.h"
 
 namespace TTM {
-    void refreshIconList(UIData& uiData) {
+    void refreshIconMap(UIData& uiData) {
         std::filesystem::path iconRootPath = Presets::getAppPath() / "resources"/ "icons";
         std::filesystem::path customIconPath = Presets::getAppPath() / "resources" / "icons" / "custom";
-        uiData.iconPathMap.clear();
+        for (auto& [filename, textureInfoPair] : uiData.iconMap) {
+            if (textureInfoPair.first.texture) {
+                textureInfoPair.first.texture->Release();
+                textureInfoPair.first.texture = nullptr;
+            }
+            if (textureInfoPair.second.texture) {
+                textureInfoPair.second.texture->Release();
+                textureInfoPair.second.texture = nullptr;
+            }
+        }
+        uiData.iconMap.clear();
+        std::map<std::string, std::filesystem::path> iconPathMap;
         //first iterate through pre-shipped directories and add paths to map while skipping custom dir
         if (!std::filesystem::is_directory(iconRootPath)) {
             return;
@@ -38,7 +49,7 @@ namespace TTM {
                 continue;
             }
             if (entry.path().extension() == ".png") {
-                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
+                iconPathMap[entry.path().filename().string()] = entry.path();
             }
         }
         if (!std::filesystem::is_directory(customIconPath)) {
@@ -46,59 +57,17 @@ namespace TTM {
         }
         for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
             if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
-                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
+                iconPathMap[entry.path().filename().string()] = entry.path();
             }
         }
-    }
+        for (auto& [filename, path] : iconPathMap) {
+            uiData.iconMap[filename] = loadTextureInfoFromFile(uiData, path.string());
+        }
 
-    void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload) {
-        if (talentTreeCollection.activeTreeIndex == -1 || (!forceReload && uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
-            return;
-        }
-        //FREE STUFF HERE
-        //FREE ALL POINTERS!
-        for (auto& indexTexInfoPair : uiData.iconIndexMap) {
-            if (indexTexInfoPair.second.first.texture) {
-                indexTexInfoPair.second.first.texture->Release();
-                indexTexInfoPair.second.first.texture = nullptr;
-            }
-            if (indexTexInfoPair.second.second.texture) {
-                indexTexInfoPair.second.second.texture->Release();
-                indexTexInfoPair.second.second.texture = nullptr;
-            }
-        }
-        for (auto& indexTexInfoPair : uiData.splitIconIndexMap) {
-            if (indexTexInfoPair.second.texture) {
-                indexTexInfoPair.second.texture->Release();
-                indexTexInfoPair.second.texture = nullptr;
-            }
-        }
-        for (auto& indexTexInfoPair : uiData.iconIndexMapGrayed) {
-            if (indexTexInfoPair.second.first.texture) {
-                indexTexInfoPair.second.first.texture->Release();
-                indexTexInfoPair.second.first.texture = nullptr;
-            }
-            if (indexTexInfoPair.second.second.texture) {
-                indexTexInfoPair.second.second.texture->Release();
-                indexTexInfoPair.second.second.texture = nullptr;
-            }
-        }
-        for (auto& indexTexInfoPair : uiData.splitIconIndexMapGrayed) {
-            if (indexTexInfoPair.second.texture) {
-                indexTexInfoPair.second.texture->Release();
-                indexTexInfoPair.second.texture = nullptr;
-            }
-        }
-        uiData.iconIndexMap.clear();
-        uiData.splitIconIndexMap.clear();
-        uiData.iconIndexMapGrayed.clear();
-        uiData.splitIconIndexMapGrayed.clear();
         //load default texture first
         int defaultImageWidth = 0;
         int defaultImageHeight = 0;
-        ID3D11ShaderResourceView* defaultTexture = NULL;
-        ID3D11ShaderResourceView* defaultTextureGray = NULL;
-        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
+        bool defaultSuccess = LoadDefaultTexture(&uiData.defaultIcon.texture, &uiData.defaultIconGray.texture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
         bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
         bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
         bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
@@ -106,20 +75,44 @@ namespace TTM {
         bool purpleGlowSuccess = LoadPurpleIconGlowTexture(&uiData.purpleIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
         if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess && purpleGlowSuccess)) {
             //TTMNOTE: this should not happen anymore
-            throw std::runtime_error("Cannot create default icon!");
+            throw std::runtime_error("Cannot create default icon or icon glows!");
+        }
+    }
+
+    void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload) {
+        if (talentTreeCollection.activeTreeIndex == -1 || (!forceReload && uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
+            return;
+        }
+        uiData.iconIndexMap.clear();
+        uiData.iconIndexMapGrayed.clear();
+
+        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+            std::pair<TextureInfo*, TextureInfo*> talentIconPtrs = { nullptr, nullptr };
+            std::pair<TextureInfo*, TextureInfo*> talentIconGrayedPtrs = { nullptr, nullptr };
+            if (uiData.iconMap.count(talent.second->iconName.first)) {
+                talentIconPtrs.first = &uiData.iconMap[talent.second->iconName.first].first;
+                talentIconGrayedPtrs.first = &uiData.iconMap[talent.second->iconName.first].second;
+            }
+            else {
+                talentIconPtrs.first = &uiData.defaultIcon;
+                talentIconGrayedPtrs.first = &uiData.defaultIconGray;
+            }
+            if (uiData.iconMap.count(talent.second->iconName.second)) {
+                talentIconPtrs.second = &uiData.iconMap[talent.second->iconName.second].first;
+                talentIconGrayedPtrs.second = &uiData.iconMap[talent.second->iconName.second].second;
+            }
+            else {
+                talentIconPtrs.second = &uiData.defaultIcon;
+                talentIconGrayedPtrs.second = &uiData.defaultIconGray;
+            }
+            uiData.iconIndexMap[talent.first] = talentIconPtrs;
+            uiData.iconIndexMapGrayed[talent.first] = talentIconGrayedPtrs;
         }
 
-        //load individual icons or replace with default texture if error
-        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
-            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultTextureGray, defaultImageWidth, defaultImageHeight, true, talent.second->type);
-            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultTextureGray, defaultImageWidth, defaultImageHeight, false, talent.second->type);
-            if (talent.second->type == Engine::TalentType::SWITCH) {
-                loadSplitIcon(uiData, talent.second, defaultTexture, defaultTextureGray, defaultImageWidth, defaultImageHeight);
-            }
-        }
         uiData.loadedIconTreeIndex = talentTreeCollection.activeTreeIndex;
     }
 
+    /*
     void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
         int width = 0;
         int height = 0;
@@ -231,47 +224,44 @@ namespace TTM {
             uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
         }
     }
+    */
 
-    TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType) {
+    std::pair<TextureInfo, TextureInfo> loadTextureInfoFromFile(UIData& uiData, std::string path) {
+        std::pair<TextureInfo, TextureInfo> textureInfoPair;
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
         ID3D11ShaderResourceView* textureGray = NULL;
-        std::string path;
-        if (uiData.iconPathMap.count(iconName)) {
-            path = uiData.iconPathMap[iconName].string();
-        }
-        else {
-            path = uiData.defaultIconPath.string();
-        }
-        bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, talentType);
-        TextureInfo textureInfo;
+        bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
         if (!ret) {
             //load default texture first
             int defaultImageWidth = 0;
             int defaultImageHeight = 0;
             ID3D11ShaderResourceView* defaultTexture = NULL;
             ID3D11ShaderResourceView* defaultTextureGray = NULL;
-            std::string iconPath(uiData.defaultIconPath.string());
-            bool ret = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, talentType);
+            bool ret = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
             if (!ret) {
                 //TTMNOTE: This should not happen anymore
                 throw std::runtime_error("Cannot create default icon!");
             }
-            textureInfo.texture = defaultTexture;
-            textureInfo.width = defaultImageWidth;
-            textureInfo.height = defaultImageHeight;
-            defaultTextureGray->Release();
-            defaultTextureGray = nullptr;
+            textureInfoPair.first.texture = defaultTexture;
+            textureInfoPair.first.width = defaultImageWidth;
+            textureInfoPair.first.height = defaultImageHeight;
+
+            textureInfoPair.second.texture = defaultTextureGray;
+            textureInfoPair.second.width = defaultImageWidth;
+            textureInfoPair.second.height = defaultImageHeight;
         }
         else {
-            textureInfo.texture = texture;
-            textureInfo.width = width;
-            textureInfo.height = height;
+            textureInfoPair.first.texture = texture;
+            textureInfoPair.first.width = width;
+            textureInfoPair.first.height = height;
+
+            textureInfoPair.second.texture = textureGray;
+            textureInfoPair.second.width = width;
+            textureInfoPair.second.height = height;
         }
-        textureGray->Release();
-        textureGray = nullptr;
-        return textureInfo;
+        return textureInfoPair;
     }
 
     void drawArrowBetweenTalents(
