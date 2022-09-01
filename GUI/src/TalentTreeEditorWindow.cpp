@@ -42,7 +42,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -78,7 +78,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -102,7 +102,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).second.texture,
+                        uiData.iconIndexMap.at(talent->index).second->texture,
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -259,19 +259,15 @@ namespace TTM {
                     const char* iconNameComboPreviewValue = uiData.treeEditorCreationTalent->iconName.first.c_str();
                     if (ImGui::BeginCombo("##talentCreationIconNameCombo", iconNameComboPreviewValue))
                     {
-                        for (auto& iconNamePathPair : uiData.iconPathMap)
+                        for (auto& iconNameTexturePair : uiData.iconMap)
                         {
-                            if (uiData.treeEditorCreationIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorCreationIconNameFilter)) == std::string::npos) {
+                            if (uiData.treeEditorCreationIconNameFilter != "" && Engine::simplifyString(iconNameTexturePair.first).find(Engine::simplifyString(uiData.treeEditorCreationIconNameFilter)) == std::string::npos) {
                                 continue;
                             }
-                            const bool is_selected = (iconNameComboPreviewValue == iconNamePathPair.first);
-                            if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
-                                uiData.treeEditorCreationTalent->iconName.first = iconNamePathPair.first;
-                                if (uiData.treeEditorCreationTalentIcons.first.texture) {
-                                    uiData.treeEditorCreationTalentIcons.first.texture->Release();
-                                    uiData.treeEditorCreationTalentIcons.first.texture = nullptr;
-                                }
-                                uiData.treeEditorCreationTalentIcons.first = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
+                            const bool is_selected = (iconNameComboPreviewValue == iconNameTexturePair.first);
+                            if (ImGui::Selectable(iconNameTexturePair.first.c_str(), is_selected)) {
+                                uiData.treeEditorCreationTalent->iconName.first = iconNameTexturePair.first;
+                                uiData.treeEditorCreationTalentIcons.first = &uiData.iconMap[iconNameTexturePair.first].first;
                             }
 
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -280,11 +276,11 @@ namespace TTM {
                         }
                         ImGui::EndCombo();
                     }
-                    if(uiData.treeEditorCreationTalentIcons.first.texture){
-                        ImGui::Image(uiData.treeEditorCreationTalentIcons.first.texture, ImVec2(40, 40));
+                    if(uiData.treeEditorCreationTalentIcons.first->texture){
+                        ImGui::Image(uiData.treeEditorCreationTalentIcons.first->texture, ImVec2(40, 40));
                     }
                     else {
-                        uiData.treeEditorCreationTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.first);
+                        uiData.treeEditorCreationTalentIcons.first = &uiData.defaultIcon;
                     }
 
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
@@ -292,19 +288,15 @@ namespace TTM {
                     const char* iconNameSwitchComboPreviewValue = uiData.treeEditorCreationTalent->iconName.second.c_str();
                     if (ImGui::BeginCombo("##talentCreationIconNameSwitchCombo", iconNameSwitchComboPreviewValue))
                     {
-                        for (auto& iconNamePathPair : uiData.iconPathMap)
+                        for (auto& iconNameTexturePair : uiData.iconMap)
                         {
-                            if (uiData.treeEditorCreationIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorCreationIconNameFilter)) == std::string::npos) {
+                            if (uiData.treeEditorCreationIconNameFilter != "" && Engine::simplifyString(iconNameTexturePair.first).find(Engine::simplifyString(uiData.treeEditorCreationIconNameFilter)) == std::string::npos) {
                                 continue;
                             }
-                            const bool is_selected = (iconNameSwitchComboPreviewValue == iconNamePathPair.first);
-                            if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
-                                uiData.treeEditorCreationTalent->iconName.second = iconNamePathPair.first;
-                                if (uiData.treeEditorCreationTalentIcons.second.texture) {
-                                    uiData.treeEditorCreationTalentIcons.second.texture->Release();
-                                    uiData.treeEditorCreationTalentIcons.second.texture = nullptr;
-                                }
-                                uiData.treeEditorCreationTalentIcons.second = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
+                            const bool is_selected = (iconNameSwitchComboPreviewValue == iconNameTexturePair.first);
+                            if (ImGui::Selectable(iconNameTexturePair.first.c_str(), is_selected)) {
+                                uiData.treeEditorCreationTalent->iconName.second = iconNameTexturePair.first;
+                                uiData.treeEditorCreationTalentIcons.second = &uiData.iconMap[iconNameTexturePair.first].first;
                             }
 
                             // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -314,11 +306,11 @@ namespace TTM {
                         ImGui::EndCombo();
                     }
                     if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH) {
-                        if (uiData.treeEditorCreationTalentIcons.second.texture) {
-                            ImGui::Image(uiData.treeEditorCreationTalentIcons.second.texture, ImVec2(40, 40));
+                        if (uiData.treeEditorCreationTalentIcons.second->texture) {
+                            ImGui::Image(uiData.treeEditorCreationTalentIcons.second->texture, ImVec2(40, 40));
                         }
                         else {
-                            uiData.treeEditorCreationTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.second);
+                            uiData.treeEditorCreationTalentIcons.second = &uiData.defaultIcon;
                         }
                     }
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
@@ -443,19 +435,15 @@ namespace TTM {
                         const char* iconNameComboPreviewValue = uiData.treeEditorSelectedTalent->iconName.first.c_str();
                         if (ImGui::BeginCombo("##talentEditIconNameCombo", iconNameComboPreviewValue))
                         {
-                            for (auto& iconNamePathPair : uiData.iconPathMap)
+                            for (auto& iconNameTexturePair : uiData.iconMap)
                             {
-                                if (uiData.treeEditorEditIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorEditIconNameFilter)) == std::string::npos) {
+                                if (uiData.treeEditorEditIconNameFilter != "" && Engine::simplifyString(iconNameTexturePair.first).find(Engine::simplifyString(uiData.treeEditorEditIconNameFilter)) == std::string::npos) {
                                     continue;
                                 }
-                                const bool is_selected = (iconNameComboPreviewValue == iconNamePathPair.first);
-                                if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
-                                    uiData.treeEditorSelectedTalent->iconName.first = iconNamePathPair.first;
-                                    if (uiData.treeEditorSelectedTalentIcons.first.texture) {
-                                        uiData.treeEditorSelectedTalentIcons.first.texture->Release();
-                                        uiData.treeEditorSelectedTalentIcons.first.texture = nullptr;
-                                    }
-                                    uiData.treeEditorSelectedTalentIcons.first = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
+                                const bool is_selected = (iconNameComboPreviewValue == iconNameTexturePair.first);
+                                if (ImGui::Selectable(iconNameTexturePair.first.c_str(), is_selected)) {
+                                    uiData.treeEditorSelectedTalent->iconName.first = iconNameTexturePair.first;
+                                    uiData.treeEditorSelectedTalentIcons.first = &uiData.iconMap[iconNameTexturePair.first].first;
                                 }
 
                                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -464,11 +452,11 @@ namespace TTM {
                             }
                             ImGui::EndCombo();
                         }
-                        if (uiData.treeEditorSelectedTalentIcons.first.texture) {
-                            ImGui::Image(uiData.treeEditorSelectedTalentIcons.first.texture, ImVec2(40, 40));
+                        if (uiData.treeEditorSelectedTalentIcons.first->texture) {
+                            ImGui::Image(uiData.treeEditorSelectedTalentIcons.first->texture, ImVec2(40, 40));
                         }
                         else {
-                            uiData.treeEditorSelectedTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.first);
+                            uiData.treeEditorSelectedTalentIcons.first = &uiData.defaultIcon;
                         }
 
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
@@ -476,19 +464,15 @@ namespace TTM {
                         const char* iconNameSwitchComboPreviewValue = uiData.treeEditorSelectedTalent->iconName.second.c_str();
                         if (ImGui::BeginCombo("##talentEditIconNameSwitchCombo", iconNameSwitchComboPreviewValue))
                         {
-                            for (auto& iconNamePathPair : uiData.iconPathMap)
+                            for (auto& iconNameTexturePair : uiData.iconMap)
                             {
-                                if (uiData.treeEditorEditIconNameFilter != "" && Engine::simplifyString(iconNamePathPair.first).find(Engine::simplifyString(uiData.treeEditorEditIconNameFilter)) == std::string::npos) {
+                                if (uiData.treeEditorEditIconNameFilter != "" && Engine::simplifyString(iconNameTexturePair.first).find(Engine::simplifyString(uiData.treeEditorEditIconNameFilter)) == std::string::npos) {
                                     continue;
                                 }
-                                const bool is_selected = (iconNameSwitchComboPreviewValue == iconNamePathPair.first);
-                                if (ImGui::Selectable(iconNamePathPair.first.c_str(), is_selected)) {
-                                    uiData.treeEditorSelectedTalent->iconName.second = iconNamePathPair.first;
-                                    if (uiData.treeEditorSelectedTalentIcons.second.texture) {
-                                        uiData.treeEditorSelectedTalentIcons.second.texture->Release();
-                                        uiData.treeEditorSelectedTalentIcons.second.texture = nullptr;
-                                    }
-                                    uiData.treeEditorSelectedTalentIcons.second = loadTextureInfoFromFile(uiData, iconNamePathPair.first);
+                                const bool is_selected = (iconNameSwitchComboPreviewValue == iconNameTexturePair.first);
+                                if (ImGui::Selectable(iconNameTexturePair.first.c_str(), is_selected)) {
+                                    uiData.treeEditorSelectedTalent->iconName.second = iconNameTexturePair.first;
+                                    uiData.treeEditorSelectedTalentIcons.second = &uiData.iconMap[iconNameTexturePair.first].first;
                                 }
 
                                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -498,11 +482,11 @@ namespace TTM {
                             ImGui::EndCombo();
                         }
                         if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH) {
-                            if (uiData.treeEditorSelectedTalentIcons.second.texture) {
-                                ImGui::Image(uiData.treeEditorSelectedTalentIcons.second.texture, ImVec2(40, 40));
+                            if (uiData.treeEditorSelectedTalentIcons.second->texture) {
+                                ImGui::Image(uiData.treeEditorSelectedTalentIcons.second->texture, ImVec2(40, 40));
                             }
                             else {
-                                uiData.treeEditorSelectedTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.second);
+                                uiData.treeEditorSelectedTalentIcons.second = &uiData.defaultIcon;
                             }
                         }
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
@@ -944,7 +928,7 @@ namespace TTM {
                     }
                     if (ImGui::Button("Auto insert icon names")) {
                         std::vector<std::string> iconNames;
-                        for (std::map<std::string, std::filesystem::path>::iterator it = uiData.iconPathMap.begin(); it != uiData.iconPathMap.end(); ++it) {
+                        for (auto it = uiData.iconMap.begin(); it != uiData.iconMap.end(); ++it) {
                             iconNames.push_back(it->first);
                         }
                         Engine::autoInsertIconNames(iconNames, talentTreeCollection.activeTree());
@@ -1459,10 +1443,6 @@ namespace TTM {
         if (uiData.treeEditorCreationTalent->parents.size() == 0)
             talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.talentRoots.push_back(uiData.treeEditorCreationTalent);
         uiData.treeEditorCreationTalent->index = talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.maxID;
-        //call updateNodeCountAndMaxTalentPointsAndMaxID and updateOrderedTalentList
-        Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
-        Engine::updateOrderedTalentList(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree);
-        Engine::updateRequirementSeparatorInfo(talentTreeCollection.activeTree());
 
         talentTreeCollection.activeTree().presetName = "custom";
         Engine::updateNodeCountAndMaxTalentPointsAndMaxID(talentTreeCollection.activeTree());
@@ -1477,17 +1457,9 @@ namespace TTM {
         uiData.treeEditorCreationTalentParentsPlaceholder.clear();
         uiData.treeEditorCreationTalentChildrenPlaceholder.clear();
 
-        if (uiData.treeEditorCreationTalentIcons.first.texture) {
-            uiData.treeEditorCreationTalentIcons.first.texture->Release();
-            uiData.treeEditorCreationTalentIcons.first.texture = nullptr;
-        }
-        uiData.treeEditorCreationTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.first);
+        uiData.treeEditorCreationTalentIcons.first = &uiData.defaultIcon;
 
-        if (uiData.treeEditorCreationTalentIcons.second.texture) {
-            uiData.treeEditorCreationTalentIcons.second.texture->Release();
-            uiData.treeEditorCreationTalentIcons.second.texture = nullptr;
-        }
-        uiData.treeEditorCreationTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorCreationTalent->iconName.second);
+        uiData.treeEditorCreationTalentIcons.second = &uiData.defaultIcon;
     }
 
     void validateTalentUpdate(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::map<int, Engine::Talent_s> comboIndexTalentMap) {
@@ -1858,14 +1830,15 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID(std::to_string(talent.second->index).c_str());
-            TextureInfo iconContent;
+            TextureInfo* iconContent;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                iconContent = uiData.splitIconIndexMap[talent.second->index];
+                //iconContent = uiData.splitIconIndexMap[talent.second->index];
+                iconContent = &uiData.defaultIcon;
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;
             }
-            if (ImGui::ImageButton(iconContent.texture,
+            if (ImGui::ImageButton(iconContent->texture,
                 ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
             )) {
                 //Quick parent/child connection edit
@@ -2020,17 +1993,9 @@ namespace TTM {
                 uiData.treeEditorSelectedTalentChildrenPlaceholder.push_back(comboIndexTalentMap[child]);
         }
 
-        if (uiData.treeEditorSelectedTalentIcons.first.texture) {
-            uiData.treeEditorSelectedTalentIcons.first.texture->Release();
-            uiData.treeEditorSelectedTalentIcons.first.texture = nullptr;
-        }
-        uiData.treeEditorSelectedTalentIcons.first = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.first);
+        uiData.treeEditorSelectedTalentIcons.first = &uiData.defaultIcon;
 
-        if (uiData.treeEditorSelectedTalentIcons.second.texture) {
-            uiData.treeEditorSelectedTalentIcons.second.texture->Release();
-            uiData.treeEditorSelectedTalentIcons.second.texture = nullptr;
-        }
-        uiData.treeEditorSelectedTalentIcons.second = loadTextureInfoFromFile(uiData, uiData.treeEditorSelectedTalent->iconName.second);
+        uiData.treeEditorSelectedTalentIcons.second = &uiData.defaultIcon;
     }
 
     void repositionTalent(

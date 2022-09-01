@@ -39,7 +39,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -82,7 +82,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -111,7 +111,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).second.texture, 
+                        uiData.iconIndexMap.at(talent->index).second->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -543,14 +543,15 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->index)).c_str());
-            TextureInfo iconContent;
+            TextureInfo* iconContent;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                iconContent = uiData.splitIconIndexMap[talent.second->index];
+                //iconContent = uiData.splitIconIndexMap[talent.second->index];
+                iconContent = &uiData.defaultIcon;
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;
             }
-            if (ImGui::ImageButton(iconContent.texture,
+            if (ImGui::ImageButton(iconContent->texture,
                 ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
             )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;

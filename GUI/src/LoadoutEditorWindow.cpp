@@ -35,7 +35,7 @@ namespace TTM {
                 Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture,
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -69,13 +69,13 @@ namespace TTM {
                     if (uiData.iconIndexMap.count(talent->index)) {
                         if (talent->talentSwitch == 1) {
                             ImGui::Image(
-                                uiData.iconIndexMap.at(talent->index).first.texture, 
+                                uiData.iconIndexMap.at(talent->index).first->texture, 
                                 ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                             );
                         }
                         else if (talent->talentSwitch == 2) {
                             ImGui::Image(
-                                uiData.iconIndexMap.at(talent->index).second.texture, 
+                                uiData.iconIndexMap.at(talent->index).second->texture, 
                                 ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                             );
                         }
@@ -103,7 +103,7 @@ namespace TTM {
                     Presets::POP_FONT();
                     if (uiData.iconIndexMap.count(talent->index)) {
                         ImGui::Image(
-                            uiData.iconIndexMap.at(talent->index).first.texture, 
+                            uiData.iconIndexMap.at(talent->index).first->texture, 
                             ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                         );
                     }
@@ -128,7 +128,7 @@ namespace TTM {
                     Presets::POP_FONT();
                     if (uiData.iconIndexMap.count(talent->index)) {
                         ImGui::Image(
-                            uiData.iconIndexMap.at(talent->index).second.texture, 
+                            uiData.iconIndexMap.at(talent->index).second->texture,
                             ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                         );
                     }
@@ -499,7 +499,7 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
-            TextureInfo iconContent;
+            TextureInfo* iconContent;
             if (talent.second->type == Engine::TalentType::SWITCH) {
                 if (talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
                     if (talent.second->talentSwitch == 2) {
@@ -510,7 +510,8 @@ namespace TTM {
                     }
                 }
                 else {
-                    iconContent = uiData.splitIconIndexMapGrayed[talent.second->index];
+                    //iconContent = uiData.splitIconIndexMapGrayed[talent.second->index];
+                    iconContent = &uiData.defaultIcon;
                 }
             }
             else {
@@ -521,7 +522,7 @@ namespace TTM {
                     iconContent = uiData.iconIndexMapGrayed[talent.second->index].first;
                 }
             }
-            if (ImGui::ImageButton(iconContent.texture,
+            if (ImGui::ImageButton(iconContent->texture,
                 ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
             )) {
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {

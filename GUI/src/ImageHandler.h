@@ -38,6 +38,10 @@ namespace TTM {
 	bool LoadGoldIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadBlueIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadPurpleIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
+	bool LoadIconMaskTexture(
+		ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice,
+		Engine::TalentType talentType,
+		float r, float g, float b);
 	bool LoadSplitTextureFromFile(
 		const char* filename1, 
 		const char* filename2, 
