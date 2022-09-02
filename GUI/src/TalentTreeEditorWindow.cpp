@@ -252,7 +252,8 @@ namespace TTM {
 
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
                     ImGui::Text("Name (switch):");
-                    ImGui::InputText("##talentCreationNameSwitchInput", &uiData.treeEditorCreationTalent->nameSwitch, ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::InputText("##talentCreationNameSwitchInput", &uiData.treeEditorCreationTalent->nameSwitch,
+                        ImGuiInputTextFlags_CallbackCharFilter, TextFilters::FilterNameLetters);
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
 
                     ImGui::Text("Icon name:");
@@ -276,11 +277,12 @@ namespace TTM {
                         }
                         ImGui::EndCombo();
                     }
-                    if(uiData.treeEditorCreationTalentIcons.first->texture){
+                    if(uiData.treeEditorCreationTalentIcons.first && uiData.treeEditorCreationTalentIcons.first->texture){
                         ImGui::Image(uiData.treeEditorCreationTalentIcons.first->texture, ImVec2(40, 40));
                     }
                     else {
                         uiData.treeEditorCreationTalentIcons.first = &uiData.defaultIcon;
+                        ImGui::Image(uiData.treeEditorCreationTalentIcons.first->texture, ImVec2(40, 40));
                     }
 
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
@@ -306,11 +308,12 @@ namespace TTM {
                         ImGui::EndCombo();
                     }
                     if (uiData.treeEditorCreationTalent->type == Engine::TalentType::SWITCH) {
-                        if (uiData.treeEditorCreationTalentIcons.second->texture) {
+                        if (uiData.treeEditorCreationTalentIcons.second && uiData.treeEditorCreationTalentIcons.second->texture) {
                             ImGui::Image(uiData.treeEditorCreationTalentIcons.second->texture, ImVec2(40, 40));
                         }
                         else {
                             uiData.treeEditorCreationTalentIcons.second = &uiData.defaultIcon;
+                            ImGui::Image(uiData.treeEditorCreationTalentIcons.second->texture, ImVec2(40, 40));
                         }
                     }
                     if (uiData.treeEditorCreationTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
@@ -452,11 +455,12 @@ namespace TTM {
                             }
                             ImGui::EndCombo();
                         }
-                        if (uiData.treeEditorSelectedTalentIcons.first->texture) {
+                        if (uiData.treeEditorSelectedTalentIcons.first && uiData.treeEditorSelectedTalentIcons.first->texture) {
                             ImGui::Image(uiData.treeEditorSelectedTalentIcons.first->texture, ImVec2(40, 40));
                         }
                         else {
                             uiData.treeEditorSelectedTalentIcons.first = &uiData.defaultIcon;
+                            ImGui::Image(uiData.treeEditorSelectedTalentIcons.first->texture, ImVec2(40, 40));
                         }
 
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::BeginDisabled();
@@ -482,11 +486,12 @@ namespace TTM {
                             ImGui::EndCombo();
                         }
                         if (uiData.treeEditorSelectedTalent->type == Engine::TalentType::SWITCH) {
-                            if (uiData.treeEditorSelectedTalentIcons.second->texture) {
+                            if (uiData.treeEditorSelectedTalentIcons.second && uiData.treeEditorSelectedTalentIcons.second->texture) {
                                 ImGui::Image(uiData.treeEditorSelectedTalentIcons.second->texture, ImVec2(40, 40));
                             }
                             else {
                                 uiData.treeEditorSelectedTalentIcons.second = &uiData.defaultIcon;
+                                ImGui::Image(uiData.treeEditorSelectedTalentIcons.second->texture, ImVec2(40, 40));
                             }
                         }
                         if (uiData.treeEditorSelectedTalent->type != Engine::TalentType::SWITCH) ImGui::EndDisabled();
@@ -1830,16 +1835,17 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID(std::to_string(talent.second->index).c_str());
-            TextureInfo* iconContent;
+            TextureInfo* iconContent = nullptr;
+            TextureInfo* iconContentChoice = nullptr;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                //iconContent = uiData.splitIconIndexMap[talent.second->index];
-                iconContent = &uiData.defaultIcon;
+                iconContent = uiData.iconIndexMap[talent.second->index].first;
+                iconContentChoice = uiData.iconIndexMap[talent.second->index].second;
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;
             }
-            if (ImGui::ImageButton(iconContent->texture,
-                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
+            if (ImGui::InvisibleButton(("##invisTalentButton" + std::to_string(talent.first)).c_str(),
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize))
             )) {
                 //Quick parent/child connection edit
                 if (ImGui::IsKeyDown(ImGuiKey_LeftAlt) && uiData.treeEditorSelectedTalent != nullptr) {
@@ -1886,6 +1892,34 @@ namespace TTM {
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            if (talent.second->type != Engine::TalentType::SWITCH) {
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+                );
+            }
+            else {
+                float separatorWidth = 0.05f;
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2((1.0f - separatorWidth) / 2.0f, 1)
+                );
+
+                ImGui::SetCursorPos(ImVec2(posX + talentSize * (1.0f + separatorWidth) / 2.0f, posY));
+                ImGui::Image(
+                    iconContentChoice->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2((1.0f + separatorWidth) / 2.0f, 0), ImVec2(1, 1)
+                );
+            }
+
+            ImGui::SetCursorPos(ImVec2(posX, posY));
+            ImGui::Image(
+                uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+            );
+
             drawTreeEditorShapeAroundTalent(
                 talent.second,
                 drawList,
@@ -1993,9 +2027,9 @@ namespace TTM {
                 uiData.treeEditorSelectedTalentChildrenPlaceholder.push_back(comboIndexTalentMap[child]);
         }
 
-        uiData.treeEditorSelectedTalentIcons.first = &uiData.defaultIcon;
+        uiData.treeEditorSelectedTalentIcons.first = &uiData.iconMap[talent.second->iconName.first].first;
 
-        uiData.treeEditorSelectedTalentIcons.second = &uiData.defaultIcon;
+        uiData.treeEditorSelectedTalentIcons.second = &uiData.iconMap[talent.second->iconName.second].first;
     }
 
     void repositionTalent(

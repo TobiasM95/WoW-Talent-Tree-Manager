@@ -10,7 +10,10 @@ namespace Presets {
     };
 
     enum class STYLES {
-        COMPANY_GREY, PATH_OF_TALENT_TREE, LIGHT_MODE
+        COMPANY_GREY = 0, 
+        PATH_OF_TALENT_TREE = 1, 
+        LIGHT_MODE = 2,
+        STYLE_COUNT = 3
     };
 
     const ImVec4 TALENT_SELECTED_BORDER_COLOR = ImVec4(0.85f, 0.15f, 0.15f, 1.0f);

@@ -16,7 +16,9 @@ namespace Engine {
 
     // Switch talents can select/switch between 2 talents in the same slot
     enum class TalentType {
-        ACTIVE, PASSIVE, SWITCH
+        ACTIVE = 0, 
+        PASSIVE = 1, 
+        SWITCH = 2
     };
 
     enum class TreeType {

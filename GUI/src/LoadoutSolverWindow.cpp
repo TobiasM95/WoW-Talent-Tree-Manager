@@ -543,16 +543,17 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->index)).c_str());
-            TextureInfo* iconContent;
+            TextureInfo* iconContent = nullptr;
+            TextureInfo* iconContentChoice = nullptr;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                //iconContent = uiData.splitIconIndexMap[talent.second->index];
-                iconContent = &uiData.defaultIcon;
+                iconContent = uiData.iconIndexMap[talent.second->index].first;
+                iconContentChoice = uiData.iconIndexMap[talent.second->index].second;
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;
             }
-            if (ImGui::ImageButton(iconContent->texture,
-                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
+            if (ImGui::InvisibleButton(("##invisTalentButton" + std::to_string(talent.first)).c_str(),
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize))
             )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
@@ -568,6 +569,33 @@ namespace TTM {
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            if (talent.second->type != Engine::TalentType::SWITCH) {
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+                );
+            }
+            else {
+                float separatorWidth = 0.05f;
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2((1.0f - separatorWidth) / 2.0f, 1)
+                );
+
+                ImGui::SetCursorPos(ImVec2(posX + talentSize * (1.0f + separatorWidth) / 2.0f, posY));
+                ImGui::Image(
+                    iconContentChoice->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2((1.0f + separatorWidth) / 2.0f, 0), ImVec2(1, 1)
+                );
+            }
+
+            ImGui::SetCursorPos(ImVec2(posX, posY));
+            ImGui::Image(
+                uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+            );
             drawLoadoutSolverShapeAroundTalent(
                 talent.second,
                 drawList,

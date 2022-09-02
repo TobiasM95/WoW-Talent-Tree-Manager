@@ -499,7 +499,8 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
-            TextureInfo* iconContent;
+            TextureInfo* iconContent = nullptr;
+            TextureInfo* iconContentChoice = nullptr;
             if (talent.second->type == Engine::TalentType::SWITCH) {
                 if (talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
                     if (talent.second->talentSwitch == 2) {
@@ -510,8 +511,8 @@ namespace TTM {
                     }
                 }
                 else {
-                    //iconContent = uiData.splitIconIndexMapGrayed[talent.second->index];
-                    iconContent = &uiData.defaultIcon;
+                    iconContent = uiData.iconIndexMapGrayed[talent.second->index].first;
+                    iconContentChoice = uiData.iconIndexMapGrayed[talent.second->index].second;
                 }
             }
             else {
@@ -522,9 +523,8 @@ namespace TTM {
                     iconContent = uiData.iconIndexMapGrayed[talent.second->index].first;
                 }
             }
-            if (ImGui::ImageButton(iconContent->texture,
-                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
-            )) {
+            if (ImGui::InvisibleButton(("##invisTalentButton" + std::to_string(talent.first)).c_str(),
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)))) {
                 if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) {
                     if (talent.second->type == Engine::TalentType::SWITCH) {
                         talent.second->talentSwitch = talent.second->talentSwitch < 2 ? 2 : 1;
@@ -555,6 +555,43 @@ namespace TTM {
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            if (talent.second->type != Engine::TalentType::SWITCH || talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+                );
+            }
+            else {
+                float separatorWidth = 0.05f;
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2((1.0f - separatorWidth) / 2.0f, 1)
+                );
+
+                ImGui::SetCursorPos(ImVec2(posX + talentSize * (1.0f + separatorWidth) / 2.0f, posY));
+                ImGui::Image(
+                    iconContentChoice->texture,
+                    ImVec2(talentSize* (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2((1.0f + separatorWidth) / 2.0f, 0), ImVec2(1, 1)
+                );
+            }
+
+            //mask has to be displayed without alpha
+            ImGui::SetCursorPos(ImVec2(posX, posY));
+            if (talentDisabled) {
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
+                ImGui::EndDisabled();
+            }
+            ImGui::Image(
+                uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+            );
+            if (talentDisabled) {
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.20f;
+                ImGui::BeginDisabled();
+            }
+
             drawLoadoutEditorShapeAroundTalent(
                 talent.second, 
                 drawList,
