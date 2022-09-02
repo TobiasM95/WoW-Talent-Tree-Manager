@@ -1999,8 +1999,9 @@ namespace Engine {
                 skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
             }
 
-            if (skillsetParts.size() - 1 != tree.orderedTalents.size())
-                continue;
+            if (skillsetParts.size() - 1 != tree.orderedTalents.size()) {
+                importedSkillsets.second += 1;
+            }
 
             int index = 1;
             std::map<int, Talent_s>::iterator it;
@@ -2015,6 +2016,9 @@ namespace Engine {
             if (validateSkillset(tree, skillset)) {
                 tree.loadout.push_back(skillset);
                 importedSkillsets.first += 1;
+            }
+            else {
+                importedSkillsets.second += 1;
             }
         }
         tree.activeSkillsetIndex = static_cast<int>(tree.loadout.size() - 1);
