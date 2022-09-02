@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 
+#include <array>
 #include <tuple>
 #include <vector>
 #include <memory>
@@ -93,6 +94,8 @@ namespace TTM {
 		TextureInfo goldIconGlow;
 		TextureInfo blueIconGlow;
 		TextureInfo purpleIconGlow;
+		//contains 3 masks for each style (ACTIVE, PASSIVE, CHOICE) with the respective window background color
+		std::array <std::array<TextureInfo, 3>, static_cast<int>(Presets::STYLES::STYLE_COUNT) > talentIconMasks;
 		bool enableGlow = true;
 
 		Presets::FONTSIZE fontsize = Presets::FONTSIZE::DEFAULT;

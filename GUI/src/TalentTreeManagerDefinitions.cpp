@@ -73,6 +73,35 @@ namespace TTM {
         bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
         bool blueGlowSuccess = LoadBlueIconGlowTexture(&uiData.blueIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
         bool purpleGlowSuccess = LoadPurpleIconGlowTexture(&uiData.purpleIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
+        for (int talentType = 0; talentType < 3; talentType++) {
+            bool maskSuccess = true;
+            int maskWidth = 0;
+            int maskHeight = 0;
+            //load company grey mask
+            maskSuccess = LoadIconMaskTexture(
+                &uiData.talentIconMasks[static_cast<int>(Presets::STYLES::COMPANY_GREY)][talentType].texture,
+                &maskWidth,
+                &maskHeight,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.25f, 0.25f, 0.25f);
+            //load path of talent tree mask
+            maskSuccess = LoadIconMaskTexture(
+                &uiData.talentIconMasks[static_cast<int>(Presets::STYLES::PATH_OF_TALENT_TREE)][talentType].texture,
+                &maskWidth,
+                &maskHeight,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.0f, 0.0f, 0.0f);
+            //load light mode mask
+            maskSuccess = LoadIconMaskTexture(
+                &uiData.talentIconMasks[static_cast<int>(Presets::STYLES::LIGHT_MODE)][talentType].texture,
+                &maskWidth,
+                &maskHeight,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.9412f, 0.9412f, 0.9412f);
+        }
         if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess && purpleGlowSuccess)) {
             //TTMNOTE: this should not happen anymore
             throw std::runtime_error("Cannot create default icon or icon glows!");

@@ -312,7 +312,6 @@ namespace TTM {
 
     bool LoadRedIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
     {
-        // Load from disk into a raw RGBA buffer
         int image_width = RED_ICON_GLOW_SIZE_W;
         int image_height = RED_ICON_GLOW_SIZE_H;
         unsigned char* image_data = (unsigned char*)malloc(4 * image_width * image_height);
@@ -363,7 +362,6 @@ namespace TTM {
 
     bool LoadGreenIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
     {
-        // Load from disk into a raw RGBA buffer
         int image_width = GREEN_ICON_GLOW_SIZE_W;
         int image_height = GREEN_ICON_GLOW_SIZE_H;
         unsigned char* image_data = (unsigned char*)malloc(4 * image_width * image_height);
@@ -414,7 +412,6 @@ namespace TTM {
 
     bool LoadGoldIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
     {
-        // Load from disk into a raw RGBA buffer
         int image_width = GOLD_ICON_GLOW_SIZE_W;
         int image_height = GOLD_ICON_GLOW_SIZE_H;
         unsigned char* image_data = (unsigned char*)malloc(4 * image_width * image_height);
@@ -465,7 +462,6 @@ namespace TTM {
 
     bool LoadBlueIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
     {
-        // Load from disk into a raw RGBA buffer
         int image_width = BLUE_ICON_GLOW_SIZE_W;
         int image_height = BLUE_ICON_GLOW_SIZE_H;
         unsigned char* image_data = (unsigned char*)malloc(4 * image_width * image_height);
@@ -516,7 +512,6 @@ namespace TTM {
 
     bool LoadPurpleIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice)
     {
-        // Load from disk into a raw RGBA buffer
         int image_width = PURPLE_ICON_GLOW_SIZE_W;
         int image_height = PURPLE_ICON_GLOW_SIZE_H;
         unsigned char* image_data = (unsigned char*)malloc(4 * image_width * image_height);
@@ -524,6 +519,71 @@ namespace TTM {
             return false;
         for (int i = 0; i < 4 * image_width * image_height; i++) {
             *(image_data + i) = *(PURPLE_ICON_GLOW_DATA + i);
+        }
+
+        // Create texture
+        D3D11_TEXTURE2D_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Width = image_width;
+        desc.Height = image_height;
+        desc.MipLevels = 1;
+        desc.ArraySize = 1;
+        desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        desc.SampleDesc.Count = 1;
+        desc.Usage = D3D11_USAGE_DEFAULT;
+        desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        desc.CPUAccessFlags = 0;
+
+        ID3D11Texture2D* pTexture = NULL;
+        D3D11_SUBRESOURCE_DATA subResource;
+        subResource.pSysMem = image_data;
+        subResource.SysMemPitch = desc.Width * 4;
+        subResource.SysMemSlicePitch = 0;
+        g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+        if (pTexture == NULL)
+            return false;
+
+        // Create texture view
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+        ZeroMemory(&srvDesc, sizeof(srvDesc));
+        srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MipLevels = desc.MipLevels;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, out_srv);
+        pTexture->Release();
+
+        *out_width = image_width;
+        *out_height = image_height;
+        stbi_image_free(image_data);
+
+        return true;
+    }
+
+    bool LoadIconMaskTexture(
+        ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice,
+        Engine::TalentType talentType,
+        float r, float g, float b) {
+        int image_width = ACTIVE_TALENT_MASK_SIZE_W;
+        int image_height = ACTIVE_TALENT_MASK_SIZE_H;
+        unsigned char* image_data = (unsigned char*)malloc(4 * image_width * image_height);
+        if (image_data == NULL)
+            return false;
+        const unsigned char (*TALENT_MASK_DATA_PTR)[6400] = NULL;
+        switch (talentType) {
+        case Engine::TalentType::ACTIVE: {TALENT_MASK_DATA_PTR = &ACTIVE_TALENT_MASK_DATA; }break;
+        case Engine::TalentType::PASSIVE: {TALENT_MASK_DATA_PTR = &PASSIVE_TALENT_MASK_DATA; }break;
+        case Engine::TalentType::SWITCH: {TALENT_MASK_DATA_PTR = &SWITCH_TALENT_MASK_DATA; }break;
+        default: {TALENT_MASK_DATA_PTR = &ACTIVE_TALENT_MASK_DATA; }break;
+        }
+        const unsigned char rc = static_cast<unsigned char>(r * 255.0f);
+        const unsigned char gc = static_cast<unsigned char>(g * 255.0f);
+        const unsigned char bc = static_cast<unsigned char>(b * 255.0f);
+        for (int i = 0; i < image_width * image_height; i++) {
+            *(image_data + 4 * i + 0) = rc;
+            *(image_data + 4 * i + 1) = gc;
+            *(image_data + 4 * i + 2) = bc;
+            *(image_data + 4 * i + 3) = 255 - *(*TALENT_MASK_DATA_PTR + 4 * i + 3);
         }
 
         // Create texture
