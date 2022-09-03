@@ -16,7 +16,7 @@ namespace TTM {
 	void RenderWorkArea(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void RenderTalentTreeTabs(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void RenderTreeViewTabs(UIData& uiData, TalentTreeCollection& talentTreeCollection);
-	void SubmitDockSpace();
+	void SubmitDockSpace(UIData& uiData);
 	void RenderWorkAreaWindow(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void RenderStatusBar(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	std::filesystem::path getCustomTreePath();
@@ -26,5 +26,6 @@ namespace TTM {
 	TalentTreeCollection loadWorkspace(UIData& uiData);
 	void resetWorkspaceAndTrees();
 	WINDOWPLACEMENT loadWindowPlacement();
+	bool loadChangeLogData(std::vector<std::string>& changeLogData);
 	void useDefaultSettings(UIData& uiData);
 }

@@ -71,14 +71,6 @@ namespace TTM {
 	struct UIData {
 		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
-		bool showAboutPopup = false;
-		bool showHelpPopup = false;
-		bool showResetPopup = false;
-		bool resetWorkspace = false;
-
-		std::string menuBarUpdateLabel = "";
-
-		int deleteTreeIndex = -1;
 
 		//################# GENERAL #####################################
 		int loadedIconTreeIndex = -1;
@@ -100,11 +92,27 @@ namespace TTM {
 
 		Presets::FONTSIZE fontsize = Presets::FONTSIZE::DEFAULT;
 
+		std::string menuBarUpdateLabel = "";
+
+		int deleteTreeIndex = -1;
+
+		bool showAboutPopup = false;
+		bool showHelpPopup = false;
+		bool showChangelogPopup = false;
+		bool showResetPopup = false;
+		bool resetWorkspace = false;
+
 		std::string talentSearchString = "";
 		Engine::TalentVec searchedTalents;
 
 		std::chrono::duration<long> autoSaveInterval = std::chrono::seconds(300);
 		std::chrono::steady_clock::time_point lastSaveTime = std::chrono::high_resolution_clock::now();
+
+		unsigned int leftWindowDockId = 0;
+		unsigned int rightWindowDockId = 0;
+		float dockWindowRatio = 0.0f;
+
+		bool updateSelectedFlag = true;
 
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
