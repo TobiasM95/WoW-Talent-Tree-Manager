@@ -268,6 +268,9 @@ namespace TTM {
                     uiData.updateStatus = UpdateStatus::NOTCHECKED;
                     uiData.renderedOnce = false;
                 }
+                if (ImGui::MenuItem("Show Changelog")) {
+                    uiData.showChangelogPopup = true;
+                }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Reset TTM")) {
                     uiData.showResetPopup = true;
@@ -294,6 +297,10 @@ namespace TTM {
         if (uiData.showHelpPopup) {
             uiData.showHelpPopup = false;
             ImGui::OpenPopup("Controls & Tips##Popup");
+        }
+        if (uiData.showChangelogPopup) {
+            uiData.showChangelogPopup = false;
+            ImGui::OpenPopup("Changelog##Popup");
         }
         if (uiData.showResetPopup) {
             uiData.showResetPopup = false;
@@ -386,6 +393,40 @@ namespace TTM {
 
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            static bool scrollUp = false;
+            if (!scrollUp) {
+                ImGui::SetScrollY(0);
+                scrollUp = true;
+            }
+            ImGui::EndPopup();
+        }
+        if (ImGui::BeginPopupModal("Changelog##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            std::vector<std::string> changeLogData;
+            if (loadChangeLogData(changeLogData)) {
+                ImGui::PushTextWrapPos(1000);
+                for (auto& line : changeLogData) {
+                    if (line != "") {
+                        ImGui::Text("%s", line.c_str());
+                    }
+                    else {
+                        ImGui::Spacing();
+                        ImGui::Separator();
+                        ImGui::Spacing();
+                    }
+                }
+                ImGui::PopTextWrapPos();
+            }
+            else {
+                ImGui::Text("Could not load changelog data. See github releases page for changelog information.");
+            }
+            ImGui::SetItemDefaultFocus();
+            if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            static bool scrollUp = false;
+            if (!scrollUp) {
+                ImGui::SetScrollY(0);
+                scrollUp = true;
+            }
             ImGui::EndPopup();
         }
         if (ImGui::BeginPopupModal("Reset TTM##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
@@ -425,7 +466,7 @@ namespace TTM {
         {
             ImGui::PopStyleVar();
             RenderTalentTreeTabs(uiData, talentTreeCollection);
-            SubmitDockSpace();
+            SubmitDockSpace(uiData);
         }
         ImGui::End();
 
@@ -609,6 +650,10 @@ namespace TTM {
                 bool isReset = false;
                 bool open = true;
                 ImGuiTabItemFlags flag = ImGuiTabItemFlags_None;
+                if (uiData.updateSelectedFlag && talentTreeCollection.activeTreeIndex == n) {
+                    flag = ImGuiTabItemFlags_SetSelected;
+                    uiData.updateSelectedFlag = false;
+                }
                 std::string displayTag = talentTreeCollection.trees[n].tree.name;
                 if (n == talentTreeCollection.activeTreeIndex) {
                     displayTag = "> " + displayTag;
@@ -626,6 +671,8 @@ namespace TTM {
                             //clear the talent search field and results
                             uiData.talentSearchString = "";
                             uiData.searchedTalents.clear();
+
+                            uiData.updateSelectedFlag = true;
                         }
                     }
                     RenderTreeViewTabs(uiData, talentTreeCollection);
@@ -737,7 +784,7 @@ namespace TTM {
         }
     }
 
-    void SubmitDockSpace() {
+    void SubmitDockSpace(UIData& uiData) {
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoTabBar;
 
         ImGuiID dockspace_id = ImGui::GetID("WorkAreaDockspace");
@@ -752,13 +799,18 @@ namespace TTM {
 
             ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
             ImGuiID dock_id_left, dock_id_right, dock_id_bottom_left;
-            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.40f, &dock_id_right, &dock_id_left);
+            float leftRightSplit = uiData.dockWindowRatio > 0.0f ? uiData.dockWindowRatio : 0.40f;
+            leftRightSplit = leftRightSplit > 1.0f ? 0.4f : leftRightSplit;
+            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, leftRightSplit, &dock_id_right, &dock_id_left);
             ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.045f, &dock_id_bottom_left, &dock_id_left);
 
             ImGui::DockBuilderDockWindow("TreeWindow", dock_id_left);
             ImGui::DockBuilderDockWindow("SettingsWindow", dock_id_right);
             ImGui::DockBuilderDockWindow("SearchWindow", dock_id_bottom_left);
             ImGui::DockBuilderFinish(dockspace_id);
+
+            uiData.leftWindowDockId = dock_id_left;
+            uiData.rightWindowDockId = dock_id_right;
         }
     }
 
@@ -879,17 +931,24 @@ namespace TTM {
                 + "," + std::to_string(wp.rcNormalPosition.left)
                 + "," + std::to_string(wp.rcNormalPosition.bottom)
                 + "," + std::to_string(wp.rcNormalPosition.right)
-                + "," + std::to_string(wp.showCmd);
+                + "," + std::to_string(wp.showCmd)
+                + "\n";
         }
-        else {
-            auto ec = GetLastError();
-            int i = 0;
-        }
+
+        ImGuiDockNode* leftWindowNode = ImGui::DockBuilderGetNode(uiData.leftWindowDockId);
+        ImGuiDockNode* rightWindowNode = ImGui::DockBuilderGetNode(uiData.rightWindowDockId);
+        float ratio = rightWindowNode->Size.x / (leftWindowNode->Size.x + rightWindowNode->Size.x);
+        settings += "DIVIDERRATIO=" + std::to_string(ratio) + "\n";
 
         // save talent tree collection
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
         }
+        workspace += "ACTIVETREE=" + std::to_string(talentTreeCollection.activeTreeIndex) + "\n";
+        if (talentTreeCollection.activeTreeIndex >= 0 && talentTreeCollection.activeTreeIndex < talentTreeCollection.trees.size()) {
+            workspace += "ACTIVESKILLSET=" + std::to_string(talentTreeCollection.activeTree().activeSkillsetIndex) + "\n";
+        }
+
         std::ofstream setFile(appPath / "settings.txt");
         setFile << settings;
         std::ofstream workFile(appPath / "workspace.txt");
@@ -939,6 +998,11 @@ namespace TTM {
                         uiData.fontsize = Presets::FONTSIZE::HUGE;
                     }
                 }
+                //WINDOWPLACEMENT is loaded in a separate function cause it needs to happen earlier
+                if (line.find("DIVIDERRATIO") != std::string::npos) {
+                    std::string ratioStr = line.substr(line.find("=") + 1);
+                    uiData.dockWindowRatio = std::stof(ratioStr);
+                }
             }
         }
         //init talent tree collection
@@ -948,6 +1012,8 @@ namespace TTM {
         }
         std::ifstream workFile(appPath / "workspace.txt");
         std::string line;
+        int tempActiveTree = -1;
+        int tempActiveSkillset = -1;
         //TTMTODO: might need major reworks down the line
         while (std::getline(workFile, line))
         {
@@ -1003,6 +1069,22 @@ namespace TTM {
                     ImGui::LogText(e.what());
                 }
             }
+
+            if (line.find("ACTIVETREE") != std::string::npos) {
+                tempActiveTree = std::stoi(line.substr(line.find("=") + 1));
+            }
+
+            if (line.find("ACTIVESKILLSET") != std::string::npos) {
+                tempActiveSkillset = std::stoi(line.substr(line.find("=") + 1));
+            }
+        }
+        if (tempActiveTree >= 0 && tempActiveTree < col.trees.size()) {
+            col.activeTreeIndex = tempActiveTree;
+        }
+        if (col.activeTreeIndex >= 0) {
+            if (tempActiveSkillset >= 0 && tempActiveSkillset < col.trees[col.activeTreeIndex].tree.loadout.size()) {
+                col.trees[col.activeTreeIndex].tree.activeSkillsetIndex = tempActiveSkillset;
+            }
         }
         return col;
     }
@@ -1037,6 +1119,40 @@ namespace TTM {
             }
         }
         return wp;
+    }
+
+    bool loadChangeLogData(std::vector<std::string>& changeLogData) {
+        std::filesystem::path changeLogPath{ "changelog.txt" };
+        if (std::filesystem::is_regular_file(changeLogPath)) {
+            try {
+                std::ifstream changeLogFileStream;
+                changeLogFileStream.open(changeLogPath);
+                if (changeLogFileStream.is_open())
+                {
+                    if (!changeLogFileStream.eof())
+                    {
+                        std::string line;
+                        while (std::getline(changeLogFileStream, line)) {
+                            changeLogData.push_back(line);
+                        }
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                else {
+                    return false;
+                }
+            }
+            catch (const std::ifstream::failure& e) {
+                ImGui::LogText(e.what());
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        return true;
     }
 
     void useDefaultSettings(UIData& uiData) {
