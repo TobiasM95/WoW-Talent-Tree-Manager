@@ -173,7 +173,7 @@ namespace TTM {
                 if (mouseWheel != 0) {
                     float oldZoomFactor = uiData.treeEditorZoomFactor;
                     uiData.treeEditorZoomFactor += 0.2f * mouseWheel;
-                    uiData.treeEditorZoomFactor = std::clamp(uiData.treeEditorZoomFactor, 1.0f, 3.0f);
+                    uiData.treeEditorZoomFactor = std::clamp(uiData.treeEditorZoomFactor, 0.5f, 3.0f);
                     if (oldZoomFactor != uiData.treeEditorZoomFactor) {
                         uiData.treeEditorWindowPos = ImGui::GetWindowPos();
                         uiData.treeEditorWindowSize = ImGui::GetWindowSize();
