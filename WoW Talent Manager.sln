@@ -7,6 +7,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Engine.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GUI", "GUI\GUI.vcxproj", "{2CCE6A1B-73A5-48D2-BF1C-E18DB791F9E8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AppUpdater", "AppUpdater\AppUpdater.vcxproj", "{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2CCE6A1B-73A5-48D2-BF1C-E18DB791F9E8} = {2CCE6A1B-73A5-48D2-BF1C-E18DB791F9E8}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +36,14 @@ Global
 		{2CCE6A1B-73A5-48D2-BF1C-E18DB791F9E8}.Release|x64.Build.0 = Release|x64
 		{2CCE6A1B-73A5-48D2-BF1C-E18DB791F9E8}.Release|x86.ActiveCfg = Release|Win32
 		{2CCE6A1B-73A5-48D2-BF1C-E18DB791F9E8}.Release|x86.Build.0 = Release|Win32
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Debug|x64.ActiveCfg = Debug|x64
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Debug|x64.Build.0 = Debug|x64
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Debug|x86.ActiveCfg = Debug|Win32
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Debug|x86.Build.0 = Debug|Win32
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Release|x64.ActiveCfg = Release|x64
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Release|x64.Build.0 = Release|x64
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Release|x86.ActiveCfg = Release|Win32
+		{37C08A29-6E34-4D07-9FB1-2C3053CA6B84}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

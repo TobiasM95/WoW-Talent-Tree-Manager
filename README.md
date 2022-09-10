@@ -53,6 +53,6 @@ Developed by [Tobias Mielich](https://github.com/TobiasM95).
 
 Credits to [Dear ImGui](https://github.com/ocornut/imgui) which is the foundation of the whole GUI and very recommended!
 
-Also used in this project: [libcurl](https://curl.se/libcurl/) & [stb](https://github.com/nothings/stb)
+Also used in this project: [libcurl](https://curl.se/libcurl/) & [stb](https://github.com/nothings/stb) & [miniz](https://github.com/richgel999/miniz)
 
 Credits to [Bloodmallet](https://bloodmallet.com/) for giving me the whole idea and talking about this.

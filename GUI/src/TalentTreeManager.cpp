@@ -282,8 +282,17 @@ namespace TTM {
             }
             if (uiData.menuBarUpdateLabel.size() > 0) {
                 ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style));
-                if(ImGui::MenuItem("> Press here to open Github to download newest version <")){
-                    ShellExecute(0, 0, L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases", 0, 0, SW_SHOW);
+                //TTMTODO: very ugly way of doing this, should be checked in a variable instead
+                if (uiData.menuBarUpdateLabel.find("New TTM update found") != std::string::npos) {
+                    if (ImGui::MenuItem("> Press here to update <")) {
+                        ShellExecuteW(NULL,
+                            L"runas",
+                            L".\\AppUpdater.exe",
+                            NULL,
+                            NULL,   // default dir 
+                            SW_SHOWNORMAL
+                        );
+                    }
                 }
                 ImGui::PopStyleColor();
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), uiData.menuBarUpdateLabel.c_str());
@@ -316,6 +325,7 @@ namespace TTM {
             ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
             ImGui::Text("libcurl: https://curl.se/libcurl/");
             ImGui::Text("stb: https://github.com/nothings/stb");
+            ImGui::Text("miniz: https://github.com/richgel999/miniz");
 
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -453,7 +463,8 @@ namespace TTM {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration 
             | ImGuiWindowFlags_NoMove 
             | ImGuiWindowFlags_NoResize 
-            | ImGuiWindowFlags_NoSavedSettings;
+            | ImGuiWindowFlags_NoSavedSettings
+            | ImGuiWindowFlags_NoScrollWithMouse;
 
         // We demonstrate using the full viewport area or the work area (without menu-bars, task-bars etc.)
         // Based on your use case you may want one of the other.
@@ -923,14 +934,14 @@ namespace TTM {
         }
         WINDOWPLACEMENT wp = { 0 };
         wp.length = sizeof(wp);
-        if (GetWindowPlacement(GetActiveWindow(), &wp))
+        if (GetWindowPlacement(*uiData.hwnd, &wp))
         {
             // save wp values somewhere...
             settings += "WINDOWPLACEMENT="
-                + std::to_string(wp.rcNormalPosition.top)
-                + "," + std::to_string(wp.rcNormalPosition.left)
-                + "," + std::to_string(wp.rcNormalPosition.bottom)
+                + std::to_string(wp.rcNormalPosition.left)
+                + "," + std::to_string(wp.rcNormalPosition.top)
                 + "," + std::to_string(wp.rcNormalPosition.right)
+                + "," + std::to_string(wp.rcNormalPosition.bottom)
                 + "," + std::to_string(wp.showCmd)
                 + "\n";
         }
