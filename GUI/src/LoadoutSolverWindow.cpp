@@ -334,18 +334,65 @@ namespace TTM {
     }
 
     void placeLoadoutSolverTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        updateSolverStatus(uiData, talentTreeCollection);
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
 
         if (!talentTreeCollection.activeTreeData().isTreeSolveInProgress 
             && !talentTreeCollection.activeTreeData().isTreeSolveProcessed
             && !talentTreeCollection.activeTreeData().treeDAGInfo) {
-            //center an information rectangle
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
             float centerX = 0.5f * contentRegion.x;
             float centerY = 0.5f * contentRegion.y;
             float wrapWidth = 250;
             float offsetY = -200;
             float boxPadding = 8;
+
+            //show loadout solver status
+            ImVec2 outer_size = ImVec2(centerX - 0.6f * wrapWidth, 500.0f);
+            static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY 
+                | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter 
+                | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchSame;
+            if (ImGui::BeginTable("loadoutSolverStatusTable", 3, flags, outer_size))
+            {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                ImGui::TableSetupColumn("Tree name", ImGuiTableColumnFlags_None, 0.6f);
+                ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableHeadersRow();
+
+                for (auto& currSolver : uiData.currentSolvers) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", currSolver.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "solving...");
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("cancel###" + currSolver.first).c_str())) {
+                        currSolver.second->safetyGuardTriggered = true;
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                for (auto& solvedTree : uiData.solvedTrees) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", solvedTree.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    if (solvedTree.second->safetyGuardTriggered) {
+                        ImGui::TextColored(Presets::TALENT_MAXED_BORDER_COLOR, "canceled");
+                    }
+                    else {
+                        ImGui::TextColored(Presets::TALENT_PARTIAL_BORDER_COLOR, "solved");
+                    }
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("reset###" + solvedTree.first).c_str())) {
+                        clearSolvingProcess(uiData, *solvedTree.second);
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                ImGui::EndTable();
+            }
+
+            //center an information rectangle
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
             ImGui::SetCursorPos(pos);
@@ -383,7 +430,6 @@ namespace TTM {
 
             //center a button
             ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
-            updateConcurrentSolverStatus(uiData, talentTreeCollection);
             bool allowNewSolver = uiData.currentSolvers.size() < uiData.maxConcurrentSolvers;
             if (!allowNewSolver) {
                 ImGui::BeginDisabled();
@@ -418,7 +464,7 @@ namespace TTM {
                     std::ref(talentTreeCollection.activeTreeData().isTreeSolveInProgress),
                     std::ref(talentTreeCollection.activeTreeData().safetyGuardTriggered));
                 t.detach();
-                updateConcurrentSolverStatus(uiData, talentTreeCollection, true);
+                updateSolverStatus(uiData, talentTreeCollection, true);
             }
             if (!allowNewSolver) {
                 ImGui::EndDisabled();
@@ -426,8 +472,59 @@ namespace TTM {
             return;
         }
         else if (talentTreeCollection.activeTreeData().isTreeSolveInProgress) {
-            ImVec2 textSize = ImGui::CalcTextSize("Processing...");
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            float centerX = 0.5f * contentRegion.x;
+            float centerY = 0.5f * contentRegion.y;
+            float wrapWidth = 250;
+            float offsetY = -200;
+            float boxPadding = 8;
+
+            //show loadout solver status
+            ImVec2 outer_size = ImVec2(centerX - 0.6f * wrapWidth, 500.0f);
+            static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY
+                | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter
+                | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchSame;
+            if (ImGui::BeginTable("loadoutSolverStatusTable", 3, flags, outer_size))
+            {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                ImGui::TableSetupColumn("Tree name", ImGuiTableColumnFlags_None, 0.6f);
+                ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableHeadersRow();
+
+                for (auto& currSolver : uiData.currentSolvers) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", currSolver.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "solving...");
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("cancel###" + currSolver.first).c_str())) {
+                        currSolver.second->safetyGuardTriggered = true;
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                for (auto& solvedTree : uiData.solvedTrees) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", solvedTree.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    if (solvedTree.second->safetyGuardTriggered) {
+                        ImGui::TextColored(Presets::TALENT_MAXED_BORDER_COLOR, "canceled");
+                    }
+                    else {
+                        ImGui::TextColored(Presets::TALENT_PARTIAL_BORDER_COLOR, "solved");
+                    }
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("reset###" + solvedTree.first).c_str())) {
+                        clearSolvingProcess(uiData, *solvedTree.second);
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                ImGui::EndTable();
+            }
+
+            ImVec2 textSize = ImGui::CalcTextSize("Processing...");
             ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5f * textSize.y));
             ImGui::Text("Processing...");
             ImGui::SetCursorPosX(0.5f * contentRegion.x - 0.5f * textSize.x);

@@ -238,9 +238,10 @@ namespace TTM {
 
 		//############# LOADOUT SOLVER VARIABLES ########################
 		const int maxConcurrentSolvers = 3;
-		const std::chrono::duration<long long, std::milli> currentSolversUpdateInterval = std::chrono::milliseconds(1000);
+		const std::chrono::duration<long long, std::milli> currentSolversUpdateInterval = std::chrono::milliseconds(500);
 		std::chrono::steady_clock::time_point currentSolversLastUpdateTime = std::chrono::steady_clock::now();
-		std::vector<std::pair<std::string, std::unique_ptr<TalentTreeData>>> currentSolvers;
+		std::vector<std::pair<std::string, TalentTreeData*>> currentSolvers;
+		std::vector<std::pair<std::string, TalentTreeData*>> solvedTrees;
 		const int loadoutSolverMaxTalentPoints = 64;
 		int loadoutSolverTalentPointLimit = 1;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
@@ -321,7 +322,7 @@ namespace TTM {
 		bool searchActive,
 		bool talentIsSearchedFor);
 
-	void updateConcurrentSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
+	void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
 	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData);
