@@ -649,7 +649,8 @@ namespace TTM {
             Presets::POP_FONT();
             AttachLoadoutEditTooltip(uiData, talent.second);
         }
-        if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
+        if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))
+            && !(ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper))) {
             for (auto& talent : tree.orderedTalents) {
                 float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
                 float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;

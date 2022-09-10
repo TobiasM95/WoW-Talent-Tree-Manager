@@ -68,12 +68,53 @@ namespace TTM {
 		SolutionResults
 	};
 
+	struct TalentTreeData {
+		Engine::TalentTree tree;
+
+		bool isTreeSolveInProgress = false;
+		bool isTreeSolveProcessed = false;
+		bool isTreeSolveFiltered = false;
+		bool safetyGuardTriggered = false;
+		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
+		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
+		bool restrictTalentPoints = false;
+		int restrictedTalentPoints = 0;
+	};
+
+	struct TalentTreeCollection {
+		int activeTreeIndex = -1;
+		std::vector<TalentTreeData> trees;
+
+		std::map<std::string, std::string> presets;
+
+		TalentTreeData& activeTreeData() {
+			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
+				return trees[activeTreeIndex];
+			else
+				throw std::logic_error("Active tree index is -1 or larger than tree vector!");
+		}
+		Engine::TalentTree& activeTree() {
+			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
+				return trees[activeTreeIndex].tree;
+			else
+				throw std::logic_error("Active tree index is larger than tree vector!");
+		}
+
+		std::shared_ptr<Engine::TalentSkillset> activeSkillset() {
+			if (trees[activeTreeIndex].tree.activeSkillsetIndex >= 0 && trees[activeTreeIndex].tree.activeSkillsetIndex < trees[activeTreeIndex].tree.loadout.size())
+				return trees[activeTreeIndex].tree.loadout[trees[activeTreeIndex].tree.activeSkillsetIndex];
+			else
+				throw std::logic_error("Active skillset index is -1 or larger than loadout size!");
+		}
+	};
+
 	struct UIData {
 		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
 
 		//################# GENERAL #####################################
 		int loadedIconTreeIndex = -1;
+		HWND* hwnd;
 		ID3D11Device* g_pd3dDevice;
 		//This stores the base texture of the icon as well as its gray counterpart
 		std::map<std::string, std::pair<TextureInfo, TextureInfo>> iconMap;
@@ -196,8 +237,10 @@ namespace TTM {
 		std::pair<int, int> loadoutEditorImportSkillsetsResult;
 
 		//############# LOADOUT SOLVER VARIABLES ########################
-		bool loadoutSolveInitiated = false;
-		bool loadoutSolveInProgress = false;
+		const int maxConcurrentSolvers = 3;
+		const std::chrono::duration<long long, std::milli> currentSolversUpdateInterval = std::chrono::milliseconds(1000);
+		std::chrono::steady_clock::time_point currentSolversLastUpdateTime = std::chrono::steady_clock::now();
+		std::vector<std::pair<std::string, std::unique_ptr<TalentTreeData>>> currentSolvers;
 		const int loadoutSolverMaxTalentPoints = 64;
 		int loadoutSolverTalentPointLimit = 1;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
@@ -215,44 +258,6 @@ namespace TTM {
 		std::vector<Engine::SIND> loadoutSolverPageResults;
 		int selectedFilteredSkillsetIndex = -1;
 		Engine::SIND selectedFilteredSkillset = 0;
-	};
-
-	struct TalentTreeData {
-		Engine::TalentTree tree;
-
-		bool isTreeSolveProcessed = false;
-		bool isTreeSolveFiltered = false;
-		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
-		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
-		bool restrictTalentPoints = false;
-		int restrictedTalentPoints = 0;
-	};
-
-	struct TalentTreeCollection {
-		int activeTreeIndex = -1;
-		std::vector<TalentTreeData> trees;
-
-		std::map<std::string, std::string> presets;
-
-		TalentTreeData& activeTreeData() {
-			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
-				return trees[activeTreeIndex];
-			else
-				throw std::logic_error("Active tree index is -1 or larger than tree vector!");
-		}
-		Engine::TalentTree& activeTree() {
-			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
-				return trees[activeTreeIndex].tree;
-			else
-				throw std::logic_error("Active tree index is larger than tree vector!");
-		}
-
-		std::shared_ptr<Engine::TalentSkillset> activeSkillset() {
-			if (trees[activeTreeIndex].tree.activeSkillsetIndex >= 0 && trees[activeTreeIndex].tree.activeSkillsetIndex < trees[activeTreeIndex].tree.loadout.size())
-				return trees[activeTreeIndex].tree.loadout[trees[activeTreeIndex].tree.activeSkillsetIndex];
-			else
-				throw std::logic_error("Active skillset index is -1 or larger than loadout size!");
-		}
 	};
 
 	void refreshIconMap(UIData& uiData);
@@ -316,7 +321,10 @@ namespace TTM {
 		bool searchActive,
 		bool talentIsSearchedFor);
 
+	void updateConcurrentSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
+	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData);
 	void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list);
 
 	void HelperTooltip(std::string hovered, std::string helptext);
