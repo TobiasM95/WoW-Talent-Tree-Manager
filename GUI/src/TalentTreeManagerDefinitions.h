@@ -65,7 +65,7 @@ namespace TTM {
 	};
 
 	enum class LoadoutSolverPage {
-		SolutionResults
+		SolutionResults, TreeSolveStatus
 	};
 
 	struct TalentTreeData {

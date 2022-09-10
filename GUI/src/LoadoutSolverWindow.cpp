@@ -187,11 +187,19 @@ namespace TTM {
         ImGui::PopStyleVar();
         if (talentTreeCollection.activeTreeData().isTreeSolveProcessed) {
             if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
+                if (ImGui::Button("Solution Filter", ImVec2(ImGui::GetContentRegionAvail().x / 2.f, 25))) {
+                    uiData.loadoutSolverPage = LoadoutSolverPage::SolutionResults;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Tree Solve Status", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
+                    uiData.loadoutSolverPage = LoadoutSolverPage::TreeSolveStatus;
+                }
+                ImGui::Spacing();
                 switch (uiData.loadoutSolverPage) {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
                     if (talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuardTriggered) {
-                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggerd! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", MAX_NUMBER_OF_SOLVED_COMBINATIONS);
+                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggered! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", MAX_NUMBER_OF_SOLVED_COMBINATIONS);
                     }
                     ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
                         talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, uiData.loadoutSolverTalentPointLimit);
@@ -301,6 +309,51 @@ namespace TTM {
                         if (uiData.loadoutSolverTalentPointSelection > -1) {
                             displayFilteredSkillsetSelector(uiData, talentTreeCollection);
                         }
+                    }
+                }break;
+                case LoadoutSolverPage::TreeSolveStatus: {
+                    //show loadout solver status
+                    static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY
+                        | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter
+                        | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchSame;
+                    if (ImGui::BeginTable("loadoutSolverStatusTable", 3, flags))
+                    {
+                        ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                        ImGui::TableSetupColumn("Tree name", ImGuiTableColumnFlags_None, 0.6f);
+                        ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_None, 0.2f);
+                        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_None, 0.2f);
+                        ImGui::TableHeadersRow();
+
+                        for (auto& currSolver : uiData.currentSolvers) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("%s", currSolver.first.c_str());
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "solving...");
+                            ImGui::TableSetColumnIndex(2);
+                            if (ImGui::Button(("cancel###" + currSolver.first).c_str())) {
+                                currSolver.second->safetyGuardTriggered = true;
+                                updateSolverStatus(uiData, talentTreeCollection, true);
+                            }
+                        }
+                        for (auto& solvedTree : uiData.solvedTrees) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("%s", solvedTree.first.c_str());
+                            ImGui::TableSetColumnIndex(1);
+                            if (solvedTree.second->safetyGuardTriggered) {
+                                ImGui::TextColored(Presets::TALENT_MAXED_BORDER_COLOR, "canceled");
+                            }
+                            else {
+                                ImGui::TextColored(Presets::TALENT_PARTIAL_BORDER_COLOR, "solved");
+                            }
+                            ImGui::TableSetColumnIndex(2);
+                            if (ImGui::Button(("reset###" + solvedTree.first).c_str())) {
+                                clearSolvingProcess(uiData, *solvedTree.second);
+                                updateSolverStatus(uiData, talentTreeCollection, true);
+                            }
+                        }
+                        ImGui::EndTable();
                     }
                 }break;
                 }
