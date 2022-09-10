@@ -1,3 +1,10 @@
+v. 1.3.8:
+- Persistency of UI state between sessions
+- Stability improvements and reduced crashes
+- Zoom out function/show changelog feature
+- Auto updater feature
+- Loadout solving now threaded and improved
+
 v. 1.3.7:
 - Fixed tree separator functionality
 - Expand tree edit misc functionality
