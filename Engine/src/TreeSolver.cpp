@@ -132,7 +132,14 @@ namespace Engine {
     Parallel version of fast configuration counting that runs slower for individual Ns (where N is the amount of available talent points and N >= smallest path from top to bottom)
     compared to single N count but includes all combinations for 1 up to N talent points.
     */
-    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree, int talentPointsLimit) {
+    void countConfigurationsParallel(
+        TalentTree tree,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered) {
+
+        inProgress = true;
         std::shared_ptr<TalentTree> processedTree = std::make_shared<TalentTree>(parseTree(createTreeStringRepresentation(tree)));
         tree.unspentTalentPoints = talentPointsLimit;
         int talentPoints = tree.unspentTalentPoints;
@@ -164,12 +171,11 @@ namespace Engine {
         auto t1 = std::chrono::high_resolution_clock::now();
         //this is used for safeguarding solving process for trees that are too big
         int runningCount = 0;
-        bool safetyGuardTriggered = false;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             //if (possibleTalents[i].second == 0)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
-                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations, runningCount, safetyGuardTriggered);
+                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations, runningCount, std::ref(safetyGuardTriggered));
         }
         if (safetyGuardTriggered) {
             sortedTreeDAG.safetyGuardTriggered = true;
@@ -178,7 +184,8 @@ namespace Engine {
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         sortedTreeDAG.allCombinations = std::move(combinations);
         sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
-        return std::make_shared<TreeDAGInfo>(sortedTreeDAG);
+        inProgress = false;
+        treeDAGInfo = std::make_shared<TreeDAGInfo>(sortedTreeDAG);
     }
 
     /*
@@ -198,7 +205,7 @@ namespace Engine {
         int& runningCount,
         bool& safetyGuardTriggered
     ) {
-        if (runningCount >= MAX_NUMBER_OF_SOLVED_COMBINATIONS) {
+        if (runningCount >= MAX_NUMBER_OF_SOLVED_COMBINATIONS || safetyGuardTriggered) {
             safetyGuardTriggered = true;
             return;
         }
@@ -231,7 +238,7 @@ namespace Engine {
             //check order is correct and if talentPointsSpent is >= next talent points required
             if (possibleTalents[i].first > talentIndexReqPair.first &&
                 talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired) {
-                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations, runningCount, safetyGuardTriggered);
+                visitTalentParallel(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations, runningCount, std::ref(safetyGuardTriggered));
             }
         }
     }

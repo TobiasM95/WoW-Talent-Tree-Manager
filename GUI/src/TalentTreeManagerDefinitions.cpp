@@ -1031,6 +1031,30 @@ namespace TTM {
         Presets::POP_FONT();
     }
 
+    void updateConcurrentSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate) {
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - uiData.currentSolversLastUpdateTime);
+        if (milliseconds > uiData.currentSolversUpdateInterval || forceUpdate) {
+            uiData.currentSolversLastUpdateTime = std::chrono::steady_clock::now();
+            uiData.currentSolvers.clear();
+            for (auto& talentTreeData : talentTreeCollection.trees) {
+                if (talentTreeData.isTreeSolveInProgress) {
+                    uiData.currentSolvers.emplace_back(
+                            talentTreeData.tree.name,
+                            std::move(std::make_unique<TalentTreeData>(talentTreeData))
+                        );
+                }
+            }
+        }
+    }
+
+    void stopAllSolvers(TalentTreeCollection& talentTreeCollection) {
+        for (auto& talentTreeData : talentTreeCollection.trees) {
+            if (talentTreeData.isTreeSolveInProgress) {
+                talentTreeData.safetyGuardTriggered = true;
+            }
+        }
+    }
+
     void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
         uiData.loadoutSolverAllCombinationsAdded = 0;
         uiData.loadoutSolverTalentPointSelection = -1;
@@ -1041,8 +1065,26 @@ namespace TTM {
         uiData.loadoutSolverAutoApplyFilter = false;
         talentTreeCollection.activeTreeData().isTreeSolveProcessed = false;
         talentTreeCollection.activeTreeData().isTreeSolveFiltered = false;
+        talentTreeCollection.activeTreeData().safetyGuardTriggered = false;
+        talentTreeCollection.activeTreeData().isTreeSolveInProgress = false;
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
         talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
+    }
+
+    void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData) {
+        uiData.loadoutSolverAllCombinationsAdded = 0;
+        uiData.loadoutSolverTalentPointSelection = -1;
+        uiData.loadoutSolverSkillsetResultPage = -1;
+        uiData.loadoutSolverBufferedPage = -1;
+        uiData.selectedFilteredSkillset = 0;
+        uiData.selectedFilteredSkillsetIndex = -1;
+        uiData.loadoutSolverAutoApplyFilter = false;
+        talentTreeData.isTreeSolveProcessed = false;
+        talentTreeData.isTreeSolveFiltered = false;
+        talentTreeData.safetyGuardTriggered = false;
+        talentTreeData.isTreeSolveInProgress = false;
+        talentTreeData.skillsetFilter = nullptr;
+        talentTreeData.treeDAGInfo = nullptr;
     }
 
     void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list) {

@@ -40,7 +40,12 @@ namespace Engine {
     };
 
     std::shared_ptr<TreeDAGInfoLegacy> countConfigurations(TalentTree tree, int talentPointsLimit);
-    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree, int talentPointsLimit);
+    void countConfigurationsParallel(
+        TalentTree tree,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered);
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
     TreeDAGInfoLegacy createSortedMinimalDAGLegacy(TalentTree tree);
     void visitTalentLegacy(
