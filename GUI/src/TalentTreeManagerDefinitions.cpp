@@ -1031,17 +1031,24 @@ namespace TTM {
         Presets::POP_FONT();
     }
 
-    void updateConcurrentSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate) {
+    void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate) {
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - uiData.currentSolversLastUpdateTime);
         if (milliseconds > uiData.currentSolversUpdateInterval || forceUpdate) {
             uiData.currentSolversLastUpdateTime = std::chrono::steady_clock::now();
             uiData.currentSolvers.clear();
+            uiData.solvedTrees.clear();
             for (auto& talentTreeData : talentTreeCollection.trees) {
                 if (talentTreeData.isTreeSolveInProgress) {
                     uiData.currentSolvers.emplace_back(
                             talentTreeData.tree.name,
-                            std::move(std::make_unique<TalentTreeData>(talentTreeData))
+                            &talentTreeData
                         );
+                }
+                else if (talentTreeData.treeDAGInfo) {
+                    uiData.solvedTrees.emplace_back(
+                        talentTreeData.tree.name,
+                        &talentTreeData
+                    );
                 }
             }
         }

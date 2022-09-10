@@ -201,10 +201,10 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
             if (msg.message == WM_SAVEBEFOREDESTROY && !uiData.resetWorkspace) {
                 TTM::saveWorkspace(uiData, talentTreeCollection);
                 TTM::stopAllSolvers(talentTreeCollection);
-                TTM::updateConcurrentSolverStatus(uiData, talentTreeCollection, true);
+                TTM::updateSolverStatus(uiData, talentTreeCollection, true);
                 while (uiData.currentSolvers.size() > 0) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-                    TTM::updateConcurrentSolverStatus(uiData, talentTreeCollection, true);
+                    TTM::updateSolverStatus(uiData, talentTreeCollection, true);
                 }
                 ::DefWindowProc(hwnd, WM_CLOSE, 0, 0);
             }
