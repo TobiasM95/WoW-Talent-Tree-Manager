@@ -1,7 +1,10 @@
 ![TTM Banner](/GUI/resources/TTM_Banner.png?raw=true "TTM Banner")
 
 
-[<img alt="TTM download button" src="/GUI/resources/TTM_download_button.png" />](https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases/download/v1.3.8/TalentTreeManager.zip)
+[<img alt="TTM download button" src="/GUI/resources/TTM_download_button.png" />](https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases/download/v1.3.7/TalentTreeManager.zip)
+
+IMPORTANT NOTE:
+Version 1.3.8 was broken and retracted from the releases. If you already downloaded 1.3.8, it's recommended to downgrade back to 1.3.7 while I investigate the issues.
 
 
 ## What is the WoW Talent Tree Manager?
