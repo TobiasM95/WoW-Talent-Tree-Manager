@@ -57,6 +57,13 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 //int main(int, char**)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    //set working directory to the file directory
+    TCHAR buffer[MAX_PATH] = { 0 };
+    GetModuleFileName(NULL, buffer, MAX_PATH);
+    std::filesystem::path filedirpath{ buffer };
+    std::filesystem::current_path(filedirpath.parent_path());
+    std::filesystem::path cwd = std::filesystem::current_path();
+
     //if this gets changed check Updater.h of AppUpdater project as well
     std::filesystem::path tempUpdaterFile{ "AppUpdaterTemp.exe" };
     if (std::filesystem::is_regular_file(tempUpdaterFile)) {
