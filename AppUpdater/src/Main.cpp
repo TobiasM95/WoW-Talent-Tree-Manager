@@ -30,6 +30,8 @@
 #include "Updater.h"
 
 #include <string>
+#include <filesystem>
+
 //#include "resource.h"
 //#include "roboto_medium.h"
 
@@ -50,6 +52,14 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 //int main(int, char**)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    std::filesystem::path oldwd = std::filesystem::current_path();
+    //set working directory to the file directory
+    TCHAR buffer[MAX_PATH] = { 0 };
+    GetModuleFileName(NULL, buffer, MAX_PATH);
+    std::filesystem::path filedirpath{ buffer };
+    std::filesystem::current_path(filedirpath.parent_path());
+    std::filesystem::path cwd = std::filesystem::current_path();
+
     Updater::ThreadedUpdateStatus threadedUpdateStatus;
     Updater::UpdateStatusCache updateStatusCache;
 
@@ -163,6 +173,16 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
+    ShellExecute(NULL,
+        NULL,
+        L".\\TalentTreeManager.exe",
+        NULL,
+        NULL,   // default dir 
+        SW_SHOWNORMAL
+    );
+
+    ShellExecute(0, L"open", L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases", 0, 0, SW_SHOWNORMAL);
+
     // Cleanup
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
@@ -171,15 +191,6 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     CleanupDeviceD3D();
     ::DestroyWindow(hwnd);
     ::UnregisterClass(wc.lpszClassName, wc.hInstance);
-
-    ShellExecute(NULL,
-        L"runas",
-        L".\\TalentTreeManager.exe",
-        NULL,
-        NULL,   // default dir 
-        SW_SHOWNORMAL
-    );
-    ShellExecute(0, 0, L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases", 0, 0, SW_SHOW);
 
     return 0;
 }
