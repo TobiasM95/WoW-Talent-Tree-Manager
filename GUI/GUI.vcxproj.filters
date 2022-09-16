@@ -189,8 +189,8 @@
     <Text Include="src\libs\ImGui\LICENSE.txt" />
     <Text Include="src\libs\stb\LICENSE.txt" />
     <Text Include="resources\icons\icons_packed_meta.txt" />
-    <Text Include="resources\updatertarget\icons_packed_meta.txt" />
     <Text Include="resources\updatertarget\resource_versions.txt" />
+    <Text Include="resources\updatertarget\icons_packed_meta.txt" />
     <Text Include="resources\updatertarget\presets.txt" />
   </ItemGroup>
   <ItemGroup>
