@@ -33,6 +33,13 @@ namespace TTM {
 		ID3D11Device* g_pd3dDevice,
 		Engine::TalentType talentType
 	);
+	bool LoadIconGlowTexture(
+		ID3D11ShaderResourceView** out_srv,
+		int* out_width,
+		int* out_height,
+		ID3D11Device* g_pd3dDevice,
+		Engine::TalentType talentType,
+		float r, float g, float b);
 	bool LoadRedIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadGreenIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
 	bool LoadGoldIconGlowTexture(ID3D11ShaderResourceView** out_srv, int* out_width, int* out_height, ID3D11Device* g_pd3dDevice);
