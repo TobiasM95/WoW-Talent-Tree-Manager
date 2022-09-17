@@ -298,16 +298,16 @@ namespace Updater {
         remove(tempAppUpdaterName);
 
         //rename temp updater
-        int tries = 5;
+        int tries = 10;
         int success = rename("AppUpdater.exe", tempAppUpdaterName);
         while (success != 0 && tries > 0) {
             tries--;
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            std::this_thread::sleep_for(std::chrono::milliseconds(700));
             success = rename("AppUpdater.exe", tempAppUpdaterName);
         }
         if (success != 0) {
             updateStatus.setUpdateStep(Updater::UpdateStep::EXTRACT_FILES_ERROR);
-            updateStatus.setStatusString("Couldn't rename AppUpdater.exe and therefore update the updater. Update process aborted!");
+            updateStatus.setStatusString("Couldn't rename AppUpdater.exe and therefore update the updater. Update process aborted! (Restarting the update process is advised)");
             updateStatus.setUpdatedFlag(true);
             //remove(tempZipName);
             return false;
