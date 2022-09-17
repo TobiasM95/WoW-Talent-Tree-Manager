@@ -660,34 +660,24 @@ namespace TTM {
                 Presets::SET_TAB_ITEM_COLOR(uiData.style, talentTreeCollection.trees[n].tree.presetName);
                 bool isReset = false;
                 bool open = true;
-                ImGuiTabItemFlags flag = ImGuiTabItemFlags_None;
-                if (uiData.updateSelectedFlag && talentTreeCollection.activeTreeIndex == n) {
-                    flag = ImGuiTabItemFlags_SetSelected;
-                    uiData.updateSelectedFlag = false;
-                }
+                ImGuiTabItemFlags flag = n == talentTreeCollection.activeTreeIndex ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
                 std::string displayTag = talentTreeCollection.trees[n].tree.name;
                 if (n == talentTreeCollection.activeTreeIndex) {
                     displayTag = "> " + displayTag;
                 }
                 if (ImGui::BeginTabItemNoClose((displayTag + "###treetab" + std::to_string(n)).c_str(), &open, flag))
                 {
-                    if (open) {
-                        if (talentTreeCollection.activeTreeIndex != n) {
-                            talentTreeCollection.activeTreeIndex = n;
-                            uiData.editorView = EditorView::None;
-                            uiData.isLoadoutInitValidated = false;
-                            uiData.treeEditorSelectedTalent = nullptr;
-                            loadActiveIcons(uiData, talentTreeCollection);
-
-                            //clear the talent search field and results
-                            uiData.talentSearchString = "";
-                            uiData.searchedTalents.clear();
-
-                            uiData.updateSelectedFlag = true;
-                        }
+                    if (n == talentTreeCollection.activeTreeIndex) {
+                        RenderTreeViewTabs(uiData, talentTreeCollection);
                     }
-                    RenderTreeViewTabs(uiData, talentTreeCollection);
                     ImGui::EndTabItem();
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    talentTreeCollection.activeTreeIndex = n;
+                    uiData.editorView = EditorView::None;
+                    uiData.isLoadoutInitValidated = false;
+                    uiData.treeEditorSelectedTalent = nullptr;
+                    loadActiveIcons(uiData, talentTreeCollection);
                 }
 
                 if (!open) {

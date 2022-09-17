@@ -240,6 +240,9 @@ namespace Engine {
 
     void updateRequirementSeparatorInfo(TalentTree& tree) {
         tree.requirementSeparatorInfo.clear();
+        if (tree.orderedTalents.size() == 0) {
+            return;
+        }
         //stores the min and max height of each occurring point requirement (key of map) to calculate the separator positions next
         std::map<int, std::pair<int, int>> requirementRowMap;
         for (auto& talent : tree.orderedTalents) {

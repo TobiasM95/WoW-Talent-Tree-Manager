@@ -555,6 +555,8 @@ namespace TTM {
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            Presets::POP_FONT();
+            AttachLoadoutEditTooltip(uiData, talent.second);
             if (talent.second->type != Engine::TalentType::SWITCH || talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
                 ImGui::SetCursorPos(ImVec2(posX, posY));
                 ImGui::Image(
@@ -646,8 +648,6 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
                 ImGui::EndDisabled();
             }
-            Presets::POP_FONT();
-            AttachLoadoutEditTooltip(uiData, talent.second);
         }
         if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))
             && !(ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper))) {

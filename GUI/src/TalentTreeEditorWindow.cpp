@@ -1892,6 +1892,25 @@ namespace TTM {
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            Presets::POP_FONT();
+            if (ImGui::IsItemActive())
+            {
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    uiData.treeEditorDragTalentStartRow = talent.second->row;
+                    uiData.treeEditorDragTalentStartColumn = talent.second->column;
+                    uiData.treeEditorTempReplacedTalents.clear();
+                }
+                if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+                    selectTalent(uiData, talentTreeCollection, talent);
+                    ImVec2 mouseClickedPos = *ImGui::GetIO().MouseClickedPos;
+                    float mouseTotalDeltaX = ImGui::GetIO().MousePos.x - mouseClickedPos.x;
+                    float mouseTotalDeltaY = ImGui::GetIO().MousePos.y - mouseClickedPos.y;
+                    repositionTalent(uiData, talentTreeCollection, talent, mouseClickedPos, ImVec2(mouseTotalDeltaX, mouseTotalDeltaY), ImVec2(posX, posY));
+                }
+            }
+            else {
+                AttachTalentEditTooltip(uiData, talent.second);
+            }
             if (talent.second->type != Engine::TalentType::SWITCH) {
                 ImGui::SetCursorPos(ImVec2(posX, posY));
                 ImGui::Image(
@@ -1933,25 +1952,6 @@ namespace TTM {
                 uiData.treeEditorSelectedTalent != nullptr && uiData.treeEditorSelectedTalent->index == talent.second->index,
                 searchActive,
                 talentIsSearchedFor);
-            Presets::POP_FONT();
-            if (ImGui::IsItemActive())
-            {
-                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    uiData.treeEditorDragTalentStartRow = talent.second->row;
-                    uiData.treeEditorDragTalentStartColumn = talent.second->column;
-                    uiData.treeEditorTempReplacedTalents.clear();
-                }
-                if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
-                    selectTalent(uiData, talentTreeCollection, talent);
-                    ImVec2 mouseClickedPos = *ImGui::GetIO().MouseClickedPos;
-                    float mouseTotalDeltaX = ImGui::GetIO().MousePos.x - mouseClickedPos.x;
-                    float mouseTotalDeltaY = ImGui::GetIO().MousePos.y - mouseClickedPos.y;
-                    repositionTalent(uiData, talentTreeCollection, talent, mouseClickedPos, ImVec2(mouseTotalDeltaX, mouseTotalDeltaY), ImVec2(posX, posY));
-                }
-            }
-            else {
-                AttachTalentEditTooltip(uiData, talent.second);
-            }
         }
         if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) 
             && !(ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper))) {
