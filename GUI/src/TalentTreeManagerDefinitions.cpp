@@ -40,24 +40,22 @@ namespace TTM {
         uiData.iconMap.clear();
         std::map<std::string, std::filesystem::path> iconPathMap;
         //first iterate through pre-shipped directories and add paths to map while skipping custom dir
-        if (!std::filesystem::is_directory(iconRootPath)) {
-            return;
-        }
-        for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
-            if (!std::filesystem::is_regular_file(entry)
-                || entry.path().parent_path().compare(customIconPath) == 0) {
-                continue;
-            }
-            if (entry.path().extension() == ".png") {
-                iconPathMap[entry.path().filename().string()] = entry.path();
+        if (std::filesystem::is_directory(iconRootPath)) {
+            for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
+                if (!std::filesystem::is_regular_file(entry)
+                    || entry.path().parent_path().compare(customIconPath) == 0) {
+                    continue;
+                }
+                if (entry.path().extension() == ".png") {
+                    iconPathMap[entry.path().filename().string()] = entry.path();
+                }
             }
         }
         if (!std::filesystem::is_directory(customIconPath)) {
-            return;
-        }
-        for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
-            if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
-                iconPathMap[entry.path().filename().string()] = entry.path();
+            for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
+                if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
+                    iconPathMap[entry.path().filename().string()] = entry.path();
+                }
             }
         }
         for (auto& [filename, path] : iconPathMap) {
