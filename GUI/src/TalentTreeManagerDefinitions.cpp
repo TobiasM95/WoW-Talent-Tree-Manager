@@ -66,13 +66,49 @@ namespace TTM {
         int defaultImageWidth = 0;
         int defaultImageHeight = 0;
         bool defaultSuccess = LoadDefaultTexture(&uiData.defaultIcon.texture, &uiData.defaultIconGray.texture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
-        bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
-        bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
-        bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
-        bool blueGlowSuccess = LoadBlueIconGlowTexture(&uiData.blueIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
-        bool purpleGlowSuccess = LoadPurpleIconGlowTexture(&uiData.purpleIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
+        bool maskSuccess = true;
+        bool redGlowSuccess = true;
+        bool greenGlowSuccess = true;
+        bool goldGlowSuccess = true;
+        bool blueGlowSuccess = true;
+        bool purpleGlowSuccess = true;
         for (int talentType = 0; talentType < 3; talentType++) {
-            bool maskSuccess = true;
+            redGlowSuccess = LoadIconGlowTexture(
+                &uiData.redIconGlow[talentType].texture,
+                &uiData.redIconGlow[talentType].width,
+                &uiData.redIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                1.0f, 0.0f, 0.0f);
+            greenGlowSuccess = LoadIconGlowTexture(
+                &uiData.greenIconGlow[talentType].texture,
+                &uiData.greenIconGlow[talentType].width,
+                &uiData.greenIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.0f, 1.0f, 0.0f);
+            goldGlowSuccess = LoadIconGlowTexture(
+                &uiData.goldIconGlow[talentType].texture,
+                &uiData.goldIconGlow[talentType].width,
+                &uiData.goldIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.8f, 0.63f, 0.0f);
+            blueGlowSuccess = LoadIconGlowTexture(
+                &uiData.blueIconGlow[talentType].texture,
+                &uiData.blueIconGlow[talentType].width,
+                &uiData.blueIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.0f, 0.73f, 1.0f);
+            purpleGlowSuccess = LoadIconGlowTexture(
+                &uiData.purpleIconGlow[talentType].texture,
+                &uiData.purpleIconGlow[talentType].width,
+                &uiData.purpleIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.73f, 0.0f, 1.0f);
+
             int maskWidth = 0;
             int maskHeight = 0;
             //load company grey mask
@@ -100,7 +136,7 @@ namespace TTM {
                 static_cast<Engine::TalentType>(talentType),
                 0.9412f, 0.9412f, 0.9412f);
         }
-        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess && purpleGlowSuccess)) {
+        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess && purpleGlowSuccess && maskSuccess)) {
             //TTMNOTE: this should not happen anymore
             throw std::runtime_error("Cannot create default icon or icon glows!");
         }

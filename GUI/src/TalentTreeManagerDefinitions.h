@@ -122,11 +122,11 @@ namespace TTM {
 		std::map<int, std::pair<TextureInfo*, TextureInfo*>> iconIndexMapGrayed;
 		TextureInfo defaultIcon;
 		TextureInfo defaultIconGray;
-		TextureInfo redIconGlow;
-		TextureInfo greenIconGlow;
-		TextureInfo goldIconGlow;
-		TextureInfo blueIconGlow;
-		TextureInfo purpleIconGlow;
+		TextureInfo redIconGlow[3];
+		TextureInfo greenIconGlow[3];
+		TextureInfo goldIconGlow[3];
+		TextureInfo blueIconGlow[3];
+		TextureInfo purpleIconGlow[3];
 		//contains 3 masks for each style (ACTIVE, PASSIVE, CHOICE) with the respective window background color
 		std::array <std::array<TextureInfo, 3>, static_cast<int>(Presets::STYLES::STYLE_COUNT) > talentIconMasks;
 		bool enableGlow = true;

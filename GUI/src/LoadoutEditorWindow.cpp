@@ -458,34 +458,6 @@ namespace TTM {
                     talent.second->talentSwitch = 1;
                 }
             }
-            ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && !searchActive) {
-                if (talent.second->points == talent.second->maxPoints) {
-                    ImGui::Image(
-                        uiData.goldIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-                else if (talent.second->points > 0) {
-                    ImGui::Image(
-                        uiData.greenIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-            }
-            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
-                talentIsSearchedFor = true;
-                ImGui::Image(
-                    uiData.blueIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
             ImGui::SetCursorPos(ImVec2(posX, posY));
             Presets::PUSH_FONT(uiData.fontsize, 1);
             if (talentDisabled) {
@@ -556,7 +528,15 @@ namespace TTM {
             ImGui::PopID();
             ImGui::PopStyleColor(5);
             Presets::POP_FONT();
+            if (talentDisabled) {
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
+                ImGui::EndDisabled();
+            }
             AttachLoadoutEditTooltip(uiData, talent.second);
+            if (talentDisabled) {
+                ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.20f;
+                ImGui::BeginDisabled();
+            }
             if (talent.second->type != Engine::TalentType::SWITCH || talentTreeCollection.activeSkillset()->assignedSkillPoints[talent.first] > 0) {
                 ImGui::SetCursorPos(ImVec2(posX, posY));
                 ImGui::Image(
@@ -589,6 +569,42 @@ namespace TTM {
                 uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
                 ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
             );
+            ImGui::SetCursorPos(ImVec2(
+                posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width - talentSize),
+                posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height - talentSize)));
+            if (uiData.enableGlow && !searchActive) {
+                if (talent.second->points == talent.second->maxPoints) {
+                    ImGui::Image(
+                        uiData.goldIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talent.second->points > 0) {
+                    ImGui::Image(
+                        uiData.greenIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.greenIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.greenIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+            }
+            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                talentIsSearchedFor = true;
+                ImGui::Image(
+                    uiData.blueIconGlow[static_cast<int>(talent.second->type)].texture,
+                    ImVec2(
+                        uiData.treeEditorZoomFactor * uiData.blueIconGlow[static_cast<int>(talent.second->type)].width,
+                        uiData.treeEditorZoomFactor * uiData.blueIconGlow[static_cast<int>(talent.second->type)].height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
+            }
             if (talentDisabled) {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.20f;
                 ImGui::BeginDisabled();
