@@ -51,12 +51,15 @@ namespace TTM {
                 }
             }
         }
-        if (!std::filesystem::is_directory(customIconPath)) {
+        if (std::filesystem::is_directory(customIconPath)) {
             for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
                 if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
                     iconPathMap[entry.path().filename().string()] = entry.path();
                 }
             }
+        }
+        else {
+            std::filesystem::create_directory(customIconPath);
         }
         for (auto& [filename, path] : iconPathMap) {
             uiData.iconMap[filename] = loadTextureInfoFromFile(uiData, path.string());
