@@ -28,7 +28,10 @@
 #include "curl.h"
 
 #include "TTMEnginePresets.h"
-#include "TTMGUIPresetsInternal.h"
+#if __has_include("TTMGUIPresetsInternal.h") 
+#include"TTMGUIPresetsInternal.h" 
+#else namespace Presets { std::string PASTEBIN_API_DEV_KEY; } 
+#endif
 
 namespace TTM {
     static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param)
