@@ -324,6 +324,24 @@ namespace TTM {
                 if (ImGui::Button("To clipboard##treeEditorScreenshotExportTalentTreeButton")) {
                     createScreenshotToClipboard(ImGui::FindWindowByName("TreeWindow")->WorkRect);
                 }
+
+                ImGui::Text("Export active skillset to SimC:");
+                ImGui::InputText("##loadoutEditorExportActiveSkillsetSimcInput", &uiData.loadoutEditorExportActiveSkillsetSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetSimcButton")) {
+                    if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
+                        uiData.loadoutEditorExportActiveSkillsetSimcString = Engine::createActiveSkillsetSimcStringRepresentation(talentTreeCollection.activeTree());
+                    }
+                }
+                ImGui::Text("Export all skillsets to SimC:");
+                ImGui::InputText("##loadoutEditorExportAllSkillsetsSimcInput", &uiData.loadoutEditorExportAllSkillsetsSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsSimcButton")) {
+                    if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                        uiData.loadoutEditorExportAllSkillsetsSimcString = Engine::createAllSkillsetsSimcStringRepresentation(talentTreeCollection.activeTree());
+                    }
+                }
+
                 ImGui::Separator();
                 ImGui::Text("Hint: Loadouts are stored in trees. If you save a tree, this will include the loadout!");
             }break;

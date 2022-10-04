@@ -195,8 +195,11 @@ namespace Engine {
     void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
     std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString);
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
+    std::string createSkillsetSimcStringRepresentation(std::shared_ptr<TalentSkillset> skillset, const TalentTree& tree);
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
+    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree);
+    std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 
@@ -216,4 +219,6 @@ namespace Engine {
 
     std::string simplifyString(const std::string& s);
     void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree);
+
+    std::string simcTokenizeName(const std::string& s);
 }

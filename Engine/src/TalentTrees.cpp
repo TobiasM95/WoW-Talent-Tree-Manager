@@ -2040,6 +2040,27 @@ namespace Engine {
         return rep;
     }
 
+    std::string createSkillsetSimcStringRepresentation(std::shared_ptr<TalentSkillset> skillset, const TalentTree& tree) {
+        std::string rep = tree.type == TreeType::CLASS ? "class_talents=" : "spec_talents=";
+        for (auto& indexPointsPair : skillset->assignedSkillPoints) {
+            if (indexPointsPair.second == 0) {
+                continue;
+            }
+            if (tree.orderedTalents.at(indexPointsPair.first)->type != TalentType::SWITCH) {
+                rep += simcTokenizeName(tree.orderedTalents.at(indexPointsPair.first)->name) + ":" + std::to_string(indexPointsPair.second) + "/";
+            }
+            else {
+                if (indexPointsPair.second == 1) {
+                    rep += simcTokenizeName(tree.orderedTalents.at(indexPointsPair.first)->name) + ":1/";
+                }
+                else {
+                    rep += simcTokenizeName(tree.orderedTalents.at(indexPointsPair.first)->nameSwitch) + ":1/";
+                }
+            }
+        }
+        return rep.substr(0, rep.size() - 1);
+    }
+
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree) {
         if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
             return "Invalid skillset!";
@@ -2049,13 +2070,29 @@ namespace Engine {
 
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree) {
         std::string rep;
-        int skillsetIndex = 1;
         for (auto& skillset : tree.loadout) {
             if (!validateSkillset(tree, skillset)) {
-                return "At least skillset " + std::to_string(skillsetIndex) + " is invalid!";
+                return "At least skillset " + skillset->name + " is invalid!";
             }
             rep += createSkillsetStringRepresentation(skillset);
-            skillsetIndex++;
+        }
+        return rep;
+    }
+
+    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree) {
+        if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
+            return "Invalid skillset!";
+        }
+        return createSkillsetSimcStringRepresentation(tree.loadout[tree.activeSkillsetIndex], tree);
+    }
+
+    std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree) {
+        std::string rep;
+        for (auto& skillset : tree.loadout) {
+            if (!validateSkillset(tree, skillset)) {
+                return "At least skillset " + skillset->name + " is invalid!";
+            }
+            rep += "profileset.\"" + skillset->name + "\"+=\"" + createSkillsetSimcStringRepresentation(skillset, tree) + "\"\n";
         }
         return rep;
     }
@@ -2205,5 +2242,53 @@ namespace Engine {
                 filteredTalents.push_back(talent.second);
             }
         }
+    }
+
+    std::string simcTokenizeName(const std::string& s) {
+        std::string name {s};
+        if (name.empty()) return "";
+
+        // remove leading '_' or '+'
+        std::string::size_type n = name.find_first_not_of("_+");
+        std::string::iterator it;
+        if (n != std::string::npos)
+        {
+            it = name.erase(name.begin(), name.begin() + n);
+        }
+        else
+        {
+            it = name.begin();
+        }
+
+        for (; it != name.end(); )
+        {
+            unsigned char c = *it;
+
+            if (c >= 0x80)
+            {
+                it = name.erase(it);
+            }
+            else if (std::isalpha(c))
+            {
+                *it++ = std::tolower(c);
+            }
+            else if (c == ' ')
+            {
+                *it++ = '_';
+            }
+            else if (c != '_' &&
+                c != '+' &&
+                c != '.' &&
+                c != '%' &&
+                !std::isdigit(c))
+            {
+                it = name.erase(it);
+            }
+            else
+            {
+                ++it; // Just skip it
+            }
+        }
+        return name;
     }
 }
