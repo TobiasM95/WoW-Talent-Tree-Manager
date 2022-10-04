@@ -22,6 +22,7 @@
 #include <filesystem>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
 #include "curl.h"
 #include "imgui.h"
@@ -71,7 +72,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
             std::filesystem::remove(tempUpdaterFile);
         }
         catch (const std::filesystem::filesystem_error& e) {
-            ImGui::LogText(e.what());
+            std::ofstream errorlog{ cwd / "errorlog.txt" };
+            errorlog << "Failed to delete temp updater";
         }
     }
 
