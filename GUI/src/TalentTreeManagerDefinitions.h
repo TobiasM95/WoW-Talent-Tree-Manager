@@ -231,6 +231,8 @@ namespace TTM {
 
 		std::string loadoutEditorExportActiveSkillsetString;
 		std::string loadoutEditorExportAllSkillsetsString;
+		std::string loadoutEditorExportActiveSkillsetSimcString;
+		std::string loadoutEditorExportAllSkillsetsSimcString;
 		std::string loadoutEditorImportSkillsetsString;
 		std::pair<int, int> loadoutEditorImportSkillsetsResult;
 
