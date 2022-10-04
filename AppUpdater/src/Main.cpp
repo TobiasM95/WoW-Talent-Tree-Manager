@@ -29,6 +29,7 @@
 
 #include "Updater.h"
 
+#include <fstream>
 #include <string>
 #include <filesystem>
 
@@ -64,10 +65,10 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     Updater::UpdateStatusCache updateStatusCache;
 
     updateStatusCache.cacheUpdateStatus(threadedUpdateStatus);
+    updateStatusCache.cwd = cwd;
     threadedUpdateStatus.setUpdatedFlag(false);
 
     std::thread updaterThread(Updater::updateApplication, std::ref(threadedUpdateStatus), std::ref(updateStatusCache.done));
-    updaterThread.detach();
 
     // Create application window
     //ImGui_ImplWin32_EnableDpiAwareness();
@@ -173,15 +174,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         //g_pSwapChain->Present(0, 0); // Present without vsync
     }
 
-    ShellExecute(NULL,
-        NULL,
-        L".\\TalentTreeManager.exe",
-        NULL,
-        NULL,   // default dir 
-        SW_SHOWNORMAL
-    );
-
-    ShellExecute(0, L"open", L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases", 0, 0, SW_SHOWNORMAL);
+    updaterThread.join(); 
 
     // Cleanup
     ImGui_ImplDX11_Shutdown();
@@ -191,6 +184,46 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     CleanupDeviceD3D();
     ::DestroyWindow(hwnd);
     ::UnregisterClass(wc.lpszClassName, wc.hInstance);
+
+    //no idea why this sometimes works and sometimes not
+    /*
+    wchar_t b[500];
+    lstrcpyW(b, (cwd / "TalentTreeManager.exe").wstring().c_str());
+    PROCESS_INFORMATION pi;
+    STARTUPINFO si = { sizeof si };
+    memset(&si, 0, sizeof(si));
+    memset(&pi, 0, sizeof(pi));
+    si.cb = sizeof(si);
+    bool result = CreateProcess(0, b, 0, 0, 0, CREATE_DEFAULT_ERROR_MODE | CREATE_NEW_CONSOLE, 0, 0, &si, &pi);
+    if (!result) {
+        std::ofstream temp{ "errlog.txt" };
+        temp << "error\n";
+    }
+    WaitForSingleObject(pi.hProcess, 5000);
+    DWORD exitCode;
+    result = GetExitCodeProcess(pi.hProcess, &exitCode);
+    DWORD idleResult = WaitForInputIdle(pi.hProcess, 5000);
+    std::ofstream out{ cwd / "debuglog.txt" };
+    out << "exitcode return " << result << "\n";
+    out << "wait for input return " << idleResult << "\n";
+    out << "exitcode exitcode " << exitCode;
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    */
+
+    /*
+    wchar_t b[500];
+    lstrcpyW(b, (cwd / "TalentTreeManager.exe").wstring().c_str());
+    PROCESS_INFORMATION pi;
+    STARTUPINFO si = { sizeof si };
+    memset(&si, 0, sizeof(si));
+    memset(&pi, 0, sizeof(pi));
+    si.cb = sizeof(si);
+    CreateProcessW(0, b, 0, 0, 0, CREATE_DEFAULT_ERROR_MODE | CREATE_NEW_CONSOLE, 0, 0, &si, &pi);
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    */
 
     return 0;
 }

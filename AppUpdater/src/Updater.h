@@ -4,6 +4,7 @@
 #include <mutex>
 #include <atomic>
 #include <vector>
+#include <filesystem>
 
 namespace Updater {
 	constexpr char tempZipName[] = "ttm_temp.zip";
@@ -16,6 +17,7 @@ namespace Updater {
 		EXTRACT_FILES = 2,
 		EXTRACT_FILES_COUNT = 3,
 		OPEN_GUI = 4,
+		DONE = 5,
 
 		CLOSE_GUI_ERROR = 10,
 		DOWNLOAD_TTM_ZIP_ERROR = 11,
@@ -28,7 +30,8 @@ namespace Updater {
 	private:
 		UpdateStep updateStep = UpdateStep::CLOSE_GUI;
 		std::string statusString = "";
-		std::pair<unsigned, unsigned> extractCount = { 0,0 };
+		std::pair<unsigned, unsigned> extractCount = { 0, 0 };
+		std::pair<float, float> downloadProgress = { 0.0f, 0.0f };
 		std::vector<std::string> failedFiles;
 
 		mutable std::mutex m;
@@ -79,6 +82,16 @@ namespace Updater {
 			return extractCount;
 		}
 
+		void setDownloadProgress(std::pair<float, float> dp) {
+			std::lock_guard<std::mutex> lock(m);
+			downloadProgress = dp;
+		}
+
+		std::pair<float, float> getDownloadProgress() const {
+			std::lock_guard<std::mutex> lock(m);
+			return downloadProgress;
+		}
+
 		void setFailedFiles(std::vector<std::string> ff) {
 			std::lock_guard<std::mutex> lock(m);
 			failedFiles = ff;
@@ -103,10 +116,12 @@ namespace Updater {
 	struct UpdateStatusCache
 	{
 		bool done = false;
+		std::filesystem::path cwd;
 
 		UpdateStep updateStep = UpdateStep::CLOSE_GUI;
 		std::string statusString = "";
 		std::pair<unsigned, unsigned> extractCount;
+		std::pair<float, float> downloadProgress = { 0.0f, 0.0f };
 		std::vector<std::string> failedFiles;
 
 		void cacheUpdateStatus(const ThreadedUpdateStatus& tus) {
@@ -114,6 +129,7 @@ namespace Updater {
 			updateStep = tus.getUpdateStep();
 			extractCount = tus.getExtractCount();
 			failedFiles = tus.getFailedFiles();
+			downloadProgress = tus.getDownloadProgress();
 		}
 	};
 
@@ -125,6 +141,11 @@ namespace Updater {
 	BOOL CALLBACK GetAllTTMWindowHandles(HWND hwnd, LPARAM lparam);
 
 	bool downloadTTMZip(ThreadedUpdateStatus& updateStatus);
+	static size_t progress_callback(void* clientp,
+		long long dltotal,
+		long long dlnow,
+		long long ultotal,
+		long long ulnow);
 	static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param);
 
 	bool extractTTMZip(ThreadedUpdateStatus& updateStatus);
@@ -136,6 +157,7 @@ namespace Updater {
 	void displayFileExtractionStatus(UpdateStatusCache& usc);
 	void displayFileExtractionCountStatus(UpdateStatusCache& usc);
 	void displayOpenGUIStatus(UpdateStatusCache& usc);
+	void displayDoneStatus(UpdateStatusCache& usc);
 	void displayExtractFilesErrorStatus(UpdateStatusCache& usc);
 	void displayErrorStatus(UpdateStatusCache& usc);
 }

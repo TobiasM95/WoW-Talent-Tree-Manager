@@ -41,8 +41,11 @@ namespace Updater {
     constexpr int CURLOPT_WRITEFUNCTION = 20011;
     constexpr int CURLOPT_WRITEDATA = 10001;
     constexpr int CURLOPT_VERBOSE = 41;
+    constexpr int CURLOPT_NOPROGRESS = 43;
     constexpr int CURLOPT_FOLLOWLOCATION = 52;
     constexpr int CURLOPT_USERAGENT = 10018;
+    constexpr int CURLOPT_XFERINFODATA = 10057;
+    constexpr int CURLOPT_XFERINFOFUNCTION = 20219;
     constexpr int CURLE_OK = 0;
 
     void updateApplication(ThreadedUpdateStatus& updateStatus, bool& done) {
@@ -78,7 +81,9 @@ namespace Updater {
             return;
         }
 
-        done = true;
+        updateStatus.setUpdateStep(Updater::UpdateStep::DONE);
+        updateStatus.setStatusString("Update process complete. Press the close button and restart TTM.");
+        updateStatus.setUpdatedFlag(true);
     }
 
     bool closeAllTTMInstances(ThreadedUpdateStatus& updateStatus) {
@@ -241,6 +246,10 @@ namespace Updater {
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &versionString);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+            curl_easy_setopt(curl, CURLOPT_NOPROGRESS, FALSE);
+            curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &updateStatus);
+            curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
+
             res = curl_easy_perform(curl);
             if (CURLE_OK != res) {
                 updateStatus.setUpdateStep(Updater::UpdateStep::DOWNLOAD_TTM_ZIP_ERROR);
@@ -278,6 +287,25 @@ namespace Updater {
         FreeLibrary(libcurlDLL);
         updateStatus.setTTMZipString(ttmZipString);
         return true;
+    }
+
+    static size_t progress_callback(void* clientp,
+        long long dltotal,
+        long long dlnow,
+        long long ultotal,
+        long long ulnow)
+    {
+        ThreadedUpdateStatus* updateStatus = (ThreadedUpdateStatus*)clientp;
+
+        if (dltotal <= 0.0) {
+            return 0;
+        }
+
+        updateStatus->setDownloadProgress(std::pair<float, float>(dlnow / 1000000.0f, dltotal / 1000000.0f));
+        updateStatus->setUpdatedFlag(true);
+
+
+        return 0; /* all is good */
     }
 
     static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param)
@@ -420,6 +448,9 @@ namespace Updater {
         case UpdateStep::OPEN_GUI: {
             displayOpenGUIStatus(usc);
         }break;
+        case UpdateStep::DONE: {
+            displayDoneStatus(usc);
+        }break;
         case UpdateStep::EXTRACT_FILES_ERROR: {
             displayExtractFilesErrorStatus(usc);
         }break;
@@ -441,6 +472,7 @@ namespace Updater {
     void displayTTMDownloadStatus(UpdateStatusCache& usc) {
         ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
         ImGui::Text("%s", usc.statusString.c_str());
+        ImGui::Text("%.4f MB / %.4f MB", usc.downloadProgress.first, usc.downloadProgress.second);
         ImGui::PopTextWrapPos();
     }
 
@@ -461,6 +493,19 @@ namespace Updater {
         ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
         ImGui::Text("%s", usc.statusString.c_str());
         ImGui::PopTextWrapPos();
+    }
+    
+    void displayDoneStatus(UpdateStatusCache& usc) {
+        ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
+        ImGui::Text("%s", usc.statusString.c_str());
+        ImGui::PopTextWrapPos();
+
+        constexpr ImVec2 buttonSize = ImVec2(100.0f, 30.0f);
+        ImVec2 windowSize = ImGui::GetWindowSize();
+        ImGui::SetCursorPos(ImVec2(windowSize.x * 0.5f - buttonSize.x * 0.5f, windowSize.y - buttonSize.y - 10.0f));
+        if (ImGui::Button("Quit", buttonSize)) {
+            usc.done = true;
+        }
     }
 
     void displayExtractFilesErrorStatus(UpdateStatusCache& usc) {
