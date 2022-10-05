@@ -23,6 +23,7 @@ namespace Engine {
         std::vector<int> rootIndices;
         std::shared_ptr<TalentTree> processedTree;
         vec2d<SIND> allCombinations;
+        size_t allCombinationsSum = 0;
         vec2d<SIND> filteredCombinations;
         double elapsedTime = 0.0;
         bool safetyGuardTriggered = false;

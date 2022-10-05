@@ -245,7 +245,6 @@ namespace TTM {
 		const int loadoutSolverMaxTalentPoints = 64;
 		int loadoutSolverTalentPointLimit = 1;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
-		int loadoutSolverAllCombinationsAdded;
 		int loadoutSolverTalentPointSelection = -1;
 		const int loadoutSolverResultsPerPage = 50;
 		bool loadoutSolverAutoApplyFilter = false;
