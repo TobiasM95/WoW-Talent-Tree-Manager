@@ -1,4 +1,8 @@
-# WoW Talent Tree Manager
+![TTM Banner](/GUI/resources/TTM_Banner.png?raw=true "TTM Banner")
+
+
+[<img alt="TTM download button" src="/GUI/resources/TTM_download_button.png" />](https://github.com/TobiasM95/WoW-Talent-Tree-Manager/releases/download/v1.3.8/TalentTreeManager.zip)
+
 ## What is the WoW Talent Tree Manager?
 For the return of talent trees in the upcoming World of Warcraft expansion Dragonflight, this project aims to give players the possibility to easily create, change and share talent tree setups for all classes and even create completely new and custom talent trees for fun. It does provide a simple and clean interface to make the exploration of new talent setups as smooth as possible.
 ## Features
@@ -39,9 +43,15 @@ Loadout solver window (light theme):
 Since this is currently a solo project there will be some rough edges, issues and bugs as well as features that might be missing or aren't well thought out. You can provide TTM feedback via Discord ("About" tab in program for more details) and via issues here on Github.
 Additionally, if you want to contribute (there's a lot of code cleanup and extension to do) then you are more than welcome to do so.
 
+## For developers
+To build this repository, it's best to use VS 2022 (since that is what I'm using).
+Updater.cpp includes an internal GUI presets file `TTMGUIPresetsInternal.h`. This file includes a single `std::string PASTEBIN_API_DEV_KEY = "..."` in the namespace `Presets` which is to either provide with your own Pastebin api dev key or left empty (which leads to the Pastebin export functionality not working).
+
 ## Credits
 Developed by [Tobias Mielich](https://github.com/TobiasM95).
 
 Credits to [Dear ImGui](https://github.com/ocornut/imgui) which is the foundation of the whole GUI and very recommended!
+
+Also used in this project: [libcurl](https://curl.se/libcurl/) & [stb](https://github.com/nothings/stb) & [miniz](https://github.com/richgel999/miniz)
 
 Credits to [Bloodmallet](https://bloodmallet.com/) for giving me the whole idea and talking about this.

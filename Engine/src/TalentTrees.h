@@ -16,7 +16,9 @@ namespace Engine {
 
     // Switch talents can select/switch between 2 talents in the same slot
     enum class TalentType {
-        ACTIVE, PASSIVE, SWITCH
+        ACTIVE = 0, 
+        PASSIVE = 1, 
+        SWITCH = 2
     };
 
     enum class TreeType {
@@ -77,6 +79,8 @@ namespace Engine {
         std::string name;
         std::map<int, int> assignedSkillPoints;
         int talentPointsSpent = 0;
+        int levelCap = 70;
+        bool useLevelCap = true;
     };
 
     /*
@@ -149,6 +153,8 @@ namespace Engine {
         std::vector<std::shared_ptr<TalentSkillset>> loadout;
         int activeSkillsetIndex = -1;
 
+        std::vector<std::pair<int, float>> requirementSeparatorInfo;
+
         int maxID = 0;
         int maxCol = 0;
         std::map<int, int> talentsPerRow;
@@ -181,6 +187,7 @@ namespace Engine {
     void updateNodeCountAndMaxTalentPointsAndMaxID(TalentTree& tree);
     void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::map<int, int>& preFilledTalentCountMap, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent);
     void updateOrderedTalentList(TalentTree& tree);
+    void updateRequirementSeparatorInfo(TalentTree& tree);
     void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s child);
 
     void addChild(Talent_s parent, Talent_s child);
@@ -243,8 +250,13 @@ namespace Engine {
     void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset);
     std::pair<int, int> importSkillsets(TalentTree& tree, std::string importString);
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset);
+    std::string createSkillsetSimcStringRepresentation(std::shared_ptr<TalentSkillset> skillset, const TalentTree& tree);
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
+    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree);
+    std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
+    int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
+    int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 
     /*
     Checks if the currently assigned talent points fulfill all the requirements and are valid (in case
@@ -262,4 +274,6 @@ namespace Engine {
 
     std::string simplifyString(const std::string& s);
     void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree);
+
+    std::string simcTokenizeName(const std::string& s);
 }

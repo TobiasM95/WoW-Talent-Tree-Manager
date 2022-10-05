@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <map>
@@ -13,7 +14,7 @@ namespace Engine {
 }
 
 namespace Presets {//ENGINE PRESETS
-    static const std::string TTM_VERSION = "1.3.4";
+    static const std::string TTM_VERSION = "1.3.8";
 
     enum CLASS_IDS {
         CLASS_IDS_DEATHKNIGHT = 0,
@@ -165,6 +166,7 @@ namespace Presets {//ENGINE PRESETS
     const char** RETURN_SPECS(int classID);
     const std::string RETURN_PRESET(std::map<std::string, std::string> presets, int classID, int specID);
 
+    std::filesystem::path getAppPath();
     std::map<std::string, std::string> LOAD_PRESETS();
 
     /*

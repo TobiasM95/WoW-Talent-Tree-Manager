@@ -6,6 +6,8 @@
 #include "TTMEnginePresets.h"
 #include "TalentTrees.h"
 
+#define MAX_NUMBER_OF_SOLVED_COMBINATIONS 500000000
+
 namespace Engine {
 
     /*
@@ -20,15 +22,34 @@ namespace Engine {
         TalentVec sortedTalents;
         std::vector<int> rootIndices;
         std::shared_ptr<TalentTree> processedTree;
+        vec2d<SIND> allCombinations;
+        size_t allCombinationsSum = 0;
+        vec2d<SIND> filteredCombinations;
+        double elapsedTime = 0.0;
+        bool safetyGuardTriggered = false;
+    };
+
+    struct TreeDAGInfoLegacy {
+        vec2d<int> minimalTreeDAG;
+        TalentVec sortedTalents;
+        std::vector<int> rootIndices;
+        std::shared_ptr<TalentTree> processedTree;
         vec2d<std::pair<SIND, int>> allCombinations;
         vec2d<std::pair<SIND, int>> filteredCombinations;
-        double elapsedTime;
-    }; 
+        double elapsedTime = 0.0;
+        bool safetyGuardTriggered = false;
+    };
 
-    std::shared_ptr<TreeDAGInfo> countConfigurations(TalentTree tree, int talentPointsLimit);
-    std::shared_ptr<TreeDAGInfo> countConfigurationsParallel(TalentTree tree, int talentPointsLimit);
+    std::shared_ptr<TreeDAGInfoLegacy> countConfigurations(TalentTree tree, int talentPointsLimit);
+    void countConfigurationsParallel(
+        TalentTree tree,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered);
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
-    void visitTalent(
+    TreeDAGInfoLegacy createSortedMinimalDAGLegacy(TalentTree tree);
+    void visitTalentLegacy(
         std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
@@ -36,7 +57,7 @@ namespace Engine {
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<std::pair<int, int>> possibleTalents,
-        const TreeDAGInfo& sortedTreeDAG,
+        const TreeDAGInfoLegacy& sortedTreeDAG,
         std::vector<std::pair<SIND, int>>& combinations,
         int& allCombinations
     );
@@ -49,8 +70,24 @@ namespace Engine {
         int talentPointsLeft,
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
-        vec2d<std::pair< SIND, int>>& combinations,
-        std::vector<int>& allCombinations
+        vec2d<SIND>& combinations,
+        std::vector<int>& allCombinations,
+        int& runningCount,
+        bool& safetyGuardTriggered
+    );
+    void visitTalentParallelLegacy(
+        std::pair<int, int> talentIndexReqPair,
+        SIND visitedTalents,
+        int currentPosTalIndex,
+        int currentMultiplier,
+        int talentPointsSpent,
+        int talentPointsLeft,
+        std::vector<std::pair<int, int>> possibleTalents,
+        const TreeDAGInfoLegacy& sortedTreeDAG,
+        vec2d<std::pair<SIND, int>>& combinations,
+        std::vector<int>& allCombinations,
+        int& runningCount,
+        bool& safetyGuardTriggered
     );
     inline void setTalent(SIND& talent, int index);
 

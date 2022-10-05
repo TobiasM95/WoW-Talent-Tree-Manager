@@ -207,6 +207,7 @@ namespace Engine {
         for (auto& rowIndices : talentIndexInRow) {
             tree.talentsPerRow[rowIndices.first] = static_cast<int>(rowIndices.second.size());
         }
+
     }
 
     void countNodesRecursively(std::unordered_map<int, int>& nodeTalentPoints, int& maxID, int& maxCol, std::map<int, int>& preFilledTalentCountMap, std::unordered_map<int, std::unordered_set<int>>& talentsPerRow, Talent_s talent) {
@@ -236,6 +237,73 @@ namespace Engine {
             orderTalentsRecursively(tree.orderedTalents, root);
         }
     }
+
+    void updateRequirementSeparatorInfo(TalentTree& tree) {
+        tree.requirementSeparatorInfo.clear();
+        if (tree.orderedTalents.size() == 0) {
+            return;
+        }
+        //stores the min and max height of each occurring point requirement (key of map) to calculate the separator positions next
+        std::map<int, std::pair<int, int>> requirementRowMap;
+        for (auto& talent : tree.orderedTalents) {
+            int tRow = talent.second->row;
+            int tReq = talent.second->pointsRequired;
+            if (!requirementRowMap.count(tReq)) {
+                requirementRowMap[tReq] = { tRow, tRow };
+            }
+            else {
+                if (tRow < requirementRowMap[tReq].first) {
+                    requirementRowMap[tReq].first = tRow;
+                }
+                if (tRow > requirementRowMap[tReq].second) {
+                    requirementRowMap[tReq].second = tRow;
+                }
+            }
+        }
+
+        std::map<int, std::pair<int, int>>::iterator it1;
+        std::map<int, std::pair<int, int>>::iterator it2;
+        for (it1 = std::next(requirementRowMap.begin()); it1 != requirementRowMap.end();it1++) {
+            bool valid = true;
+            for (it2 = requirementRowMap.begin(); it2 != requirementRowMap.end(); it2++) {
+                if (it2->first == it1->first) {
+                    continue;
+                }
+                if (it2->first > it1->first) {
+                    //regions with lower pts requirement should end before or at the same point as it2
+                    if (it2->second.first < it1->second.first) {
+                        valid = false;
+                        break;
+                    }
+                }
+                
+                if (it2->first < it1->first) {
+                    //regions with higher pts requirement should start after it2
+                    if (it2->second.second >= it1->second.first) {
+                        valid = false;
+                        break;
+                    }
+                }
+                
+            }
+            if (valid) {
+                int closestRow = -INT_MAX;
+                for (it2 = requirementRowMap.begin(); it2 != requirementRowMap.end(); it2++) {
+                    //select the closest region that has a lower pts requirement
+                    if (it2->first >= it1->first) {
+                        continue;
+                    }
+                    if (it2->second.second > closestRow) {
+                        closestRow = it2->second.second;
+                    }
+                }
+                if (closestRow > -INT_MAX) {
+                    tree.requirementSeparatorInfo.push_back({ it1->first, 0.5f * (it1->second.first + closestRow + 1) });
+                }
+            }
+        }
+    }
+
     void orderTalentsRecursively(std::map<int, Talent_s>& talentMap, Talent_s talent) {
         talentMap[talent->index] = talent;
         for (auto& child : talent->children) {
@@ -337,7 +405,7 @@ namespace Engine {
             if (!validateSkillset(tree, skillset)) {
                 continue;
             }
-            treeRep << skillset->name;
+            treeRep << skillset->name << "," + std::to_string(skillset->levelCap) << "," + std::to_string(skillset->useLevelCap);
             for (auto& skillPoint : skillset->assignedSkillPoints) {
                 treeRep << ":" << skillPoint.second;
             }
@@ -744,7 +812,12 @@ namespace Engine {
                 break;
             std::vector<std::string> skillsetParts = splitString(treeDefinitionParts[i], ":");
             std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-            skillset->name = skillsetParts[0];
+            std::vector<std::string> skillsetMetadata = splitString(skillsetParts[0], ",");
+            skillset->name = skillsetMetadata[0];
+            if (skillsetMetadata.size() > 2) {
+                skillset->levelCap = std::stoi(skillsetMetadata[1]);
+                skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
+            }
 
             if (skillsetParts.size() - 1 != numTalents)
                 continue;
@@ -879,13 +952,19 @@ namespace Engine {
 
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
+        updateRequirementSeparatorInfo(tree);
 
         for (int i = numTalents + 1; i < numTalents + numLoadouts + 1; i++) {
             if (treeDefinitionParts[i] == "")
                 break;
             std::vector<std::string> skillsetParts = splitString(treeDefinitionParts[i], ":");
             std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-            skillset->name = skillsetParts[0];
+            std::vector<std::string> skillsetMetadata = splitString(skillsetParts[0], ",");
+            skillset->name = skillsetMetadata[0];
+            if (skillsetMetadata.size() > 2) {
+                skillset->levelCap = std::stoi(skillsetMetadata[1]);
+                skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
+            }
 
             if (skillsetParts.size() - 1 != numTalents)
                 continue;
@@ -1077,7 +1156,10 @@ namespace Engine {
         if (skillsetName.find_first_not_of(
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 :()'-"
         ) != std::string::npos) {
-            return false;
+            //accept either no "," or exactly 2 "," to define levelCap and useLevelCap for backwards compatibility
+            if (splitString(skillsetName, ",").size() != 3) {
+                return false;
+            }
         }
         for (int i = 1; i < skillsetParts.size(); i++) {
             if ((skillsetParts[i] == "" && i < skillsetParts.size() - 1)
@@ -1485,8 +1567,8 @@ namespace Engine {
     void autoPointRequirements(TalentTree& tree) {
         std::vector<int> uniqueRows;
         for (auto& talent : tree.orderedTalents) {
-            if (std::find(uniqueRows.begin(), uniqueRows.end(), talent.second->index) == uniqueRows.end()) {
-                uniqueRows.push_back(talent.second->index);
+            if (std::find(uniqueRows.begin(), uniqueRows.end(), talent.second->row) == uniqueRows.end()) {
+                uniqueRows.push_back(talent.second->row);
             }
         }
         std::sort(uniqueRows.begin(), uniqueRows.end());
@@ -1665,6 +1747,7 @@ namespace Engine {
         }
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
+        updateRequirementSeparatorInfo(tree);
     }
 
     /*
@@ -1774,6 +1857,7 @@ namespace Engine {
         }
         updateNodeCountAndMaxTalentPointsAndMaxID(tree);
         updateOrderedTalentList(tree);
+        updateRequirementSeparatorInfo(tree);
     }
 
     /*
@@ -1883,6 +1967,9 @@ namespace Engine {
                 }
             }
         }
+        if (tree.loadout[index]->talentPointsSpent > tree.loadout[index]->levelCap) {
+            tree.loadout[index]->useLevelCap = false;
+        }
     }
 
     void applyPreselectedTalentsToSkillset(TalentTree& tree, std::shared_ptr<TalentSkillset> skillset) {
@@ -1908,10 +1995,16 @@ namespace Engine {
             }
             std::vector<std::string> skillsetParts = splitString(skillsetsString[i], ":");
             std::shared_ptr<TalentSkillset> skillset = std::make_shared<TalentSkillset>();
-            skillset->name = skillsetParts[0];
+            std::vector<std::string> skillsetMetadata = splitString(skillsetParts[0], ",");
+            skillset->name = skillsetMetadata[0];
+            if (skillsetMetadata.size() > 2) {
+                skillset->levelCap = std::stoi(skillsetMetadata[1]);
+                skillset->useLevelCap = static_cast<bool>(std::stoi(skillsetMetadata[2]));
+            }
 
-            if (skillsetParts.size() - 1 != tree.orderedTalents.size())
-                continue;
+            if (skillsetParts.size() - 1 != tree.orderedTalents.size()) {
+                importedSkillsets.second += 1;
+            }
 
             int index = 1;
             std::map<int, Talent_s>::iterator it;
@@ -1927,6 +2020,9 @@ namespace Engine {
                 tree.loadout.push_back(skillset);
                 importedSkillsets.first += 1;
             }
+            else {
+                importedSkillsets.second += 1;
+            }
         }
         tree.activeSkillsetIndex = static_cast<int>(tree.loadout.size() - 1);
         if (tree.activeSkillsetIndex >= 0) {
@@ -1936,12 +2032,33 @@ namespace Engine {
     }
 
     std::string createSkillsetStringRepresentation(std::shared_ptr<TalentSkillset> skillset) {
-        std::string rep = skillset->name;
+        std::string rep = skillset->name + "," + std::to_string(skillset->levelCap) + "," + std::to_string(skillset->useLevelCap);
         for (auto& indexPointsPair : skillset->assignedSkillPoints) {
             rep += ":" + std::to_string(indexPointsPair.second);
         }
         rep += ";";
         return rep;
+    }
+
+    std::string createSkillsetSimcStringRepresentation(std::shared_ptr<TalentSkillset> skillset, const TalentTree& tree) {
+        std::string rep = tree.type == TreeType::CLASS ? "class_talents=" : "spec_talents=";
+        for (auto& indexPointsPair : skillset->assignedSkillPoints) {
+            if (indexPointsPair.second == 0) {
+                continue;
+            }
+            if (tree.orderedTalents.at(indexPointsPair.first)->type != TalentType::SWITCH) {
+                rep += simcTokenizeName(tree.orderedTalents.at(indexPointsPair.first)->name) + ":" + std::to_string(indexPointsPair.second) + "/";
+            }
+            else {
+                if (indexPointsPair.second == 1) {
+                    rep += simcTokenizeName(tree.orderedTalents.at(indexPointsPair.first)->name) + ":1/";
+                }
+                else {
+                    rep += simcTokenizeName(tree.orderedTalents.at(indexPointsPair.first)->nameSwitch) + ":1/";
+                }
+            }
+        }
+        return rep.substr(0, rep.size() - 1);
     }
 
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree) {
@@ -1953,15 +2070,49 @@ namespace Engine {
 
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree) {
         std::string rep;
-        int skillsetIndex = 1;
         for (auto& skillset : tree.loadout) {
             if (!validateSkillset(tree, skillset)) {
-                return "At least skillset " + std::to_string(skillsetIndex) + " is invalid!";
+                return "At least skillset " + skillset->name + " is invalid!";
             }
             rep += createSkillsetStringRepresentation(skillset);
-            skillsetIndex++;
         }
         return rep;
+    }
+
+    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree) {
+        if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
+            return "Invalid skillset!";
+        }
+        return createSkillsetSimcStringRepresentation(tree.loadout[tree.activeSkillsetIndex], tree);
+    }
+
+    std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree) {
+        std::string rep;
+        for (auto& skillset : tree.loadout) {
+            if (!validateSkillset(tree, skillset)) {
+                return "At least skillset " + skillset->name + " is invalid!";
+            }
+            rep += "profileset.\"" + skillset->name + "\"+=\"" + createSkillsetSimcStringRepresentation(skillset, tree) + "\"\n";
+        }
+        return rep;
+    }
+
+    int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset) {
+        return getLevelRequirement(sk.talentPointsSpent, tree, offset);
+    }
+
+    int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset) {
+        int minLevel = 0;
+        if (pointsSpent > tree.preFilledTalentPoints) {
+            minLevel += 10;
+            if (tree.type == Engine::TreeType::CLASS) {
+                minLevel += (pointsSpent + offset - tree.preFilledTalentPoints) * 2 - 2;
+            }
+            else {
+                minLevel += (pointsSpent + offset - tree.preFilledTalentPoints) * 2 - 1;
+            }
+        }
+        return minLevel;
     }
 
     bool checkTalentValidity(const TalentTree& tree) {
@@ -2091,5 +2242,53 @@ namespace Engine {
                 filteredTalents.push_back(talent.second);
             }
         }
+    }
+
+    std::string simcTokenizeName(const std::string& s) {
+        std::string name {s};
+        if (name.empty()) return "";
+
+        // remove leading '_' or '+'
+        std::string::size_type n = name.find_first_not_of("_+");
+        std::string::iterator it;
+        if (n != std::string::npos)
+        {
+            it = name.erase(name.begin(), name.begin() + n);
+        }
+        else
+        {
+            it = name.begin();
+        }
+
+        for (; it != name.end(); )
+        {
+            unsigned char c = *it;
+
+            if (c >= 0x80)
+            {
+                it = name.erase(it);
+            }
+            else if (std::isalpha(c))
+            {
+                *it++ = std::tolower(c);
+            }
+            else if (c == ' ')
+            {
+                *it++ = '_';
+            }
+            else if (c != '_' &&
+                c != '+' &&
+                c != '.' &&
+                c != '%' &&
+                !std::isdigit(c))
+            {
+                it = name.erase(it);
+            }
+            else
+            {
+                ++it; // Just skip it
+            }
+        }
+        return name;
     }
 }

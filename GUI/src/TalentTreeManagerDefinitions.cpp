@@ -19,34 +19,129 @@
 */
 
 #include "TalentTreeManagerDefinitions.h"
+#include "TTMEnginePresets.h"
 
 #include "imgui_internal.h"
 
 namespace TTM {
-    void refreshIconList(UIData& uiData) {
-        std::filesystem::path iconRootPath = "resources/icons/";
-        std::filesystem::path customIconPath = "resources/icons/custom";
-        uiData.iconPathMap.clear();
+    void refreshIconMap(UIData& uiData) {
+        std::filesystem::path iconRootPath = Presets::getAppPath() / "resources"/ "icons";
+        std::filesystem::path customIconPath = Presets::getAppPath() / "resources" / "icons" / "custom";
+        for (auto& [filename, textureInfoPair] : uiData.iconMap) {
+            if (textureInfoPair.first.texture) {
+                textureInfoPair.first.texture->Release();
+                textureInfoPair.first.texture = nullptr;
+            }
+            if (textureInfoPair.second.texture) {
+                textureInfoPair.second.texture->Release();
+                textureInfoPair.second.texture = nullptr;
+            }
+        }
+        uiData.iconMap.clear();
+        std::map<std::string, std::filesystem::path> iconPathMap;
         //first iterate through pre-shipped directories and add paths to map while skipping custom dir
-        if (!std::filesystem::is_directory(iconRootPath)) {
-            return;
-        }
-        for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
-            if (!std::filesystem::is_regular_file(entry)
-                || entry.path().parent_path().compare(customIconPath) == 0) {
-                continue;
+        if (std::filesystem::is_directory(iconRootPath)) {
+            for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
+                if (!std::filesystem::is_regular_file(entry)
+                    || entry.path().parent_path().compare(customIconPath) == 0) {
+                    continue;
+                }
+                if (entry.path().extension() == ".png") {
+                    iconPathMap[entry.path().filename().string()] = entry.path();
+                }
             }
-            if (entry.path().extension() == ".png") {
-                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
+        }
+        if (std::filesystem::is_directory(customIconPath)) {
+            for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
+                if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
+                    iconPathMap[entry.path().filename().string()] = entry.path();
+                }
             }
         }
-        if (!std::filesystem::is_directory(customIconPath)) {
-            return;
+        else {
+            std::filesystem::create_directory(customIconPath);
         }
-        for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
-            if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
-                uiData.iconPathMap[entry.path().filename().string()] = entry.path();
-            }
+        for (auto& [filename, path] : iconPathMap) {
+            uiData.iconMap[filename] = loadTextureInfoFromFile(uiData, path.string());
+        }
+
+        //load default texture first
+        int defaultImageWidth = 0;
+        int defaultImageHeight = 0;
+        bool defaultSuccess = LoadDefaultTexture(&uiData.defaultIcon.texture, &uiData.defaultIconGray.texture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
+        bool maskSuccess = true;
+        bool redGlowSuccess = true;
+        bool greenGlowSuccess = true;
+        bool goldGlowSuccess = true;
+        bool blueGlowSuccess = true;
+        bool purpleGlowSuccess = true;
+        for (int talentType = 0; talentType < 3; talentType++) {
+            redGlowSuccess = LoadIconGlowTexture(
+                &uiData.redIconGlow[talentType].texture,
+                &uiData.redIconGlow[talentType].width,
+                &uiData.redIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                1.0f, 0.0f, 0.0f);
+            greenGlowSuccess = LoadIconGlowTexture(
+                &uiData.greenIconGlow[talentType].texture,
+                &uiData.greenIconGlow[talentType].width,
+                &uiData.greenIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.0f, 1.0f, 0.0f);
+            goldGlowSuccess = LoadIconGlowTexture(
+                &uiData.goldIconGlow[talentType].texture,
+                &uiData.goldIconGlow[talentType].width,
+                &uiData.goldIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.8f, 0.63f, 0.0f);
+            blueGlowSuccess = LoadIconGlowTexture(
+                &uiData.blueIconGlow[talentType].texture,
+                &uiData.blueIconGlow[talentType].width,
+                &uiData.blueIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.0f, 0.73f, 1.0f);
+            purpleGlowSuccess = LoadIconGlowTexture(
+                &uiData.purpleIconGlow[talentType].texture,
+                &uiData.purpleIconGlow[talentType].width,
+                &uiData.purpleIconGlow[talentType].height,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.73f, 0.0f, 1.0f);
+
+            int maskWidth = 0;
+            int maskHeight = 0;
+            //load company grey mask
+            maskSuccess = LoadIconMaskTexture(
+                &uiData.talentIconMasks[static_cast<int>(Presets::STYLES::COMPANY_GREY)][talentType].texture,
+                &maskWidth,
+                &maskHeight,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.25f, 0.25f, 0.25f);
+            //load path of talent tree mask
+            maskSuccess = LoadIconMaskTexture(
+                &uiData.talentIconMasks[static_cast<int>(Presets::STYLES::PATH_OF_TALENT_TREE)][talentType].texture,
+                &maskWidth,
+                &maskHeight,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.0f, 0.0f, 0.0f);
+            //load light mode mask
+            maskSuccess = LoadIconMaskTexture(
+                &uiData.talentIconMasks[static_cast<int>(Presets::STYLES::LIGHT_MODE)][talentType].texture,
+                &maskWidth,
+                &maskHeight,
+                uiData.g_pd3dDevice,
+                static_cast<Engine::TalentType>(talentType),
+                0.9412f, 0.9412f, 0.9412f);
+        }
+        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess && purpleGlowSuccess && maskSuccess)) {
+            //TTMNOTE: this should not happen anymore
+            throw std::runtime_error("Cannot create default icon or icon glows!");
         }
     }
 
@@ -54,70 +149,61 @@ namespace TTM {
         if (talentTreeCollection.activeTreeIndex == -1 || (!forceReload && uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
             return;
         }
-        //FREE STUFF HERE
-        //FREE ALL POINTERS!
-        for (auto& indexTexInfoPair : uiData.iconIndexMap) {
-            if (indexTexInfoPair.second.first.texture) {
-                indexTexInfoPair.second.first.texture->Release();
-                indexTexInfoPair.second.first.texture = nullptr;
-            }
-            if (indexTexInfoPair.second.second.texture) {
-                indexTexInfoPair.second.second.texture->Release();
-                indexTexInfoPair.second.second.texture = nullptr;
-            }
-        }
-        for (auto& indexTexInfoPair : uiData.splitIconIndexMap) {
-            if (indexTexInfoPair.second.texture) {
-                indexTexInfoPair.second.texture->Release();
-                indexTexInfoPair.second.texture = nullptr;
-            }
-        }
         uiData.iconIndexMap.clear();
-        uiData.splitIconIndexMap.clear();
-        //load default texture first
-        int defaultImageWidth = 0;
-        int defaultImageHeight = 0;
-        ID3D11ShaderResourceView* defaultTexture = NULL;
-        std::string iconPath(uiData.defaultIconPath.string());
-        bool defaultSuccess = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::PASSIVE);
-        bool redGlowSuccess = LoadRedIconGlowTexture(&uiData.redIconGlow.texture, &uiData.redIconGlow.width, &uiData.redIconGlow.height, uiData.g_pd3dDevice);
-        bool greenGlowSuccess = LoadGreenIconGlowTexture(&uiData.greenIconGlow.texture, &uiData.greenIconGlow.width, &uiData.greenIconGlow.height, uiData.g_pd3dDevice);
-        bool goldGlowSuccess = LoadGoldIconGlowTexture(&uiData.goldIconGlow.texture, &uiData.goldIconGlow.width, &uiData.goldIconGlow.height, uiData.g_pd3dDevice);
-        bool blueGlowSuccess = LoadBlueIconGlowTexture(&uiData.blueIconGlow.texture, &uiData.blueIconGlow.width, &uiData.blueIconGlow.height, uiData.g_pd3dDevice);
-        if (!(defaultSuccess && redGlowSuccess && greenGlowSuccess && goldGlowSuccess && blueGlowSuccess)) {
-            //TTMNOTE: this should not happen anymore
-            throw std::runtime_error("Cannot create default icon!");
+        uiData.iconIndexMapGrayed.clear();
+
+        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+            std::pair<TextureInfo*, TextureInfo*> talentIconPtrs = { nullptr, nullptr };
+            std::pair<TextureInfo*, TextureInfo*> talentIconGrayedPtrs = { nullptr, nullptr };
+            if (uiData.iconMap.count(talent.second->iconName.first)) {
+                talentIconPtrs.first = &uiData.iconMap[talent.second->iconName.first].first;
+                talentIconGrayedPtrs.first = &uiData.iconMap[talent.second->iconName.first].second;
+            }
+            else {
+                talentIconPtrs.first = &uiData.defaultIcon;
+                talentIconGrayedPtrs.first = &uiData.defaultIconGray;
+            }
+            if (uiData.iconMap.count(talent.second->iconName.second)) {
+                talentIconPtrs.second = &uiData.iconMap[talent.second->iconName.second].first;
+                talentIconGrayedPtrs.second = &uiData.iconMap[talent.second->iconName.second].second;
+            }
+            else {
+                talentIconPtrs.second = &uiData.defaultIcon;
+                talentIconGrayedPtrs.second = &uiData.defaultIconGray;
+            }
+            uiData.iconIndexMap[talent.first] = talentIconPtrs;
+            uiData.iconIndexMapGrayed[talent.first] = talentIconGrayedPtrs;
         }
 
-        //load individual icons or replace with default texture if error
-        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
-            loadIcon(uiData, talent.second->index, talent.second->iconName.first, defaultTexture, defaultImageWidth, defaultImageHeight, true, talent.second->type);
-            loadIcon(uiData, talent.second->index, talent.second->iconName.second, defaultTexture, defaultImageWidth, defaultImageHeight, false, talent.second->type);
-            if (talent.second->type == Engine::TalentType::SWITCH) {
-                loadSplitIcon(uiData, talent.second, defaultTexture, defaultImageWidth, defaultImageHeight);
-            }
-        }
         uiData.loadedIconTreeIndex = talentTreeCollection.activeTreeIndex;
     }
 
-    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
+    /*
+    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
+        ID3D11ShaderResourceView* textureGray = NULL;
         std::string path;
         if (uiData.iconPathMap.count(iconName)) {
             path = uiData.iconPathMap[iconName].string();
-            bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice, talentType);
+            bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, talentType);
             if (!ret) {
                 TextureInfo textureInfo;
                 textureInfo.texture = defaultTexture;
                 textureInfo.width = defaultImageWidth;
                 textureInfo.height = defaultImageHeight;
+                TextureInfo textureInfoGray;
+                textureInfoGray.texture = defaultTextureGray;
+                textureInfoGray.width = defaultImageWidth;
+                textureInfoGray.height = defaultImageHeight;
                 if (first) {
                     uiData.iconIndexMap[index].first = textureInfo;
+                    uiData.iconIndexMapGrayed[index].first = textureInfoGray;
                 }
                 else {
                     uiData.iconIndexMap[index].second = textureInfo;
+                    uiData.iconIndexMapGrayed[index].second = textureInfoGray;
                 }
             }
             else {
@@ -125,11 +211,17 @@ namespace TTM {
                 textureInfo.texture = texture;
                 textureInfo.width = width;
                 textureInfo.height = height;
+                TextureInfo textureInfoGray;
+                textureInfoGray.texture = textureGray;
+                textureInfoGray.width = width;
+                textureInfoGray.height = height;
                 if (first) {
                     uiData.iconIndexMap[index].first = textureInfo;
+                    uiData.iconIndexMapGrayed[index].first = textureInfoGray;
                 }
                 else {
                     uiData.iconIndexMap[index].second = textureInfo;
+                    uiData.iconIndexMapGrayed[index].second = textureInfoGray;
                 }
             }
         }
@@ -138,19 +230,26 @@ namespace TTM {
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
             textureInfo.height = defaultImageHeight;
+            TextureInfo textureInfoGray;
+            textureInfoGray.texture = defaultTextureGray;
+            textureInfoGray.width = defaultImageWidth;
+            textureInfoGray.height = defaultImageHeight;
             if (first) {
                 uiData.iconIndexMap[index].first = textureInfo;
+                uiData.iconIndexMapGrayed[index].first = textureInfoGray;
             }
             else {
                 uiData.iconIndexMap[index].second = textureInfo;
+                uiData.iconIndexMapGrayed[index].second= textureInfoGray;
             }
         }
     }
 
-    void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight) {
+    void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight) {
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
+        ID3D11ShaderResourceView* textureGray = NULL;
         std::string path1;
         std::string path2;
         if (uiData.iconPathMap.count(talent->iconName.first)) {
@@ -165,57 +264,70 @@ namespace TTM {
         else {
             path2 = uiData.defaultIconPath.string();
         }
-        bool ret = LoadSplitTextureFromFile(path1.c_str(), path2.c_str(), &texture, &width, &height, uiData.g_pd3dDevice);
+        bool ret = LoadSplitTextureFromFile(path1.c_str(), path2.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice);
         if (!ret) {
             TextureInfo textureInfo;
             textureInfo.texture = defaultTexture;
             textureInfo.width = defaultImageWidth;
             textureInfo.height = defaultImageHeight;
+            TextureInfo textureInfoGray;
+            textureInfoGray.texture = defaultTextureGray;
+            textureInfoGray.width = defaultImageWidth;
+            textureInfoGray.height = defaultImageHeight;
             uiData.splitIconIndexMap[talent->index] = textureInfo;
+            uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
         }
         else {
             TextureInfo textureInfo;
             textureInfo.texture = texture;
             textureInfo.width = width;
             textureInfo.height = height;
+            TextureInfo textureInfoGray;
+            textureInfoGray.texture = textureGray;
+            textureInfoGray.width = width;
+            textureInfoGray.height = height;
             uiData.splitIconIndexMap[talent->index] = textureInfo;
+            uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
         }
     }
+    */
 
-    TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType) {
+    std::pair<TextureInfo, TextureInfo> loadTextureInfoFromFile(UIData& uiData, std::string path) {
+        std::pair<TextureInfo, TextureInfo> textureInfoPair;
         int width = 0;
         int height = 0;
         ID3D11ShaderResourceView* texture = NULL;
-        std::string path;
-        if (uiData.iconPathMap.count(iconName)) {
-            path = uiData.iconPathMap[iconName].string();
-        }
-        else {
-            path = uiData.defaultIconPath.string();
-        }
-        bool ret = LoadTextureFromFile(path.c_str(), &texture, &width, &height, uiData.g_pd3dDevice, talentType);
-        TextureInfo textureInfo;
+        ID3D11ShaderResourceView* textureGray = NULL;
+        bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
         if (!ret) {
             //load default texture first
             int defaultImageWidth = 0;
             int defaultImageHeight = 0;
             ID3D11ShaderResourceView* defaultTexture = NULL;
-            std::string iconPath(uiData.defaultIconPath.string());
-            bool ret = LoadDefaultTexture(&defaultTexture, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, talentType);
+            ID3D11ShaderResourceView* defaultTextureGray = NULL;
+            bool ret = LoadDefaultTexture(&defaultTexture, &defaultTextureGray, &defaultImageWidth, &defaultImageHeight, uiData.g_pd3dDevice, Engine::TalentType::ACTIVE);
             if (!ret) {
                 //TTMNOTE: This should not happen anymore
                 throw std::runtime_error("Cannot create default icon!");
             }
-            textureInfo.texture = defaultTexture;
-            textureInfo.width = defaultImageWidth;
-            textureInfo.height = defaultImageHeight;
+            textureInfoPair.first.texture = defaultTexture;
+            textureInfoPair.first.width = defaultImageWidth;
+            textureInfoPair.first.height = defaultImageHeight;
+
+            textureInfoPair.second.texture = defaultTextureGray;
+            textureInfoPair.second.width = defaultImageWidth;
+            textureInfoPair.second.height = defaultImageHeight;
         }
         else {
-            textureInfo.texture = texture;
-            textureInfo.width = width;
-            textureInfo.height = height;
+            textureInfoPair.first.texture = texture;
+            textureInfoPair.first.width = width;
+            textureInfoPair.first.height = height;
+
+            textureInfoPair.second.texture = textureGray;
+            textureInfoPair.second.width = width;
+            textureInfoPair.second.height = height;
         }
-        return textureInfo;
+        return textureInfoPair;
     }
 
     void drawArrowBetweenTalents(
@@ -460,19 +572,19 @@ namespace TTM {
         }
         float textOffset = 0;
         if (uiData.treeEditorZoomFactor <= 1.0f) {
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+            Presets::PUSH_FONT(uiData.fontsize, 3);
         }
         else if (uiData.treeEditorZoomFactor < 1.5f) {
             textOffset = 0.01f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+            Presets::PUSH_FONT(uiData.fontsize, 0);
         }
         else if (uiData.treeEditorZoomFactor < 2.0f) {
             textOffset = 0.015f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
         }
         else {
             textOffset = 0.02f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
         }
         ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
         ImVec2 textSize = ImGui::CalcTextSize("9/9");
@@ -510,7 +622,7 @@ namespace TTM {
             ImColor(textColor),
             ("0/" + std::to_string(talent->maxPoints)).c_str()
         );
-        ImGui::PopFont();
+        Presets::POP_FONT();
     }
 
     void drawLoadoutEditorShapeAroundTalent(
@@ -683,19 +795,19 @@ namespace TTM {
         }
         float textOffset = 0;
         if (uiData.treeEditorZoomFactor <= 1.0f) {
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+            Presets::PUSH_FONT(uiData.fontsize, 3);
         }
         else if (uiData.treeEditorZoomFactor < 1.5f) {
             textOffset = 0.01f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+            Presets::PUSH_FONT(uiData.fontsize, 0);
         }
         else if (uiData.treeEditorZoomFactor < 2.0f) {
             textOffset = 0.015f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
         }
         else {
             textOffset = 0.02f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
         }
         ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
         ImVec2 textSize = ImGui::CalcTextSize("9/9");
@@ -733,7 +845,7 @@ namespace TTM {
             ImColor(textColor),
             (std::to_string(talent->points) + "/" + std::to_string(talent->maxPoints)).c_str()
         );
-        ImGui::PopFont();
+        Presets::POP_FONT();
     }
 
     void drawLoadoutSolverShapeAroundTalent(
@@ -772,6 +884,9 @@ namespace TTM {
                 }
                 else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -2) {
                     borderCol = Presets::TALENT_SEARCHED_BORDER_COLOR;
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -3) {
+                    borderCol = Presets::TALENT_PURPLE_BORDER_COLOR;
                 }
                 else {
                     borderCol = Presets::TALENT_PARTIAL_BORDER_COLOR;
@@ -884,19 +999,19 @@ namespace TTM {
         }
         float textOffset = 0;
         if (uiData.treeEditorZoomFactor <= 1.0f) {
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+            Presets::PUSH_FONT(uiData.fontsize, 3);
         }
         else if (uiData.treeEditorZoomFactor < 1.5f) {
             textOffset = 0.01f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+            Presets::PUSH_FONT(uiData.fontsize, 0);
         }
         else if (uiData.treeEditorZoomFactor < 2.0f) {
             textOffset = 0.015f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
         }
         else {
             textOffset = 0.02f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
         }
         ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
         ImVec2 textSize = ImGui::CalcTextSize("9/9");
@@ -936,8 +1051,11 @@ namespace TTM {
         else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -1) {
             buttonLabel = "X/" + std::to_string(talent->maxPoints);
         }
-        else {
+        else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent->index] == -2) {
             buttonLabel = ">/" + std::to_string(talent->maxPoints);
+        }
+        else {
+            buttonLabel = "=/" + std::to_string(talent->maxPoints);
         }
         drawList->AddText(
             ImVec2(
@@ -947,7 +1065,38 @@ namespace TTM {
             ImColor(textColor),
             (buttonLabel).c_str()
         );
-        ImGui::PopFont();
+        Presets::POP_FONT();
+    }
+
+    void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate) {
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - uiData.currentSolversLastUpdateTime);
+        if (milliseconds > uiData.currentSolversUpdateInterval || forceUpdate) {
+            uiData.currentSolversLastUpdateTime = std::chrono::steady_clock::now();
+            uiData.currentSolvers.clear();
+            uiData.solvedTrees.clear();
+            for (auto& talentTreeData : talentTreeCollection.trees) {
+                if (talentTreeData.isTreeSolveInProgress) {
+                    uiData.currentSolvers.emplace_back(
+                            talentTreeData.tree.name,
+                            &talentTreeData
+                        );
+                }
+                else if (talentTreeData.treeDAGInfo) {
+                    uiData.solvedTrees.emplace_back(
+                        talentTreeData.tree.name,
+                        &talentTreeData
+                    );
+                }
+            }
+        }
+    }
+
+    void stopAllSolvers(TalentTreeCollection& talentTreeCollection) {
+        for (auto& talentTreeData : talentTreeCollection.trees) {
+            if (talentTreeData.isTreeSolveInProgress) {
+                talentTreeData.safetyGuardTriggered = true;
+            }
+        }
     }
 
     void drawSimAnalysisShapeAroundTalent(
@@ -1132,28 +1281,90 @@ namespace TTM {
 
         talentTreeCollection.activeTreeData().isTreeSolveProcessed = false;
         talentTreeCollection.activeTreeData().isTreeSolveFiltered = false;
+        talentTreeCollection.activeTreeData().safetyGuardTriggered = false;
+        talentTreeCollection.activeTreeData().isTreeSolveInProgress = false;
         talentTreeCollection.activeTreeData().skillsetFilter = nullptr;
         talentTreeCollection.activeTreeData().treeDAGInfo = nullptr;
     }
 
-    void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData) {
-        uiData.simAnalysisPage = SimAnalysisPage::Settings;
-        uiData.raidbotsInputURL = "";
-        for (auto& indexTexInfo : uiData.simAnalysisColorGlowTextures) {
-            indexTexInfo.second.second.texture->Release();
-            indexTexInfo.second.second.texture = nullptr;
-        }
-        uiData.simAnalysisColorGlowTextures.clear();
-        uiData.simAnalysisButtonRankingText.clear();
-        uiData.analysisTooltipLastTalentIndex = -1;
-        uiData.analysisTooltipTalentRank = -1;
-        uiData.analysisBreakdownTalentIndex = -1;
-        if (onlyUIData) {
-            return;
-        }
+    void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData) {
+        uiData.loadoutSolverTalentPointSelection = -1;
+        uiData.loadoutSolverSkillsetResultPage = -1;
+        uiData.loadoutSolverBufferedPage = -1;
+        uiData.selectedFilteredSkillset = 0;
+        uiData.selectedFilteredSkillsetIndex = -1;
+        uiData.loadoutSolverAutoApplyFilter = false;
+        talentTreeData.isTreeSolveProcessed = false;
+        talentTreeData.isTreeSolveFiltered = false;
+        talentTreeData.safetyGuardTriggered = false;
+        talentTreeData.isTreeSolveInProgress = false;
+        talentTreeData.skillsetFilter = nullptr;
+        talentTreeData.treeDAGInfo = nullptr;
+    }
 
-        talentTreeCollection.activeTree().analysisResult = Engine::AnalysisResult();
-        talentTreeCollection.activeTree().selectedSimAnalysisRawResult = -1;
-        talentTreeCollection.activeTree().simAnalysisRawResults.clear();
+    void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list) {
+        float padFactor = 2.4f;
+        std::vector<std::string> words = Engine::splitString(text, " ");
+        std::string renderText = "";
+        renderText.reserve(text.size() * 2);
+        float spaceWidth = ImGui::CalcTextSize(" ").x;
+        float widthLeft = maxWidth - padFactor * padding;
+        for (std::string& word : words) {
+            float wordWidth = ImGui::CalcTextSize(word.c_str()).x;
+            if (wordWidth > maxWidth - padFactor * padding) {
+                //not even single word fits in line
+                for (const char& ch : word) {
+                    float charWidth = ImGui::CalcTextSize(&ch, &ch + 1).x;
+                    if (charWidth > widthLeft + padding) {
+                        if (ImGui::CalcTextSize((renderText + "\n" + ch).c_str()).y > maxHeight - padFactor * padding) {
+                            if (ImGui::CalcTextSize((renderText + "...").c_str()).x <= maxWidth - padFactor * padding) {
+                                renderText += "...";
+                            }
+                            else {
+                                renderText = renderText.substr(0, renderText.size() - 3) + "...";
+                            }
+                            draw_list->AddText(ImVec2(position.x + padding, position.y + padding), ImColor(color), renderText.c_str());
+                            return;
+                        }
+                        renderText += "\n";
+                        widthLeft = maxWidth - padFactor * padding;
+                    }
+                    renderText += ch;
+                    widthLeft -= charWidth;
+                }
+                renderText += " ";
+                widthLeft -= spaceWidth;
+            }
+            else if (wordWidth > widthLeft) {
+                //full word doesn't fit on line
+                if (ImGui::CalcTextSize((renderText + "\n" + word).c_str()).y > maxHeight - padFactor * padding) {
+                    if (ImGui::CalcTextSize((renderText + "...").c_str()).x <= maxWidth - padFactor * padding) {
+                        renderText += "...";
+                    }
+                    else {
+                        renderText = renderText.substr(0, renderText.size() - 3) + "...";
+                    }
+                    break;
+                }
+                renderText += "\n" + word + " ";
+                widthLeft = maxWidth - padFactor * padding - wordWidth + spaceWidth;
+            }
+            else {
+                renderText += word + " ";
+                widthLeft -= wordWidth + spaceWidth;
+            }
+        }
+        draw_list->AddText(ImVec2(position.x + padding, position.y + padding), ImColor(color), renderText.c_str());
+    }
+
+    void HelperTooltip(std::string hovered, std::string helptext) {
+        ImGui::TextUnformattedColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), hovered.c_str());
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 15.0f);
+            ImGui::TextUnformatted(helptext.c_str());
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
     }
 }

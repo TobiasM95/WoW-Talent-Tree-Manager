@@ -28,7 +28,11 @@
 #include "curl.h"
 
 #include "TTMEnginePresets.h"
-#include "TTMGUIPresetsInternal.h"
+#if __has_include("TTMGUIPresetsInternal.h") 
+#include"TTMGUIPresetsInternal.h" 
+#else 
+namespace Presets { std::string PASTEBIN_API_DEV_KEY; } 
+#endif
 
 namespace TTM {
     static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param)
@@ -78,8 +82,7 @@ namespace TTM {
         std::vector<std::string> remoteVersions = Engine::splitString(result, "\n");
 
         //check if local version file exists, if not, all resources should be updated
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "resource_versions.txt";
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "resource_versions.txt";
         if (!std::filesystem::is_regular_file(localVersionFilePath)) {
             flagAllResources(uiData);
             return "No resource file found. Please update resources after updating TTM!";
@@ -200,8 +203,7 @@ namespace TTM {
                 return;
             }
         }
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "resource_versions.txt";
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "resource_versions.txt";
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
         uiData.updateStatus = UpdateStatus::UPTODATE;
@@ -246,8 +248,7 @@ namespace TTM {
                 return;
             }
         }
-        std::filesystem::path localVersionFilePath = std::filesystem::path::path();
-        localVersionFilePath = localVersionFilePath / "resources" / "presets.txt";
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "presets.txt";
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
     }
@@ -277,14 +278,14 @@ namespace TTM {
         }
         std::vector<std::string> metaData = Engine::splitString(metaDataRaw, "\n");
 
-        std::string pathToPackedIcons("./resources/icons/icons_packed.png");
-        if (!std::filesystem::is_directory(std::filesystem::path(pathToPackedIcons).parent_path())) {
-            std::filesystem::create_directory(std::filesystem::path(pathToPackedIcons).parent_path());
+        std::filesystem::path pathToPackedIcons = Presets::getAppPath() / "resources" / "icons" / "icons_packed.png";
+        if (!std::filesystem::is_directory(pathToPackedIcons.parent_path())) {
+            std::filesystem::create_directory(pathToPackedIcons.parent_path());
         }
         FILE* fp = nullptr;
         curl = curl_easy_init();
         if (curl) {
-            fp = fopen(pathToPackedIcons.c_str(), "wb");
+            fp = fopen(pathToPackedIcons.string().c_str(), "wb");
             if (fp == NULL) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
@@ -314,7 +315,7 @@ namespace TTM {
             return;
         }
 
-        if (!unpackIcons(pathToPackedIcons.c_str(), metaData)) {
+        if (!unpackIcons(pathToPackedIcons.string().c_str(), metaData)) {
             std::filesystem::remove(pathToPackedIcons);
             uiData.updateStatus = UpdateStatus::UPDATEERROR;
             return;
@@ -322,7 +323,7 @@ namespace TTM {
 
         //we should also delete the temporary packed file!
         std::filesystem::remove(pathToPackedIcons);
-        refreshIconList(uiData);
+        refreshIconMap(uiData);
     }
 
     void testUpdateIcons(UIData& uiData) {
@@ -379,7 +380,7 @@ namespace TTM {
                 "&api_dev_key=" + Presets::PASTEBIN_API_DEV_KEY + 
                 "&api_paste_private=1" + // 0=public 1=unlisted 2=private
                 "&api_paste_name=" + std::string(api_paste_name_enc) +
-                "&api_paste_expire_date=10M" + //10M = 10 minutes
+                "&api_paste_expire_date=1M" + //1W = 1 week
                 "&api_paste_code=" + std::string(api_paste_code_enc);
             curl_easy_setopt(curl, CURLOPT_POST, true);
             curl_easy_setopt(curl, CURLOPT_URL, "https://pastebin.com/api/api_post.php");

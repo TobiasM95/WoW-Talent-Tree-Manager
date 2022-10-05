@@ -2,6 +2,7 @@
 
 #include <d3d11.h>
 
+#include <array>
 #include <tuple>
 #include <vector>
 #include <memory>
@@ -64,43 +65,93 @@ namespace TTM {
 	};
 
 	enum class LoadoutSolverPage {
-		SolutionResults
+		SolutionResults, TreeSolveStatus
 	};
 
-	enum class SimAnalysisPage {
-		Settings, Breakdown
+	struct TalentTreeData {
+		Engine::TalentTree tree;
+
+		bool isTreeSolveInProgress = false;
+		bool isTreeSolveProcessed = false;
+		bool isTreeSolveFiltered = false;
+		bool safetyGuardTriggered = false;
+		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
+		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
+		bool restrictTalentPoints = false;
+		int restrictedTalentPoints = 0;
+	};
+
+	struct TalentTreeCollection {
+		int activeTreeIndex = -1;
+		std::vector<TalentTreeData> trees;
+
+		std::map<std::string, std::string> presets;
+
+		TalentTreeData& activeTreeData() {
+			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
+				return trees[activeTreeIndex];
+			else
+				throw std::logic_error("Active tree index is -1 or larger than tree vector!");
+		}
+		Engine::TalentTree& activeTree() {
+			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
+				return trees[activeTreeIndex].tree;
+			else
+				throw std::logic_error("Active tree index is larger than tree vector!");
+		}
+
+		std::shared_ptr<Engine::TalentSkillset> activeSkillset() {
+			if (trees[activeTreeIndex].tree.activeSkillsetIndex >= 0 && trees[activeTreeIndex].tree.activeSkillsetIndex < trees[activeTreeIndex].tree.loadout.size())
+				return trees[activeTreeIndex].tree.loadout[trees[activeTreeIndex].tree.activeSkillsetIndex];
+			else
+				throw std::logic_error("Active skillset index is -1 or larger than loadout size!");
+		}
 	};
 
 	struct UIData {
 		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
-		bool showAboutPopup = false;
-		bool showHelpPopup = false;
-		bool showResetPopup = false;
-		bool resetWorkspace = false;
+
+		//################# GENERAL #####################################
+		int loadedIconTreeIndex = -1;
+		HWND* hwnd;
+		ID3D11Device* g_pd3dDevice;
+		//This stores the base texture of the icon as well as its gray counterpart
+		std::map<std::string, std::pair<TextureInfo, TextureInfo>> iconMap;
+		std::map<int, std::pair<TextureInfo*, TextureInfo*>> iconIndexMap;
+		std::map<int, std::pair<TextureInfo*, TextureInfo*>> iconIndexMapGrayed;
+		TextureInfo defaultIcon;
+		TextureInfo defaultIconGray;
+		TextureInfo redIconGlow[3];
+		TextureInfo greenIconGlow[3];
+		TextureInfo goldIconGlow[3];
+		TextureInfo blueIconGlow[3];
+		TextureInfo purpleIconGlow[3];
+		//contains 3 masks for each style (ACTIVE, PASSIVE, CHOICE) with the respective window background color
+		std::array <std::array<TextureInfo, 3>, static_cast<int>(Presets::STYLES::STYLE_COUNT) > talentIconMasks;
+		bool enableGlow = true;
+
+		Presets::FONTSIZE fontsize = Presets::FONTSIZE::DEFAULT;
 
 		std::string menuBarUpdateLabel = "";
 
 		int deleteTreeIndex = -1;
 
-		//################# GENERAL #####################################
-		int loadedIconTreeIndex = -1;
-		ID3D11Device* g_pd3dDevice;
-		std::filesystem::path defaultIconPath = "resources/icons/default.png";
-		std::map<std::string, std::filesystem::path> iconPathMap;
-		std::map<int, std::pair<TextureInfo, TextureInfo>> iconIndexMap;
-		std::map<int, TextureInfo> splitIconIndexMap;
-		TextureInfo redIconGlow;
-		TextureInfo greenIconGlow;
-		TextureInfo goldIconGlow;
-		TextureInfo blueIconGlow;
-		bool enableGlow = true;
+		bool showAboutPopup = false;
+		bool showHelpPopup = false;
+		bool showChangelogPopup = false;
+		bool showResetPopup = false;
+		bool resetWorkspace = false;
 
 		std::string talentSearchString = "";
 		Engine::TalentVec searchedTalents;
 
 		std::chrono::duration<long> autoSaveInterval = std::chrono::seconds(300);
 		std::chrono::steady_clock::time_point lastSaveTime = std::chrono::high_resolution_clock::now();
+
+		unsigned int leftWindowDockId = 0;
+		unsigned int rightWindowDockId = 0;
+		float dockWindowRatio = 0.0f;
 
 		//################# UPDATER #####################################
 		//used for displaying some warning messages for specific updates
@@ -118,14 +169,14 @@ namespace TTM {
 		std::vector<std::tuple<Engine::Talent_s, int, int, int>> treeEditorTempReplacedTalents;
 
 		Engine::Talent_s treeEditorCreationTalent = std::make_shared<Engine::Talent>();
-		std::pair<TextureInfo, TextureInfo> treeEditorCreationTalentIcons;
+		std::pair<TextureInfo*, TextureInfo*> treeEditorCreationTalentIcons;
 		std::string treeEditorCreationIconNameFilter;
 		std::vector<int> treeEditorCreationTalentParentsPlaceholder;
 		std::vector<int> treeEditorCreationTalentChildrenPlaceholder;
 
 		bool talentJustSelected = false;
 		Engine::Talent_s treeEditorSelectedTalent = nullptr;
-		std::pair<TextureInfo, TextureInfo> treeEditorSelectedTalentIcons;
+		std::pair<TextureInfo*, TextureInfo*> treeEditorSelectedTalentIcons;
 		std::string treeEditorEditIconNameFilter;
 		std::vector<int> treeEditorSelectedTalentParentsPlaceholder;
 		std::vector<int> treeEditorSelectedTalentChildrenPlaceholder;
@@ -180,24 +231,31 @@ namespace TTM {
 
 		std::string loadoutEditorExportActiveSkillsetString;
 		std::string loadoutEditorExportAllSkillsetsString;
+		std::string loadoutEditorExportActiveSkillsetSimcString;
+		std::string loadoutEditorExportAllSkillsetsSimcString;
 		std::string loadoutEditorImportSkillsetsString;
 		std::pair<int, int> loadoutEditorImportSkillsetsResult;
 
 		//############# LOADOUT SOLVER VARIABLES ########################
-		bool loadoutSolveInitiated = false;
-		bool loadoutSolveInProgress = false;
+		const int maxConcurrentSolvers = 3;
+		const std::chrono::duration<long long, std::milli> currentSolversUpdateInterval = std::chrono::milliseconds(500);
+		std::chrono::steady_clock::time_point currentSolversLastUpdateTime = std::chrono::steady_clock::now();
+		std::vector<std::pair<std::string, TalentTreeData*>> currentSolvers;
+		std::vector<std::pair<std::string, TalentTreeData*>> solvedTrees;
 		const int loadoutSolverMaxTalentPoints = 64;
 		int loadoutSolverTalentPointLimit = 1;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
-		int loadoutSolverAllCombinationsAdded;
 		int loadoutSolverTalentPointSelection = -1;
 		const int loadoutSolverResultsPerPage = 50;
 		bool loadoutSolverAutoApplyFilter = false;
 		//the selected/requested page of skillset results
 		int loadoutSolverSkillsetResultPage = -1;
+		std::string loadoutSolverSkillsetPrefix = "";
+		int loadoutSolverAddRandomLoadoutCount = 1;
+		const int loadoutSolverAddAllLimit = 5000;
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
 		int loadoutSolverBufferedPage = -1;
-		std::vector<std::pair<Engine::SIND, int>> loadoutSolverPageResults;
+		std::vector<Engine::SIND> loadoutSolverPageResults;
 		int selectedFilteredSkillsetIndex = -1;
 		Engine::SIND selectedFilteredSkillset = 0;
 
@@ -215,49 +273,11 @@ namespace TTM {
 		int analysisBreakdownTalentIndex = -1;
 	};
 
-	struct TalentTreeData {
-		Engine::TalentTree tree;
-
-		bool isTreeSolveProcessed = false;
-		bool isTreeSolveFiltered = false;
-		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
-		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
-		bool restrictTalentPoints = false;
-		int restrictedTalentPoints = 0;
-	};
-
-	struct TalentTreeCollection {
-		int activeTreeIndex = -1;
-		std::vector<TalentTreeData> trees;
-
-		std::map<std::string, std::string> presets;
-
-		TalentTreeData& activeTreeData() {
-			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
-				return trees[activeTreeIndex];
-			else
-				throw std::logic_error("Active tree index is -1 or larger than tree vector!");
-		}
-		Engine::TalentTree& activeTree() {
-			if (activeTreeIndex >= 0 && activeTreeIndex < trees.size())
-				return trees[activeTreeIndex].tree;
-			else
-				throw std::logic_error("Active tree index is larger than tree vector!");
-		}
-
-		std::shared_ptr<Engine::TalentSkillset> activeSkillset() {
-			if (trees[activeTreeIndex].tree.activeSkillsetIndex >= 0 && trees[activeTreeIndex].tree.activeSkillsetIndex < trees[activeTreeIndex].tree.loadout.size())
-				return trees[activeTreeIndex].tree.loadout[trees[activeTreeIndex].tree.activeSkillsetIndex];
-			else
-				throw std::logic_error("Active skillset index is -1 or larger than loadout size!");
-		}
-	};
-
-	void refreshIconList(UIData& uiData);
+	void refreshIconMap(UIData& uiData);
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
-	void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
-	void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, int defaultImageWidth, int defaultImageHeight);
-	TextureInfo loadTextureInfoFromFile(UIData& uiData, std::string iconName, Engine::TalentType talentType = Engine::TalentType::ACTIVE);
+	//void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
+	//void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight);
+	std::pair<TextureInfo, TextureInfo> loadTextureInfoFromFile(UIData& uiData, std::string path);
 
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,
@@ -314,19 +334,11 @@ namespace TTM {
 		bool searchActive,
 		bool talentIsSearchedFor);
 
-	void drawSimAnalysisShapeAroundTalent(
-		Engine::Talent_s talent,
-		ImDrawList* drawList,
-		ImVec4* colors,
-		ImVec2 pos,
-		int talentSize,
-		ImVec2 windowPos,
-		ImVec2 scroll,
-		UIData& uiData,
-		TalentTreeCollection& talentTreeCollection,
-		bool searchActive,
-		bool talentIsSearchedFor);
+	void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
+	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);
+	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData);
+	void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list);
 
-	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData = false);
-	void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData = false);
+	void HelperTooltip(std::string hovered, std::string helptext);
 }

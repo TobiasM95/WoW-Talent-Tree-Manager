@@ -73,22 +73,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\intermediates\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)bin\intermediates\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -112,7 +112,8 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -149,7 +150,8 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -168,7 +170,8 @@ mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
 mkdir "$(OutputPath)TalentTreeManager\resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)TalentTreeManager\resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i
+copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)TalentTreeManager\resources\TTM_Banner.png"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed.png
 del "$(OutputPath)TalentTreeManager\resources\icons\organize_pack_icons.py"
 del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
@@ -201,7 +204,8 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -238,7 +242,8 @@ copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)resources
 
 mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i
+copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
 del "$(OutputPath)resources\icons\icons_packed_meta.txt"
@@ -257,7 +262,8 @@ mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(SolutionDir)GUI\resources\resource_versions.txt" "$(OutputPath)TalentTreeManager\resources\"
 mkdir "$(OutputPath)TalentTreeManager\resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)TalentTreeManager\resources\icons\"
-xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i
+copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)TalentTreeManager\resources\TTM_Banner.png"
+xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i/q/d
 del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed.png
 del "$(OutputPath)TalentTreeManager\resources\icons\organize_pack_icons.py"
 del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
@@ -336,6 +342,8 @@ copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManage
     <Image Include="resources\icons\0\green_qmark.png" />
     <Image Include="resources\icons\default.png" />
     <Image Include="resources\icons\icons_packed.png" />
+    <Image Include="resources\TTM_Banner.png" />
+    <Image Include="resources\TTM_icon.ico" />
     <Image Include="resources\updatertarget\icons_packed.png" />
   </ItemGroup>
   <ItemGroup>
