@@ -205,7 +205,7 @@ namespace TTM {
                         ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggered! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", MAX_NUMBER_OF_SOLVED_COMBINATIONS);
                     }
                     ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
-                        talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, uiData.loadoutSolverTalentPointLimit);
+                        talentTreeCollection.activeTree().name.c_str(), talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum, talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations.size());
                     ImGui::Text("Processing took %.3f seconds.", talentTreeCollection.activeTreeData().treeDAGInfo->elapsedTime);
                     if (ImGui::Button("Reset solutions")) {
                         clearSolvingProcess(uiData, talentTreeCollection);
@@ -599,7 +599,7 @@ namespace TTM {
             && talentTreeCollection.activeTreeData().treeDAGInfo) {
             //TTMTODO: is this complication even necessary?
             for (auto& talentPointsCombinations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
-                uiData.loadoutSolverAllCombinationsAdded += static_cast<int>(talentPointsCombinations.size());
+                talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum += talentPointsCombinations.size();
             }
             talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
         }

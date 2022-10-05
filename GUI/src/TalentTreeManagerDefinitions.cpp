@@ -1100,7 +1100,6 @@ namespace TTM {
     }
 
     void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
-        uiData.loadoutSolverAllCombinationsAdded = 0;
         uiData.loadoutSolverTalentPointSelection = -1;
         uiData.loadoutSolverSkillsetResultPage = -1;
         uiData.loadoutSolverBufferedPage = -1;
@@ -1116,7 +1115,6 @@ namespace TTM {
     }
 
     void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData) {
-        uiData.loadoutSolverAllCombinationsAdded = 0;
         uiData.loadoutSolverTalentPointSelection = -1;
         uiData.loadoutSolverSkillsetResultPage = -1;
         uiData.loadoutSolverBufferedPage = -1;
