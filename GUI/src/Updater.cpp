@@ -30,7 +30,8 @@
 #include "TTMEnginePresets.h"
 #if __has_include("TTMGUIPresetsInternal.h") 
 #include"TTMGUIPresetsInternal.h" 
-#else namespace Presets { std::string PASTEBIN_API_DEV_KEY; } 
+#else 
+namespace Presets { std::string PASTEBIN_API_DEV_KEY; } 
 #endif
 
 namespace TTM {
