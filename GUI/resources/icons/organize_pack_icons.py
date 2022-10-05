@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+import shutil
 
 from collections import defaultdict
 
 import numpy as np
 from PIL import Image
 
+icon_directory = r"C:\Users\Tobi\Documents\Programming\Small_projects\wow_talent_tree_scraper\wowhead_trees_fast\icons"
 
 pack_name = "icons_packed.png"
 
@@ -44,24 +46,24 @@ def organize_icons():
             current_size = 0
             
     overwritten_icons = []
-    image_names = [x for x in next(os.walk("."))[2] if x[-4:] == ".png" and x != "default.png" and x != pack_name]
+    image_names = [x for x in next(os.walk(icon_directory))[2] if x[-4:] == ".png" and x != "default.png" and x != pack_name]
     for image_name in image_names:
         if image_name in icon_path_map:
             overwritten_icons.append(icon_path_map[image_name])
             #move and overwrite existing image at path
             os.remove(icon_path_map[image_name])
-            os.rename(f"./{image_name}", icon_path_map[image_name])
+            shutil.copy2(f"{icon_directory}/{image_name}", icon_path_map[image_name])
         else:
             #move image to current or new dir
             if current_size < 100:
                 os.makedirs(current_directory, exist_ok=True)
-                os.rename(f"./{image_name}", current_directory + image_name)
+                shutil.copy2(f"{icon_directory}/{image_name}", current_directory + image_name)
                 current_size += 1
             else:
                 current_dir_number = current_directory.split("/")[1]
                 current_directory = "./" + str(int(current_dir_number) + 1) + "/"
                 os.makedirs(current_directory, exist_ok=True)
-                os.rename(f"./{image_name}", current_directory + image_name)
+                shutil.copy2(f"{icon_directory}/{image_name}", current_directory + image_name)
                 current_size = 1
 
     if len(overwritten_icons) > 0:

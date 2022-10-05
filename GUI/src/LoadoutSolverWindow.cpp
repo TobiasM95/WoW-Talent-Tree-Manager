@@ -24,20 +24,26 @@
 #include "imgui_internal.h"
 #include "imgui_stdlib.h"
 
+#include <random>
+#include <thread>
+#include <numeric>
+#include <iterator>
+#include <algorithm>
+
 namespace TTM {
     static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent, int assignedPointsTarget)
     {
-        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && !ImGui::IsKeyDown(ImGuiKey_LeftAlt))
         {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
                 ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                Presets::PUSH_FONT(uiData.fontsize, 1);
                 ImGui::Text(talent->getName().c_str());
-                ImGui::PopFont();
+                Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -55,8 +61,14 @@ namespace TTM {
                 if (assignedPointsTarget >= 0) {
                     ImGui::Text(("Points: " + std::to_string(assignedPointsTarget) + "/" + std::to_string(talent->maxPoints) + ", points required: " + std::to_string(talent->pointsRequired)).c_str());
                 }
-                else {
+                else if (assignedPointsTarget == -1) {
                     ImGui::Text(("Points: exclude, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else if (assignedPointsTarget == -2) {
+                    ImGui::Text(("Points: at least 1 point in group, points required: " + std::to_string(talent->pointsRequired)).c_str());
+                }
+                else if (assignedPointsTarget == -3) {
+                    ImGui::Text(("Points: exactly 1 in group maxed, points required: " + std::to_string(talent->pointsRequired)).c_str());
                 }
                 ImGui::Spacing();
                 ImGui::Spacing();
@@ -69,12 +81,12 @@ namespace TTM {
             }
             else {
                 ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                Presets::PUSH_FONT(uiData.fontsize, 1);
                 ImGui::Text(talent->name.c_str());
-                ImGui::PopFont();
+                Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).first.texture, 
+                        uiData.iconIndexMap.at(talent->index).first->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -98,12 +110,12 @@ namespace TTM {
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                Presets::PUSH_FONT(uiData.fontsize, 1);
                 ImGui::Text(talent->nameSwitch.c_str());
-                ImGui::PopFont();
+                Presets::POP_FONT();
                 if (uiData.iconIndexMap.count(talent->index)) {
                     ImGui::Image(
-                        uiData.iconIndexMap.at(talent->index).second.texture, 
+                        uiData.iconIndexMap.at(talent->index).second->texture, 
                         ImVec2(static_cast<float>(uiData.treeEditorBaseTalentSize), static_cast<float>(uiData.treeEditorBaseTalentSize))
                     );
                 }
@@ -151,7 +163,7 @@ namespace TTM {
                 if (mouseWheel != 0) {
                     float oldZoomFactor = uiData.treeEditorZoomFactor;
                     uiData.treeEditorZoomFactor += 0.2f * mouseWheel;
-                    uiData.treeEditorZoomFactor = std::clamp(uiData.treeEditorZoomFactor, 1.0f, 3.0f);
+                    uiData.treeEditorZoomFactor = std::clamp(uiData.treeEditorZoomFactor, 0.5f, 3.0f);
                     if (oldZoomFactor != uiData.treeEditorZoomFactor) {
                         uiData.treeEditorWindowPos = ImGui::GetWindowPos();
                         uiData.treeEditorWindowSize = ImGui::GetWindowSize();
@@ -178,16 +190,30 @@ namespace TTM {
         ImGui::PopStyleVar();
         if (talentTreeCollection.activeTreeData().isTreeSolveProcessed) {
             if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
+                if (ImGui::Button("Solution Filter", ImVec2(ImGui::GetContentRegionAvail().x / 2.f, 25))) {
+                    uiData.loadoutSolverPage = LoadoutSolverPage::SolutionResults;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Tree Solve Status", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
+                    uiData.loadoutSolverPage = LoadoutSolverPage::TreeSolveStatus;
+                }
+                ImGui::Spacing();
                 switch (uiData.loadoutSolverPage) {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
-                    ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points.",
-                        talentTreeCollection.activeTree().name.c_str(), uiData.loadoutSolverAllCombinationsAdded, uiData.loadoutSolverTalentPointLimit);
+                    if (talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuardTriggered) {
+                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggered! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", MAX_NUMBER_OF_SOLVED_COMBINATIONS);
+                    }
+                    ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
+                        talentTreeCollection.activeTree().name.c_str(), talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum, talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations.size());
                     ImGui::Text("Processing took %.3f seconds.", talentTreeCollection.activeTreeData().treeDAGInfo->elapsedTime);
                     if (ImGui::Button("Reset solutions")) {
                         clearSolvingProcess(uiData, talentTreeCollection);
                     }
-                    ImGui::Text("Hint: Include/Exclude talents on the left, then press filter to view all valid combinations. Green/Yellow = must have, Red = must not have.");
+                    ImGui::Text("Hint: Include/Exclude talents on the left, then press filter to view all valid combinations.");
+                    ImGui::Text("Different colors mean different things.");
+                    ImGui::SameLine();
+                    TTM::HelperTooltip("(?)", "Green/Yellow: At least selected points spent in this talent.\n\nRed: No points in this talent.\n\nBlue: At least one of all blue talents must have at least 1 point.\n\nPurple: Exactly one talent must be maxed out.");
                     ImGui::PopTextWrapPos();
                     if (ImGui::Checkbox("Auto apply filter", &uiData.loadoutSolverAutoApplyFilter)) {
                         if (uiData.loadoutSolverAutoApplyFilter) {
@@ -288,6 +314,51 @@ namespace TTM {
                         }
                     }
                 }break;
+                case LoadoutSolverPage::TreeSolveStatus: {
+                    //show loadout solver status
+                    static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY
+                        | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter
+                        | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchSame;
+                    if (ImGui::BeginTable("loadoutSolverStatusTable", 3, flags))
+                    {
+                        ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                        ImGui::TableSetupColumn("Tree name", ImGuiTableColumnFlags_None, 0.6f);
+                        ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_None, 0.2f);
+                        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_None, 0.2f);
+                        ImGui::TableHeadersRow();
+
+                        for (auto& currSolver : uiData.currentSolvers) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("%s", currSolver.first.c_str());
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "solving...");
+                            ImGui::TableSetColumnIndex(2);
+                            if (ImGui::Button(("cancel###" + currSolver.first).c_str())) {
+                                currSolver.second->safetyGuardTriggered = true;
+                                updateSolverStatus(uiData, talentTreeCollection, true);
+                            }
+                        }
+                        for (auto& solvedTree : uiData.solvedTrees) {
+                            ImGui::TableNextRow();
+                            ImGui::TableSetColumnIndex(0);
+                            ImGui::Text("%s", solvedTree.first.c_str());
+                            ImGui::TableSetColumnIndex(1);
+                            if (solvedTree.second->safetyGuardTriggered) {
+                                ImGui::TextColored(Presets::TALENT_MAXED_BORDER_COLOR, "canceled");
+                            }
+                            else {
+                                ImGui::TextColored(Presets::TALENT_PARTIAL_BORDER_COLOR, "solved");
+                            }
+                            ImGui::TableSetColumnIndex(2);
+                            if (ImGui::Button(("reset###" + solvedTree.first).c_str())) {
+                                clearSolvingProcess(uiData, *solvedTree.second);
+                                updateSolverStatus(uiData, talentTreeCollection, true);
+                            }
+                        }
+                        ImGui::EndTable();
+                    }
+                }break;
                 }
             }
             if (ImGui::Begin("SearchWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar)) {
@@ -319,21 +390,70 @@ namespace TTM {
     }
 
     void placeLoadoutSolverTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
+        updateSolverStatus(uiData, talentTreeCollection);
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
 
-        if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed && !uiData.loadoutSolveInitiated) {
-            //center an information rectangle
+        if (!talentTreeCollection.activeTreeData().isTreeSolveInProgress 
+            && !talentTreeCollection.activeTreeData().isTreeSolveProcessed
+            && !talentTreeCollection.activeTreeData().treeDAGInfo) {
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
             float centerX = 0.5f * contentRegion.x;
             float centerY = 0.5f * contentRegion.y;
             float wrapWidth = 250;
-            float offsetY = -100;
+            float offsetY = -200;
             float boxPadding = 8;
+
+            //show loadout solver status
+            ImVec2 outer_size = ImVec2(centerX - 0.6f * wrapWidth, 500.0f);
+            static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY 
+                | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter 
+                | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchSame;
+            if (ImGui::BeginTable("loadoutSolverStatusTable", 3, flags, outer_size))
+            {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                ImGui::TableSetupColumn("Tree name", ImGuiTableColumnFlags_None, 0.6f);
+                ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableHeadersRow();
+
+                for (auto& currSolver : uiData.currentSolvers) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", currSolver.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "solving...");
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("cancel###" + currSolver.first).c_str())) {
+                        currSolver.second->safetyGuardTriggered = true;
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                for (auto& solvedTree : uiData.solvedTrees) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", solvedTree.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    if (solvedTree.second->safetyGuardTriggered) {
+                        ImGui::TextColored(Presets::TALENT_MAXED_BORDER_COLOR, "canceled");
+                    }
+                    else {
+                        ImGui::TextColored(Presets::TALENT_PARTIAL_BORDER_COLOR, "solved");
+                    }
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("reset###" + solvedTree.first).c_str())) {
+                        clearSolvingProcess(uiData, *solvedTree.second);
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                ImGui::EndTable();
+            }
+
+            //center an information rectangle
             ImDrawList* draw_list = ImGui::GetWindowDrawList();
             ImVec2 pos = ImVec2(centerX - 0.5f * wrapWidth, centerY + offsetY);
             ImGui::SetCursorPos(pos);
             ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + wrapWidth);
-            ImGui::Text("Select the number of talent points to spend at most (higher count means longer runtime). Maximum value is 64 for now (should be enough for all retail talent trees).");
+            ImGui::Text("Select the number of talent points to spend at most (higher count means longer runtime). Maximum value is 64 for now (should be enough for all retail talent trees).\n\nThe maximum limit of generated combinations is 500 million, this requires a system with at least 16 GB of RAM. If you are below that threshold it is recommended to be careful when using this tool and increment the talent points slowly from 20 upwards while checking your resources.");
             ImVec2 l1TopLeft = ImGui::GetItemRectMin();
             ImVec2 l1BottomRight = ImGui::GetItemRectMax();
             l1TopLeft.x -= boxPadding;
@@ -341,7 +461,12 @@ namespace TTM {
             l1BottomRight.x += boxPadding;
             l1BottomRight.y += boxPadding;
             ImGui::SetCursorPosX(pos.x);
-            ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            if (talentTreeCollection.activeTree().presetName == "custom" || talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+                ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "Solving class/custom trees is very RAM intensive, continue with care!\n\nThe solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            }
+            else {
+                ImGui::TextColored(ImVec4(1.f, 0.2f, 0.2f, 1.0f), "The solver does not yet support classic talent trees (3 subtrees in one big class tree with independent point requirements)!");
+            }
 
             //ask for solver max talent points
             ImGui::SetCursorPosX(pos.x);
@@ -361,49 +486,122 @@ namespace TTM {
 
             //center a button
             ImGui::SetCursorPos(ImVec2(centerX - 0.5f * wrapWidth - boxPadding, ImGui::GetCursorPosY() + boxPadding));
-            if (ImGui::Button("Process tree", ImVec2(wrapWidth + 2 * boxPadding, 25))) {
-                uiData.loadoutSolveInitiated = true;
+            bool allowNewSolver = uiData.currentSolvers.size() < uiData.maxConcurrentSolvers;
+            if (!allowNewSolver) {
+                ImGui::BeginDisabled();
+            }
+            if (ImGui::Button("Process tree (max 3 solvers)", ImVec2(wrapWidth + 2 * boxPadding, 25))) {
+                if (uiData.currentSolvers.size() >= uiData.maxConcurrentSolvers) {
+                    return;
+                }
+                clearSolvingProcess(uiData, talentTreeCollection);
+                if (uiData.loadoutSolverTalentPointLimit > talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints) {
+                    uiData.loadoutSolverTalentPointLimit = talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints;
+                }
+                if (uiData.loadoutSolverTalentPointLimit > uiData.loadoutSolverMaxTalentPoints
+                    // This check prevents trees with more than 64 spendable talent points from being handled
+                    // In a world where indexing would work with infite spendable talent poins (simple switch from uint64 to bitsets
+                    // this condition can be removed and everything should work fine
+                    || talentTreeCollection.activeTree().maxTalentPoints > uiData.loadoutSolverMaxTalentPoints) {
+                    ImGui::OpenPopup("Talent tree too large");
+                    return;
+                }
+                talentTreeCollection.activeTreeData().skillsetFilter = std::make_shared<Engine::TalentSkillset>();
+                talentTreeCollection.activeTreeData().skillsetFilter->name = "SolverSkillset";
+                for (auto& talent : tree.orderedTalents) {
+                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = 0;
+                }
+                Engine::clearTree(tree);
+                
+                std::thread t(Engine::countConfigurationsParallel,
+                    tree, 
+                    uiData.loadoutSolverTalentPointLimit,
+                    std::ref(talentTreeCollection.activeTreeData().treeDAGInfo),
+                    std::ref(talentTreeCollection.activeTreeData().isTreeSolveInProgress),
+                    std::ref(talentTreeCollection.activeTreeData().safetyGuardTriggered));
+                t.detach();
+                updateSolverStatus(uiData, talentTreeCollection, true);
+            }
+            if (!allowNewSolver) {
+                ImGui::EndDisabled();
             }
             return;
         }
-        else if (uiData.loadoutSolveInitiated && !uiData.loadoutSolveInProgress) {
-            uiData.loadoutSolveInProgress = true;
-            ImVec2 textSize = ImGui::CalcTextSize("Processing...");
+        else if (talentTreeCollection.activeTreeData().isTreeSolveInProgress) {
             ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+            float centerX = 0.5f * contentRegion.x;
+            float centerY = 0.5f * contentRegion.y;
+            float wrapWidth = 250;
+            float offsetY = -200;
+            float boxPadding = 8;
+
+            //show loadout solver status
+            ImVec2 outer_size = ImVec2(centerX - 0.6f * wrapWidth, 500.0f);
+            static ImGuiTableFlags flags = ImGuiTableFlags_ScrollY
+                | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter
+                | ImGuiTableFlags_BordersV | ImGuiTableFlags_SizingStretchSame;
+            if (ImGui::BeginTable("loadoutSolverStatusTable", 3, flags, outer_size))
+            {
+                ImGui::TableSetupScrollFreeze(0, 1); // Make top row always visible
+                ImGui::TableSetupColumn("Tree name", ImGuiTableColumnFlags_None, 0.6f);
+                ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableSetupColumn("", ImGuiTableColumnFlags_None, 0.2f);
+                ImGui::TableHeadersRow();
+
+                for (auto& currSolver : uiData.currentSolvers) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", currSolver.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "solving...");
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("cancel###" + currSolver.first).c_str())) {
+                        currSolver.second->safetyGuardTriggered = true;
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                for (auto& solvedTree : uiData.solvedTrees) {
+                    ImGui::TableNextRow();
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", solvedTree.first.c_str());
+                    ImGui::TableSetColumnIndex(1);
+                    if (solvedTree.second->safetyGuardTriggered) {
+                        ImGui::TextColored(Presets::TALENT_MAXED_BORDER_COLOR, "canceled");
+                    }
+                    else {
+                        ImGui::TextColored(Presets::TALENT_PARTIAL_BORDER_COLOR, "solved");
+                    }
+                    ImGui::TableSetColumnIndex(2);
+                    if (ImGui::Button(("reset###" + solvedTree.first).c_str())) {
+                        clearSolvingProcess(uiData, *solvedTree.second);
+                        updateSolverStatus(uiData, talentTreeCollection, true);
+                    }
+                }
+                ImGui::EndTable();
+            }
+
+            ImVec2 textSize = ImGui::CalcTextSize("Processing...");
             ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * textSize.x, 0.5f * contentRegion.y - 0.5f * textSize.y));
             ImGui::Text("Processing...");
-            return;
-        }
-        else if (uiData.loadoutSolveInitiated && uiData.loadoutSolveInProgress) {
-            clearSolvingProcess(uiData, talentTreeCollection);
-            if (uiData.loadoutSolverTalentPointLimit > talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints) {
-                uiData.loadoutSolverTalentPointLimit = talentTreeCollection.activeTree().maxTalentPoints - talentTreeCollection.activeTree().preFilledTalentPoints;
+            ImGui::SetCursorPosX(0.5f * contentRegion.x - 0.5f * textSize.x);
+            if (ImGui::Button("Cancel##loadoutSolverCancelSolveButton", ImVec2(textSize.x, 0))) {
+                talentTreeCollection.activeTreeData().safetyGuardTriggered = true;
             }
-            if (uiData.loadoutSolverTalentPointLimit > uiData.loadoutSolverMaxTalentPoints
-                // This check prevents trees with more than 64 spendable talent points from being handled
-                // In a world where indexing would work with infite spendable talent poins (simple switch from uint64 to bitsets
-                // this condition can be removed and everything should work fine
-                || talentTreeCollection.activeTree().maxTalentPoints > uiData.loadoutSolverMaxTalentPoints) {
-                ImGui::OpenPopup("Talent tree too large");
-                uiData.loadoutSolveInitiated = false;
-                uiData.loadoutSolveInProgress = false;
-                return;
-            }
-            talentTreeCollection.activeTreeData().skillsetFilter = std::make_shared<Engine::TalentSkillset>();
-            talentTreeCollection.activeTreeData().skillsetFilter->name = "SolverSkillset";
-            for (auto& talent : tree.orderedTalents) {
-                talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = 0;
-            }
-            Engine::clearTree(tree);
-            talentTreeCollection.activeTreeData().treeDAGInfo = Engine::countConfigurationsParallel(tree, uiData.loadoutSolverTalentPointLimit);
-            talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
-            for (auto& talentPointsCombinbations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
-                for (auto& combinations : talentPointsCombinbations) {
-                    uiData.loadoutSolverAllCombinationsAdded += combinations.second;
+            ImGui::SetCursorPosX(0.5f * contentRegion.x - 0.5f * 2 * textSize.x);
+            if (ImGui::Button("Cancel all solves##loadoutSolverCancelAllButton", ImVec2(2 * textSize.x, 0))) {
+                for (auto& treeData : talentTreeCollection.trees) {
+                    treeData.safetyGuardTriggered = true;
                 }
             }
-            uiData.loadoutSolveInitiated = false;
-            uiData.loadoutSolveInProgress = false;
+            return;
+        }
+        else if (!talentTreeCollection.activeTreeData().isTreeSolveProcessed
+            && talentTreeCollection.activeTreeData().treeDAGInfo) {
+            //TTMTODO: is this complication even necessary?
+            for (auto& talentPointsCombinations : talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations) {
+                talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum += talentPointsCombinations.size();
+            }
+            talentTreeCollection.activeTreeData().isTreeSolveProcessed = true;
         }
 
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
@@ -418,62 +616,51 @@ namespace TTM {
             origin.x = 0.5f * (windowWidth - fullTreeWidth);
         }
 
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+
         int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
+
+        for (auto& talent : tree.orderedTalents) {
+            for (auto& child : talent.second->children) {
+                drawArrowBetweenTalents(
+                    talent.second,
+                    child,
+                    drawList,
+                    windowPos,
+                    scrollOffset,
+                    origin,
+                    talentHalfSpacing,
+                    talentSize,
+                    0.0f,
+                    uiData);
+            }
+        }
+        for (auto& reqInfo : tree.requirementSeparatorInfo) {
+            drawList->AddLine(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImVec2(windowPos.x - scrollOffset.x + origin.x + (tree.maxCol + 1) * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style)),
+                2.0f
+            );
+            drawList->AddText(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style)),
+                (std::to_string(reqInfo.first) + " points").c_str()
+            );
+        }
+
         for (auto& talent : tree.orderedTalents) {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
             float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
             float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
             bool talentIsSearchedFor = false;
             bool searchActive = uiData.talentSearchString != "";
-            ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && !searchActive) {
-                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == talent.second->maxPoints) {
-                    ImGui::Image(
-                        uiData.goldIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.goldIconGlow.width, uiData.treeEditorZoomFactor * uiData.goldIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] > 0) {
-                    ImGui::Image(
-                        uiData.greenIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -1) {
-                    ImGui::Image(
-                        uiData.redIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -2) {
-                    ImGui::Image(
-                        uiData.blueIconGlow.texture,
-                        ImVec2(uiData.treeEditorZoomFactor * uiData.redIconGlow.width, uiData.treeEditorZoomFactor * uiData.redIconGlow.height),
-                        ImVec2(0, 0), ImVec2(1, 1),
-                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                    );
-                }
-            }
-            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
-                talentIsSearchedFor = true;
-                ImGui::Image(
-                    uiData.blueIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
             ImGui::SetCursorPos(ImVec2(posX, posY));
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             if (talent.second->preFilled) {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.35f;
                 ImGui::BeginDisabled();
@@ -485,19 +672,21 @@ namespace TTM {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->index)).c_str());
-            TextureInfo iconContent;
+            TextureInfo* iconContent = nullptr;
+            TextureInfo* iconContentChoice = nullptr;
             if (talent.second->type == Engine::TalentType::SWITCH) {
-                iconContent = uiData.splitIconIndexMap[talent.second->index];
+                iconContent = uiData.iconIndexMap[talent.second->index].first;
+                iconContentChoice = uiData.iconIndexMap[talent.second->index].second;
             }
             else {
                 iconContent = uiData.iconIndexMap[talent.second->index].first;
             }
-            if (ImGui::ImageButton(iconContent.texture,
-                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
+            if (ImGui::InvisibleButton(("##invisTalentButton" + std::to_string(talent.first)).c_str(),
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize))
             )) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] += 1;
                 if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] > talent.second->maxPoints) {
-                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -2;
+                    talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = -3;
                 }
                 if (uiData.loadoutSolverAutoApplyFilter) {
                     Engine::filterSolvedSkillsets(talentTreeCollection.activeTree(), talentTreeCollection.activeTreeData().treeDAGInfo, talentTreeCollection.activeTreeData().skillsetFilter);
@@ -509,6 +698,101 @@ namespace TTM {
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            Presets::POP_FONT();
+            AttachLoadoutSolverTooltip(uiData, talent.second, talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]);
+            if (talent.second->type != Engine::TalentType::SWITCH) {
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+                );
+            }
+            else {
+                float separatorWidth = 0.05f;
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Image(
+                    iconContent->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2((1.0f - separatorWidth) / 2.0f, 1)
+                );
+
+                ImGui::SetCursorPos(ImVec2(posX + talentSize * (1.0f + separatorWidth) / 2.0f, posY));
+                ImGui::Image(
+                    iconContentChoice->texture,
+                    ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2((1.0f + separatorWidth) / 2.0f, 0), ImVec2(1, 1)
+                );
+            }
+
+            ImGui::SetCursorPos(ImVec2(posX, posY));
+            ImGui::Image(
+                uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+            );
+            ImGui::SetCursorPos(ImVec2(
+                posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width - talentSize),
+                posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height - talentSize)));
+            if (uiData.enableGlow && !searchActive) {
+                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == talent.second->maxPoints) {
+                    ImGui::Image(
+                        uiData.goldIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] > 0) {
+                    ImGui::Image(
+                        uiData.greenIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.greenIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.greenIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -1) {
+                    ImGui::Image(
+                        uiData.redIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -2) {
+                    ImGui::Image(
+                        uiData.blueIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+                else if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.second->index] == -3) {
+                    ImGui::Image(
+                        uiData.purpleIconGlow[static_cast<int>(talent.second->type)].texture,
+                        ImVec2(
+                            uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width,
+                            uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height),
+                        ImVec2(0, 0), ImVec2(1, 1),
+                        ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                    );
+                }
+            }
+            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                talentIsSearchedFor = true;
+                ImGui::Image(
+                    uiData.blueIconGlow[static_cast<int>(talent.second->type)].texture,
+                    ImVec2(
+                        uiData.treeEditorZoomFactor * uiData.blueIconGlow[static_cast<int>(talent.second->type)].width,
+                        uiData.treeEditorZoomFactor * uiData.blueIconGlow[static_cast<int>(talent.second->type)].height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
+            }
             drawLoadoutSolverShapeAroundTalent(
                 talent.second,
                 drawList,
@@ -527,7 +811,7 @@ namespace TTM {
             }
             if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right) && talent.first == uiData.loadoutEditorRightClickIndex) {
                 talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] -= 1;
-                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < -2) {
+                if (talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] < -3) {
                     talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = talent.second->maxPoints;
                 }
                 if (uiData.loadoutSolverAutoApplyFilter) {
@@ -542,22 +826,24 @@ namespace TTM {
                 ImGui::GetCurrentContext()->Style.DisabledAlpha = 0.6f;
                 ImGui::EndDisabled();
             }
-            ImGui::PopFont();
-            AttachLoadoutSolverTooltip(uiData, talent.second, talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first]);
         }
-        for (auto& talent : tree.orderedTalents) {
-            for (auto& child : talent.second->children) {
-                drawArrowBetweenTalents(
-                    talent.second,
-                    child,
-                    drawList,
-                    ImGui::GetWindowPos(),
-                    ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
-                    origin,
-                    talentHalfSpacing,
-                    talentSize,
-                    0.0f,
-                    uiData);
+        if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))
+            && !(ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper))) {
+            for (auto& talent : tree.orderedTalents) {
+                float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
+                float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
+                ImVec2 textBoxPos = ImVec2(
+                    posX - 0.5f * talentSize + ImGui::GetWindowPos().x - ImGui::GetScrollX(),
+                    posY - 0.5f * talentSize + ImGui::GetWindowPos().y - ImGui::GetScrollY()
+                );
+                ImVec2 bounds = ImVec2(textBoxPos.x + 2.0f * talentSize, textBoxPos.y + 2.0f * talentSize);
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                draw_list->AddRectFilled(textBoxPos, bounds, IM_COL32(0, 0, 0, 255));
+                draw_list->AddRect(textBoxPos, bounds, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
+                std::string infoText = talent.second->type == Engine::TalentType::SWITCH ? talent.second->getName() + " / " + talent.second->getNameSwitch() : talent.second->getName();
+                Presets::PUSH_FONT(uiData.fontsize, 3);
+                AddWrappedText(infoText, textBoxPos, 5.0f, ImVec4(1.0f, 1.0f, 1.0f, 1.0f), 2.0f * talentSize, 2.0f * talentSize, ImGui::GetWindowDrawList());
+                Presets::POP_FONT();
             }
         }
 
@@ -606,9 +892,9 @@ namespace TTM {
             for (int n = 0; n < uiData.loadoutSolverPageResults.size(); n++)
             {
                 const bool is_selected = (uiData.selectedFilteredSkillsetIndex == n);
-                if (ImGui::Selectable(("Id: " + std::to_string(uiData.loadoutSolverPageResults[n].first)).c_str(), is_selected)) {
+                if (ImGui::Selectable(("Id: " + std::to_string(uiData.loadoutSolverPageResults[n])).c_str(), is_selected)) {
                     uiData.selectedFilteredSkillsetIndex = n;
-                    uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[n].first;
+                    uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[n];
                 }
 
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -653,34 +939,129 @@ namespace TTM {
             uiData.loadoutSolverSkillsetResultPage = maxPage;
             uiData.selectedFilteredSkillsetIndex = 0;
         }
-        if (ImGui::Button("Add to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex >= 0) {
+        ImGui::Text("Prefix:");
+        ImGui::InputText("##loadoutSolverSkillsetPrefixInputText", &uiData.loadoutSolverSkillsetPrefix, 0, TextFilters::FilterNameLetters);
+        if (ImGui::Button("Add selected to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex >= 0) {
             std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                 talentTreeCollection.activeTree(),
                 talentTreeCollection.activeTreeData().treeDAGInfo,
                 uiData.selectedFilteredSkillset
             );
-            sk->name = "Solved loadout " + std::to_string(uiData.selectedFilteredSkillset);
+            std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+            sk->name = prefix + std::to_string(uiData.selectedFilteredSkillset);
             Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
             talentTreeCollection.activeTree().loadout.push_back(sk);
             ImGui::OpenPopup("Add to loadout successfull");
         }
-        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllToLoadoutButton")) {
-            for (auto& skillsetIndexPair : uiData.loadoutSolverPageResults) {
+        if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllInPageToLoadoutButton")) {
+            for (uint64_t& skillsetIndex : uiData.loadoutSolverPageResults) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
                     talentTreeCollection.activeTreeData().treeDAGInfo,
-                    skillsetIndexPair.first
+                    skillsetIndex
                 );
-                sk->name = "Solved loadout " + std::to_string(skillsetIndexPair.first);
+                std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+                sk->name = prefix + std::to_string(skillsetIndex);
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
             ImGui::OpenPopup("Add to loadout successfull");
         }
+        int maxAddRandomLimit = static_cast<int>(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection].size());
+        ImGui::SliderInt("##loadoutSolverAddRandomToLoadoutSlider", &uiData.loadoutSolverAddRandomLoadoutCount, 1, uiData.loadoutSolverAddAllLimit > maxAddRandomLimit ? maxAddRandomLimit : uiData.loadoutSolverAddAllLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::Button(("Add " + std::to_string(uiData.loadoutSolverAddRandomLoadoutCount) + " random skillsets to loadout").c_str())) {
+            std::random_device rd;     // only used once to initialise (seed) engine
+            std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+
+            auto& SINDintPairs = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
+            if (uiData.loadoutSolverAddRandomLoadoutCount > SINDintPairs.size()) {
+                uiData.loadoutSolverAddRandomLoadoutCount = static_cast<int>(SINDintPairs.size());
+            }
+
+            //TTMNOTE: Probably cleaner to just fisher yates shuffle and backtrack
+            std::vector<int> randomIndices;
+            randomIndices.reserve(uiData.loadoutSolverAddRandomLoadoutCount);
+            if (SINDintPairs.size() < uiData.loadoutSolverAddAllLimit * 10) {
+                std::vector<int> indices (SINDintPairs.size());
+                std::iota(indices.begin(), indices.end(), 0);
+                std::sample(indices.begin(), indices.end(), std::back_inserter(randomIndices), uiData.loadoutSolverAddRandomLoadoutCount, rng);
+            }
+            else {
+                std::uniform_int_distribution<int> uni(0, static_cast<int>(SINDintPairs.size()));
+                while(randomIndices.size() < uiData.loadoutSolverAddRandomLoadoutCount) {
+                    int randPick = uni(rng);
+                    bool duplicate = false;
+                    bool inc1 = false;
+                    bool inc2 = false;
+                    bool inc3 = false;
+                    for (int j = 0; j < randomIndices.size(); j++) {
+                        if (randomIndices[j] == randPick) {
+                            duplicate = true;
+                        }
+                        if (randomIndices[j] == (randPick + 1) % SINDintPairs.size()) {
+                            inc1 = true;
+                        }
+                        if (randomIndices[j] == (randPick + 2) % SINDintPairs.size()) {
+                            inc2  = true;
+                        }
+                        if (randomIndices[j] == (randPick + 3) % SINDintPairs.size()) {
+                            inc3 = true;
+                        }
+                    }
+                    if (duplicate) {
+                        if (!inc1) {
+                            randomIndices.push_back((randPick + 1) % SINDintPairs.size());
+                        } else if (!inc2) {
+                            randomIndices.push_back((randPick + 2) % SINDintPairs.size());
+                        } else if (!inc3) {
+                            randomIndices.push_back((randPick + 3) % SINDintPairs.size());
+                        }
+                    }
+                    else {
+                        randomIndices.push_back(randPick);
+                    }
+                }
+            }
+
+
+            for (int randomIndex : randomIndices) {
+                std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
+                    talentTreeCollection.activeTree(),
+                    talentTreeCollection.activeTreeData().treeDAGInfo,
+                    talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]
+                );
+                std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+                sk->name = prefix + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]);
+                Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
+                talentTreeCollection.activeTree().loadout.push_back(sk);
+            }
+            ImGui::OpenPopup("Add to loadout successfull");
+        }
+        if (ImGui::Button("Add all to loadout##loadoutSolverAddAllToLoadoutButton")) {
+            size_t count = 0;
+            for (uint64_t& skillsetIndex : talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection]) {
+                std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
+                    talentTreeCollection.activeTree(),
+                    talentTreeCollection.activeTreeData().treeDAGInfo,
+                    skillsetIndex
+                );
+                std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
+                sk->name = prefix + std::to_string(skillsetIndex);
+                Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
+                talentTreeCollection.activeTree().loadout.push_back(sk);
+                count++;
+                if (count >= uiData.loadoutSolverAddAllLimit) {
+                    break;
+                }
+            }
+            ImGui::OpenPopup("Add to loadout successfull");
+        }
+        ImGui::SameLine();
+        ImGui::Text("(Limited to %d)", uiData.loadoutSolverAddAllLimit);
     }
 
     int getResultsPage(UIData& uiData, TalentTreeCollection& talentTreeCollection, int pageNumber) {
-        std::vector<std::pair<Engine::SIND, int>>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
+        std::vector<Engine::SIND>& filteredResults = talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection];
         int maxPage = static_cast<int>((filteredResults.size() - 1) / uiData.loadoutSolverResultsPerPage);
         if (pageNumber == uiData.loadoutSolverBufferedPage) {
             return maxPage;
@@ -696,7 +1077,7 @@ namespace TTM {
             uiData.loadoutSolverPageResults.push_back(filteredResults[i]);
         }
         if (uiData.loadoutSolverPageResults.size() > 0) {
-            uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[0].first;
+            uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[0];
         }
         return maxPage;
     }

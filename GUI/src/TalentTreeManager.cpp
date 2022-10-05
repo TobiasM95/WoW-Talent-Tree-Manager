@@ -20,9 +20,6 @@
 
 #include "TalentTreeManager.h"
 
-#include <windows.h>
-#include <shlobj.h>
-
 #include <fstream>
 #include <algorithm>
 
@@ -230,6 +227,32 @@ namespace TTM {
                 }
                 ImGui::Separator();
                 ImGui::MenuItem("Show icon glow", NULL, &uiData.enableGlow);
+                ImGui::Separator();
+                bool sel = uiData.fontsize == Presets::FONTSIZE::MINI;
+                ImGui::MenuItem("Font mini", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::MINI;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::SMALL;
+                ImGui::MenuItem("Font small", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::SMALL;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::DEFAULT;
+                ImGui::MenuItem("Font default", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::DEFAULT;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::LARGE;
+                ImGui::MenuItem("Font large", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::LARGE;
+                }
+                sel = uiData.fontsize == Presets::FONTSIZE::HUGE;
+                ImGui::MenuItem("Font huge", NULL, &sel);
+                if (sel) {
+                    uiData.fontsize = Presets::FONTSIZE::HUGE;
+                }
 				ImGui::EndMenu();
 			}
             if (ImGui::BeginMenu("Help")) {
@@ -239,9 +262,15 @@ namespace TTM {
                 if (ImGui::MenuItem("About TTM")) {
                     uiData.showAboutPopup = true;
                 }
+                if (ImGui::MenuItem("Visit Github")) {
+                    ShellExecute(0, 0, L"https://github.com/TobiasM95/WoW-Talent-Tree-Manager", 0, 0, SW_SHOW);
+                }
                 if (ImGui::MenuItem("Check Updates")) {
                     uiData.updateStatus = UpdateStatus::NOTCHECKED;
                     uiData.renderedOnce = false;
+                }
+                if (ImGui::MenuItem("Show Changelog")) {
+                    uiData.showChangelogPopup = true;
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Reset TTM")) {
@@ -253,6 +282,20 @@ namespace TTM {
                 ImGui::EndMenu();
             }
             if (uiData.menuBarUpdateLabel.size() > 0) {
+                ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style));
+                //TTMTODO: very ugly way of doing this, should be checked in a variable instead
+                if (uiData.menuBarUpdateLabel.find("New TTM update found") != std::string::npos) {
+                    if (ImGui::MenuItem("> Press here to update <")) {
+                        ShellExecuteW(NULL,
+                            L"runas",
+                            L".\\AppUpdater.exe",
+                            NULL,
+                            NULL,   // default dir 
+                            SW_SHOWNORMAL
+                        );
+                    }
+                }
+                ImGui::PopStyleColor();
                 ImGui::TextUnformattedColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), uiData.menuBarUpdateLabel.c_str());
             }
 			ImGui::EndMainMenuBar();
@@ -264,6 +307,10 @@ namespace TTM {
         if (uiData.showHelpPopup) {
             uiData.showHelpPopup = false;
             ImGui::OpenPopup("Controls & Tips##Popup");
+        }
+        if (uiData.showChangelogPopup) {
+            uiData.showChangelogPopup = false;
+            ImGui::OpenPopup("Changelog##Popup");
         }
         if (uiData.showResetPopup) {
             uiData.showResetPopup = false;
@@ -279,6 +326,7 @@ namespace TTM {
             ImGui::Text("Dear ImGui: https://github.com/ocornut/imgui");
             ImGui::Text("libcurl: https://curl.se/libcurl/");
             ImGui::Text("stb: https://github.com/nothings/stb");
+            ImGui::Text("miniz: https://github.com/richgel999/miniz");
 
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
@@ -287,13 +335,13 @@ namespace TTM {
         if (ImGui::BeginPopupModal("Controls & Tips##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
         {
             ImGui::PushTextWrapPos(1000);
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
             ImGui::Spacing();
             ImGui::Text("Controls");
-            ImGui::PopFont();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::POP_FONT();
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Tree editor");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("The talent tree editor allows you to create your own custom trees or edit one of the included specialization presets. You can edit the tree name, the description, add/edit/delete nodes as well as importing and exporting trees. If you just want to check out a spec preset and create a loadout then you don't need to use the talent tree editor much. Feel free to skip ahead to the loadout editor or solver.");
@@ -310,9 +358,9 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("Under the \"Misc.\" header there are some useful tools to create trees from scratch. You can shift the whole tree by a given row/column number, insert many empty talents at once or let TTM place nodes automatically (it tries to place them without crossing any connections between talents but it is not extensively tested and might run slow for larger trees, use it with caution and only after saving!).");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Loadout editor");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("The loadout editor allows you to create one or multiple skillsets inside the loadout, give it a description and import/export one or all skillsets.");
@@ -321,9 +369,9 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("In the \"Edit Skillsets\" page you can switch between skillsets, add/delete skillsets and importing/exporting a single skillset or all skillsets. This will only share the skillset, i.e. the assigned talent points, but not the loadout description. For this, you can share the full talent tree.");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Loadout solver");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("The loadout solver gives you the ability to automatically create skillsets based on talent preferences and filters. It will find all possible combinations for every number of talent points and will display them for you to dynamically filter important ones.");
@@ -334,37 +382,62 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("After selecting the skill point number you can choose individual skillsets and transfer them to your loadout to view and edit them. You can also add all shown skillsets on the current page to your loadout to have a selection of skillsets ready.");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
-            ImGui::Text("Sim analysis");
-            ImGui::PopFont();
-            ImGui::Separator();
-            ImGui::Bullet();
-            ImGui::Text("The sim analysis screen allows you to import a raidbots mass sim result and analyze the performance of individual talents and their ranks.");
-            ImGui::Bullet();
-            ImGui::Text("For more instructions hover over the (?) marks in the screen. A more in-depth explanation might be added in the future.");
-            ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
             ImGui::Spacing();
             ImGui::Text("Tips");
-            ImGui::PopFont();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::POP_FONT();
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Simulationcraft");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
             ImGui::Text("To quickly sim different skillsets you can manually add multiple skillsets to your loadout and export to simc (to be implemented in the future) or you can use the loadout solver -> process tree -> filter down to a suitable number of skillsets -> add all to loadout -> export all skillsets to simc -> sim.");
             ImGui::Spacing();
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
             ImGui::Text("Custom icons");
-            ImGui::PopFont();
+            Presets::POP_FONT();
             ImGui::Separator();
             ImGui::Bullet();
-            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
+            ImGui::Text("To include custom icons in TTM, put .png files with size 40x40 in the %%APPDATA%%(Roaming)/Wow Talent Tree Manager/resources/icons/custom/ directory (create it if it doesn't exist). Restart the application and you should see your custom icons being available. If they have the same name as currently existing icons, they will overwrite the original. You can use this to create your own versions of existing icons without changing original icons.");
             ImGui::Spacing();
             ImGui::PopTextWrapPos();
 
             ImGui::SetItemDefaultFocus();
             if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            static bool scrollUp = false;
+            if (!scrollUp) {
+                ImGui::SetScrollY(0);
+                scrollUp = true;
+            }
+            ImGui::EndPopup();
+        }
+        if (ImGui::BeginPopupModal("Changelog##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            std::vector<std::string> changeLogData;
+            if (loadChangeLogData(changeLogData)) {
+                ImGui::PushTextWrapPos(1000);
+                for (auto& line : changeLogData) {
+                    if (line != "") {
+                        ImGui::Text("%s", line.c_str());
+                    }
+                    else {
+                        ImGui::Spacing();
+                        ImGui::Separator();
+                        ImGui::Spacing();
+                    }
+                }
+                ImGui::PopTextWrapPos();
+            }
+            else {
+                ImGui::Text("Could not load changelog data. See github releases page for changelog information.");
+            }
+            ImGui::SetItemDefaultFocus();
+            if (ImGui::Button("OK", ImVec2(120, 0))) { ImGui::CloseCurrentPopup(); }
+            static bool scrollUp = false;
+            if (!scrollUp) {
+                ImGui::SetScrollY(0);
+                scrollUp = true;
+            }
             ImGui::EndPopup();
         }
         if (ImGui::BeginPopupModal("Reset TTM##Popup", close, ImGuiWindowFlags_AlwaysAutoResize))
@@ -391,7 +464,8 @@ namespace TTM {
         static ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration 
             | ImGuiWindowFlags_NoMove 
             | ImGuiWindowFlags_NoResize 
-            | ImGuiWindowFlags_NoSavedSettings;
+            | ImGuiWindowFlags_NoSavedSettings
+            | ImGuiWindowFlags_NoScrollWithMouse;
 
         // We demonstrate using the full viewport area or the work area (without menu-bars, task-bars etc.)
         // Based on your use case you may want one of the other.
@@ -404,7 +478,7 @@ namespace TTM {
         {
             ImGui::PopStyleVar();
             RenderTalentTreeTabs(uiData, talentTreeCollection);
-            SubmitDockSpace();
+            SubmitDockSpace(uiData);
         }
         ImGui::End();
 
@@ -445,6 +519,8 @@ namespace TTM {
                     saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup();
                 }
+
+
                 ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                 ImGui::Text("or");
 
@@ -470,6 +546,7 @@ namespace TTM {
                     tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                     talentTreeCollection.trees.push_back(tree);
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                    talentTreeCollection.activeTree().activeSkillsetIndex = -1;
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
@@ -477,8 +554,62 @@ namespace TTM {
                     saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup(); 
                 }
+
+                updateCustomTreeFileList(uiData);
+                uiData.treeEditorIsCustomTreeFileListValid = true;
+                if (uiData.treeEditorCustomTreeFileList.size() > 0) {
+                    ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
+                    ImGui::Text("or");
+                    //uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].first
+                    uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent < 0 ? 0 : uiData.treeEditorCustomTreeListCurrent;
+                    uiData.treeEditorCustomTreeListCurrent = uiData.treeEditorCustomTreeListCurrent >= uiData.treeEditorCustomTreeFileList.size() ? static_cast<int>(uiData.treeEditorCustomTreeFileList.size() - 1) : uiData.treeEditorCustomTreeListCurrent;
+                    const char* comboPreviewValue = uiData.treeEditorCustomTreeFileList[uiData.treeEditorCustomTreeListCurrent].second.c_str();
+                    if (ImGui::BeginCombo("##talentCreationIconNameCombo", comboPreviewValue))
+                    {
+                        for (size_t n = 0; n < uiData.treeEditorCustomTreeFileList.size(); n++)
+                        {
+                            auto& customTreePathNamePair = uiData.treeEditorCustomTreeFileList[n];
+                            const bool is_selected = (comboPreviewValue == customTreePathNamePair.second.c_str());
+                            if (ImGui::Selectable(customTreePathNamePair.second.c_str(), is_selected)) {
+                                uiData.treeEditorCustomTreeListCurrent = static_cast<int>(n);
+                            }
+
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+                    //ImGui::SameLine();
+                    if (ImGui::Button("Load custom tree", ImVec2(-0.01f, 0))) {
+                        TalentTreeData tree;
+                        talentTreeCollection.trees.push_back(tree);
+                        talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                        talentTreeCollection.activeTree().activeSkillsetIndex = -1;
+                        if (!loadTreeFromFile(uiData, talentTreeCollection)) {
+                            ImGui::CloseCurrentPopup();
+                            ImGui::OpenPopup("Tree load error");
+                        }
+                        else {
+                            uiData.treeEditorIsCustomTreeFileListValid = false;
+                            Engine::validateLoadout(talentTreeCollection.activeTree(), true);
+                            clearSolvingProcess(uiData, talentTreeCollection);
+
+                            loadActiveIcons(uiData, talentTreeCollection, true);
+                            uiData.treeEditorSelectedTalent = nullptr;
+
+                            uiData.treeEditorImportTreeString = "";
+                            uiData.treeEditorExportTreeString = "";
+                            saveWorkspace(uiData, talentTreeCollection);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+
+
+                ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                 ImGui::Text("or");
-                ImGui::InputText("##treeEditorCreationPopupImportText", &uiData.treeEditorImportTreeString);
+                ImGui::InputText("##treeEditorCreationPopupImportText", &uiData.treeEditorImportTreeString, ImGuiInputTextFlags_AutoSelectAll);
                 if (ImGui::Button("Import tree##popup", ImVec2(-0.01f, 0))) {
                     if (!Engine::validateAndRepairTreeStringFormat(uiData.treeEditorImportTreeString)) {
                         uiData.treeEditorImportTreeString = "Invalid import string!";
@@ -515,6 +646,14 @@ namespace TTM {
                 }
                 ImGui::EndPopup();
             }
+            if (ImGui::BeginPopupModal("Tree load error", close, ImGuiWindowFlags_AlwaysAutoResize))
+            {
+                ImGui::Text("This custom tree was unable to be loaded. It might be corrupted or out of date.");
+                if (ImGui::Button("Ok", ImVec2(80, 0))) {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
 
             // Submit our regular tabs
             for (int n = 0; n < talentTreeCollection.trees.size(); )
@@ -522,34 +661,24 @@ namespace TTM {
                 Presets::SET_TAB_ITEM_COLOR(uiData.style, talentTreeCollection.trees[n].tree.presetName);
                 bool isReset = false;
                 bool open = true;
-                ImGuiTabItemFlags flag = ImGuiTabItemFlags_None;
+                ImGuiTabItemFlags flag = n == talentTreeCollection.activeTreeIndex ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
                 std::string displayTag = talentTreeCollection.trees[n].tree.name;
                 if (n == talentTreeCollection.activeTreeIndex) {
                     displayTag = "> " + displayTag;
                 }
                 if (ImGui::BeginTabItemNoClose((displayTag + "###treetab" + std::to_string(n)).c_str(), &open, flag))
                 {
-                    if (open) {
-                        if (talentTreeCollection.activeTreeIndex != n) {
-                            talentTreeCollection.activeTreeIndex = n;
-                            uiData.editorView = EditorView::None;
-                            uiData.isLoadoutInitValidated = false;
-                            uiData.treeEditorSelectedTalent = nullptr;
-                            uiData.analysisTooltipLastTalentIndex = -1;
-                            uiData.analysisBreakdownTalentIndex = -1;
-                            uiData.simAnalysisPage = SimAnalysisPage::Settings;
-                            clearSolvingProcess(uiData, talentTreeCollection, true);
-                            clearSimAnalysisProcess(uiData, talentTreeCollection, true);
-                            UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
-                            loadActiveIcons(uiData, talentTreeCollection);
-
-                            //clear the talent search field and results
-                            uiData.talentSearchString = "";
-                            uiData.searchedTalents.clear();
-                        }
+                    if (n == talentTreeCollection.activeTreeIndex) {
+                        RenderTreeViewTabs(uiData, talentTreeCollection);
                     }
-                    RenderTreeViewTabs(uiData, talentTreeCollection);
                     ImGui::EndTabItem();
+                }
+                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    talentTreeCollection.activeTreeIndex = n;
+                    uiData.editorView = EditorView::None;
+                    uiData.isLoadoutInitValidated = false;
+                    uiData.treeEditorSelectedTalent = nullptr;
+                    loadActiveIcons(uiData, talentTreeCollection);
                 }
 
                 if (!open) {
@@ -667,7 +796,7 @@ namespace TTM {
         }
     }
 
-    void SubmitDockSpace() {
+    void SubmitDockSpace(UIData& uiData) {
         static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None | ImGuiDockNodeFlags_PassthruCentralNode | ImGuiDockNodeFlags_NoTabBar;
 
         ImGuiID dockspace_id = ImGui::GetID("WorkAreaDockspace");
@@ -682,13 +811,18 @@ namespace TTM {
 
             ImGuiID dock_main_id = dockspace_id; // This variable will track the document node, however we are not using it here as we aren't docking anything into it.
             ImGuiID dock_id_left, dock_id_right, dock_id_bottom_left;
-            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.40f, &dock_id_right, &dock_id_left);
+            float leftRightSplit = uiData.dockWindowRatio > 0.0f ? uiData.dockWindowRatio : 0.40f;
+            leftRightSplit = leftRightSplit > 1.0f ? 0.4f : leftRightSplit;
+            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, leftRightSplit, &dock_id_right, &dock_id_left);
             ImGui::DockBuilderSplitNode(dock_id_left, ImGuiDir_Down, 0.045f, &dock_id_bottom_left, &dock_id_left);
 
             ImGui::DockBuilderDockWindow("TreeWindow", dock_id_left);
             ImGui::DockBuilderDockWindow("SettingsWindow", dock_id_right);
             ImGui::DockBuilderDockWindow("SearchWindow", dock_id_bottom_left);
             ImGui::DockBuilderFinish(dockspace_id);
+
+            uiData.leftWindowDockId = dock_id_left;
+            uiData.rightWindowDockId = dock_id_right;
         }
     }
 
@@ -715,16 +849,7 @@ namespace TTM {
                     text += " - node count: " + std::to_string(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.nodeCount);
                     text += " - maximum skill points : " + std::to_string(talentTreeCollection.trees[talentTreeCollection.activeTreeIndex].tree.maxTalentPoints);
                     if (uiData.editorView == EditorView::LoadoutEdit && talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
-                        int minLevel = 0;
-                        if (talentTreeCollection.activeSkillset()->talentPointsSpent > talentTreeCollection.activeTree().preFilledTalentPoints) {
-                            minLevel += 10;
-                            if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
-                                minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints) * 2 - 2;
-                            }
-                            else {
-                                minLevel += (talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints) * 2 - 1;
-                            }
-                        }
+                        int minLevel = Engine::getLevelRequirement(talentTreeCollection.activeSkillset()->talentPointsSpent, talentTreeCollection.activeTree());
                         if (minLevel > 0) {
                             text += " - required level: " + std::to_string(minLevel);
                             if (minLevel > 70) {
@@ -743,43 +868,8 @@ namespace TTM {
         }
 	}
 
-    std::filesystem::path getAppPath() {
-        std::filesystem::path path;
-        PWSTR path_tmp;
-
-        /* Attempt to get user's AppData folder
-         *
-         * This breaks Windows XP and earlier support!
-         *
-         * Microsoft Docs:
-         * https://docs.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
-         * https://docs.microsoft.com/en-us/windows/win32/shell/knownfolderid
-         */
-        auto get_folder_path_ret = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path_tmp);
-
-        /* Error check */
-        if (get_folder_path_ret != S_OK) {
-            CoTaskMemFree(path_tmp);
-            throw std::system_error::exception("Could not open/find Roaming App Data path!");
-        }
-
-        /* Convert the Windows path type to a C++ path */
-        path = path_tmp;
-        std::filesystem::path appPath = path / "WoWTalentTreeManager";
-
-        /* Free memory :) */
-        CoTaskMemFree(path_tmp);
-
-        //create app folder if it doesn't exist
-        if (!std::filesystem::is_directory(appPath)) {
-            std::filesystem::create_directory(appPath);
-        }
-
-        return appPath;
-    }
-
     std::filesystem::path getCustomTreePath() {
-        std::filesystem::path treePath = getAppPath() / "CustomTrees";
+        std::filesystem::path treePath = Presets::getAppPath() / "CustomTrees";
 
         //create custom tree folder if it doesn't exist
         if (!std::filesystem::is_directory(treePath)) {
@@ -789,8 +879,21 @@ namespace TTM {
         return treePath;
     }
 
+    void initWorkspace() {
+        std::filesystem::path appPath = Presets::getAppPath(); //if appPath directory doesn't exist it will be auto created here
+        std::filesystem::path shippedResourcesDir = "./resources/";
+        if (!std::filesystem::is_directory(appPath / "resources")) {
+            std::filesystem::create_directory(appPath / "resources");
+        }
+        std::filesystem::copy_file(shippedResourcesDir / "resource_versions.txt", appPath / "resources" / "resource_versions.txt", std::filesystem::copy_options::skip_existing);
+        std::filesystem::copy_file(shippedResourcesDir / "presets.txt", appPath / "resources" / "presets.txt", std::filesystem::copy_options::skip_existing);
+        if (!std::filesystem::is_directory(appPath / "resources" / "icons")) {
+            std::filesystem::copy(shippedResourcesDir / "icons", appPath / "resources" / "icons", std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
+        }
+    }
+
     void saveWorkspace(UIData& uiData, TalentTreeCollection& talentTreeCollection) {
-        std::filesystem::path appPath = getAppPath();
+        std::filesystem::path appPath = Presets::getAppPath();
         //backup old files
         if (std::filesystem::is_regular_file(appPath / "settings.txt")) {
             std::ifstream oldSetFile(appPath / "settings.txt", std::ios::binary);
@@ -809,11 +912,13 @@ namespace TTM {
 
         std::string settings = "";
         std::string workspace = "";
+        // save settings
         //TTMNOTE: settings can't have ":" char in them, messes with loadWorkspace
         switch (uiData.style) {
         case Presets::STYLES::COMPANY_GREY: {settings += "STYLE=COMPANY_GREY\n"; }break;
         case Presets::STYLES::PATH_OF_TALENT_TREE: {settings += "STYLE=PATH_OF_TALENT_TREE\n"; }break;
         case Presets::STYLES::LIGHT_MODE: {settings += "STYLE=LIGHT_MODE\n"; }break;
+        default: {settings += "STYLE=COMPANY_GREY\n"; }break;
         }
         if (uiData.enableGlow) {
             settings += "GLOW=1\n";
@@ -821,9 +926,42 @@ namespace TTM {
         else {
             settings += "GLOW=0\n";
         }
+        switch (uiData.fontsize) {
+        case Presets::FONTSIZE::MINI: {settings += "FONTSIZE=MINI\n"; } break;
+        case Presets::FONTSIZE::SMALL: {settings += "FONTSIZE=SMALL\n"; } break;
+        case Presets::FONTSIZE::DEFAULT: {settings += "FONTSIZE=DEFAULT\n"; } break;
+        case Presets::FONTSIZE::LARGE: {settings += "FONTSIZE=LARGE\n"; } break;
+        case Presets::FONTSIZE::HUGE: {settings += "FONTSIZE=HUGE\n"; } break;
+        default: {settings += "FONTSIZE=DEFAULT\n"; } break;
+        }
+        WINDOWPLACEMENT wp = { 0 };
+        wp.length = sizeof(wp);
+        if (GetWindowPlacement(*uiData.hwnd, &wp))
+        {
+            // save wp values somewhere...
+            settings += "WINDOWPLACEMENT="
+                + std::to_string(wp.rcNormalPosition.left)
+                + "," + std::to_string(wp.rcNormalPosition.top)
+                + "," + std::to_string(wp.rcNormalPosition.right)
+                + "," + std::to_string(wp.rcNormalPosition.bottom)
+                + "," + std::to_string(wp.showCmd)
+                + "\n";
+        }
+
+        ImGuiDockNode* leftWindowNode = ImGui::DockBuilderGetNode(uiData.leftWindowDockId);
+        ImGuiDockNode* rightWindowNode = ImGui::DockBuilderGetNode(uiData.rightWindowDockId);
+        float ratio = rightWindowNode->Size.x / (leftWindowNode->Size.x + rightWindowNode->Size.x);
+        settings += "DIVIDERRATIO=" + std::to_string(ratio) + "\n";
+
+        // save talent tree collection
         for (TalentTreeData tree : talentTreeCollection.trees) {
             workspace += Engine::createTreeStringRepresentation(tree.tree) + "\n";
         }
+        workspace += "ACTIVETREE=" + std::to_string(talentTreeCollection.activeTreeIndex) + "\n";
+        if (talentTreeCollection.activeTreeIndex >= 0 && talentTreeCollection.activeTreeIndex < talentTreeCollection.trees.size()) {
+            workspace += "ACTIVESKILLSET=" + std::to_string(talentTreeCollection.activeTree().activeSkillsetIndex) + "\n";
+        }
+
         std::ofstream setFile(appPath / "settings.txt");
         setFile << settings;
         std::ofstream workFile(appPath / "workspace.txt");
@@ -831,7 +969,7 @@ namespace TTM {
     }
 
     TalentTreeCollection loadWorkspace(UIData& uiData) {
-        std::filesystem::path appPath = getAppPath();
+        std::filesystem::path appPath = Presets::getAppPath();
         //restore settings
         useDefaultSettings(uiData);
         bool settingsFileExists = std::filesystem::is_regular_file(appPath / "settings.txt");
@@ -856,6 +994,28 @@ namespace TTM {
                 if (line.find("GLOW") != std::string::npos) {
                     uiData.enableGlow = (line == "GLOW=1");
                 }
+                if (line.find("FONTSIZE") != std::string::npos) {
+                    if (line.find("MINI") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::MINI;
+                    }
+                    else if (line.find("SMALL") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::SMALL;
+                    }
+                    else if (line.find("DEFAULT") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::DEFAULT;
+                    }
+                    else if (line.find("LARGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::LARGE;
+                    }
+                    else if (line.find("HUGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::HUGE;
+                    }
+                }
+                //WINDOWPLACEMENT is loaded in a separate function cause it needs to happen earlier
+                if (line.find("DIVIDERRATIO") != std::string::npos) {
+                    std::string ratioStr = line.substr(line.find("=") + 1);
+                    uiData.dockWindowRatio = std::stof(ratioStr);
+                }
             }
         }
         //init talent tree collection
@@ -865,6 +1025,8 @@ namespace TTM {
         }
         std::ifstream workFile(appPath / "workspace.txt");
         std::string line;
+        int tempActiveTree = -1;
+        int tempActiveSkillset = -1;
         //TTMTODO: might need major reworks down the line
         while (std::getline(workFile, line))
         {
@@ -890,6 +1052,24 @@ namespace TTM {
                 if (line.find("GLOW") != std::string::npos) {
                     uiData.enableGlow = (line == "GLOW=1");
                 }
+                //TTMNOTE: This couldn't ever be in the workspace file but just to be unnecessarily safe
+                if (line.find("FONTSIZE") != std::string::npos) {
+                    if (line.find("MINI") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::MINI;
+                    }
+                    else if (line.find("SMALL") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::SMALL;
+                    }
+                    else if (line.find("DEFAULT") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::DEFAULT;
+                    }
+                    else if (line.find("LARGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::LARGE;
+                    }
+                    else if (line.find("HUGE") != std::string::npos) {
+                        uiData.fontsize = Presets::FONTSIZE::HUGE;
+                    }
+                }
             }
             TalentTreeData data;
             if (Engine::validateAndRepairTreeStringFormat(line)) {
@@ -902,18 +1082,96 @@ namespace TTM {
                     ImGui::LogText(e.what());
                 }
             }
+
+            if (line.find("ACTIVETREE") != std::string::npos) {
+                tempActiveTree = std::stoi(line.substr(line.find("=") + 1));
+            }
+
+            if (line.find("ACTIVESKILLSET") != std::string::npos) {
+                tempActiveSkillset = std::stoi(line.substr(line.find("=") + 1));
+            }
+        }
+        if (tempActiveTree >= 0 && tempActiveTree < col.trees.size()) {
+            col.activeTreeIndex = tempActiveTree;
+        }
+        if (col.activeTreeIndex >= 0) {
+            if (tempActiveSkillset >= 0 && tempActiveSkillset < col.trees[col.activeTreeIndex].tree.loadout.size()) {
+                col.trees[col.activeTreeIndex].tree.activeSkillsetIndex = tempActiveSkillset;
+            }
         }
         return col;
     }
 
     void resetWorkspaceAndTrees() {
-        std::filesystem::path appPath = getAppPath();
+        std::filesystem::path appPath = Presets::getAppPath();
         std::filesystem::remove_all(appPath);
+    }
+
+    WINDOWPLACEMENT loadWindowPlacement() {
+        WINDOWPLACEMENT wp = { 0 };
+        wp.length = sizeof(wp);
+        wp.showCmd = 1;
+        wp.rcNormalPosition = { 100, 100, 1700, 1000 };
+
+        std::filesystem::path appPath = Presets::getAppPath();
+        bool settingsFileExists = std::filesystem::is_regular_file(appPath / "settings.txt");
+        if (settingsFileExists) {
+            std::ifstream setFile(appPath / "settings.txt");
+            std::string line;
+            while (std::getline(setFile, line)) {
+                if (line.find("WINDOWPLACEMENT=") != std::string::npos) {
+                    std::vector<std::string> wpSaved = Engine::splitString(line.substr(16), ",");
+                    wp.showCmd = static_cast<UINT>(std::stoi(wpSaved[4]));
+                    wp.rcNormalPosition = {
+                        std::stoi(wpSaved[0]),
+                        std::stoi(wpSaved[1]),
+                        std::stoi(wpSaved[2]),
+                        std::stoi(wpSaved[3]),
+                    };
+                }
+            }
+        }
+        return wp;
+    }
+
+    bool loadChangeLogData(std::vector<std::string>& changeLogData) {
+        std::filesystem::path changeLogPath{ "changelog.txt" };
+        if (std::filesystem::is_regular_file(changeLogPath)) {
+            try {
+                std::ifstream changeLogFileStream;
+                changeLogFileStream.open(changeLogPath);
+                if (changeLogFileStream.is_open())
+                {
+                    if (!changeLogFileStream.eof())
+                    {
+                        std::string line;
+                        while (std::getline(changeLogFileStream, line)) {
+                            changeLogData.push_back(line);
+                        }
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                else {
+                    return false;
+                }
+            }
+            catch (const std::ifstream::failure& e) {
+                ImGui::LogText(e.what());
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+        return true;
     }
 
     void useDefaultSettings(UIData& uiData) {
         Presets::SET_GUI_STYLE_LIGHT_MODE();
         uiData.style = Presets::STYLES::LIGHT_MODE;
         uiData.enableGlow = false;
+        uiData.fontsize = Presets::FONTSIZE::DEFAULT;
     }
 }

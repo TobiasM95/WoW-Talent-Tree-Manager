@@ -19,6 +19,10 @@
 */
 
 #include <memory>
+#include <filesystem>
+#include <chrono>
+#include <thread>
+#include <fstream>
 
 #include "curl.h"
 #include "imgui.h"
@@ -34,6 +38,8 @@
 #include "roboto_medium.h"
 
 #include "TTMGUIPresets.h"
+
+#define WM_SAVEBEFOREDESTROY (WM_APP + 0)
 
 // Data
 static ID3D11Device* g_pd3dDevice = NULL;
@@ -52,6 +58,24 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 //int main(int, char**)
 int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    //set working directory to the file directory
+    TCHAR buffer[MAX_PATH] = { 0 };
+    GetModuleFileName(NULL, buffer, MAX_PATH);
+    std::filesystem::path filedirpath{ buffer };
+    std::filesystem::current_path(filedirpath.parent_path());
+    std::filesystem::path cwd = std::filesystem::current_path();
+
+    //if this gets changed check Updater.h of AppUpdater project as well
+    std::filesystem::path tempUpdaterFile{ "AppUpdaterTemp.exe" };
+    if (std::filesystem::is_regular_file(tempUpdaterFile)) {
+        try {
+            std::filesystem::remove(tempUpdaterFile);
+        }
+        catch (const std::filesystem::filesystem_error& e) {
+            std::ofstream errorlog{ cwd / "errorlog.txt" };
+            errorlog << "Failed to delete temp updater";
+        }
+    }
 
     //init curl globally
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -62,6 +86,9 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     wc.hIcon = LoadIcon(wc.hInstance, MAKEINTRESOURCE(IDI_ICON1));
     ::RegisterClassEx(&wc);
     HWND hwnd = ::CreateWindow(wc.lpszClassName, _T("Talent Tree Manager"), WS_OVERLAPPEDWINDOW, 100, 100, 1600, 900, NULL, NULL, wc.hInstance, NULL);
+    
+    WINDOWPLACEMENT wp = TTM::loadWindowPlacement();
+    SetWindowPlacement(hwnd, &wp);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -72,7 +99,7 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     }
 
     // Show the window
-    ::ShowWindow(hwnd, SW_SHOWDEFAULT);
+    ::ShowWindow(hwnd, SW_SHOW);
     ::UpdateWindow(hwnd);
 
     // Setup Dear ImGui context
@@ -83,21 +110,11 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
-    std::string IniPath = std::string((TTM::getAppPath() / "imgui.ini").string());
-    std::string LogPath = std::string((TTM::getAppPath() / "imgui_log.txt").string());
-    io.IniFilename = IniPath.c_str();
-    io.LogFilename = LogPath.c_str();
-
-    TTM::UIData uiData;
-    TTM::refreshIconList(uiData);
-    uiData.g_pd3dDevice = g_pd3dDevice;
-    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
-    talentTreeCollection.presets = Presets::LOAD_PRESETS();
-    TTM::loadActiveIcons(uiData, talentTreeCollection, true);
-
     // Setup Platform/Renderer backends
     ImGui_ImplWin32_Init(hwnd);
     ImGui_ImplDX11_Init(g_pd3dDevice, g_pd3dDeviceContext);
+
+    ImVec4 clear_color = ImVec4(0.f, 0.f, 0.f, 1.00f);
 
     // Load Fonts
     // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
@@ -114,13 +131,71 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != NULL);
     //io.Fonts->AddFontDefault(); //Size 13
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 17.0f);
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 20.0f);
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 27.0f);
-    io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, 14.0f);
+    float baseSizes[5] = { 11.0f, 14.0f, 17.0f, 22.0f, 27.0f };
+    for (auto& size : baseSizes) {
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size);
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size + 3.0f);
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size + 10.0f);
+        io.Fonts->AddFontFromMemoryCompressedTTF(TTMFonts::Roboto_Medium_compressed_data, TTMFonts::Roboto_Medium_compressed_size, size - 3.0f);
+    }
 
+    int banner_width = 0;
+    int banner_height = 0;
+    ID3D11ShaderResourceView* TTMBannerRV;
+    bool banner_success = TTM::LoadTTMBanner(&TTMBannerRV, &banner_width, &banner_height, g_pd3dDevice);
 
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    // Start the Dear ImGui frame
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 1));
+
+    Presets::PUSH_FONT(Presets::FONTSIZE::DEFAULT, 0);
+    if (ImGui::Begin("MainWindow", nullptr, ImGuiWindowFlags_NoDecoration))
+    {
+        ImVec2 contentRegion = ImGui::GetContentRegionAvail();
+        ImGui::Text("Initialize workspace (can take a while on first open) and load resources...");
+        if (banner_success) {
+            ImGui::SetCursorPos(ImVec2(0.5f * contentRegion.x - 0.5f * banner_width, 0.5f * contentRegion.y - 0.5f * banner_height));
+            ImGui::Image(
+                TTMBannerRV,
+                ImVec2(static_cast<float>(banner_width), static_cast<float>(banner_height)),
+                ImVec2(0, 0), ImVec2(1, 1),
+                ImVec4(1.0f, 1.0f, 1.0f, 1.0f)
+            );
+        }
+    }
+    ImGui::End();
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    Presets::POP_FONT();
+    ImGui::Render();
+    const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
+    g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
+    g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, clear_color_with_alpha);
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    g_pSwapChain->Present(1, 0); // Present with vsync
+    //g_pSwapChain->Present(0, 0); // Present without vsync
+    
+
+    std::string IniPath = std::string((Presets::getAppPath() / "imgui.ini").string());
+    std::string LogPath = std::string((Presets::getAppPath() / "imgui_log.txt").string());
+    io.IniFilename = IniPath.c_str();
+    io.LogFilename = LogPath.c_str();
+
+    TTM::initWorkspace();
+
+    TTM::UIData uiData;
+    uiData.g_pd3dDevice = g_pd3dDevice;
+    uiData.hwnd = &hwnd;
+    TTM::refreshIconMap(uiData);
+    TTM::TalentTreeCollection talentTreeCollection = TTM::loadWorkspace(uiData);
+    talentTreeCollection.presets = Presets::LOAD_PRESETS();
+    TTM::loadActiveIcons(uiData, talentTreeCollection, true);
 
     // Main loop
     bool done = false;
@@ -132,6 +207,16 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         MSG msg;
         while (::PeekMessage(&msg, NULL, 0U, 0U, PM_REMOVE))
         {
+            if (msg.message == WM_SAVEBEFOREDESTROY && !uiData.resetWorkspace) {
+                TTM::saveWorkspace(uiData, talentTreeCollection);
+                TTM::stopAllSolvers(talentTreeCollection);
+                TTM::updateSolverStatus(uiData, talentTreeCollection, true);
+                while (uiData.currentSolvers.size() > 0) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+                    TTM::updateSolverStatus(uiData, talentTreeCollection, true);
+                }
+                ::DefWindowProc(hwnd, WM_CLOSE, 0, 0);
+            }
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
             if (msg.message == WM_QUIT)
@@ -144,6 +229,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
+
+        Presets::PUSH_FONT(uiData.fontsize, 0);
 
         currentTime = std::chrono::high_resolution_clock::now();
         if (currentTime - uiData.lastSaveTime > uiData.autoSaveInterval) {
@@ -158,6 +245,8 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
             TTM::RenderMainWindow(uiData, talentTreeCollection, done);
         }
 
+        Presets::POP_FONT();
+
         // Rendering
         ImGui::Render();
         const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
@@ -167,10 +256,6 @@ int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int n
 
         g_pSwapChain->Present(1, 0); // Present with vsync
         //g_pSwapChain->Present(0, 0); // Present without vsync
-    }
-
-    if (!uiData.resetWorkspace) {
-        TTM::saveWorkspace(uiData, talentTreeCollection);
     }
 
     // Cleanup
@@ -269,6 +354,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         break;
     case WM_DESTROY:
         ::PostQuitMessage(0);
+        return 0;
+    case WM_CLOSE:
+        ::PostMessage(NULL, WM_SAVEBEFOREDESTROY, 0, 0);
         return 0;
     }
     return ::DefWindowProc(hWnd, msg, wParam, lParam);
