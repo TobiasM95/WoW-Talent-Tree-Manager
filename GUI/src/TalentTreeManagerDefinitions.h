@@ -68,6 +68,10 @@ namespace TTM {
 		SolutionResults, TreeSolveStatus
 	};
 
+	enum class SimAnalysisPage {
+		Settings, Breakdown
+	};
+
 	struct TalentTreeData {
 		Engine::TalentTree tree;
 
@@ -243,7 +247,7 @@ namespace TTM {
 		std::vector<std::pair<std::string, TalentTreeData*>> currentSolvers;
 		std::vector<std::pair<std::string, TalentTreeData*>> solvedTrees;
 		const int loadoutSolverMaxTalentPoints = 64;
-		int loadoutSolverTalentPointLimit = 1;
+		int loadoutSolverTalentPointLimit = 30;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
 		int loadoutSolverTalentPointSelection = -1;
 		const int loadoutSolverResultsPerPage = 50;
@@ -334,10 +338,24 @@ namespace TTM {
 		bool searchActive,
 		bool talentIsSearchedFor);
 
+	void drawSimAnalysisShapeAroundTalent(
+		Engine::Talent_s talent,
+		ImDrawList* drawList,
+		ImVec4* colors,
+		ImVec2 pos,
+		int talentSize,
+		ImVec2 windowPos,
+		ImVec2 scroll,
+		UIData& uiData,
+		TalentTreeCollection& talentTreeCollection,
+		bool searchActive,
+		bool talentIsSearchedFor);
+
 	void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
 	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);
-	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection);
+	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData = false);
 	void clearSolvingProcess(UIData& uiData, TalentTreeData& talentTreeData);
+	void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData = false);
 	void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list);
 
 	void HelperTooltip(std::string hovered, std::string helptext);

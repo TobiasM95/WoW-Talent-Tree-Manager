@@ -1214,19 +1214,19 @@ namespace TTM {
         }
         float textOffset = 0;
         if (uiData.treeEditorZoomFactor <= 1.0f) {
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[3]);
+            Presets::PUSH_FONT(uiData.fontsize, 3);
         }
         else if (uiData.treeEditorZoomFactor < 1.5f) {
             textOffset = 0.01f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[0]);
+            Presets::PUSH_FONT(uiData.fontsize, 0);
         }
         else if (uiData.treeEditorZoomFactor < 2.0f) {
             textOffset = 0.015f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+            Presets::PUSH_FONT(uiData.fontsize, 1);
         }
         else {
             textOffset = 0.02f * talentSize;
-            ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[2]);
+            Presets::PUSH_FONT(uiData.fontsize, 2);
         }
         ImVec2 bottomRight(pos.x + windowPos.x - scroll.x + talentSize, pos.y + windowPos.y - scroll.y + talentSize);
         ImVec2 textSize = ImGui::CalcTextSize("9/9");
@@ -1264,11 +1264,10 @@ namespace TTM {
             ImColor(textColor),
             ("0/" + std::to_string(talent->maxPoints)).c_str()
         );
-        ImGui::PopFont();
+        Presets::POP_FONT();
     }
 
     void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData) {
-        uiData.loadoutSolverAllCombinationsAdded = 0;
         uiData.loadoutSolverTalentPointSelection = -1;
         uiData.loadoutSolverSkillsetResultPage = -1;
         uiData.loadoutSolverBufferedPage = -1;
@@ -1300,6 +1299,27 @@ namespace TTM {
         talentTreeData.isTreeSolveInProgress = false;
         talentTreeData.skillsetFilter = nullptr;
         talentTreeData.treeDAGInfo = nullptr;
+    }
+
+    void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData) {
+        uiData.simAnalysisPage = SimAnalysisPage::Settings;
+        uiData.raidbotsInputURL = "";
+        for (auto& indexTexInfo : uiData.simAnalysisColorGlowTextures) {
+            indexTexInfo.second.second.texture->Release();
+            indexTexInfo.second.second.texture = nullptr;
+        }
+        uiData.simAnalysisColorGlowTextures.clear();
+        uiData.simAnalysisButtonRankingText.clear();
+        uiData.analysisTooltipLastTalentIndex = -1;
+        uiData.analysisTooltipTalentRank = -1;
+        uiData.analysisBreakdownTalentIndex = -1;
+        if (onlyUIData) {
+            return;
+        }
+
+        talentTreeCollection.activeTree().analysisResult = Engine::AnalysisResult();
+        talentTreeCollection.activeTree().selectedSimAnalysisRawResult = -1;
+        talentTreeCollection.activeTree().simAnalysisRawResults.clear();
     }
 
     void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list) {

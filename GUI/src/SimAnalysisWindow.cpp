@@ -172,9 +172,9 @@ namespace TTM {
             std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
             if (talent->type != Engine::TalentType::SWITCH) {
                 ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                Presets::PUSH_FONT(uiData.fontsize, 1);
                 ImGui::Text(talent->getName().c_str());
-                ImGui::PopFont();
+                Presets::POP_FONT();
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(click: switch rank)");
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(ctrl+click: select talent)");
@@ -242,14 +242,14 @@ namespace TTM {
             }
             else {
                 ImGui::BeginTooltip();
-                ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                Presets::PUSH_FONT(uiData.fontsize, 1);
                 if (uiData.analysisTooltipTalentRank == 0) {
                     ImGui::Text(talent->name.c_str());
                 }
                 else {
                     ImGui::Text(talent->nameSwitch.c_str());
                 }
-                ImGui::PopFont();
+                Presets::POP_FONT();
                 ImGui::Text(idLabel.c_str());
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(click: switch talent choice)");
                 ImGui::TextColored(Presets::GET_TOOLTIP_TALENT_TYPE_COLOR(uiData.style), "(ctrl+click: select talent)");
@@ -494,9 +494,9 @@ namespace TTM {
                     Engine::AnalysisResult& result = talentTreeCollection.activeTree().analysisResult;
                     std::string idLabel = "Id: " + std::to_string(talent->index) + ", Pos: (" + std::to_string(talent->row) + ", " + std::to_string(talent->column) + ")";
                     if (talent->type != Engine::TalentType::SWITCH) {
-                        ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                        Presets::PUSH_FONT(uiData.fontsize, 1);
                         ImGui::Text(talent->getName().c_str());
-                        ImGui::PopFont();
+                        Presets::POP_FONT();
                         ImGui::Text(idLabel.c_str());
                         ImGui::Separator();
                         for (int i = 0; i < talent->maxPoints; i++) {
@@ -563,9 +563,9 @@ namespace TTM {
                         }
                     }
                     else {
-                        ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                        Presets::PUSH_FONT(uiData.fontsize, 1);
                         ImGui::Text(talent->name.c_str());
-                        ImGui::PopFont();
+                        Presets::POP_FONT();
                         ImGui::Text(idLabel.c_str());
                         ImGui::Separator();
 
@@ -627,9 +627,9 @@ namespace TTM {
 
                         ImGui::Separator();
 
-                        ImGui::PushFont(ImGui::GetCurrentContext()->IO.Fonts->Fonts[1]);
+                        Presets::PUSH_FONT(uiData.fontsize, 1);
                         ImGui::Text(talent->nameSwitch.c_str());
-                        ImGui::PopFont();
+                        Presets::POP_FONT();
                         ImGui::Text(idLabel.c_str());
                         ImGui::Separator();
                         
@@ -714,47 +714,67 @@ namespace TTM {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
         int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
+        float talentWindowPaddingX = static_cast<float>(uiData.treeEditorTalentWindowPaddingX);
         float talentWindowPaddingY = static_cast<float>(uiData.treeEditorTalentWindowPaddingY);
+        ImVec2 origin = ImVec2(talentWindowPaddingX, talentWindowPaddingY);
+        //calculate full tree width and if that is < window width center tree
+        float fullTreeWidth = (tree.maxCol - 1) * 2.0f * talentHalfSpacing;
+        float windowWidth = ImGui::GetContentRegionAvail().x;
+        if (fullTreeWidth + 2 * origin.x < windowWidth) {
+            origin.x = 0.5f * (windowWidth - fullTreeWidth);
+        }
 
-        float talentWindowPaddingX = 0.5f * (ImGui::GetWindowWidth() - tree.maxCol * 2 * talentHalfSpacing);
-        float minXPadding = ImGui::GetCursorPosX();
-        float minYPadding = ImGui::GetCursorPosY();
-        if (talentWindowPaddingX < minXPadding)
-            talentWindowPaddingX = minXPadding;
-        float talentPadding = 0.5f * (2 * talentHalfSpacing - talentSize);
+        ImVec2 windowPos = ImGui::GetWindowPos();
+        ImVec2 scrollOffset = ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY());
+
         int maxRow = 0;
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
+
+        for (auto& talent : tree.orderedTalents) {
+            for (auto& child : talent.second->children) {
+                drawArrowBetweenTalents(
+                    talent.second,
+                    child,
+                    drawList,
+                    windowPos,
+                    scrollOffset,
+                    origin,
+                    talentHalfSpacing,
+                    talentSize,
+                    0.0f,
+                    uiData);
+            }
+        }
+        for (auto& reqInfo : tree.requirementSeparatorInfo) {
+            drawList->AddLine(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImVec2(windowPos.x - scrollOffset.x + origin.x + (tree.maxCol + 1) * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style)),
+                2.0f
+            );
+            drawList->AddText(
+                ImVec2(windowPos.x - scrollOffset.x + origin.x - 2 * talentSize, windowPos.y - scrollOffset.y + talentWindowPaddingY + (reqInfo.second - 1) * talentSize),
+                ImColor(Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style)),
+                (std::to_string(reqInfo.first) + " points").c_str()
+            );
+        }
+
         for (auto& talent : tree.orderedTalents) {
             maxRow = talent.second->row > maxRow ? talent.second->row : maxRow;
-            float posX = talentWindowPaddingX + (talent.second->column - 1) * 2 * talentHalfSpacing + talentPadding;
-            float posY = talentWindowPaddingY + (talent.second->row - 1) * 2 * talentHalfSpacing + talentPadding;
+            float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
+            float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
             bool talentIsSearchedFor = false;
             bool searchActive = uiData.talentSearchString != "";
-            ImGui::SetCursorPos(ImVec2(posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.width - talentSize), posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow.height - talentSize)));
-            if (uiData.enableGlow && !searchActive && uiData.simAnalysisColorGlowTextures.count(talent.first)) {
-                ImGui::Image(
-                    uiData.simAnalysisColorGlowTextures[talent.first].second.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.greenIconGlow.width, uiData.treeEditorZoomFactor * uiData.greenIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
-            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
-                talentIsSearchedFor = true;
-                ImGui::Image(
-                    uiData.blueIconGlow.texture,
-                    ImVec2(uiData.treeEditorZoomFactor * uiData.blueIconGlow.width, uiData.treeEditorZoomFactor * uiData.blueIconGlow.height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
             ImGui::SetCursorPos(ImVec2(posX, posY));
+            Presets::PUSH_FONT(uiData.fontsize, 1);
 
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
             ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
             ImGui::PushID((std::to_string(talent.second->points) + "/" + std::to_string(talent.second->maxPoints) + "##" + std::to_string(talent.second->index)).c_str());
+            TextureInfo* iconContent = nullptr;
+            TextureInfo* iconContentChoice = nullptr;
             if (uiData.simAnalysisIconRatingSwitch) {
                 std::string buttonText;
                 ImVec4 buttonCol;
@@ -794,20 +814,72 @@ namespace TTM {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
                 ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-                TextureInfo iconContent;
-                if (talent.second->type == Engine::TalentType::SWITCH) {
-                    iconContent = uiData.splitIconIndexMap[talent.second->index];
+                if (talent.second->type != Engine::TalentType::SWITCH) {
+                    iconContent = uiData.iconIndexMap[talent.second->index].first;
+                    ImGui::SetCursorPos(ImVec2(posX, posY));
+                    ImGui::Image(
+                        iconContent->texture,
+                        ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+                    );
                 }
                 else {
                     iconContent = uiData.iconIndexMap[talent.second->index].first;
-                }
-                if (ImGui::ImageButton(iconContent.texture,
-                    ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1), 0
-                )) {
+                    iconContentChoice = uiData.iconIndexMap[talent.second->index].second;
+                    float separatorWidth = 0.05f;
+                    ImGui::SetCursorPos(ImVec2(posX, posY));
+                    ImGui::Image(
+                        iconContent->texture,
+                        ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2((1.0f - separatorWidth) / 2.0f, 1)
+                    );
+
+                    ImGui::SetCursorPos(ImVec2(posX + talentSize * (1.0f + separatorWidth) / 2.0f, posY));
+                    ImGui::Image(
+                        iconContentChoice->texture,
+                        ImVec2(talentSize * (1.0f - separatorWidth) / 2.0f, static_cast<float>(talentSize)), ImVec2((1.0f + separatorWidth) / 2.0f, 0), ImVec2(1, 1)
+                    );
+
+                    ImGui::SetCursorPos(ImVec2(posX, posY));
+                    ImGui::Image(
+                        uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
+                        ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+                    );
                 }
             }
             ImGui::PopID();
             ImGui::PopStyleColor(5);
+            Presets::POP_FONT();
+            AttachSimAnalysisTooltip(uiData, tree.analysisResult, talent.second);
+
+            ImGui::SetCursorPos(ImVec2(posX, posY));
+            ImGui::Image(
+                uiData.talentIconMasks[static_cast<int>(uiData.style)][static_cast<int>(talent.second->type)].texture,
+                ImVec2(static_cast<float>(talentSize), static_cast<float>(talentSize)), ImVec2(0, 0), ImVec2(1, 1)
+            );
+
+            ImGui::SetCursorPos(ImVec2(
+                posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width - talentSize),
+                posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height - talentSize)));
+            if (uiData.enableGlow && !searchActive && uiData.simAnalysisColorGlowTextures.count(talent.first)) {
+                ImGui::Image(
+                    uiData.simAnalysisColorGlowTextures[talent.first].second.texture,
+                    ImVec2(
+                        uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].width, 
+                        uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
+            }
+            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+                talentIsSearchedFor = true;
+                ImGui::Image(
+                    uiData.blueIconGlow[static_cast<int>(talent.second->type)].texture,
+                    ImVec2(
+                        uiData.treeEditorZoomFactor * uiData.blueIconGlow[static_cast<int>(talent.second->type)].width,
+                        uiData.treeEditorZoomFactor * uiData.blueIconGlow[static_cast<int>(talent.second->type)].height),
+                    ImVec2(0, 0), ImVec2(1, 1),
+                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
+                );
+            }
             drawSimAnalysisShapeAroundTalent(
                 talent.second,
                 drawList,
@@ -820,31 +892,33 @@ namespace TTM {
                 talentTreeCollection,
                 searchActive,
                 talentIsSearchedFor);
-            AttachSimAnalysisTooltip(uiData, tree.analysisResult, talent.second);
         }
-        for (auto& talent : tree.orderedTalents) {
-            for (auto& child : talent.second->children) {
-                drawArrowBetweenTalents(
-                    talent.second,
-                    child,
-                    drawList,
-                    ImGui::GetWindowPos(),
-                    ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
-                    ImVec2(talentWindowPaddingX, talentWindowPaddingY),
-                    talentHalfSpacing,
-                    talentSize,
-                    talentPadding,
-                    uiData,
-                    false);
+        if (ImGui::IsWindowHovered() && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))
+            && !(ImGui::IsKeyDown(ImGuiKey_LeftSuper) || ImGui::IsKeyDown(ImGuiKey_RightSuper))) {
+            for (auto& talent : tree.orderedTalents) {
+                float posX = origin.x + (talent.second->column - 1) * 2 * talentHalfSpacing;
+                float posY = origin.y + (talent.second->row - 1) * 2 * talentHalfSpacing;
+                ImVec2 textBoxPos = ImVec2(
+                    posX - 0.5f * talentSize + ImGui::GetWindowPos().x - ImGui::GetScrollX(),
+                    posY - 0.5f * talentSize + ImGui::GetWindowPos().y - ImGui::GetScrollY()
+                );
+                ImVec2 bounds = ImVec2(textBoxPos.x + 2.0f * talentSize, textBoxPos.y + 2.0f * talentSize);
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                draw_list->AddRectFilled(textBoxPos, bounds, IM_COL32(0, 0, 0, 255));
+                draw_list->AddRect(textBoxPos, bounds, IM_COL32(255, 255, 255, 255), 0, 0, 2.0f);
+                std::string infoText = talent.second->type == Engine::TalentType::SWITCH ? talent.second->getName() + " / " + talent.second->getNameSwitch() : talent.second->getName();
+                Presets::PUSH_FONT(uiData.fontsize, 3);
+                AddWrappedText(infoText, textBoxPos, 5.0f, ImVec4(1.0f, 1.0f, 1.0f, 1.0f), 2.0f * talentSize, 2.0f * talentSize, ImGui::GetWindowDrawList());
+                Presets::POP_FONT();
             }
         }
-        //add an invisible button to get scrollspace padding correctly, factor 1.5 is due to 1.0 min padding at the borders and 0.5 auto padding between rows
-        ImGui::SetCursorPos(ImVec2(0, talentWindowPaddingY + maxRow * 2 * talentHalfSpacing));
+
+        ImGui::SetCursorPos(ImVec2(origin.x, 1.5f * origin.y + maxRow * 2 * talentHalfSpacing));
         ImGui::InvisibleButton(
             "##invisbuttonedit",
             ImVec2(
-                2.0f * talentWindowPaddingX + (tree.maxCol - 2) * 2 * talentHalfSpacing + 2.0f * talentPadding + talentSize,
-                talentHalfSpacing - 0.5f * talentSize + talentWindowPaddingY - 1.5f * minYPadding
+                origin.x + (tree.maxCol - 1) * 2 * talentHalfSpacing,
+                0.5f * origin.y
             )
         );
 
@@ -1144,7 +1218,8 @@ namespace TTM {
             if(extremeRanking >= 0.0f && extremeRanking <= 1.0f){
                 //create glow texture with that color
                 TextureInfo texInfo;
-                CreateGlowTextureFromColor(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, color);
+                //CreateGlowTextureFromColor(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, color);
+                LoadIconGlowTexture(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, indexTalentPair.second->type, color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f);
                 //add it to map with talent index as key
                 uiData.simAnalysisColorGlowTextures[indexTalentPair.first] = std::pair<ImVec4, TextureInfo>(ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f), texInfo);
                 std::stringstream stream;

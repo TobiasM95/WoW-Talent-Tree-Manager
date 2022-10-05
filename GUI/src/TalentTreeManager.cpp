@@ -382,6 +382,15 @@ namespace TTM {
             ImGui::Bullet();
             ImGui::Text("After selecting the skill point number you can choose individual skillsets and transfer them to your loadout to view and edit them. You can also add all shown skillsets on the current page to your loadout to have a selection of skillsets ready.");
             ImGui::Spacing();
+            Presets::PUSH_FONT(uiData.fontsize, 1);
+            ImGui::Text("Sim analysis");
+            Presets::POP_FONT();
+            ImGui::Separator();
+            ImGui::Bullet();
+            ImGui::Text("The sim analysis screen allows you to import a raidbots mass sim result and analyze the performance of individual talents and their ranks.");
+            ImGui::Bullet();
+            ImGui::Text("For more instructions hover over the (?) marks in the screen. A more in-depth explanation might be added in the future.");
+            ImGui::Spacing();
             Presets::PUSH_FONT(uiData.fontsize, 2);
             ImGui::Spacing();
             ImGui::Text("Tips");
