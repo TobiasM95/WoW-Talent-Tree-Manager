@@ -26,6 +26,9 @@
 
 #include <random>
 #include <thread>
+#include <numeric>
+#include <iterator>
+#include <algorithm>
 
 namespace TTM {
     static void AttachLoadoutSolverTooltip(const UIData& uiData, Engine::Talent_s talent, int assignedPointsTarget)
@@ -974,17 +977,52 @@ namespace TTM {
             if (uiData.loadoutSolverAddRandomLoadoutCount > SINDintPairs.size()) {
                 uiData.loadoutSolverAddRandomLoadoutCount = static_cast<int>(SINDintPairs.size());
             }
+
+            //TTMNOTE: Probably cleaner to just fisher yates shuffle and backtrack
             std::vector<int> randomIndices;
             randomIndices.reserve(uiData.loadoutSolverAddRandomLoadoutCount);
-
-            int startIndex = -1;
-            while (randomIndices.size() < uiData.loadoutSolverAddRandomLoadoutCount) {
-                //get random number between int(SINDintPairs.size() * 1.0f / uiData.loadoutSolverAddRandomLoadoutCount + 0.5f)
-                int randomIncrementInterval = static_cast<int>((SINDintPairs.size() - startIndex - 1) * 1.0f / (uiData.loadoutSolverAddRandomLoadoutCount - randomIndices.size()) + 0.5f);
-                std::uniform_int_distribution<int> uni(1, randomIncrementInterval); // guaranteed unbiased
-                startIndex += uni(rng);
-                randomIndices.emplace_back(startIndex);
+            if (SINDintPairs.size() < uiData.loadoutSolverAddAllLimit * 10) {
+                std::vector<int> indices (SINDintPairs.size());
+                std::iota(indices.begin(), indices.end(), 0);
+                std::sample(indices.begin(), indices.end(), std::back_inserter(randomIndices), uiData.loadoutSolverAddRandomLoadoutCount, rng);
             }
+            else {
+                std::uniform_int_distribution<int> uni(0, static_cast<int>(SINDintPairs.size()));
+                while(randomIndices.size() < uiData.loadoutSolverAddRandomLoadoutCount) {
+                    int randPick = uni(rng);
+                    bool duplicate = false;
+                    bool inc1 = false;
+                    bool inc2 = false;
+                    bool inc3 = false;
+                    for (int j = 0; j < randomIndices.size(); j++) {
+                        if (randomIndices[j] == randPick) {
+                            duplicate = true;
+                        }
+                        if (randomIndices[j] == (randPick + 1) % SINDintPairs.size()) {
+                            inc1 = true;
+                        }
+                        if (randomIndices[j] == (randPick + 2) % SINDintPairs.size()) {
+                            inc2  = true;
+                        }
+                        if (randomIndices[j] == (randPick + 3) % SINDintPairs.size()) {
+                            inc3 = true;
+                        }
+                    }
+                    if (duplicate) {
+                        if (!inc1) {
+                            randomIndices.push_back((randPick + 1) % SINDintPairs.size());
+                        } else if (!inc2) {
+                            randomIndices.push_back((randPick + 2) % SINDintPairs.size());
+                        } else if (!inc3) {
+                            randomIndices.push_back((randPick + 3) % SINDintPairs.size());
+                        }
+                    }
+                    else {
+                        randomIndices.push_back(randPick);
+                    }
+                }
+            }
+
 
             for (int randomIndex : randomIndices) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
