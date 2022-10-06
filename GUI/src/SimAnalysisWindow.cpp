@@ -27,6 +27,7 @@
 
 //TTMTODO: TEMPORARY RANDOM
 #include <random>
+#include <fstream>
 
 namespace TTM {
     bool OptionSwitch(
@@ -131,7 +132,7 @@ namespace TTM {
         }
     }
 
-    static void AttachSimAnalysisTooltip(UIData& uiData, const Engine::AnalysisResult& result, Engine::Talent_s talent)
+    static void AttachSimAnalysisTooltip(UIData& uiData, Engine::AnalysisResult& result, Engine::Talent_s talent)
     {
         if (ImGui::IsItemHovered())
         {
@@ -183,7 +184,7 @@ namespace TTM {
                 ImGui::Text("Rank %d:", uiData.analysisTooltipTalentRank + 1);
                 ImGui::Spacing();
                 int colIndex = result.indexToArrayColMap.at(talent->index) + uiData.analysisTooltipTalentRank;
-                const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
                 size_t numSkillsets = talentPerf.skillsetDPS.size();
                 ImGui::Text("Number of skillsets: %d", numSkillsets);
                 if (numSkillsets > 0) {
@@ -232,6 +233,7 @@ namespace TTM {
                     ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                         &talentPerf.skillsetDPS[0],
                         static_cast<int>(numSkillsets),
+                        talentPerf.skillsetDPSNames.data(),
                         0, NULL,
                         0.95f * result.lowestDPSSkillset.second,
                         1.05f * result.highestDPSSkillset.second,
@@ -256,7 +258,7 @@ namespace TTM {
                 ImGui::Separator();
 
                 int colIndex = result.indexToArrayColMap.at(talent->index) + uiData.analysisTooltipTalentRank;
-                const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
                 size_t numSkillsets = talentPerf.skillsetDPS.size();
                 ImGui::Text("Number of skillsets: %d", numSkillsets);
                 if (numSkillsets > 0) {
@@ -305,6 +307,7 @@ namespace TTM {
                     ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                         &talentPerf.skillsetDPS[0],
                         static_cast<int>(numSkillsets),
+                        talentPerf.skillsetDPSNames.data(),
                         0, NULL,
                         0.95f * result.lowestDPSSkillset.second,
                         1.05f * result.highestDPSSkillset.second,
@@ -352,8 +355,12 @@ namespace TTM {
         ImGui::End();
         ImGui::PopStyleVar();
         if (ImGui::Begin("SettingsWindow", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse)) {
-            if (ImGui::Button("Sim Analysis Settings", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 25))) {
+            if (ImGui::Button("Sim Analysis Settings", ImVec2(ImGui::GetContentRegionAvail().x / 3.0f, 25))) {
                 uiData.simAnalysisPage = SimAnalysisPage::Settings;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Skillset Rankings", ImVec2(ImGui::GetContentRegionAvail().x / 2.0f, 25))) {
+                uiData.simAnalysisPage = SimAnalysisPage::Ranking;
             }
             ImGui::SameLine();
             if (ImGui::Button("Talent Breakdown", ImVec2(ImGui::GetContentRegionAvail().x, 25))) {
@@ -369,7 +376,8 @@ namespace TTM {
                 ImGui::InputText("##simAnalysisRaidbotsInputText", &uiData.raidbotsInputURL, ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
-                    GenerateFakeData(talentTreeCollection.activeTree());
+                    //GenerateFakeData(talentTreeCollection.activeTree());
+                    ImportSimData(uiData.raidbotsInputURL, talentTreeCollection.activeTree());
                     AnalyzeRawResults(talentTreeCollection.activeTree());
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
                     UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
@@ -380,7 +388,7 @@ namespace TTM {
                     for (int n = 0; n < talentTreeCollection.activeTree().simAnalysisRawResults.size(); n++)
                     {
                         const bool is_selected = (talentTreeCollection.activeTree().selectedSimAnalysisRawResult == n);
-                        if (ImGui::Selectable((talentTreeCollection.activeTree().simAnalysisRawResults[n].name + "##" + std::to_string(n)).c_str(), is_selected)) {
+                        if (ImGui::Selectable((std::to_string(talentTreeCollection.activeTree().simAnalysisRawResults[n].skillsets.size()) + ": " + talentTreeCollection.activeTree().simAnalysisRawResults[n].name + "##" + std::to_string(n)).c_str(), is_selected)) {
                             talentTreeCollection.activeTree().selectedSimAnalysisRawResult = n;
                         }
 
@@ -424,6 +432,7 @@ namespace TTM {
                     ImGui::PlotHistogramRedGreen("##allSkillsetsDistributionHistogram",
                         &res.skillsetDPS[0],
                         static_cast<int>(res.skillsetDPS.size()),
+                        res.skillsetDPSNames.data(),
                         0, NULL,
                         0.95f * res.lowestDPSSkillset.second,
                         1.05f * res.highestDPSSkillset.second,
@@ -482,6 +491,42 @@ namespace TTM {
 
                 }
             }break;
+            case SimAnalysisPage::Ranking: {
+                if (talentTreeCollection.activeTree().analysisResult.skillsetCount <= 0) {
+                    ImGui::Text("Analyze sim results to display ranking");
+                    break;
+                }
+                constexpr ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_ContextMenuInBody;
+
+                auto& result = talentTreeCollection.activeTree().analysisResult;
+                if (ImGui::BeginTable("Skillset ranking", 3, flags))
+                {
+                    for (int row = result.skillsetCount - 1; row >= 0; row--)
+                    {
+                        ImGui::TableNextRow();
+                        for (int column = 0; column < 3; column++)
+                        {
+                            ImGui::TableSetColumnIndex(column);
+                            float ratio = result.skillsetDPS[row] / result.highestDPSSkillset.second;
+                            switch (column) {
+                            case 0: {
+                                ImGui::Text("%s", result.skillsetDPSNames[row]);
+                            }break;
+                            case 1: {
+                                ImGui::Text("%.2f (%.1f%%)", result.skillsetDPS[row], ratio * 100.0f);
+                            }break;
+                            case 2: {
+                                float windowWidth = ImGui::GetContentRegionAvail().x;
+                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
+                                ImGui::Button("###row", ImVec2(windowWidth * ratio, 20.0f));
+                                ImGui::PopStyleColor();
+                            }break;
+                            }
+                        }
+                    }
+                    ImGui::EndTable();
+                }
+            }break;
             case SimAnalysisPage::Breakdown: {
                 if (!talentTreeCollection.activeTree().analysisResult.indexToArrayColMap.count(uiData.analysisBreakdownTalentIndex)) {
                     uiData.analysisBreakdownTalentIndex = -1;
@@ -503,7 +548,7 @@ namespace TTM {
                             ImGui::Text("Rank %d:", i + 1);
                             ImGui::Spacing();
                             int colIndex = result.indexToArrayColMap.at(talent->index) + i;
-                            const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                            Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
                             size_t numSkillsets = talentPerf.skillsetDPS.size();
                             ImGui::Text("Number of skillsets: %d", numSkillsets);
                             if (numSkillsets > 0) {
@@ -552,6 +597,7 @@ namespace TTM {
                                 ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                                     &talentPerf.skillsetDPS[0],
                                     static_cast<int>(numSkillsets),
+                                    talentPerf.skillsetDPSNames.data(),
                                     0, NULL,
                                     0.95f * result.lowestDPSSkillset.second,
                                     1.05f * result.highestDPSSkillset.second,
@@ -570,7 +616,7 @@ namespace TTM {
                         ImGui::Separator();
 
                         int colIndex = result.indexToArrayColMap.at(talent->index);
-                        const Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
+                        Engine::TalentPerformanceInfo& talentPerf = result.talentPerformances[colIndex];
                         size_t numSkillsets = talentPerf.skillsetDPS.size();
                         ImGui::Text("Number of skillsets: %d", numSkillsets);
                         if (numSkillsets > 0) {
@@ -619,6 +665,7 @@ namespace TTM {
                             ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                                 &talentPerf.skillsetDPS[0],
                                 static_cast<int>(numSkillsets),
+                                talentPerf.skillsetDPSNames.data(),
                                 0, NULL,
                                 0.95f * result.lowestDPSSkillset.second,
                                 1.05f * result.highestDPSSkillset.second,
@@ -634,7 +681,7 @@ namespace TTM {
                         ImGui::Separator();
                         
                         colIndex = result.indexToArrayColMap.at(talent->index) + 1;
-                        const Engine::TalentPerformanceInfo& switchTalentPerf = result.talentPerformances[colIndex];
+                        Engine::TalentPerformanceInfo& switchTalentPerf = result.talentPerformances[colIndex];
                         numSkillsets = switchTalentPerf.skillsetDPS.size();
                         ImGui::Text("Number of skillsets: %d", numSkillsets);
                         if (numSkillsets > 0) {
@@ -683,6 +730,7 @@ namespace TTM {
                             ImGui::PlotHistogramRedGreen("##tooltipSkillsetsDistributionHistogram",
                                 &switchTalentPerf.skillsetDPS[0],
                                 static_cast<int>(numSkillsets),
+                                switchTalentPerf.skillsetDPSNames.data(),
                                 0, NULL,
                                 0.95f * result.lowestDPSSkillset.second,
                                 1.05f * result.highestDPSSkillset.second,
@@ -778,9 +826,9 @@ namespace TTM {
             if (uiData.simAnalysisIconRatingSwitch) {
                 std::string buttonText;
                 ImVec4 buttonCol;
-                if (uiData.simAnalysisButtonRankingText.count(talent.first) && uiData.simAnalysisColorGlowTextures.count(talent.first)) {
+                if (uiData.simAnalysisButtonRankingText.count(talent.first) && uiData.simAnalysisTalentColor.count(talent.first)) {
                     buttonText = uiData.simAnalysisButtonRankingText[talent.first].c_str();
-                    buttonCol = uiData.simAnalysisColorGlowTextures[talent.second->index].first;
+                    buttonCol = uiData.simAnalysisTalentColor[talent.second->index];
                 }
                 else {
                     buttonText = "";
@@ -859,17 +907,7 @@ namespace TTM {
             ImGui::SetCursorPos(ImVec2(
                 posX - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].width - talentSize),
                 posY - 0.5f * (uiData.treeEditorZoomFactor * uiData.redIconGlow[static_cast<int>(talent.second->type)].height - talentSize)));
-            if (uiData.enableGlow && !searchActive && uiData.simAnalysisColorGlowTextures.count(talent.first)) {
-                ImGui::Image(
-                    uiData.simAnalysisColorGlowTextures[talent.first].second.texture,
-                    ImVec2(
-                        uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].width, 
-                        uiData.treeEditorZoomFactor * uiData.goldIconGlow[static_cast<int>(talent.second->type)].height),
-                    ImVec2(0, 0), ImVec2(1, 1),
-                    ImVec4(1, 1, 1, 1.0f - 0.5f * (uiData.style == Presets::STYLES::COMPANY_GREY))
-                );
-            }
-            else if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
+            if (uiData.talentSearchString != "" && std::find(uiData.searchedTalents.begin(), uiData.searchedTalents.end(), talent.second) != uiData.searchedTalents.end()) {
                 talentIsSearchedFor = true;
                 ImGui::Image(
                     uiData.blueIconGlow[static_cast<int>(talent.second->type)].texture,
@@ -970,6 +1008,7 @@ namespace TTM {
                 tempSkillsetNames.emplace_back(simRes.name, simRes.skillsets[i].name);
                 result.talentArray.push_back(talentSelection);
                 result.skillsetDPS.push_back(simRes.dps[i]);
+                result.skillsetDPSNames.push_back(const_cast<char*>(simRes.skillsets[i].name.c_str()));
             }
         }
         result.skillsetCount = static_cast<int>(result.skillsetDPS.size());
@@ -983,11 +1022,12 @@ namespace TTM {
             [](float const& a, float const& b) { return a < b; });
 
         result.skillsetDPS = apply_permutation(result.skillsetDPS, p);
+        result.skillsetDPSNames = apply_permutation(result.skillsetDPSNames, p);
         result.talentArray = apply_permutation(result.talentArray, p);
         tempSkillsetNames = apply_permutation(tempSkillsetNames, p);
 
         result.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[0], result.skillsetDPS[0]);
-        int medianIndex = (result.skillsetCount + 1) / 2;
+        int medianIndex = (result.skillsetCount - 1) / 2;
         result.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[medianIndex], result.skillsetDPS[medianIndex]);
         float totalDPS = 0.0f;
         for (float dps : result.skillsetDPS) {
@@ -1010,16 +1050,18 @@ namespace TTM {
                 for (int i = 0; i < result.talentArray.size(); i++) {
                     if (result.talentArray[i][colIndex] > 0) {
                         tInfo.skillsetDPS.push_back(result.skillsetDPS[i]);
+                        tInfo.skillsetDPSNames.push_back(result.skillsetDPSNames[i]);
                         tempTalentSkillsetNames.push_back(tempSkillsetNames[i]);
                     }
                     else {
                         withoutTInfo.skillsetDPS.push_back(result.skillsetDPS[i]);
+                        withoutTInfo.skillsetDPSNames.push_back(result.skillsetDPSNames[i]);
                         tempWithoutTalentSkillsetNames.push_back(tempSkillsetNames[i]);
                     }
                 }
                 if (tempTalentSkillsetNames.size() > 0 && tInfo.skillsetDPS.size() > 0) {
                     tInfo.lowestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[0], tInfo.skillsetDPS[0]);
-                    size_t medianIndex = (tInfo.skillsetDPS.size() + 1) / 2;
+                    size_t medianIndex = (tInfo.skillsetDPS.size() - 1) / 2;
                     tInfo.medianDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[medianIndex], tInfo.skillsetDPS[medianIndex]);
                     float totalDPS = 0.0f;
                     for (float dps : tInfo.skillsetDPS) {
@@ -1027,21 +1069,24 @@ namespace TTM {
                     }
                     tInfo.averageDPSSkillset = std::pair<std::pair<std::string, std::string>, float>({"N/A", "N/A"}, totalDPS / tInfo.skillsetDPS.size());
                     tInfo.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempTalentSkillsetNames[tInfo.skillsetDPS.size() - 1], tInfo.skillsetDPS[tInfo.skillsetDPS.size() - 1]);
-                    
-                    tInfo.lowestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[0], withoutTInfo.skillsetDPS[0]);
-                    medianIndex = (withoutTInfo.skillsetDPS.size() + 1) / 2;
-                    tInfo.medianDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[medianIndex], withoutTInfo.skillsetDPS[medianIndex]);
-                    totalDPS = 0.0f;
-                    for (float dps : withoutTInfo.skillsetDPS) {
-                        totalDPS += dps;
-                    }
-                    if (withoutTInfo.skillsetDPS.size() > 0) {
+
+                    if (tempWithoutTalentSkillsetNames.size() > 0 && withoutTInfo.skillsetDPS.size() > 0) {
+                        tInfo.lowestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[0], withoutTInfo.skillsetDPS[0]);
+                        medianIndex = (withoutTInfo.skillsetDPS.size() - 1) / 2;
+                        tInfo.medianDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[medianIndex], withoutTInfo.skillsetDPS[medianIndex]);
+                        totalDPS = 0.0f;
+                        for (float dps : withoutTInfo.skillsetDPS) {
+                            totalDPS += dps;
+                        }
                         tInfo.averageDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, totalDPS / withoutTInfo.skillsetDPS.size());
+                        tInfo.highestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[withoutTInfo.skillsetDPS.size() - 1], withoutTInfo.skillsetDPS[withoutTInfo.skillsetDPS.size() - 1]);
                     }
                     else {
+                        tInfo.lowestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, 0.0f);
+                        tInfo.medianDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, 0.0f);
                         tInfo.averageDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, 0.0f);
+                        tInfo.highestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, 0.0f);
                     }
-                    tInfo.highestDPSSkillsetWithoutTalent = std::pair<std::pair<std::string, std::string>, float>(tempWithoutTalentSkillsetNames[withoutTInfo.skillsetDPS.size() - 1], withoutTInfo.skillsetDPS[withoutTInfo.skillsetDPS.size() - 1]);
                 }
 
                 result.talentPerformances.push_back(tInfo);
@@ -1133,7 +1178,12 @@ namespace TTM {
             }
         }
         for (int i = 0; i < numTalents; i++) {
-            result.talentAbsolutePositionRankings[performance[i].first] = performance[i].second[0] > 0.0f ? rankMap[performance[i].second] * 1.0f / (rankCounter - 1) : -1.0f;
+            if (rankCounter <= 1) {
+                result.talentAbsolutePositionRankings[performance[i].first] = performance[i].second[0] > 0.0f ? 1.0f : -1.0f;
+            }
+            else {
+                result.talentAbsolutePositionRankings[performance[i].first] = performance[i].second[0] > 0.0f ? rankMap[performance[i].second] * 1.0f / (rankCounter - 1) : -1.0f;
+            }
             result.talentRelativePerformanceRankings[performance[i].first] = performance[i].second[0] > 0.0f ? performance[i].second[0] / maxPerf : -1.0f;
         }
     }
@@ -1145,13 +1195,7 @@ namespace TTM {
         //but for absolute rankings red = 0, green = 1
         //and for relative rankings red = minRelPerf, green = 1
         //store pairs of (color, glowTexture) in uiData
-        for (auto& indexColorGlowPair : uiData.simAnalysisColorGlowTextures) {
-            if (indexColorGlowPair.second.second.texture) {
-                indexColorGlowPair.second.second.texture->Release();
-                indexColorGlowPair.second.second.texture = nullptr;
-            }
-        }
-        uiData.simAnalysisColorGlowTextures.clear();
+        uiData.simAnalysisTalentColor.clear();
 
         if (result.talentAbsolutePositionRankings.size() == 0 || result.talentRelativePerformanceRankings.size() == 0) {
             return;
@@ -1210,18 +1254,14 @@ namespace TTM {
                     }
                 }
                 //get interpolated red-green color for minRelPerf=red, 1=green
-                float intermediate = (extremeRanking - result.minRelPerf) / (1.0f - result.minRelPerf);
+                float intermediate = (extremeRanking + 0.0001f - result.minRelPerf) / (1.0001f - result.minRelPerf);
                 color[0] = 2.0f * (1.0f - intermediate) >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * (1.0f - intermediate) * 255);
                 color[1] = 2.0f * intermediate >= 1.0f ? 255 : static_cast<unsigned char>(2.0f * intermediate * 255);
                 color[2] = 0;
             }
             if(extremeRanking >= 0.0f && extremeRanking <= 1.0f){
-                //create glow texture with that color
-                TextureInfo texInfo;
-                //CreateGlowTextureFromColor(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, color);
-                LoadIconGlowTexture(&texInfo.texture, &texInfo.width, &texInfo.height, uiData.g_pd3dDevice, indexTalentPair.second->type, color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f);
                 //add it to map with talent index as key
-                uiData.simAnalysisColorGlowTextures[indexTalentPair.first] = std::pair<ImVec4, TextureInfo>(ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f), texInfo);
+                uiData.simAnalysisTalentColor[indexTalentPair.first] = ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f);
                 std::stringstream stream;
                 int precision = (extremeRanking == 1.0f || extremeRanking == 0.0f) ? 0 : 1;
                 stream << std::fixed << std::setprecision(precision) << extremeRanking * 100.0f;
@@ -1254,6 +1294,105 @@ namespace TTM {
         std::transform(p.begin(), p.end(), sorted_vec.begin(),
             [&](std::size_t i) { return vec[i]; });
         return sorted_vec;
+    }
+
+    void ImportSimData(std::string urlOrPath, Engine::TalentTree& tree) {
+        bool isPath = true;
+        if (isPath) {
+            std::filesystem::path dataPath{ urlOrPath };
+            if (std::filesystem::is_regular_file(dataPath)) {
+                Engine::SimResult res = ImportSimFile(dataPath, tree);
+                tree.simAnalysisRawResults.push_back(res);
+            }
+            else if (std::filesystem::is_directory(dataPath)) {
+                for (auto& entry : std::filesystem::directory_iterator{ dataPath }) {
+                    if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                        Engine::SimResult res = ImportSimFile(entry.path(), tree);
+                        tree.simAnalysisRawResults.push_back(res);
+                    }
+                }
+            }
+        }
+        else {
+            //raidbots import
+            return;
+        }
+    }
+
+    Engine::SimResult ImportSimFile(std::filesystem::path dataPath, Engine::TalentTree& tree) {
+        Engine::SimResult res;
+        res.name = dataPath.filename().string();
+        std::vector<std::pair<std::string, float>> extractedSimRuns;
+
+        std::ifstream simLog{ dataPath };
+        std::string line;
+        bool earlyFileEnd = false;
+        while (std::getline(simLog, line))
+        {
+            //grab main run
+            if (line.substr(0, 7) == "Player:") {
+                std::string trimLine{ line.substr(8) };
+                int counter = 4;
+                for (int i = static_cast<int>(trimLine.length() - 1); i >= 0; i--) {
+                    const char& ch = trimLine[i];
+                    if (ch == ' ') {
+                        counter--;
+                    }
+                    if (counter == 0) {
+                        counter = i;
+                        break;
+                    }
+                }
+                std::string name = trimLine.substr(0, counter);
+                if (!std::getline(simLog, line)) {
+                    break;
+                }
+                size_t start = line.find("DPS=") + 4;
+                size_t end = line.find("DPS-Error") - 1;
+                float dps = static_cast<float>(std::stod(line.substr(start, end - start + 1)));
+                extractedSimRuns.push_back(std::pair{ name, dps });
+            }
+            //grab all profilesets
+            else if (line.substr(0, 39) == "Profilesets (median Damage per Second):") {
+                std::getline(simLog, line);
+                while (line.substr(0, 21) != "Baseline Performance:" && line != "") {
+                    std::vector<std::string> content = Engine::splitString(line, ":");
+                    float dps = static_cast<float>(std::stod(content[0]));
+                    std::string name = trim(content[1]);
+                    extractedSimRuns.push_back(std::pair{ name, dps });
+                    if (!std::getline(simLog, line)) {
+                        earlyFileEnd = true;
+                        break;
+                    }
+                }
+            }
+
+            if (earlyFileEnd) {
+                break;
+            }
+        }
+
+        //fetch skillsets and put them in simresult
+        for (auto& run : extractedSimRuns) {
+            for (auto& skillset : tree.loadout) {
+                if (skillset->name == run.first) {
+                    res.skillsets.push_back(*skillset);
+                    res.dps.push_back(run.second);
+                }
+            }
+        }
+        return res;
+    }
+
+    std::string trim(const std::string& str)
+    {
+        size_t first = str.find_first_not_of(' ');
+        if (std::string::npos == first)
+        {
+            return str;
+        }
+        size_t last = str.find_last_not_of(' ');
+        return str.substr(first, (last - first + 1));
     }
 
     void GenerateFakeData(Engine::TalentTree& tree) {

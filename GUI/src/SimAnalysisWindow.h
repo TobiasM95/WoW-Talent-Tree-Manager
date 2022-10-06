@@ -41,6 +41,9 @@ namespace TTM {
 		const std::vector<T>& vec,
 		const std::vector<std::size_t>& p);
 
+	void ImportSimData(std::string urlOrPath, Engine::TalentTree& tree);
+	Engine::SimResult ImportSimFile(std::filesystem::path dataPath, Engine::TalentTree& tree);
+	std::string trim(const std::string& str);
 	void GenerateFakeData(Engine::TalentTree& tree);
 
 }

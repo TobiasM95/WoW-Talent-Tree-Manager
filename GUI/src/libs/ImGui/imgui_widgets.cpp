@@ -6592,7 +6592,7 @@ int ImGui::PlotEx(ImGuiPlotType plot_type, const char* label, float (*values_get
     return idx_hovered;
 }
 
-int ImGui::PlotHistogramRedGreenEx(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 frame_size)
+int ImGui::PlotHistogramRedGreenEx(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, char** values_labels, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 frame_size)
 {
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = GetCurrentWindow();
@@ -6653,7 +6653,7 @@ int ImGui::PlotHistogramRedGreenEx(const char* label, float (*values_getter)(voi
 
             const float v0 = values_getter(data, (v_idx + values_offset) % values_count);
             const float v1 = values_getter(data, (v_idx + 1 + values_offset) % values_count);
-            SetTooltip("%d: %.1f", v_idx, v0);
+            SetTooltip("%s: %.1f", values_labels[v_idx], v0);
             idx_hovered = v_idx;
         }
 
@@ -6743,10 +6743,10 @@ void ImGui::PlotHistogram(const char* label, const float* values, int values_cou
     PlotEx(ImGuiPlotType_Histogram, label, &Plot_ArrayGetter, (void*)&data, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
 }
 
-void ImGui::PlotHistogramRedGreen(const char* label, const float* values, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size, int stride)
+void ImGui::PlotHistogramRedGreen(const char* label, const float* values, int values_count, char** values_labels, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size, int stride)
 {
     ImGuiPlotArrayGetterData data(values, stride);
-    PlotHistogramRedGreenEx(label, &Plot_ArrayGetter, (void*)&data, values_count, values_offset, overlay_text, scale_min, scale_max, graph_size);
+    PlotHistogramRedGreenEx(label, &Plot_ArrayGetter, (void*)&data, values_count, values_labels, values_offset, overlay_text, scale_min, scale_max, graph_size);
 }
 
 void ImGui::PlotHistogram(const char* label, float (*values_getter)(void* data, int idx), void* data, int values_count, int values_offset, const char* overlay_text, float scale_min, float scale_max, ImVec2 graph_size)
