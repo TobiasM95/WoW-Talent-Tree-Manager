@@ -248,7 +248,8 @@ namespace TTM {
             }break;
             case LoadoutEditPage::SkillsetEdit: {
                 ImGui::Text("Skillsets:");
-                if (ImGui::BeginListBox("##loadoutEditorSkillsetsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
+                float boxHeight = ImGui::CalcTextSize("@").y;
+                if (ImGui::BeginListBox("##loadoutEditorSkillsetsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 20 * boxHeight)))
                 {
                     for (int n = 0; n < talentTreeCollection.activeTree().loadout.size(); n++)
                     {
@@ -326,11 +327,14 @@ namespace TTM {
                 }
 
                 ImGui::Text("Export active skillset to SimC:");
+                ImGui::Checkbox("Create profileset", &uiData.loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox);
                 ImGui::InputText("##loadoutEditorExportActiveSkillsetSimcInput", &uiData.loadoutEditorExportActiveSkillsetSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetSimcButton")) {
                     if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
-                        uiData.loadoutEditorExportActiveSkillsetSimcString = Engine::createActiveSkillsetSimcStringRepresentation(talentTreeCollection.activeTree());
+                        uiData.loadoutEditorExportActiveSkillsetSimcString = Engine::createActiveSkillsetSimcStringRepresentation(
+                            talentTreeCollection.activeTree(), uiData.loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox
+                        );
                     }
                 }
                 ImGui::Text("Export all skillsets to SimC:");

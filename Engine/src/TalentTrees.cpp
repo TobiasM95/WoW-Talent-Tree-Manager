@@ -2079,11 +2079,16 @@ namespace Engine {
         return rep;
     }
 
-    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree) {
+    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset) {
         if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
             return "Invalid skillset!";
         }
-        return createSkillsetSimcStringRepresentation(tree.loadout[tree.activeSkillsetIndex], tree);
+        if (createProfileset) {
+            return "profileset.\"" + tree.loadout[tree.activeSkillsetIndex]->name + "\"+=\"" + createSkillsetSimcStringRepresentation(tree.loadout[tree.activeSkillsetIndex], tree) + "\"";
+        }
+        else {
+            return createSkillsetSimcStringRepresentation(tree.loadout[tree.activeSkillsetIndex], tree);
+        }
     }
 
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree) {
