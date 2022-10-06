@@ -348,7 +348,12 @@ namespace TTM {
                 }
             }
 
-            placeSimAnalysisTreeElements(uiData, talentTreeCollection);
+            if (!uiData.hoveredAnalysisSkillset) {
+                placeSimAnalysisTreeElements(uiData, talentTreeCollection);
+            }
+            else {
+                drawSkillsetPreview(uiData, talentTreeCollection, uiData.hoveredAnalysisSkillset);
+            }
 
             ImGui::EndChild();
         }
@@ -499,6 +504,7 @@ namespace TTM {
                 constexpr ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_ContextMenuInBody;
 
                 auto& result = talentTreeCollection.activeTree().analysisResult;
+                bool somethingHovered = false;
                 if (ImGui::BeginTable("Skillset ranking", 3, flags))
                 {
                     for (int row = result.skillsetCount - 1; row >= 0; row--)
@@ -508,12 +514,19 @@ namespace TTM {
                         {
                             ImGui::TableSetColumnIndex(column);
                             float ratio = result.skillsetDPS[row] / result.highestDPSSkillset.second;
+                            float textHeight = ImGui::CalcTextSize("@").y;
                             switch (column) {
                             case 0: {
+                                ImVec2 cursorPos = ImGui::GetCursorPos();
                                 ImGui::Text("%s", result.skillsetDPSNames[row]);
+                                ImGui::SetCursorPos(cursorPos);
+                                ImGui::InvisibleButton(("##" + std::to_string(row)).c_str(), ImVec2(ImGui::GetContentRegionAvail().x, textHeight));
                             }break;
                             case 1: {
+                                ImVec2 cursorPos = ImGui::GetCursorPos();
                                 ImGui::Text("%.2f (%.1f%%)", result.skillsetDPS[row], ratio * 100.0f);
+                                ImGui::SetCursorPos(cursorPos);
+                                ImGui::InvisibleButton(("##" + std::to_string(row)).c_str(), ImVec2(ImGui::GetContentRegionAvail().x, textHeight));
                             }break;
                             case 2: {
                                 float windowWidth = ImGui::GetContentRegionAvail().x;
@@ -522,9 +535,25 @@ namespace TTM {
                                 ImGui::PopStyleColor();
                             }break;
                             }
+                            if (ImGui::IsItemHovered()) {
+                                somethingHovered = true;
+                                if (uiData.hoveredAnalysisSkillsetIndex != row) {
+                                    uiData.hoveredAnalysisSkillsetIndex = row;
+                                    std::string skillsetName{ result.skillsetDPSNames[row] };
+                                    for (auto& skillset_s : talentTreeCollection.activeTree().loadout) {
+                                        if (skillset_s->name == skillsetName) {
+                                            uiData.hoveredAnalysisSkillset = std::make_shared<Engine::TalentSkillset>(*skillset_s);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     ImGui::EndTable();
+                    if (!somethingHovered) {
+                        uiData.hoveredAnalysisSkillset = nullptr;
+                        uiData.hoveredAnalysisSkillsetIndex = -1;
+                    }
                 }
             }break;
             case SimAnalysisPage::Breakdown: {

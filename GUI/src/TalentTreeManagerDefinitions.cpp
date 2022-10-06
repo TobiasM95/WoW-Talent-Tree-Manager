@@ -1094,7 +1094,7 @@ namespace TTM {
                     borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR;
                 }
             }
-            else if (pointsSpent == talent->maxPoints) {
+            else if (pointsSpent >= talent->maxPoints) {
                 borderCol = Presets::TALENT_MAXED_BORDER_COLOR;
             }
             else {
@@ -1251,13 +1251,14 @@ namespace TTM {
             0,
             0
         );
+        int netPointsSpent = (talent->type == Engine::TalentType::SWITCH && pointsSpent > 0) ? 1 : pointsSpent;
         drawList->AddText(
             ImVec2(
                 bottomRight.x - 0.5f * textSize.x - 0.075f * talentSize + textOffset,
                 bottomRight.y - 0.5f * textSize.y - 0.075f * talentSize + textOffset
             ),
             ImColor(textColor),
-            (std::to_string(pointsSpent) + "/" + std::to_string(talent->maxPoints)).c_str()
+            (std::to_string(netPointsSpent) + "/" + std::to_string(talent->maxPoints)).c_str()
         );
         Presets::POP_FONT();
     }
