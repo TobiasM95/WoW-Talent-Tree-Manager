@@ -277,6 +277,8 @@ namespace TTM {
 		int analysisTooltipLastTalentIndex = -1;
 		int analysisTooltipTalentRank = -1;
 		int analysisBreakdownTalentIndex = -1;
+		std::shared_ptr<Engine::TalentSkillset> hoveredAnalysisSkillset = nullptr;
+		int hoveredAnalysisSkillsetIndex = 0;
 	};
 
 	void refreshIconMap(UIData& uiData);
