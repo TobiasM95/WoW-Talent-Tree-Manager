@@ -69,7 +69,7 @@ namespace TTM {
 	};
 
 	enum class SimAnalysisPage {
-		Settings, Breakdown
+		Settings, Breakdown, Ranking
 	};
 
 	struct TalentTreeData {
@@ -235,6 +235,7 @@ namespace TTM {
 
 		std::string loadoutEditorExportActiveSkillsetString;
 		std::string loadoutEditorExportAllSkillsetsString;
+		bool loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox = false;
 		std::string loadoutEditorExportActiveSkillsetSimcString;
 		std::string loadoutEditorExportAllSkillsetsSimcString;
 		std::string loadoutEditorImportSkillsetsString;
@@ -262,6 +263,7 @@ namespace TTM {
 		std::vector<Engine::SIND> loadoutSolverPageResults;
 		int selectedFilteredSkillsetIndex = -1;
 		Engine::SIND selectedFilteredSkillset = 0;
+		std::shared_ptr<Engine::TalentSkillset> hoveredFilteredSkillset = nullptr;
 
 		//############# SIM ANALYSIS VARIABLES ########################
 		SimAnalysisPage simAnalysisPage = SimAnalysisPage::Settings;
@@ -270,7 +272,7 @@ namespace TTM {
 		int topMedianPerformanceSwitch = 0;
 		int relativeDpsRankingSwitch = 0;
 		int showLowestHighestSwitch = 0;
-		std::map<int, std::pair<ImVec4, TextureInfo>> simAnalysisColorGlowTextures;
+		std::map<int, ImVec4> simAnalysisTalentColor;
 		std::map<int, std::string> simAnalysisButtonRankingText;
 		int analysisTooltipLastTalentIndex = -1;
 		int analysisTooltipTalentRank = -1;
@@ -338,6 +340,19 @@ namespace TTM {
 		bool searchActive,
 		bool talentIsSearchedFor);
 
+	void drawSkillsetPreviewShapeAroundTalent(
+		Engine::Talent_s talent,
+		int pointsSpent,
+		ImDrawList* drawList,
+		ImVec4* colors,
+		ImVec2 pos,
+		int talentSize,
+		ImVec2 windowPos,
+		ImVec2 scroll,
+		UIData& uiData,
+		TalentTreeCollection& talentTreeCollection,
+		float disabledAlpha);
+
 	void drawSimAnalysisShapeAroundTalent(
 		Engine::Talent_s talent,
 		ImDrawList* drawList,
@@ -350,6 +365,8 @@ namespace TTM {
 		TalentTreeCollection& talentTreeCollection,
 		bool searchActive,
 		bool talentIsSearchedFor);
+
+	void drawSkillsetPreview(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::shared_ptr<Engine::TalentSkillset> skillset);
 
 	void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
 	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);

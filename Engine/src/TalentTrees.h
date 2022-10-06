@@ -110,6 +110,7 @@ namespace Engine {
         std::pair<std::pair<std::string, std::string>, float> highestDPSSkillsetWithoutTalent;
 
         std::vector<float> skillsetDPS;
+        std::vector<char*> skillsetDPSNames;
     };
 
     /*
@@ -126,6 +127,7 @@ namespace Engine {
         std::map<int, int> indexToArrayColMap;
         std::vector<std::vector<int>> talentArray;
         std::vector<float> skillsetDPS;
+        std::vector<char*> skillsetDPSNames;
         std::vector<TalentPerformanceInfo> talentPerformances;
 
         //this is needed for color glow texture generation, since that is a separate function
@@ -253,7 +255,7 @@ namespace Engine {
     std::string createSkillsetSimcStringRepresentation(std::shared_ptr<TalentSkillset> skillset, const TalentTree& tree);
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
-    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree);
+    std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset = false);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);

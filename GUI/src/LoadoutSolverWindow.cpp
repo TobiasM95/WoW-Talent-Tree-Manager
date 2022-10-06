@@ -172,7 +172,12 @@ namespace TTM {
                 }
             }
 
-            placeLoadoutSolverTreeElements(uiData, talentTreeCollection);
+            if (!uiData.hoveredFilteredSkillset) {
+                placeLoadoutSolverTreeElements(uiData, talentTreeCollection);
+            }
+            else {
+                drawSkillsetPreview(uiData, talentTreeCollection, uiData.hoveredFilteredSkillset);
+            }
             ImVec2 center = ImGui::GetMainViewport()->GetCenter();
             ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
             if (ImGui::BeginPopupModal("Talent tree too large", NULL, ImGuiWindowFlags_AlwaysAutoResize))
@@ -885,8 +890,9 @@ namespace TTM {
         if (uiData.loadoutSolverPageResults.size() == 0) {
             return;
         }
-        ImGui::Text("Filtered skillsets:");
+        ImGui::Text("Filtered skillsets: (hover to preview)");
 
+        uiData.hoveredFilteredSkillset = nullptr;
         if (ImGui::BeginListBox("##loadoutSolverFilteredSkillsetPageListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
         {
             for (int n = 0; n < uiData.loadoutSolverPageResults.size(); n++)
@@ -895,6 +901,13 @@ namespace TTM {
                 if (ImGui::Selectable(("Id: " + std::to_string(uiData.loadoutSolverPageResults[n])).c_str(), is_selected)) {
                     uiData.selectedFilteredSkillsetIndex = n;
                     uiData.selectedFilteredSkillset = uiData.loadoutSolverPageResults[n];
+                }
+                if (ImGui::IsItemHovered()) {
+                    uiData.hoveredFilteredSkillset = Engine::skillsetIndexToSkillset(
+                            talentTreeCollection.activeTree(),
+                            talentTreeCollection.activeTreeData().treeDAGInfo,
+                            uiData.loadoutSolverPageResults[n]
+                        );
                 }
 
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
