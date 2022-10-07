@@ -2079,6 +2079,25 @@ namespace Engine {
         return rep;
     }
 
+    std::string createSingleTalentsSimcString(TalentTree& tree) {
+        std::string rep;
+        for (auto& talent : tree.orderedTalents) {
+            if (talent.second->type == TalentType::SWITCH) {
+                std::string tokenName = simcTokenizeName(talent.second->name);
+                rep += "profileset.\"" + tokenName + " - 1" + "\"+=\"" + (tree.type == TreeType::CLASS ? "class_talents=" : "spec_talents=") + tokenName + ":1\"\n";
+                tokenName = simcTokenizeName(talent.second->nameSwitch);
+                rep += "profileset.\"" + tokenName + " - 1" + "\"+=\"" + (tree.type == TreeType::CLASS ? "class_talents=" : "spec_talents=") + tokenName + ":1\"\n";
+            }
+            else {
+                for (int i = 1; i <= talent.second->maxPoints; i++) {
+                    std::string tokenName = simcTokenizeName(talent.second->name);
+                    rep += "profileset.\"" + tokenName + " - " + std::to_string(i) + "\"+=\"" + (tree.type == TreeType::CLASS ? "class_talents=" : "spec_talents=") + tokenName + ":" + std::to_string(i) + "\"\n";
+                }
+            }
+        }
+        return rep;
+    }
+
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset) {
         if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
             return "Invalid skillset!";

@@ -485,14 +485,14 @@ namespace TTM {
                 }
 
                 ImGui::Separator();
-                ImGui::Text("Export:");
+                ImGui::Text("Misc:");
                 ImGui::Spacing();
                 ImGui::Spacing();
-                if (ImGui::Button("Put past top performing skillset in loadout")) {
-
-                }
-                if (ImGui::Button("Create actual top performing skillset")) {
-
+                ImGui::Text("Generate single talent SimC export:");
+                ImGui::InputText("##simAnalysisSingleTalentSimcExportInputText", &uiData.simAnalysisSingleTalentExportString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Generate##treeEditorImportTalentTreeButton")) {
+                    uiData.simAnalysisSingleTalentExportString = Engine::createSingleTalentsSimcString(talentTreeCollection.activeTree());
                 }
             }break;
             case SimAnalysisPage::Ranking: {
