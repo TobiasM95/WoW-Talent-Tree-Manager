@@ -741,11 +741,15 @@ namespace TTM {
             if (uiData.editorView == EditorView::LoadoutEdit) {
                 loadoutEditDisplayTag = "> " + loadoutEditDisplayTag;
             }
-            if (ImGui::BeginTabItem((loadoutEditDisplayTag + "###LoadoutEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
+            ImGuiTabItemFlags tabFlags = uiData.editorViewTarget == EditorView::LoadoutEdit ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+            if (ImGui::BeginTabItem((loadoutEditDisplayTag + "###LoadoutEditTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::LoadoutEdit) {
+                if (uiData.editorView != EditorView::LoadoutEdit && uiData.editorViewTarget == EditorView::None) {
                     uiData.editorView = EditorView::LoadoutEdit;
                     //saveWorkspace(uiData, talentTreeCollection);
+                }
+                if (uiData.editorViewTarget == EditorView::LoadoutEdit) {
+                    uiData.editorViewTarget = EditorView::None;
                 }
                 if (!uiData.isLoadoutInitValidated) {
                     uiData.isLoadoutInitValidated = true;
@@ -768,11 +772,15 @@ namespace TTM {
             if (uiData.editorView == EditorView::LoadoutSolver) {
                 loadoutSolverDisplayTag = "> " + loadoutSolverDisplayTag;
             }
-            if (ImGui::BeginTabItem((loadoutSolverDisplayTag + "###LoadoutSolverTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
+            tabFlags = uiData.editorViewTarget == EditorView::LoadoutSolver ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+            if (ImGui::BeginTabItem((loadoutSolverDisplayTag + "###LoadoutSolverTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::LoadoutSolver) {
+                if (uiData.editorView != EditorView::LoadoutSolver && uiData.editorViewTarget == EditorView::None) {
                     uiData.editorView = EditorView::LoadoutSolver;
                     //saveWorkspace(uiData, talentTreeCollection);
+                }
+                if (uiData.editorViewTarget == EditorView::LoadoutSolver) {
+                    uiData.editorViewTarget = EditorView::None;
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
@@ -781,9 +789,15 @@ namespace TTM {
             if (uiData.editorView == EditorView::SimAnalysis) {
                 simAnalysisDisplayTag = "> " + simAnalysisDisplayTag;
             }
-            if (ImGui::BeginTabItem((simAnalysisDisplayTag + "###SimAnalysisTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
+            tabFlags = uiData.editorViewTarget == EditorView::SimAnalysis ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+            if (ImGui::BeginTabItem((simAnalysisDisplayTag + "###SimAnalysisTabID").c_str(), nullptr, tabFlags))
             {
-                uiData.editorView = EditorView::SimAnalysis;
+                if (uiData.editorView != EditorView::SimAnalysis && uiData.editorViewTarget == EditorView::None) {
+                    uiData.editorView = EditorView::SimAnalysis;
+                }
+                if (uiData.editorViewTarget == EditorView::SimAnalysis) {
+                    uiData.editorViewTarget = EditorView::None;
+                }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
             }
@@ -791,11 +805,15 @@ namespace TTM {
             if (uiData.editorView == EditorView::TreeEdit) {
                 treeEditDisplayTag = "> " + treeEditDisplayTag;
             }
-            if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, ImGuiTabItemFlags_None))
+            tabFlags = uiData.editorViewTarget == EditorView::TreeEdit ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+            if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::TreeEdit) {
+                if (uiData.editorView != EditorView::TreeEdit && uiData.editorViewTarget == EditorView::None) {
                     uiData.editorView = EditorView::TreeEdit;
                     //saveWorkspace(uiData, talentTreeCollection);
+                }
+                if (uiData.editorViewTarget == EditorView::TreeEdit) {
+                    uiData.editorViewTarget = EditorView::None;
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
