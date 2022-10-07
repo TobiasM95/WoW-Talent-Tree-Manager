@@ -744,12 +744,12 @@ namespace TTM {
             ImGuiTabItemFlags tabFlags = uiData.editorViewTarget == EditorView::LoadoutEdit ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
             if (ImGui::BeginTabItem((loadoutEditDisplayTag + "###LoadoutEditTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::LoadoutEdit && uiData.editorViewTarget == EditorView::None) {
-                    uiData.editorView = EditorView::LoadoutEdit;
-                    //saveWorkspace(uiData, talentTreeCollection);
-                }
                 if (uiData.editorViewTarget == EditorView::LoadoutEdit) {
                     uiData.editorViewTarget = EditorView::None;
+                }
+                if (uiData.editorView != EditorView::LoadoutEdit) {
+                    uiData.editorView = EditorView::LoadoutEdit;
+                    //saveWorkspace(uiData, talentTreeCollection);
                 }
                 if (!uiData.isLoadoutInitValidated) {
                     uiData.isLoadoutInitValidated = true;
@@ -775,12 +775,12 @@ namespace TTM {
             tabFlags = uiData.editorViewTarget == EditorView::LoadoutSolver ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
             if (ImGui::BeginTabItem((loadoutSolverDisplayTag + "###LoadoutSolverTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::LoadoutSolver && uiData.editorViewTarget == EditorView::None) {
-                    uiData.editorView = EditorView::LoadoutSolver;
-                    //saveWorkspace(uiData, talentTreeCollection);
-                }
                 if (uiData.editorViewTarget == EditorView::LoadoutSolver) {
                     uiData.editorViewTarget = EditorView::None;
+                }
+                if (uiData.editorView != EditorView::LoadoutSolver) {
+                    uiData.editorView = EditorView::LoadoutSolver;
+                    //saveWorkspace(uiData, talentTreeCollection);
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
@@ -792,11 +792,11 @@ namespace TTM {
             tabFlags = uiData.editorViewTarget == EditorView::SimAnalysis ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
             if (ImGui::BeginTabItem((simAnalysisDisplayTag + "###SimAnalysisTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::SimAnalysis && uiData.editorViewTarget == EditorView::None) {
-                    uiData.editorView = EditorView::SimAnalysis;
-                }
                 if (uiData.editorViewTarget == EditorView::SimAnalysis) {
                     uiData.editorViewTarget = EditorView::None;
+                }
+                if (uiData.editorView != EditorView::SimAnalysis) {
+                    uiData.editorView = EditorView::SimAnalysis;
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
@@ -808,12 +808,12 @@ namespace TTM {
             tabFlags = uiData.editorViewTarget == EditorView::TreeEdit ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
             if (ImGui::BeginTabItem((treeEditDisplayTag + "###TreeEditTabID").c_str(), nullptr, tabFlags))
             {
-                if (uiData.editorView != EditorView::TreeEdit && uiData.editorViewTarget == EditorView::None) {
-                    uiData.editorView = EditorView::TreeEdit;
-                    //saveWorkspace(uiData, talentTreeCollection);
-                }
                 if (uiData.editorViewTarget == EditorView::TreeEdit) {
                     uiData.editorViewTarget = EditorView::None;
+                }
+                if (uiData.editorView != EditorView::TreeEdit) {
+                    uiData.editorView = EditorView::TreeEdit;
+                    //saveWorkspace(uiData, talentTreeCollection);
                 }
                 uiData.isLoadoutInitValidated = false;
                 ImGui::EndTabItem();
