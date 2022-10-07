@@ -1041,8 +1041,8 @@ namespace Engine {
             if (indexPointsPair.second < 0) {
                 return false;
             }
-            if ((tree.orderedTalents[indexPointsPair.first]->type == Engine::TalentType::SWITCH && indexPointsPair.second > 2)
-                || (tree.orderedTalents[indexPointsPair.first]->type != Engine::TalentType::SWITCH 
+            if ((tree.orderedTalents[indexPointsPair.first]->type == TalentType::SWITCH && indexPointsPair.second > 2)
+                || (tree.orderedTalents[indexPointsPair.first]->type != TalentType::SWITCH 
                     && indexPointsPair.second > tree.orderedTalents[indexPointsPair.first]->maxPoints)) {
                 return false;
             }
@@ -1055,11 +1055,11 @@ namespace Engine {
             if (tree.orderedTalents[indexPointsPair.first]->parents.size() > 0) {
                 bool parentFilled = false;
                 for (auto& parent : tree.orderedTalents[indexPointsPair.first]->parents) {
-                    if (parent->type == Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] > 0) {
+                    if (parent->type == TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] > 0) {
                         parentFilled = true;
                         break;
                     }
-                    else if (parent->type != Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] >= parent->maxPoints) {
+                    else if (parent->type != TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] >= parent->maxPoints) {
                         parentFilled = true;
                         break;
                     }
@@ -1091,11 +1091,11 @@ namespace Engine {
                 if (tree.orderedTalents[indexPointsPair.first]->parents.size() > 0) {
                     bool parentFilled = false;
                     for (auto& parent : tree.orderedTalents[indexPointsPair.first]->parents) {
-                        if (parent->type == Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] > 0) {
+                        if (parent->type == TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] > 0) {
                             parentFilled = true;
                             break;
                         }
-                        else if (parent->type != Engine::TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] >= parent->maxPoints) {
+                        else if (parent->type != TalentType::SWITCH && skillset->assignedSkillPoints[parent->index] >= parent->maxPoints) {
                             parentFilled = true;
                             break;
                         }
@@ -2110,7 +2110,7 @@ namespace Engine {
         int minLevel = 0;
         if (pointsSpent > tree.preFilledTalentPoints) {
             minLevel += 10;
-            if (tree.type == Engine::TreeType::CLASS) {
+            if (tree.type == TreeType::CLASS) {
                 minLevel += (pointsSpent + offset - tree.preFilledTalentPoints) * 2 - 2;
             }
             else {
@@ -2118,6 +2118,105 @@ namespace Engine {
             }
         }
         return minLevel;
+    }
+
+    void ImportSimData(std::string urlOrPath, TalentTree& tree) {
+        bool isPath = true;
+        if (isPath) {
+            std::filesystem::path dataPath{ urlOrPath };
+            if (std::filesystem::is_regular_file(dataPath)) {
+                SimResult res = ImportSimFile(dataPath, tree);
+                tree.simAnalysisRawResults.push_back(res);
+            }
+            else if (std::filesystem::is_directory(dataPath)) {
+                for (auto& entry : std::filesystem::directory_iterator{ dataPath }) {
+                    if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                        SimResult res = ImportSimFile(entry.path(), tree);
+                        tree.simAnalysisRawResults.push_back(res);
+                    }
+                }
+            }
+        }
+        else {
+            //raidbots import
+            return;
+        }
+    }
+
+    SimResult ImportSimFile(std::filesystem::path dataPath, TalentTree& tree) {
+        SimResult res;
+        res.name = dataPath.filename().string();
+        std::vector<std::pair<std::string, float>> extractedSimRuns;
+
+        std::ifstream simLog{ dataPath };
+        std::string line;
+        bool earlyFileEnd = false;
+        while (std::getline(simLog, line))
+        {
+            //grab main run
+            if (line.substr(0, 7) == "Player:") {
+                std::string trimLine{ line.substr(8) };
+                int counter = 4;
+                for (int i = static_cast<int>(trimLine.length() - 1); i >= 0; i--) {
+                    const char& ch = trimLine[i];
+                    if (ch == ' ') {
+                        counter--;
+                    }
+                    if (counter == 0) {
+                        counter = i;
+                        break;
+                    }
+                }
+                std::string name = trimLine.substr(0, counter);
+                if (!std::getline(simLog, line)) {
+                    break;
+                }
+                size_t start = line.find("DPS=") + 4;
+                size_t end = line.find("DPS-Error") - 1;
+                float dps = static_cast<float>(std::stod(line.substr(start, end - start + 1)));
+                extractedSimRuns.push_back(std::pair{ name, dps });
+            }
+            //grab all profilesets
+            else if (line.substr(0, 39) == "Profilesets (median Damage per Second):") {
+                std::getline(simLog, line);
+                while (line.substr(0, 21) != "Baseline Performance:" && line != "") {
+                    std::vector<std::string> content = splitString(line, ":");
+                    float dps = static_cast<float>(std::stod(content[0]));
+                    std::string name = trim(content[1]);
+                    extractedSimRuns.push_back(std::pair{ name, dps });
+                    if (!std::getline(simLog, line)) {
+                        earlyFileEnd = true;
+                        break;
+                    }
+                }
+            }
+
+            if (earlyFileEnd) {
+                break;
+            }
+        }
+
+        //fetch skillsets and put them in simresult
+        for (auto& run : extractedSimRuns) {
+            for (auto& skillset : tree.loadout) {
+                if (skillset->name == run.first) {
+                    res.skillsets.push_back(*skillset);
+                    res.dps.push_back(run.second);
+                }
+            }
+        }
+        return res;
+    }
+
+    std::string trim(const std::string& str)
+    {
+        size_t first = str.find_first_not_of(' ');
+        if (std::string::npos == first)
+        {
+            return str;
+        }
+        size_t last = str.find_last_not_of(' ');
+        return str.substr(first, (last - first + 1));
     }
 
     bool checkTalentValidity(const TalentTree& tree) {
@@ -2217,7 +2316,7 @@ namespace Engine {
         return ret;
     }
 
-    void filterTalentSearch(const std::string& search, Engine::TalentVec& filteredTalents, const TalentTree& tree) {
+    void filterTalentSearch(const std::string& search, TalentVec& filteredTalents, const TalentTree& tree) {
         //TTMNOTE: Apparently we don't need to do any fancy search register caching and can just brute force everything all the time
         std::string formattedSearch = simplifyString(search);
 

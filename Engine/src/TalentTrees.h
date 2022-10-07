@@ -260,6 +260,10 @@ namespace Engine {
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 
+    void ImportSimData(std::string urlOrPath, Engine::TalentTree& tree);
+    Engine::SimResult ImportSimFile(std::filesystem::path dataPath, Engine::TalentTree& tree);
+    std::string trim(const std::string& str);
+
     /*
     Checks if the currently assigned talent points fulfill all the requirements and are valid (in case
     the user edits a skillset and tries to remove a talent point from anywhere in the tree). This is NOT

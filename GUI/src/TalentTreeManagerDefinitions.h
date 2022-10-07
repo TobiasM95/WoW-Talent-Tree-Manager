@@ -75,6 +75,8 @@ namespace TTM {
 	struct TalentTreeData {
 		Engine::TalentTree tree;
 
+
+		//Tree solving
 		bool isTreeSolveInProgress = false;
 		bool isTreeSolveProcessed = false;
 		bool isTreeSolveFiltered = false;
@@ -83,6 +85,10 @@ namespace TTM {
 		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
 		bool restrictTalentPoints = false;
 		int restrictedTalentPoints = 0;
+
+		//Sim analysis
+		std::map<int, ImVec4> simAnalysisTalentColor;
+		std::map<int, std::string> simAnalysisButtonRankingText;
 	};
 
 	struct TalentTreeCollection {
@@ -273,8 +279,6 @@ namespace TTM {
 		int topMedianPerformanceSwitch = 0;
 		int relativeDpsRankingSwitch = 0;
 		int showLowestHighestSwitch = 0;
-		std::map<int, ImVec4> simAnalysisTalentColor;
-		std::map<int, std::string> simAnalysisButtonRankingText;
 		int analysisTooltipLastTalentIndex = -1;
 		int analysisTooltipTalentRank = -1;
 		int analysisBreakdownTalentIndex = -1;
