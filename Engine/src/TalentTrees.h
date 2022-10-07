@@ -255,6 +255,7 @@ namespace Engine {
     std::string createSkillsetSimcStringRepresentation(std::shared_ptr<TalentSkillset> skillset, const TalentTree& tree);
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
+    std::string createSingleTalentsSimcString(TalentTree& tree);
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset = false);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);

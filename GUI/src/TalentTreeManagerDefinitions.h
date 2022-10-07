@@ -275,6 +275,7 @@ namespace TTM {
 		//############# SIM ANALYSIS VARIABLES ########################
 		SimAnalysisPage simAnalysisPage = SimAnalysisPage::Settings;
 		std::string raidbotsInputURL = "";
+		std::string simAnalysisSingleTalentExportString = "";
 		int simAnalysisIconRatingSwitch = 0;
 		int topMedianPerformanceSwitch = 0;
 		int relativeDpsRankingSwitch = 0;
@@ -295,6 +296,21 @@ namespace TTM {
 	void drawArrowBetweenTalents(
 		Engine::Talent_s t1,
 		Engine::Talent_s t2,
+		ImDrawList* drawList,
+		ImVec2 windowPos,
+		ImVec2 offset,
+		ImVec2 talentWindowPadding,
+		int talentHalfSpacing,
+		int talentSize,
+		float talentPadding,
+		UIData& uiData,
+		bool colored = false);
+
+	void drawPreviewArrowBetweenTalents(
+		Engine::Talent_s t1,
+		Engine::Talent_s t2,
+		int pointsSpent1,
+		int pointsSpent2,
 		ImDrawList* drawList,
 		ImVec2 windowPos,
 		ImVec2 offset,
