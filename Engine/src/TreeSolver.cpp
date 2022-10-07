@@ -185,6 +185,14 @@ namespace Engine {
         sortedTreeDAG.allCombinations = std::move(combinations);
         sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
         inProgress = false;
+
+        //collect all switch talent choices
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
+                sortedTreeDAG.switchTalentChoices.push_back({ indexTalentPair.first, 1 });
+            }
+        }
+
         treeDAGInfo = std::make_shared<TreeDAGInfo>(sortedTreeDAG);
     }
 
@@ -695,7 +703,11 @@ namespace Engine {
     /*
     Creates a skillset with a given uint64 index
     */
-    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, SIND skillsetIndex) {
+    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(
+        const TalentTree& tree, 
+        std::shared_ptr<TreeDAGInfo> treeDAG, 
+        SIND skillsetIndex) 
+    {
         std::map<int, int> expandedToCompactIndexMap;
         for (auto& talent : tree.orderedTalents) {
             for (int i = 0; i < talent.second->maxPoints; i++) {
@@ -719,8 +731,18 @@ namespace Engine {
             bool checkBit = (skillsetIndex) & (1ULL << i);
             if (checkBit) {
                 int compactIndex = expandedToCompactIndexMap[treeDAG->sortedTalents[i]->index];
-                skillset->assignedSkillPoints[compactIndex] += 1;
                 skillset->talentPointsSpent += 1;
+                if (treeDAG->sortedTalents[i]->type == TalentType::SWITCH) {
+                    skillset->assignedSkillPoints[compactIndex] = 1;
+                    for (auto& indexChoicePair : treeDAG->switchTalentChoices) {
+                        if (indexChoicePair.first == compactIndex) {
+                            skillset->assignedSkillPoints[compactIndex] = indexChoicePair.second;
+                        }
+                    }
+                }
+                else {
+                    skillset->assignedSkillPoints[compactIndex] += 1;
+                }
             }
         }
         return skillset;

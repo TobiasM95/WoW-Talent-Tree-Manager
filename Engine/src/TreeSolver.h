@@ -20,6 +20,7 @@ namespace Engine {
     struct TreeDAGInfo {
         vec2d<int> minimalTreeDAG;
         TalentVec sortedTalents;
+        std::vector<std::pair<int, int>> switchTalentChoices;
         std::vector<int> rootIndices;
         std::shared_ptr<TalentTree> processedTree;
         vec2d<SIND> allCombinations;
@@ -95,5 +96,8 @@ namespace Engine {
     void insertIntoVector(std::vector<std::pair<int, int>>& v, std::pair<int, int>& t);
 
     void filterSolvedSkillsets(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter);
-    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, SIND);
+    std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(
+        const TalentTree& tree,
+        std::shared_ptr<TreeDAGInfo> treeDAG,
+        SIND skillsetIndex);
 }
