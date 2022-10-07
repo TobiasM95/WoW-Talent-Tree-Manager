@@ -517,7 +517,7 @@ namespace TTM {
                     talentTreeCollection.activeTreeData().skillsetFilter->assignedSkillPoints[talent.first] = 0;
                 }
                 Engine::clearTree(tree);
-                
+
                 std::thread t(Engine::countConfigurationsParallel,
                     tree, 
                     uiData.loadoutSolverTalentPointLimit,
@@ -952,21 +952,45 @@ namespace TTM {
             uiData.loadoutSolverSkillsetResultPage = maxPage;
             uiData.selectedFilteredSkillsetIndex = 0;
         }
+
+        ImGui::Separator();
+        ImGui::Text("Switch talent choices:");
+        
+        for (auto& switchTalentChoice : talentTreeCollection.activeTreeData().treeDAGInfo->switchTalentChoices) {
+            std::string_view switchLabel = switchTalentChoice.second == 1 
+                ? talentTreeCollection.activeTree().orderedTalents[switchTalentChoice.first]->name 
+                : talentTreeCollection.activeTree().orderedTalents[switchTalentChoice.first]->nameSwitch;
+            ImGui::SetNextItemWidth(50.0f);
+            //ImGui::Checkbox(talentTreeCollection.activeTree().orderedTalents[switchTalentChoice.first]->name.c_str(), &switchTalentChoice.second);
+            ImGui::SliderInt(
+                switchLabel.data(),
+                &switchTalentChoice.second, 1, 2, "", ImGuiSliderFlags_NoInput);
+        }
+
+        ImGui::Separator();
         ImGui::Text("Prefix:");
         ImGui::InputText("##loadoutSolverSkillsetPrefixInputText", &uiData.loadoutSolverSkillsetPrefix, 0, TextFilters::FilterNameLetters);
         if (ImGui::Button("Add selected to loadout##loadoutSolverAddToLoadoutButton") && uiData.selectedFilteredSkillsetIndex >= 0) {
+            std::string switchSuffix = " ";
+            for (auto& switchTalentChoice : talentTreeCollection.activeTreeData().treeDAGInfo->switchTalentChoices) {
+                switchSuffix += std::to_string(switchTalentChoice.second);
+            }
             std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                 talentTreeCollection.activeTree(),
                 talentTreeCollection.activeTreeData().treeDAGInfo,
                 uiData.selectedFilteredSkillset
             );
             std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-            sk->name = prefix + std::to_string(uiData.selectedFilteredSkillset);
+            sk->name = prefix + std::to_string(uiData.selectedFilteredSkillset) + switchSuffix;
             Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
             talentTreeCollection.activeTree().loadout.push_back(sk);
             ImGui::OpenPopup("Add to loadout successfull");
         }
         if (ImGui::Button("Add all in page to loadout##loadoutSolverAddAllInPageToLoadoutButton")) {
+            std::string switchSuffix = " ";
+            for (auto& switchTalentChoice : talentTreeCollection.activeTreeData().treeDAGInfo->switchTalentChoices) {
+                switchSuffix += std::to_string(switchTalentChoice.second);
+            }
             for (uint64_t& skillsetIndex : uiData.loadoutSolverPageResults) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
                     talentTreeCollection.activeTree(),
@@ -974,7 +998,7 @@ namespace TTM {
                     skillsetIndex
                 );
                 std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-                sk->name = prefix + std::to_string(skillsetIndex);
+                sk->name = prefix + std::to_string(skillsetIndex) + switchSuffix;
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
@@ -983,6 +1007,11 @@ namespace TTM {
         int maxAddRandomLimit = static_cast<int>(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection].size());
         ImGui::SliderInt("##loadoutSolverAddRandomToLoadoutSlider", &uiData.loadoutSolverAddRandomLoadoutCount, 1, uiData.loadoutSolverAddAllLimit > maxAddRandomLimit ? maxAddRandomLimit : uiData.loadoutSolverAddAllLimit, "%d", ImGuiSliderFlags_AlwaysClamp);
         if (ImGui::Button(("Add " + std::to_string(uiData.loadoutSolverAddRandomLoadoutCount) + " random skillsets to loadout").c_str())) {
+            std::string switchSuffix = " ";
+            for (auto& switchTalentChoice : talentTreeCollection.activeTreeData().treeDAGInfo->switchTalentChoices) {
+                switchSuffix += std::to_string(switchTalentChoice.second);
+            }
+
             std::random_device rd;     // only used once to initialise (seed) engine
             std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
 
@@ -1044,13 +1073,17 @@ namespace TTM {
                     talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]
                 );
                 std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-                sk->name = prefix + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]);
+                sk->name = prefix + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection][randomIndex]) + switchSuffix;
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
             }
             ImGui::OpenPopup("Add to loadout successfull");
         }
         if (ImGui::Button("Add all to loadout##loadoutSolverAddAllToLoadoutButton")) {
+            std::string switchSuffix = " ";
+            for (auto& switchTalentChoice : talentTreeCollection.activeTreeData().treeDAGInfo->switchTalentChoices) {
+                switchSuffix += std::to_string(switchTalentChoice.second);
+            }
             size_t count = 0;
             for (uint64_t& skillsetIndex : talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[uiData.loadoutSolverTalentPointSelection]) {
                 std::shared_ptr<Engine::TalentSkillset> sk = Engine::skillsetIndexToSkillset(
@@ -1059,7 +1092,7 @@ namespace TTM {
                     skillsetIndex
                 );
                 std::string prefix = uiData.loadoutSolverSkillsetPrefix == "" ? "Solved loadout " : uiData.loadoutSolverSkillsetPrefix + " ";
-                sk->name = prefix + std::to_string(skillsetIndex);
+                sk->name = prefix + std::to_string(skillsetIndex) + switchSuffix;
                 Engine::applyPreselectedTalentsToSkillset(talentTreeCollection.activeTree(), sk);
                 talentTreeCollection.activeTree().loadout.push_back(sk);
                 count++;
