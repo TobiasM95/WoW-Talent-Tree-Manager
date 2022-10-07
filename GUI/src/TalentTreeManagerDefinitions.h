@@ -115,6 +115,7 @@ namespace TTM {
 	struct UIData {
 		Presets::STYLES style = Presets::STYLES::COMPANY_GREY;
 		EditorView editorView = EditorView::None;
+		EditorView editorViewTarget = EditorView::None;
 
 		//################# GENERAL #####################################
 		int loadedIconTreeIndex = -1;

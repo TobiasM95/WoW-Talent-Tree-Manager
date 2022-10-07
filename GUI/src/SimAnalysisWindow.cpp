@@ -504,7 +504,12 @@ namespace TTM {
                 constexpr ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_ContextMenuInBody;
 
                 auto& result = talentTreeCollection.activeTree().analysisResult;
-                bool somethingHovered = false;
+                ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_BorderShadow, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
                 if (ImGui::BeginTable("Skillset ranking", 3, flags))
                 {
                     for (int row = result.skillsetCount - 1; row >= 0; row--)
@@ -517,26 +522,30 @@ namespace TTM {
                             float textHeight = ImGui::CalcTextSize("@").y;
                             switch (column) {
                             case 0: {
-                                ImVec2 cursorPos = ImGui::GetCursorPos();
-                                ImGui::Text("%s", result.skillsetDPSNames[row]);
-                                ImGui::SetCursorPos(cursorPos);
-                                ImGui::InvisibleButton(("##" + std::to_string(row)).c_str(), ImVec2(ImGui::GetContentRegionAvail().x, textHeight));
+                                ImGui::Button(result.skillsetDPSNames[row], ImVec2(ImGui::GetContentRegionAvail().x, textHeight*1.375f));
                             }break;
                             case 1: {
-                                ImVec2 cursorPos = ImGui::GetCursorPos();
-                                ImGui::Text("%.2f (%.1f%%)", result.skillsetDPS[row], ratio * 100.0f);
-                                ImGui::SetCursorPos(cursorPos);
-                                ImGui::InvisibleButton(("##" + std::to_string(row)).c_str(), ImVec2(ImGui::GetContentRegionAvail().x, textHeight));
+                                char buff[100];
+                                std::snprintf(buff, sizeof(buff), "%.2f (%.1f%%)", result.skillsetDPS[row], ratio * 100.0f);
+                                ImGui::Button(buff, ImVec2(ImGui::GetContentRegionAvail().x, textHeight * 1.375f));
                             }break;
                             case 2: {
                                 float windowWidth = ImGui::GetContentRegionAvail().x;
-                                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
+                                if (row == uiData.hoveredAnalysisSkillsetIndex) {
+                                    ImGui::PushStyleColor(ImGuiCol_Button, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
+                                }
+                                else {
+                                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
+                                }
                                 ImGui::Button("###row", ImVec2(windowWidth * ratio, 20.0f));
-                                ImGui::PopStyleColor();
+                                ImGui::PopStyleColor(3);
                             }break;
                             }
                             if (ImGui::IsItemHovered()) {
-                                somethingHovered = true;
                                 if (uiData.hoveredAnalysisSkillsetIndex != row) {
                                     uiData.hoveredAnalysisSkillsetIndex = row;
                                     std::string skillsetName{ result.skillsetDPSNames[row] };
@@ -550,9 +559,27 @@ namespace TTM {
                         }
                     }
                     ImGui::EndTable();
-                    if (!somethingHovered) {
+                    ImGui::PopStyleColor(5);
+                    ImGui::PopStyleVar();
+                    ImVec2 topLeft = ImGui::GetItemRectMin();
+                    ImVec2 bottomRight = ImGui::GetItemRectMax();
+                    ImVec2 mousePos = ImGui::GetMousePos();
+                    if(mousePos.x < topLeft.x || mousePos.x > bottomRight.x || mousePos.y < topLeft.y || mousePos.y > bottomRight.y) {
                         uiData.hoveredAnalysisSkillset = nullptr;
                         uiData.hoveredAnalysisSkillsetIndex = -1;
+                    }
+                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+                        std::string skillsetName{ result.skillsetDPSNames[uiData.hoveredAnalysisSkillsetIndex] };
+                        for (size_t i = 0; i < talentTreeCollection.activeTree().loadout.size(); i++) {
+                            auto& skillset_s = talentTreeCollection.activeTree().loadout[i];
+                            if (skillset_s->name == skillsetName) {
+                                talentTreeCollection.activeTree().activeSkillsetIndex = i;
+                                Engine::activateSkillset(talentTreeCollection.activeTree(), i);
+                                uiData.editorViewTarget = EditorView::LoadoutEdit;
+                                uiData.isLoadoutInitValidated = false;
+                                break;
+                            }
+                        }
                     }
                 }
             }break;
