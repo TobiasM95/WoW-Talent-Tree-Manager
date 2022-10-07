@@ -381,11 +381,10 @@ namespace TTM {
                 ImGui::InputText("##simAnalysisRaidbotsInputText", &uiData.raidbotsInputURL, ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
-                    //GenerateFakeData(talentTreeCollection.activeTree());
-                    ImportSimData(uiData.raidbotsInputURL, talentTreeCollection.activeTree());
+                    Engine::ImportSimData(uiData.raidbotsInputURL, talentTreeCollection.activeTree());
                     AnalyzeRawResults(talentTreeCollection.activeTree());
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection, talentTreeCollection.activeTree().analysisResult);
                 }
 
                 if (ImGui::BeginListBox("##simAnalysisResultsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
@@ -411,7 +410,7 @@ namespace TTM {
                             talentTreeCollection.activeTree().selectedSimAnalysisRawResult);
                         AnalyzeRawResults(talentTreeCollection.activeTree());
                         CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                        UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                        UpdateColorGlowTextures(uiData, talentTreeCollection, talentTreeCollection.activeTree().analysisResult);
                     }
                 }
                 ImGui::Separator();
@@ -455,13 +454,13 @@ namespace TTM {
                 //HelperTooltip("(?)", "Show the talent icon or the rating of the talent (either absolute position in the ranking or the relative performance compared to the top skillset).");
                 if (OptionSwitch("Relative dps", "Ranking", &uiData.relativeDpsRankingSwitch, 80.0f, true, "simAnalysisRelativeDpsRankingSwitch", true, "(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.")) {
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection, talentTreeCollection.activeTree().analysisResult);
                 }
                 //ImGui::SameLine();
                 //HelperTooltip("(?)", "Show the rating and colors based on absolute position in the ranking or the relative performance compared to the top skillset.");
                 if (OptionSwitch("Show lowest", "Show highest", &uiData.showLowestHighestSwitch, 80.0f, true, "simAnalysisLowestHighestSwitch", true, "(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.")) {
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection, talentTreeCollection.activeTree().analysisResult);
                 }
                 //ImGui::SameLine();
                 //HelperTooltip("(?)", "For multi-point talents or switch talents choose if the shown rating/color is based on the lowest or highest rating. You can still see all the individual values when hovering over the talent.");
@@ -482,7 +481,7 @@ namespace TTM {
                 ImGui::RadioButton("Top 1 + Median", &uiData.topMedianPerformanceSwitch, static_cast<int>(Engine::PerformanceMetric::TOPMEDIAN));
                 if (oldSetting != uiData.topMedianPerformanceSwitch) {
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
-                    UpdateColorGlowTextures(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTree().analysisResult);
+                    UpdateColorGlowTextures(uiData, talentTreeCollection, talentTreeCollection.activeTree().analysisResult);
                 }
 
                 ImGui::Separator();
@@ -573,8 +572,8 @@ namespace TTM {
                         for (size_t i = 0; i < talentTreeCollection.activeTree().loadout.size(); i++) {
                             auto& skillset_s = talentTreeCollection.activeTree().loadout[i];
                             if (skillset_s->name == skillsetName) {
-                                talentTreeCollection.activeTree().activeSkillsetIndex = i;
-                                Engine::activateSkillset(talentTreeCollection.activeTree(), i);
+                                talentTreeCollection.activeTree().activeSkillsetIndex = static_cast<int>(i);
+                                Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(i));
                                 uiData.editorViewTarget = EditorView::LoadoutEdit;
                                 uiData.isLoadoutInitValidated = false;
                                 break;
@@ -882,9 +881,10 @@ namespace TTM {
             if (uiData.simAnalysisIconRatingSwitch) {
                 std::string buttonText;
                 ImVec4 buttonCol;
-                if (uiData.simAnalysisButtonRankingText.count(talent.first) && uiData.simAnalysisTalentColor.count(talent.first)) {
-                    buttonText = uiData.simAnalysisButtonRankingText[talent.first].c_str();
-                    buttonCol = uiData.simAnalysisTalentColor[talent.second->index];
+                if (talentTreeCollection.activeTreeData().simAnalysisButtonRankingText.count(talent.first) 
+                    && talentTreeCollection.activeTreeData().simAnalysisTalentColor.count(talent.first)) {
+                    buttonText = talentTreeCollection.activeTreeData().simAnalysisButtonRankingText[talent.first].c_str();
+                    buttonCol = talentTreeCollection.activeTreeData().simAnalysisTalentColor[talent.second->index];
                 }
                 else {
                     buttonText = "";
@@ -1245,20 +1245,20 @@ namespace TTM {
     }
 
 
-    void UpdateColorGlowTextures(UIData& uiData, Engine::TalentTree& tree, Engine::AnalysisResult& result) {
+    void UpdateColorGlowTextures(UIData& uiData, TalentTreeCollection& talentTreeCollection, Engine::AnalysisResult& result) {
         //create glows and colors
         //glow always goes from red to green 
         //but for absolute rankings red = 0, green = 1
         //and for relative rankings red = minRelPerf, green = 1
         //store pairs of (color, glowTexture) in uiData
-        uiData.simAnalysisTalentColor.clear();
+        talentTreeCollection.activeTreeData().simAnalysisTalentColor.clear();
 
         if (result.talentAbsolutePositionRankings.size() == 0 || result.talentRelativePerformanceRankings.size() == 0) {
             return;
         }
 
         bool calculateAbsolutePositionRanking = uiData.relativeDpsRankingSwitch;
-        for (auto& indexTalentPair : tree.orderedTalents) {
+        for (auto& indexTalentPair : talentTreeCollection.activeTree().orderedTalents) {
             float extremeRanking = uiData.showLowestHighestSwitch ? -1.0f : 2.0f;
             std::vector<unsigned char> color(3);
             if (calculateAbsolutePositionRanking) {
@@ -1317,11 +1317,11 @@ namespace TTM {
             }
             if(extremeRanking >= 0.0f && extremeRanking <= 1.0f){
                 //add it to map with talent index as key
-                uiData.simAnalysisTalentColor[indexTalentPair.first] = ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f);
+                talentTreeCollection.activeTreeData().simAnalysisTalentColor[indexTalentPair.first] = ImVec4(color[0] / 255.0f, color[1] / 255.0f, color[2] / 255.0f, 1.0f);
                 std::stringstream stream;
                 int precision = (extremeRanking == 1.0f || extremeRanking == 0.0f) ? 0 : 1;
                 stream << std::fixed << std::setprecision(precision) << extremeRanking * 100.0f;
-                uiData.simAnalysisButtonRankingText[indexTalentPair.first] = stream.str();
+                talentTreeCollection.activeTreeData().simAnalysisButtonRankingText[indexTalentPair.first] = stream.str();
             }
         }
 
@@ -1350,130 +1350,5 @@ namespace TTM {
         std::transform(p.begin(), p.end(), sorted_vec.begin(),
             [&](std::size_t i) { return vec[i]; });
         return sorted_vec;
-    }
-
-    void ImportSimData(std::string urlOrPath, Engine::TalentTree& tree) {
-        bool isPath = true;
-        if (isPath) {
-            std::filesystem::path dataPath{ urlOrPath };
-            if (std::filesystem::is_regular_file(dataPath)) {
-                Engine::SimResult res = ImportSimFile(dataPath, tree);
-                tree.simAnalysisRawResults.push_back(res);
-            }
-            else if (std::filesystem::is_directory(dataPath)) {
-                for (auto& entry : std::filesystem::directory_iterator{ dataPath }) {
-                    if (entry.is_regular_file() && entry.path().extension() == ".txt") {
-                        Engine::SimResult res = ImportSimFile(entry.path(), tree);
-                        tree.simAnalysisRawResults.push_back(res);
-                    }
-                }
-            }
-        }
-        else {
-            //raidbots import
-            return;
-        }
-    }
-
-    Engine::SimResult ImportSimFile(std::filesystem::path dataPath, Engine::TalentTree& tree) {
-        Engine::SimResult res;
-        res.name = dataPath.filename().string();
-        std::vector<std::pair<std::string, float>> extractedSimRuns;
-
-        std::ifstream simLog{ dataPath };
-        std::string line;
-        bool earlyFileEnd = false;
-        while (std::getline(simLog, line))
-        {
-            //grab main run
-            if (line.substr(0, 7) == "Player:") {
-                std::string trimLine{ line.substr(8) };
-                int counter = 4;
-                for (int i = static_cast<int>(trimLine.length() - 1); i >= 0; i--) {
-                    const char& ch = trimLine[i];
-                    if (ch == ' ') {
-                        counter--;
-                    }
-                    if (counter == 0) {
-                        counter = i;
-                        break;
-                    }
-                }
-                std::string name = trimLine.substr(0, counter);
-                if (!std::getline(simLog, line)) {
-                    break;
-                }
-                size_t start = line.find("DPS=") + 4;
-                size_t end = line.find("DPS-Error") - 1;
-                float dps = static_cast<float>(std::stod(line.substr(start, end - start + 1)));
-                extractedSimRuns.push_back(std::pair{ name, dps });
-            }
-            //grab all profilesets
-            else if (line.substr(0, 39) == "Profilesets (median Damage per Second):") {
-                std::getline(simLog, line);
-                while (line.substr(0, 21) != "Baseline Performance:" && line != "") {
-                    std::vector<std::string> content = Engine::splitString(line, ":");
-                    float dps = static_cast<float>(std::stod(content[0]));
-                    std::string name = trim(content[1]);
-                    extractedSimRuns.push_back(std::pair{ name, dps });
-                    if (!std::getline(simLog, line)) {
-                        earlyFileEnd = true;
-                        break;
-                    }
-                }
-            }
-
-            if (earlyFileEnd) {
-                break;
-            }
-        }
-
-        //fetch skillsets and put them in simresult
-        for (auto& run : extractedSimRuns) {
-            for (auto& skillset : tree.loadout) {
-                if (skillset->name == run.first) {
-                    res.skillsets.push_back(*skillset);
-                    res.dps.push_back(run.second);
-                }
-            }
-        }
-        return res;
-    }
-
-    std::string trim(const std::string& str)
-    {
-        size_t first = str.find_first_not_of(' ');
-        if (std::string::npos == first)
-        {
-            return str;
-        }
-        size_t last = str.find_last_not_of(' ');
-        return str.substr(first, (last - first + 1));
-    }
-
-    void GenerateFakeData(Engine::TalentTree& tree) {
-        std::random_device dev;
-        std::mt19937 rng(dev());
-        rng.seed(12345023);
-        std::normal_distribution<> randDPS(15000, 5000);
-
-        std::vector<Engine::SimResult>& res = tree.simAnalysisRawResults;
-        for (int i = 0; i < 3; i++) {
-            Engine::SimResult simResult;
-            simResult.name = "Test sim result " + std::to_string(i);
-            for (int j = 0; j < 50; j++) {
-                Engine::TalentSkillset skillset;
-                skillset.name = "Skillset " + std::to_string(j);
-                for (auto& indexTalentPair : tree.orderedTalents) {
-                    if (indexTalentPair.second->index > 25)
-                        continue;
-                    std::uniform_int_distribution<std::mt19937::result_type> randPoints(0, indexTalentPair.second->maxPoints);
-                    skillset.assignedSkillPoints[indexTalentPair.first] = randPoints(rng);
-                }
-                simResult.skillsets.push_back(skillset);
-                simResult.dps.push_back(static_cast<float>(randDPS(rng)));
-            }
-            res.push_back(simResult);
-        }
     }
 }

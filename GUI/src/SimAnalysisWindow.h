@@ -29,7 +29,7 @@ namespace TTM {
 
 	void AnalyzeRawResults(Engine::TalentTree& tree);
 	void CalculateAnalysisRankings(UIData& uiData, Engine::AnalysisResult& result);
-	void UpdateColorGlowTextures(UIData& uiData, Engine::TalentTree& tree, Engine::AnalysisResult& result);
+	void UpdateColorGlowTextures(UIData& uiData, TalentTreeCollection& talentTreeCollection, Engine::AnalysisResult& result);
 
 	//taken from: https://stackoverflow.com/questions/17074324/how-can-i-sort-two-vectors-in-the-same-way-with-criteria-that-uses-only-one-of
 	template <typename T, typename Compare>
@@ -40,10 +40,5 @@ namespace TTM {
 	std::vector<T> apply_permutation(
 		const std::vector<T>& vec,
 		const std::vector<std::size_t>& p);
-
-	void ImportSimData(std::string urlOrPath, Engine::TalentTree& tree);
-	Engine::SimResult ImportSimFile(std::filesystem::path dataPath, Engine::TalentTree& tree);
-	std::string trim(const std::string& str);
-	void GenerateFakeData(Engine::TalentTree& tree);
 
 }

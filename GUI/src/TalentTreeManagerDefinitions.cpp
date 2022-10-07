@@ -1312,7 +1312,7 @@ namespace TTM {
         ImVec4 textRectColor = colors[ImGuiCol_WindowBg];
         ImVec4 textRectBorderColor = colors[ImGuiCol_Text];
         if (!searchActive) {
-            if (!uiData.simAnalysisTalentColor.count(talent->index)) {
+            if (!talentTreeCollection.activeTreeData().simAnalysisTalentColor.count(talent->index)) {
                 if (uiData.style == Presets::STYLES::COMPANY_GREY) {
                     borderCol = Presets::TALENT_DEFAULT_BORDER_COLOR_COMPANY_GREY;
                 }
@@ -1321,7 +1321,7 @@ namespace TTM {
                 }
             }
             else {
-                borderCol = uiData.simAnalysisTalentColor[talent->index];
+                borderCol = talentTreeCollection.activeTreeData().simAnalysisTalentColor[talent->index];
             }
             textColor = colors[ImGuiCol_Text];
             textRectColor = ImVec4(
@@ -1708,8 +1708,6 @@ namespace TTM {
     void clearSimAnalysisProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData) {
         uiData.simAnalysisPage = SimAnalysisPage::Settings;
         uiData.raidbotsInputURL = "";
-        uiData.simAnalysisTalentColor.clear();
-        uiData.simAnalysisButtonRankingText.clear();
         uiData.analysisTooltipLastTalentIndex = -1;
         uiData.analysisTooltipTalentRank = -1;
         uiData.analysisBreakdownTalentIndex = -1;
@@ -1720,6 +1718,8 @@ namespace TTM {
         talentTreeCollection.activeTree().analysisResult = Engine::AnalysisResult();
         talentTreeCollection.activeTree().selectedSimAnalysisRawResult = -1;
         talentTreeCollection.activeTree().simAnalysisRawResults.clear();
+        talentTreeCollection.activeTreeData().simAnalysisTalentColor.clear();
+        talentTreeCollection.activeTreeData().simAnalysisButtonRankingText.clear();
     }
 
     void AddWrappedText(std::string text, ImVec2 position, float padding, ImVec4 color, float maxWidth, float maxHeight, ImDrawList* draw_list) {
