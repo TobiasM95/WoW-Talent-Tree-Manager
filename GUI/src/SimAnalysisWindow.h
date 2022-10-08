@@ -8,6 +8,16 @@
 #include "imgui_stdlib.h"
 
 namespace TTM {
+	struct SimFile {
+		std::string simOutputName;
+		std::vector<std::string> simOutput;
+	};
+
+	struct SimData {
+		std::vector<std::string> simOutputNames;
+		std::vector<std::vector<std::string>> simOutputs;
+	};
+
 	bool OptionSwitch(
 		std::string leftText,
 		std::string rightText,
@@ -27,6 +37,10 @@ namespace TTM {
 
 	void placeSimAnalysisTreeElements(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 
+	SimData FetchSimData(std::string& urlOrPath);
+	SimFile ReadSimFile(std::filesystem::path path);
+	SimFile ReadRaidbots(std::string url);
+	static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param);
 	void AnalyzeRawResults(Engine::TalentTree& tree);
 	void CalculateAnalysisRankings(UIData& uiData, Engine::AnalysisResult& result);
 	void UpdateColorGlowTextures(UIData& uiData, TalentTreeCollection& talentTreeCollection, Engine::AnalysisResult& result);

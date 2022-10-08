@@ -2139,39 +2139,24 @@ namespace Engine {
         return minLevel;
     }
 
-    void ImportSimData(std::string urlOrPath, TalentTree& tree) {
-        bool isPath = true;
-        if (isPath) {
-            std::filesystem::path dataPath{ urlOrPath };
-            if (std::filesystem::is_regular_file(dataPath)) {
-                SimResult res = ImportSimFile(dataPath, tree);
-                tree.simAnalysisRawResults.push_back(res);
-            }
-            else if (std::filesystem::is_directory(dataPath)) {
-                for (auto& entry : std::filesystem::directory_iterator{ dataPath }) {
-                    if (entry.is_regular_file() && entry.path().extension() == ".txt") {
-                        SimResult res = ImportSimFile(entry.path(), tree);
-                        tree.simAnalysisRawResults.push_back(res);
-                    }
-                }
-            }
-        }
-        else {
-            //raidbots import
+    void ImportSimData(std::vector<std::string>& simOutputNames, vec2d<std::string>& simOutputs, TalentTree& tree) {
+        if (simOutputNames.size() != simOutputs.size()) {
             return;
+        }
+        for (size_t i = 0; i < simOutputNames.size(); i++) {
+            SimResult res = ImportSimResult(simOutputNames[i], simOutputs[i], tree);
+            tree.simAnalysisRawResults.push_back(res);
         }
     }
 
-    SimResult ImportSimFile(std::filesystem::path dataPath, TalentTree& tree) {
+    SimResult ImportSimResult(std::string& simOutputName, std::vector<std::string>& simOutput, TalentTree& tree) {
         SimResult res;
-        res.name = dataPath.filename().string();
+        res.name = simOutputName;
         std::vector<std::pair<std::string, float>> extractedSimRuns;
 
-        std::ifstream simLog{ dataPath };
-        std::string line;
-        bool earlyFileEnd = false;
-        while (std::getline(simLog, line))
+        for(size_t i = 0; i < simOutput.size(); i++)
         {
+            std::string& line = simOutput[i];
             //grab main run
             if (line.substr(0, 7) == "Player:") {
                 std::string trimLine{ line.substr(8) };
@@ -2187,9 +2172,10 @@ namespace Engine {
                     }
                 }
                 std::string name = trimLine.substr(0, counter);
-                if (!std::getline(simLog, line)) {
+                if (i >= simOutput.size() - 1) {
                     break;
                 }
+                line = simOutput[++i];
                 size_t start = line.find("DPS=") + 4;
                 size_t end = line.find("DPS-Error") - 1;
                 float dps = static_cast<float>(std::stod(line.substr(start, end - start + 1)));
@@ -2197,21 +2183,20 @@ namespace Engine {
             }
             //grab all profilesets
             else if (line.substr(0, 39) == "Profilesets (median Damage per Second):") {
-                std::getline(simLog, line);
+                if (i >= simOutput.size() - 1) {
+                    break;
+                }
+                line = simOutput[++i];
                 while (line.substr(0, 21) != "Baseline Performance:" && line != "") {
                     std::vector<std::string> content = splitString(line, ":");
                     float dps = static_cast<float>(std::stod(content[0]));
                     std::string name = trim(content[1]);
                     extractedSimRuns.push_back(std::pair{ name, dps });
-                    if (!std::getline(simLog, line)) {
-                        earlyFileEnd = true;
+                    if (i >= simOutput.size() - 1) {
                         break;
                     }
+                    line = simOutput[++i];
                 }
-            }
-
-            if (earlyFileEnd) {
-                break;
             }
         }
 
