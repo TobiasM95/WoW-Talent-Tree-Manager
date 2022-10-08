@@ -264,8 +264,8 @@ namespace Engine {
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 
-    void ImportSimData(std::string urlOrPath, Engine::TalentTree& tree);
-    Engine::SimResult ImportSimFile(std::filesystem::path dataPath, Engine::TalentTree& tree);
+    void ImportSimData(std::vector<std::string>& simOutputNames, vec2d<std::string>& simOutputs, TalentTree& tree);
+    SimResult ImportSimResult(std::string& simOutputName, std::vector<std::string>& simOutput, TalentTree& tree);
     std::string trim(const std::string& str);
 
     /*

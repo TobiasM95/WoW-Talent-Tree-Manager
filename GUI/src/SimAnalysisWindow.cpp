@@ -21,13 +21,13 @@
 #include "SimAnalysisWindow.h"
 
 #include <numeric>
+#include <fstream>
 #include <sstream>
+#include <regex>
+
+#include "curl.h"
 
 #include "TTMGUIPresets.h"
-
-//TTMTODO: TEMPORARY RANDOM
-#include <random>
-#include <fstream>
 
 namespace TTM {
     bool OptionSwitch(
@@ -381,7 +381,8 @@ namespace TTM {
                 ImGui::InputText("##simAnalysisRaidbotsInputText", &uiData.raidbotsInputURL, ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
-                    Engine::ImportSimData(uiData.raidbotsInputURL, talentTreeCollection.activeTree());
+                    SimData simData = FetchSimData(uiData.raidbotsInputURL);
+                    Engine::ImportSimData(simData.simOutputNames, simData.simOutputs, talentTreeCollection.activeTree());
                     AnalyzeRawResults(talentTreeCollection.activeTree());
                     CalculateAnalysisRankings(uiData, talentTreeCollection.activeTree().analysisResult);
                     UpdateColorGlowTextures(uiData, talentTreeCollection, talentTreeCollection.activeTree().analysisResult);
@@ -1085,6 +1086,88 @@ namespace TTM {
             uiData.scrollBuffer.x = std::clamp(targetScreenPosAbs.x, 0.0f, uiData.maxScrollBuffer.x);
             uiData.scrollBuffer.y = std::clamp(targetScreenPosAbs.y, 0.0f, uiData.maxScrollBuffer.y);
         }
+    }
+
+    SimData FetchSimData(std::string& urlOrPath) {
+        SimData data;
+        std::regex pathRegex{"[a-zA-Z]:(?:[\\\\\\/]+[^\\/\\\\\\<\\>\\\"\\|\\*\\?\\:]+)*(.txt)?"};
+        bool isPath = std::regex_match(urlOrPath, pathRegex);
+        std::regex raidbotsRegex{ "https:\\/\\/www.raidbots.com\\/simbot\\/report\\/[a-zA-Z0-9]+" };
+        bool isRaidbots = std::regex_match(urlOrPath, raidbotsRegex);
+
+        if (isPath) {
+            std::filesystem::path dataPath{ urlOrPath };
+            if (std::filesystem::is_regular_file(dataPath) && dataPath.extension() == ".txt") {
+                SimFile res = ReadSimFile(dataPath);
+                data.simOutputNames.push_back(res.simOutputName);
+                data.simOutputs.push_back(res.simOutput);
+            }
+            else if (std::filesystem::is_directory(dataPath)) {
+                for (auto& entry : std::filesystem::directory_iterator{ dataPath }) {
+                    if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+                        SimFile res = ReadSimFile(entry.path());
+                        data.simOutputNames.push_back(res.simOutputName);
+                        data.simOutputs.push_back(res.simOutput);
+                    }
+                }
+            }
+        }
+        else if (isRaidbots) {
+            //SimFile res = ReadRaidbots(urlOrPath);
+            urlOrPath = "Fetching data from Raidbots not yet supported. You can still download the outputs.txt from Raidbots and provide an absolute path.";
+        }
+        else {
+            urlOrPath = "Invalid URL or absolute path!";
+        }
+        return data;
+    }
+
+    SimFile ReadSimFile(std::filesystem::path path) {
+        SimFile simFile;
+        simFile.simOutputName = path.filename().string();
+        std::ifstream filestream{ path };
+        std::string line;
+        while (std::getline(filestream, line)) {
+            simFile.simOutput.push_back(line);
+        }
+        return simFile;
+    }
+
+    SimFile ReadRaidbots(std::string url) {
+        SimFile simFile;
+        std::vector<std::string> urlParts = Engine::splitString(url, "/");
+        std::string& hash = urlParts[urlParts.size() - 1];
+        simFile.simOutputName = hash;
+        std::string fetchUrl = "https://www.raidbots.com/reports/" + hash + "/output.txt";
+
+        std::string result;
+
+        CURL* curl;
+        CURLcode res;
+        char* errorBuf = new char[2048]();
+        curl = curl_easy_init();
+        if (curl) {
+            curl_easy_setopt(curl, CURLOPT_URL, fetchUrl.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errorBuf);
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            if (CURLE_OK != res) {
+                return simFile;
+            }
+        }
+        simFile.simOutput = Engine::splitString(result, "\n");
+        return simFile;
+    }
+
+    static size_t write_memory(void* buffer, size_t size, size_t nmemb, void* param)
+    {
+        std::string& text = *static_cast<std::string*>(param);
+        size_t totalsize = size * nmemb;
+        text.append(static_cast<char*>(buffer), totalsize);
+        return totalsize;
     }
 
     void AnalyzeRawResults(Engine::TalentTree& tree) {
