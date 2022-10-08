@@ -391,6 +391,7 @@ namespace TTM {
 
 	void drawSkillsetPreview(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::shared_ptr<Engine::TalentSkillset> skillset);
 
+	void clearTextboxes(UIData& uiData);
 	void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
 	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData = false);

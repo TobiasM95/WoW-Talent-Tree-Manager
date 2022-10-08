@@ -683,6 +683,10 @@ namespace TTM {
                     ImGui::EndTabItem();
                 }
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                    if (talentTreeCollection.activeTreeIndex != n) {
+                        clearTextboxes(uiData);
+                        //TTMNOTE: all the other operations should go in here too?
+                    }
                     talentTreeCollection.activeTreeIndex = n;
                     uiData.editorView = EditorView::None;
                     uiData.isLoadoutInitValidated = false;
