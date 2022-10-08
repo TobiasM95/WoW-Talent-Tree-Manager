@@ -1391,6 +1391,23 @@ namespace TTM {
         Presets::POP_FONT();
     }
 
+    void clearTextboxes(UIData& uiData) {
+        uiData.treeEditorCreationIconNameFilter = "";
+        uiData.treeEditorEditIconNameFilter = "";
+        uiData.treeEditorImportTreeString = "";
+        uiData.treeEditorExportTreeString = "";
+        uiData.treeEditorPastebinExportTreeString = "";
+        uiData.treeEditorReadableExportTreeString = "";
+        uiData.loadoutEditorExportActiveSkillsetString = "";
+        uiData.loadoutEditorExportAllSkillsetsString = "";
+        uiData.loadoutEditorExportActiveSkillsetSimcString = "";
+        uiData.loadoutEditorExportAllSkillsetsSimcString = "";
+        uiData.loadoutEditorImportSkillsetsString = "";
+        uiData.loadoutSolverSkillsetPrefix = "";
+        uiData.raidbotsInputURL = "";
+        uiData.simAnalysisSingleTalentExportString = "";
+    }
+
     void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate) {
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - uiData.currentSolversLastUpdateTime);
         if (milliseconds > uiData.currentSolversUpdateInterval || forceUpdate) {

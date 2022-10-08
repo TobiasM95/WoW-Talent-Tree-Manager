@@ -375,9 +375,9 @@ namespace TTM {
 
             switch (uiData.simAnalysisPage) {
             case SimAnalysisPage::Settings: {
-                ImGui::Text("Import Raidbots results:");
+                ImGui::Text("Import simulation results:");
                 ImGui::SameLine();
-                HelperTooltip("(?)", "In order to use the sim analysis tool, create a Raidbots sim with copies (not profilesets!) that are named after your loadout skillsets.\n\nIf you have multiple skillsets with the same name, the first one is used! If no skillset matches the sim import then that dps value is discarded.\n\nIf your sim is done, take the result URL and paste it here.");
+                HelperTooltip("(?)", "In order to use the sim analysis tool, create a Raidbots/SimC sim with profilesets (not copies!, if you use SimC locally, create an \"output=\" file) that are named after your loadout skillsets.\n\nIf you have multiple skillsets with the same name, the first one is used! If no skillset matches the sim import then that dps value is discarded.\n\nIf your sim is done, take the result URL (\"https://www.raidbots.com/simbot/report/rWRjiotwe8wa2389RA\" or the absolute path (\"C:Users\\...\") and paste it here. The absolute path can point to a directory, to read all result files in that directory, or a single result file.");
                 ImGui::InputText("##simAnalysisRaidbotsInputText", &uiData.raidbotsInputURL, ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
                 if (ImGui::Button("Add result##simAnalysisRaidbotsAddResultButton")) {
