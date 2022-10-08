@@ -40,6 +40,8 @@ namespace Presets {
     
     ImVec4 GET_TOOLTIP_TALENT_TYPE_COLOR(STYLES style);
     ImVec4 GET_TOOLTIP_TALENT_DESC_COLOR(STYLES style);
+    ImVec4 GET_SIM_ANALYSIS_GREEN_COLOR(STYLES style);
+    ImVec4 GET_SIM_ANALYSIS_YELLOW_COLOR(STYLES style);
 
     void PUSH_FONT(FONTSIZE fs, int index);
     void POP_FONT();
