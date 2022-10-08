@@ -207,7 +207,7 @@ namespace TTM {
                 case LoadoutSolverPage::SolutionResults: {
                     ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x);
                     if (talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuardTriggered) {
-                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggered! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", MAX_NUMBER_OF_SOLVED_COMBINATIONS);
+                        ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggered! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuard);
                     }
                     ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
                         talentTreeCollection.activeTree().name.c_str(), talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum, talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations.size());

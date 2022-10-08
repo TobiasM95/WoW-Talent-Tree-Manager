@@ -24,6 +24,7 @@
 #include <fstream>
 #include <chrono>
 #include <algorithm>
+#include <Windows.h>
 
 namespace Engine {
     /*
@@ -150,6 +151,7 @@ namespace Engine {
         //create sorted DAG (is vector of vector and at most nx(m+1) Array where n = # nodes and m is the max amount of connections a node has to childs and 
         //+1 because first column contains the weight (1 for regular talents and 2 for switch talents))
         TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(*processedTree);
+        setSafetyGuard(sortedTreeDAG);
         sortedTreeDAG.processedTree = processedTree;
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
@@ -213,7 +215,7 @@ namespace Engine {
         int& runningCount,
         bool& safetyGuardTriggered
     ) {
-        if (runningCount >= MAX_NUMBER_OF_SOLVED_COMBINATIONS || safetyGuardTriggered) {
+        if (runningCount >= sortedTreeDAG.safetyGuard || safetyGuardTriggered) {
             safetyGuardTriggered = true;
             return;
         }
@@ -323,7 +325,7 @@ namespace Engine {
         int& runningCount,
         bool& safetyGuardTriggered
     ) {
-        if (runningCount >= MAX_NUMBER_OF_SOLVED_COMBINATIONS) {
+        if (runningCount >= 500000000) {
             safetyGuardTriggered = true;
             return;
         }
@@ -746,5 +748,12 @@ namespace Engine {
             }
         }
         return skillset;
+    }
+
+    void setSafetyGuard(TreeDAGInfo& treeDAGInfo) {
+        MEMORYSTATUSEX status;
+        status.dwLength = sizeof(status);
+        GlobalMemoryStatusEx(&status);
+        treeDAGInfo.safetyGuard = static_cast<size_t>((status.ullTotalPhys - RESERVED_MEMORY_LIMIT) * 0.5 * 0.125);
     }
 }

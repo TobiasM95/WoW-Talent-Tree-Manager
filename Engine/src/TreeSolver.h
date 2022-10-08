@@ -6,7 +6,7 @@
 #include "TTMEnginePresets.h"
 #include "TalentTrees.h"
 
-#define MAX_NUMBER_OF_SOLVED_COMBINATIONS 500000000
+constexpr unsigned long long RESERVED_MEMORY_LIMIT = 4294967296;
 
 namespace Engine {
 
@@ -28,6 +28,7 @@ namespace Engine {
         vec2d<SIND> filteredCombinations;
         double elapsedTime = 0.0;
         bool safetyGuardTriggered = false;
+        size_t safetyGuard = 500000000;
     };
 
     struct TreeDAGInfoLegacy {
@@ -100,4 +101,6 @@ namespace Engine {
         const TalentTree& tree,
         std::shared_ptr<TreeDAGInfo> treeDAG,
         SIND skillsetIndex);
+
+    void setSafetyGuard(TreeDAGInfo& treeDAGInfo);
 }
