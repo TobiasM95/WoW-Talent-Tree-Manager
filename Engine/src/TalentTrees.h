@@ -134,6 +134,9 @@ namespace Engine {
         float minRelPerf = 0.0f;
         std::vector<float> talentAbsolutePositionRankings;
         std::vector<float> talentRelativePerformanceRankings;
+
+        //this is used in the sim analysis window skillset ranking to show relative dps percentage
+        float referenceDPS = FLT_MAX;
     };
 
     /*

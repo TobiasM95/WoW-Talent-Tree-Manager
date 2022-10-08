@@ -500,7 +500,12 @@ namespace TTM {
                     ImGui::Text("Analyze sim results to display ranking");
                     break;
                 }
-                constexpr ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_ContextMenuInBody;
+                constexpr ImGuiTableFlags flags = 
+                    ImGuiTableFlags_SizingStretchSame 
+                    | ImGuiTableFlags_Resizable 
+                    | ImGuiTableFlags_BordersOuter 
+                    | ImGuiTableFlags_BordersV 
+                    | ImGuiTableFlags_BordersInnerH;
 
                 auto& result = talentTreeCollection.activeTree().analysisResult;
                 ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
@@ -511,36 +516,83 @@ namespace TTM {
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
                 if (ImGui::BeginTable("Skillset ranking", 3, flags))
                 {
+                    ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("Skillset name");
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::Text("Performance");
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("Press to view");
+                    float maxRatio = result.highestDPSSkillset.second / result.referenceDPS;
                     for (int row = result.skillsetCount - 1; row >= 0; row--)
                     {
+                        bool blueText = false;
+                        if (row == uiData.hoveredAnalysisSkillsetIndex) {
+                            blueText = true;
+                            ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
+                        }
                         ImGui::TableNextRow();
                         for (int column = 0; column < 3; column++)
                         {
                             ImGui::TableSetColumnIndex(column);
-                            float ratio = result.skillsetDPS[row] / result.highestDPSSkillset.second;
+                            float ratio = result.skillsetDPS[row] / result.referenceDPS;
                             float textHeight = ImGui::CalcTextSize("@").y;
                             switch (column) {
                             case 0: {
                                 ImGui::Button(result.skillsetDPSNames[row], ImVec2(ImGui::GetContentRegionAvail().x, textHeight*1.375f));
                             }break;
                             case 1: {
+                                if (!blueText) {
+                                    if (ratio < 1.0f) {
+                                        ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_SIM_ANALYSIS_YELLOW_COLOR(uiData.style));
+                                    }
+                                    else {
+                                        ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_SIM_ANALYSIS_GREEN_COLOR(uiData.style));
+                                    }
+                                }
                                 char buff[100];
                                 std::snprintf(buff, sizeof(buff), "%.2f (%.1f%%)", result.skillsetDPS[row], ratio * 100.0f);
                                 ImGui::Button(buff, ImVec2(ImGui::GetContentRegionAvail().x, textHeight * 1.375f));
+                                if (!blueText) {
+                                    ImGui::PopStyleColor();
+                                }
                             }break;
                             case 2: {
                                 float windowWidth = ImGui::GetContentRegionAvail().x;
+                                float normRatio = (result.skillsetDPS[row] - result.lowestDPSSkillset.second)
+                                    / (result.highestDPSSkillset.second - result.lowestDPSSkillset.second);
+                                ImVec4 rankingColor = ImVec4(1.0f - normRatio, 1.0f, 0.0f, 1.0f);
                                 if (row == uiData.hoveredAnalysisSkillsetIndex) {
                                     ImGui::PushStyleColor(ImGuiCol_Button, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
                                     ImGui::PushStyleColor(ImGuiCol_ButtonActive, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
                                     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
                                 }
                                 else {
-                                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
-                                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
-                                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(ratio < 0.5f ? 1.0f : 2.0f - 2.0f * ratio, ratio < 0.5f ? 2.0f * ratio : 1.0f, 0.0f, 1.0f));
+                                    ImGui::PushStyleColor(ImGuiCol_Button, rankingColor);
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonActive, rankingColor);
+                                    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, rankingColor);
                                 }
-                                ImGui::Button("###row", ImVec2(windowWidth * ratio, 20.0f));
+                                ImVec2 cursorPos = ImGui::GetCursorPos();
+                                ImGui::Button("###row", ImVec2(windowWidth * ratio / maxRatio, 20.0f));
+                                ImGui::SetItemAllowOverlap();
+                                ImGui::SetCursorPos(cursorPos);
+                                if(ImGui::InvisibleButton(("simAnalysisSelectSkillsetInvisButton" + std::to_string(row)).c_str(), ImVec2(windowWidth, 20.0f))) {
+                                    if (uiData.hoveredAnalysisSkillsetIndex >= 0
+                                        && uiData.hoveredAnalysisSkillsetIndex < static_cast<int>(result.skillsetDPSNames.size()))
+                                    {
+                                        std::string skillsetName{ result.skillsetDPSNames[uiData.hoveredAnalysisSkillsetIndex] };
+                                        for (size_t i = 0; i < talentTreeCollection.activeTree().loadout.size(); i++) {
+                                            auto& skillset_s = talentTreeCollection.activeTree().loadout[i];
+                                            if (skillset_s->name == skillsetName) {
+                                                talentTreeCollection.activeTree().activeSkillsetIndex = static_cast<int>(i);
+                                                Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(i));
+                                                uiData.editorViewTarget = EditorView::LoadoutEdit;
+                                                uiData.isLoadoutInitValidated = false;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
                                 ImGui::PopStyleColor(3);
                             }break;
                             }
@@ -556,6 +608,10 @@ namespace TTM {
                                 }
                             }
                         }
+                        if (blueText) {
+                            blueText = false;
+                            ImGui::PopStyleColor();
+                        }
                     }
                     ImGui::EndTable();
                     ImGui::PopStyleColor(5);
@@ -567,18 +623,10 @@ namespace TTM {
                         uiData.hoveredAnalysisSkillset = nullptr;
                         uiData.hoveredAnalysisSkillsetIndex = -1;
                     }
-                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-                        std::string skillsetName{ result.skillsetDPSNames[uiData.hoveredAnalysisSkillsetIndex] };
-                        for (size_t i = 0; i < talentTreeCollection.activeTree().loadout.size(); i++) {
-                            auto& skillset_s = talentTreeCollection.activeTree().loadout[i];
-                            if (skillset_s->name == skillsetName) {
-                                talentTreeCollection.activeTree().activeSkillsetIndex = static_cast<int>(i);
-                                Engine::activateSkillset(talentTreeCollection.activeTree(), static_cast<int>(i));
-                                uiData.editorViewTarget = EditorView::LoadoutEdit;
-                                uiData.isLoadoutInitValidated = false;
-                                break;
-                            }
-                        }
+                    else if (ImGui::IsMouseReleased(ImGuiMouseButton_Right) 
+                        && uiData.hoveredAnalysisSkillsetIndex >= 0
+                        && uiData.hoveredAnalysisSkillsetIndex < static_cast<int>(result.skillsetDPSNames.size())) {
+                        result.referenceDPS = result.skillsetDPS[uiData.hoveredAnalysisSkillsetIndex];
                     }
                 }
             }break;
@@ -1091,6 +1139,7 @@ namespace TTM {
         }
         result.averageDPSSkillset = std::pair<std::pair<std::string, std::string>, float>({ "N/A", "N/A" }, totalDPS / result.skillsetDPS.size());
         result.highestDPSSkillset = std::pair<std::pair<std::string, std::string>, float>(tempSkillsetNames[result.skillsetCount - 1], result.skillsetDPS[result.skillsetCount - 1]);
+        result.referenceDPS = result.highestDPSSkillset.second;
 
         //calculate talent performances
         std::vector<std::pair<std::string, std::string>> tempTalentSkillsetNames;

@@ -512,6 +512,24 @@ namespace Presets {
 		}
 	}
 
+	ImVec4 GET_SIM_ANALYSIS_GREEN_COLOR(STYLES style) {
+		if (style == STYLES::LIGHT_MODE) {
+			return ImVec4(0.0f, 0.5f, 0.05f, 1.0f);
+		}
+		else {
+			return ImVec4(0.05f, 0.9f, 0.05f, 1.0f);
+		}
+	}
+
+	ImVec4 GET_SIM_ANALYSIS_YELLOW_COLOR(STYLES style) {
+		if (style == STYLES::LIGHT_MODE) {
+			return ImVec4(0.85f, 0.55f, 0.0f, 1.0f);
+		}
+		else {
+			return ImVec4(0.95f, 0.95f, 0.0f, 1.0f);
+		}
+	}
+
 	void PUSH_FONT(FONTSIZE fs, int index) {
 		int resIndex = index;
 		switch (fs) {
