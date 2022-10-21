@@ -932,6 +932,9 @@ namespace Engine {
             if (iconNames.size() > 1) {
                 t->iconName.second = restoreString(iconNames[1]);
             }
+            if (talentInfo.size() > 12) {
+                t->nodeID = std::stoi(talentInfo[12]);
+            }
             if (t->preFilled && t->parents.size() > 0) {
                 bool canBePreFilled = false;
                 for (auto& parent : t->parents) {
@@ -2111,8 +2114,12 @@ namespace Engine {
     }
 
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree) {
+        return createAllSkillsetsSimcStringRepresentation(tree, tree.loadout);
+    }
+
+    std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree, std::vector<std::shared_ptr<TalentSkillset>> loadout) {
         std::string rep;
-        for (auto& skillset : tree.loadout) {
+        for (auto& skillset : loadout) {
             if (!validateSkillset(tree, skillset)) {
                 return "At least skillset " + skillset->name + " is invalid!";
             }

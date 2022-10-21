@@ -28,6 +28,7 @@ namespace Engine {
 
     struct Talent {
         int index = -1;
+        int nodeID = -1;
         bool isExpanded = false;
         bool preFilled = false;
         int expansionIndex = 0;
@@ -261,6 +262,7 @@ namespace Engine {
     std::string createSingleTalentsSimcString(TalentTree& tree);
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset = false);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
+    std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree, std::vector<std::shared_ptr<TalentSkillset>> loadout);
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 
