@@ -489,6 +489,41 @@ namespace TTM {
                 ImGui::Text("Misc:");
                 ImGui::Spacing();
                 ImGui::Spacing();
+                ImGui::Text("Create top %d skillsets simc profilesets", uiData.simAnalysisAddTopSkillsetCount);
+                ImGui::SliderInt(
+                    "##loadoutSolverAddRandomToLoadoutSlider", 
+                    &uiData.simAnalysisAddTopSkillsetCount, 
+                    talentTreeCollection.activeTree().analysisResult.skillsetCount > 0 ? 1 : 0,
+                    uiData.loadoutSolverAddAllLimit > talentTreeCollection.activeTree().analysisResult.skillsetCount 
+                    ? talentTreeCollection.activeTree().analysisResult.skillsetCount
+                    : uiData.loadoutSolverAddAllLimit, 
+                    "%d", 
+                    ImGuiSliderFlags_AlwaysClamp
+                );
+                ImGui::InputText("##simAnalsyisTopSkillsetSimcInputText", &uiData.simAnalysisExportTopSkillsetsSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                ImGui::SameLine();
+                if (ImGui::Button("Generate")) {
+                    int& skillsetCount = talentTreeCollection.activeTree().analysisResult.skillsetCount;
+                    if (skillsetCount > 0) {
+                        std::vector<std::shared_ptr<Engine::TalentSkillset>> topSkillsets;
+                        topSkillsets.reserve(skillsetCount);
+                        std::unordered_map<std::string, std::shared_ptr<Engine::TalentSkillset>> allSkillsetMap;
+                        for (const auto& skillset : talentTreeCollection.activeTree().loadout) {
+                            allSkillsetMap[skillset->name.c_str()] = skillset;
+                        }
+                        for (int i = 0; i < uiData.simAnalysisAddTopSkillsetCount; i++) {
+                            const auto& skillsetName = talentTreeCollection.activeTree().analysisResult.skillsetDPSNames[skillsetCount - i - 1];
+                            if (allSkillsetMap.count(skillsetName)) {
+                                topSkillsets.push_back(allSkillsetMap.at(skillsetName));
+                            }
+                        }
+                        uiData.simAnalysisExportTopSkillsetsSimcString = Engine::createAllSkillsetsSimcStringRepresentation(
+                            talentTreeCollection.activeTree(),
+                            topSkillsets
+                        );
+                    }
+                }
+
                 ImGui::Text("Generate single talent SimC export:");
                 ImGui::InputText("##simAnalysisSingleTalentSimcExportInputText", &uiData.simAnalysisSingleTalentExportString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
                 ImGui::SameLine();
@@ -1097,7 +1132,7 @@ namespace TTM {
 
         if (isPath) {
             std::filesystem::path dataPath{ urlOrPath };
-            if (std::filesystem::is_regular_file(dataPath) && dataPath.extension() == ".txt") {
+            if (std::filesystem::is_regular_file(dataPath)) {
                 SimFile res = ReadSimFile(dataPath);
                 data.simOutputNames.push_back(res.simOutputName);
                 data.simOutputs.push_back(res.simOutput);
