@@ -1630,6 +1630,10 @@ namespace TTM {
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         ImGuiStyle& imStyle = ImGui::GetStyle();
 
+        ImGui::SetCursorPos(ImVec2(talentWindowPaddingX, talentWindowPaddingY));
+        Presets::PUSH_FONT(uiData.fontsize, 2);
+        ImGui::Text("Skillset preview:");
+        Presets::POP_FONT();
 
         for (auto& talent : tree.orderedTalents) {
             for (auto& child : talent.second->children) {
