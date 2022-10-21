@@ -1,6 +1,6 @@
 40
 40
-2764
+2768
 1600
 default.png
 0/abominationLimb.png
@@ -2026,11 +2026,15 @@ default.png
 27/improvedBetweenTheEyes.png
 27/improvedInvokeNiuzaoTheBlackOx.png
 27/improvedParalysis.png
+27/inherentResistance.png
 27/leechingStrikes.png
 27/lightweightShiv.png
 27/lunarShrapnel.png
+27/mercilessClaws.png
 27/meteoricStrikes.png
 27/naturesGrace.png
+27/orbitalStrike.png
+27/primordialSurge.png
 27/protectorOfThePack.png
 27/radiantMoonlight.png
 27/rattleTheStars.png
