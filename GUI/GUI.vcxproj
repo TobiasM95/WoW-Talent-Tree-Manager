@@ -352,6 +352,7 @@ copy "$(SolutionDir)GUI\src\libs\stb\LICENSE.txt" "$(OutputPath)TalentTreeManage
     <Text Include="resources\releasedocs\README.txt" />
     <Text Include="resources\resource_versions.txt" />
     <Text Include="resources\updatertarget\icons_packed_meta.txt" />
+    <Text Include="resources\updatertarget\node_id_orders.txt" />
     <Text Include="resources\updatertarget\presets.txt" />
     <Text Include="resources\updatertarget\resource_versions.txt" />
     <Text Include="src\ImGui\LICENSE.txt" />

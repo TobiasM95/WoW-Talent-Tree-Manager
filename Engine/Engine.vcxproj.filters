@@ -108,5 +108,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="resources\presets.txt" />
+    <Text Include="resources\node_id_orders.txt" />
   </ItemGroup>
 </Project>

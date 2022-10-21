@@ -8,7 +8,8 @@ from collections import defaultdict
 import numpy as np
 from PIL import Image
 
-icon_directory = r"C:\Users\Tobi\Documents\Programming\Small_projects\wow_talent_tree_scraper\wowhead_trees_fast\icons"
+# icon_directory = r"C:\Users\Tobi\Documents\Programming\Small_projects\wow_talent_tree_scraper\wowhead_trees_fast\icons"
+icon_directory = r"C:\Users\Tobi\Documents\Programming\Small_projects\wow_talent_tree_scraper\raidbots_wowhead_trees\icons"
 
 pack_name = "icons_packed.png"
 
@@ -17,9 +18,10 @@ def main():
     organize_icons()
     pack_icons()
 
+
 def organize_icons():
     max_size = 100
-    
+
     directory_sizes = {}
     icon_path_map = defaultdict(list)
     icon_dirs = next(os.walk("."))[1]
@@ -28,7 +30,7 @@ def organize_icons():
         directory_sizes["./" + directory + "/"] = len(icon_names)
         for name in icon_names:
             icon_path_map[name] = f"./{directory}/{name}"
-    
+
     current_directory = None
     current_size = None
     last_directory = None
@@ -44,26 +46,34 @@ def organize_icons():
         else:
             current_directory = "./" + str(int(last_directory)) + "/"
             current_size = 0
-            
+
     overwritten_icons = []
-    image_names = [x for x in next(os.walk(icon_directory))[2] if x[-4:] == ".png" and x != "default.png" and x != pack_name]
+    image_names = [
+        x
+        for x in next(os.walk(icon_directory))[2]
+        if x[-4:] == ".png" and x != "default.png" and x != pack_name
+    ]
     for image_name in image_names:
         if image_name in icon_path_map:
             overwritten_icons.append(icon_path_map[image_name])
-            #move and overwrite existing image at path
+            # move and overwrite existing image at path
             os.remove(icon_path_map[image_name])
             shutil.copy2(f"{icon_directory}/{image_name}", icon_path_map[image_name])
         else:
-            #move image to current or new dir
+            # move image to current or new dir
             if current_size < 100:
                 os.makedirs(current_directory, exist_ok=True)
-                shutil.copy2(f"{icon_directory}/{image_name}", current_directory + image_name)
+                shutil.copy2(
+                    f"{icon_directory}/{image_name}", current_directory + image_name
+                )
                 current_size += 1
             else:
                 current_dir_number = current_directory.split("/")[1]
                 current_directory = "./" + str(int(current_dir_number) + 1) + "/"
                 os.makedirs(current_directory, exist_ok=True)
-                shutil.copy2(f"{icon_directory}/{image_name}", current_directory + image_name)
+                shutil.copy2(
+                    f"{icon_directory}/{image_name}", current_directory + image_name
+                )
                 current_size = 1
 
     if len(overwritten_icons) > 0:
@@ -72,34 +82,32 @@ def organize_icons():
             print(ow_icon)
     print("Written files:", len(image_names))
     print("Including overwritten files:", len(overwritten_icons))
-        
+
 
 def pack_icons():
 
     target_resolution = 40
 
-    
-    target_width = target_resolution*target_resolution
+    target_width = target_resolution * target_resolution
     images = ["./default.png"]
     for directory in next(os.walk("."))[1]:
-        images += [f"./{directory}/" + x for x in next(os.walk(f"./{directory}"))[2] if x[-4:] == ".png" and x != pack_name]
-    target_image_data = 255*np.ones((len(images), target_width, 4)).astype(np.uint8)
-    meta_info = [
-        target_resolution,
-        target_resolution,
-        len(images),
-        target_width
-    ]
+        images += [
+            f"./{directory}/" + x
+            for x in next(os.walk(f"./{directory}"))[2]
+            if x[-4:] == ".png" and x != pack_name
+        ]
+    target_image_data = 255 * np.ones((len(images), target_width, 4)).astype(np.uint8)
+    meta_info = [target_resolution, target_resolution, len(images), target_width]
     for i, image in enumerate(images):
         im = Image.open(image)
         im.putalpha(255)
-        
-        #resize image to target resolution
+
+        # resize image to target resolution
         if not im.size == (target_resolution, target_resolution):
             im.resize((target_resolution, target_resolution), Image.Resampling.LANCZOS)
-        
+
         im_arr = np.array(im)
-        target_image_data[i] = im_arr.reshape((-1,4))
+        target_image_data[i] = im_arr.reshape((-1, 4))
 
         meta_info.append("/".join(image.split("/")[1:]))
     target_image = Image.fromarray(target_image_data)
@@ -108,6 +116,7 @@ def pack_icons():
     with open(pack_name.split(".")[0] + "_meta.txt", "w") as metafile:
         for info in meta_info:
             metafile.write(str(info) + "\n")
+
 
 if __name__ == "__main__":
     sys.exit(int(main() or 0))
