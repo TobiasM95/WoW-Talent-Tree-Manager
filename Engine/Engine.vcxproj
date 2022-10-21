@@ -55,6 +55,7 @@
     <None Include="src\libs\libcurl\x86\copyright" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="resources\node_id_orders.txt" />
     <Text Include="resources\presets.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
