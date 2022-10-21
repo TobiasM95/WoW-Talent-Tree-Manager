@@ -247,6 +247,7 @@ namespace TTM {
 		std::string loadoutEditorExportAllSkillsetsSimcString;
 		std::string loadoutEditorImportSkillsetsString;
 		std::pair<int, int> loadoutEditorImportSkillsetsResult;
+		std::shared_ptr<Engine::TalentSkillset> hoveredEditorSkillset = nullptr;
 
 		//############# LOADOUT SOLVER VARIABLES ########################
 		const int maxConcurrentSolvers = 3;
@@ -264,7 +265,7 @@ namespace TTM {
 		int loadoutSolverSkillsetResultPage = -1;
 		std::string loadoutSolverSkillsetPrefix = "";
 		int loadoutSolverAddRandomLoadoutCount = 1;
-		const int loadoutSolverAddAllLimit = 5000;
+		const int loadoutSolverAddAllLimit = 20000;
 		//the currently buffered results page which should differ from the selected/requested page only for 1 frame
 		int loadoutSolverBufferedPage = -1;
 		std::vector<Engine::SIND> loadoutSolverPageResults;
@@ -275,6 +276,8 @@ namespace TTM {
 		//############# SIM ANALYSIS VARIABLES ########################
 		SimAnalysisPage simAnalysisPage = SimAnalysisPage::Settings;
 		std::string raidbotsInputURL = "";
+		int simAnalysisAddTopSkillsetCount = 0;
+		std::string simAnalysisExportTopSkillsetsSimcString = "";
 		std::string simAnalysisSingleTalentExportString = "";
 		int simAnalysisIconRatingSwitch = 0;
 		int topMedianPerformanceSwitch = 0;
