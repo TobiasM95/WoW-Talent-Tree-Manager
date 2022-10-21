@@ -182,8 +182,12 @@ namespace TTM {
                 }
             }
             
-            placeLoadoutEditorTreeElements(uiData, talentTreeCollection);
-
+            if (!uiData.hoveredEditorSkillset) {
+                placeLoadoutEditorTreeElements(uiData, talentTreeCollection);
+            }
+            else {
+                drawSkillsetPreview(uiData, talentTreeCollection, uiData.hoveredEditorSkillset);
+            }
             ImGui::EndChild();
         }
         ImGui::End();
@@ -249,6 +253,7 @@ namespace TTM {
             case LoadoutEditPage::SkillsetEdit: {
                 ImGui::Text("Skillsets:");
                 float boxHeight = ImGui::CalcTextSize("@").y;
+                uiData.hoveredEditorSkillset = nullptr;
                 if (ImGui::BeginListBox("##loadoutEditorSkillsetsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 20 * boxHeight)))
                 {
                     for (int n = 0; n < talentTreeCollection.activeTree().loadout.size(); n++)
@@ -262,6 +267,10 @@ namespace TTM {
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)
                             ImGui::SetItemDefaultFocus();
+
+                        if (ImGui::IsItemHovered()) {
+                            uiData.hoveredEditorSkillset = std::make_shared<Engine::TalentSkillset>(*talentTreeCollection.activeTree().loadout[n]);
+                        }
                     }
                     ImGui::EndListBox();
                 }
