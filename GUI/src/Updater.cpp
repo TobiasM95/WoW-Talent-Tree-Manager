@@ -47,6 +47,7 @@ namespace TTM {
         uiData.updateStatus = UpdateStatus::OUTDATED;
         uiData.outOfDateResources.push_back(ResourceType::PRESET);
         uiData.outOfDateResources.push_back(ResourceType::ICONS);
+        uiData.outOfDateResources.push_back(ResourceType::NODEIDORDERS);
     }
 
     std::string checkForUpdate(UIData& uiData) {
@@ -176,6 +177,9 @@ namespace TTM {
             case ResourceType::ICONS: {
                 updateIcons(uiData);
             }break;
+            case ResourceType::NODEIDORDERS: {
+                updateNodeIDOrders(uiData);
+            }break;
             }
         }
 
@@ -249,6 +253,34 @@ namespace TTM {
             }
         }
         std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "presets.txt";
+        std::ofstream localVersionFile(localVersionFilePath);
+        localVersionFile << result;
+    }
+
+    void updateNodeIDOrders(UIData& uiData) {
+        std::string result;
+        CURL* curl;
+        CURLcode res;
+        curl = curl_easy_init();
+        if (curl) {
+#ifdef DEBUGREMOTE
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/Engine/resources/node_id_orders.txt");
+#else
+            curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/node_id_orders.txt");
+#endif
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+            curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+            curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
+            res = curl_easy_perform(curl);
+            curl_easy_cleanup(curl);
+            //TTMTODO: this seems very very very dangerous
+            if (CURLE_OK != res || result.find("404:") != std::string::npos) {
+                uiData.updateStatus = UpdateStatus::UPDATEERROR;
+                return;
+            }
+        }
+        std::filesystem::path localVersionFilePath = Presets::getAppPath() / "resources" / "node_id_orders.txt";
         std::ofstream localVersionFile(localVersionFilePath);
         localVersionFile << result;
     }

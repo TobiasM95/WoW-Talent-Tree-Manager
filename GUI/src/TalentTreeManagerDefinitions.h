@@ -29,9 +29,9 @@ namespace TTM {
 		RESETRESOURCES
 	};
 
-	static const int TTM_RESOURCE_TYPE_COUNT = 3;
+	static const int TTM_RESOURCE_TYPE_COUNT = 4;
 	enum class ResourceType {
-		TTMVERSION = 0, PRESET = 1, ICONS = 2
+		TTMVERSION = 0, PRESET = 1, ICONS = 2, NODEIDORDERS = 3
 	};
 
 	struct TextFilters

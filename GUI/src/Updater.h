@@ -11,6 +11,7 @@ namespace TTM {
 	int compareVersions(std::string clientVersion, std::string remoteVersion);
 	void updateResources(UIData& uiData, TalentTreeCollection& talentTreeCollection);
 	void updatePresets(UIData& uiData);
+	void updateNodeIDOrders(UIData& uiData);
 	void updateIcons(UIData& uiData);
 	void testUpdateIcons(UIData& uiData);
 
