@@ -799,6 +799,7 @@ namespace Engine {
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[1];
+        tree.classID = Presets::CLASS_ID_FROM_PRESET_NAME(tree.presetName);
         tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[2]));
         tree.name = restoreString(treeInfoParts[3]);
         tree.treeDescription = restoreString(treeInfoParts[4]);
@@ -849,6 +850,7 @@ namespace Engine {
 
         std::vector<std::string> treeInfoParts = splitString(treeDefinitionParts[0], ":");
         tree.presetName = treeInfoParts[1];
+        tree.classID = Presets::CLASS_ID_FROM_PRESET_NAME(tree.presetName);
         tree.type = static_cast<TreeType>(std::stoi(treeInfoParts[2]));
         tree.name = restoreString(treeInfoParts[3]);
         tree.treeDescription = restoreString(treeInfoParts[4]);
@@ -2126,6 +2128,312 @@ namespace Engine {
             rep += "profileset.\"" + skillset->name + "\"+=\"" + createSkillsetSimcStringRepresentation(skillset, tree) + "\"\n";
         }
         return rep;
+    }
+
+    // part of the blizz hash import/export methodology taken from 
+    // https://github.com/simulationcraft/simc/blob/7cfe69501aff528096516246ad40471ae1b468ed/engine/player/player.cpp
+    namespace
+    {
+        const std::string base64_char = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        // hardcoded values from Interface/AddOns/Blizzard_ClassTalentUI/Blizzard_ClassTalentImportExport.lua
+        constexpr unsigned LOADOUT_SERIALIZATION_VERSION = 1;
+        constexpr size_t version_bits = 8;    // serialization version
+        constexpr size_t spec_bits = 16;   // specialization id
+        constexpr size_t tree_bits = 128;  // C_Traits.GetTreeHash(), optionally can be 0-filled
+        constexpr size_t rank_bits = 6;    // ranks purchased if node is partially filled
+        constexpr size_t choice_bits = 2;    // choice index, 0-based
+        // hardcoded value from Interface/SharedXML/ExportUtil.lua
+        constexpr size_t byte_size = 6;
+    }
+
+    void exportBlizzardHash(
+        const TalentTree& tree, 
+        const TalentTree* complementaryTree, 
+        const std::shared_ptr<TalentSkillset> complementarySkillset, 
+        std::string& hash_string) {
+        if (tree.presetName == "custom") {
+            hash_string = "Custom trees cannot be exported to ingame import strings!";
+            return;
+        }
+
+        // prepare node order
+        std::vector<std::string> rawNodeIDOrder = splitString(Presets::LOAD_RAW_NODE_ID_ORDER(tree.presetName), ":");
+        int classID = std::stoi(rawNodeIDOrder[1]);
+        int specID = std::stoi(rawNodeIDOrder[2]);
+        std::vector<int> order;
+        for (auto& nodeIDStr : splitString(rawNodeIDOrder[3], ",")) {
+            order.push_back(std::stoi(nodeIDStr));
+        }
+
+        // prepare class and spec skillsets and trees
+        const TalentTree * classTree, * specTree;
+        std::shared_ptr<TalentSkillset> classSkillset, specSkillset;
+        if (tree.type == TreeType::CLASS) {
+            classTree = &tree;
+            classSkillset = tree.loadout[tree.activeSkillsetIndex];
+
+            specTree = complementaryTree;
+            specSkillset = complementarySkillset;
+        }
+        else {
+            specTree = &tree;
+            specSkillset = tree.loadout[tree.activeSkillsetIndex];
+
+            classTree = complementaryTree;
+            classSkillset = complementarySkillset;
+        }
+
+        // prepare map that holds talent and assigned points with node ids as key
+        std::map<int, std::pair<std::shared_ptr<Talent>, unsigned int>> nodeIDTalentMap;
+        if (classTree) {
+            for (auto& indexTalentPair : classTree->orderedTalents) {
+                nodeIDTalentMap[indexTalentPair.second->nodeID] = std::pair<std::shared_ptr<Talent>, int>{
+                    indexTalentPair.second, static_cast<unsigned int>(classSkillset->assignedSkillPoints[indexTalentPair.first])
+                };
+            }
+        }
+        if (specTree) {
+            for (auto& indexTalentPair : specTree->orderedTalents) {
+                nodeIDTalentMap[indexTalentPair.second->nodeID] = std::pair<std::shared_ptr<Talent>, int>{
+                    indexTalentPair.second, static_cast<unsigned int>(specSkillset->assignedSkillPoints[indexTalentPair.first])
+                };
+            }
+        }
+
+        // start creating the export string
+        std::string export_str;
+
+        size_t head = 0;
+        size_t byte = 0;
+        auto put_bit = [&export_str, &head, &byte](size_t bits, unsigned value) {
+            for (size_t i = 0; i < bits; i++)
+            {
+                size_t bit = head % byte_size;
+                head++;
+                byte += (value >> i & 0b1) << bit;
+                if (bit == byte_size - 1)
+                {
+                    export_str += base64_char[byte];
+                    byte = 0;
+                }
+            }
+        };
+
+        put_bit(version_bits, LOADOUT_SERIALIZATION_VERSION);
+        put_bit(spec_bits, static_cast<unsigned>(specID));
+        put_bit(tree_bits, 0);  // 0-filled to bypass validation, as GetTreeHash() is unavailable externally
+
+        for (int& nodeID : order) {
+            if (!nodeIDTalentMap.count(nodeID)) {
+                put_bit(1, 0);
+                continue;
+            }
+            const unsigned int& rank = nodeIDTalentMap[nodeID].second;
+            const unsigned int& maxRank = static_cast<unsigned int>(nodeIDTalentMap[nodeID].first->maxPoints);
+            const bool isSwitch = nodeIDTalentMap[nodeID].first->type == TalentType::SWITCH;
+            if (rank == 0)  // is node selected?
+            {
+                put_bit(1, 0);
+                continue;
+            }
+            else
+            {
+                put_bit(1, 1);
+            }
+
+            if (rank >= maxRank)  // is node partially ranked?
+            {
+                put_bit(1, 0);
+            }
+            else
+            {
+                put_bit(1, 1);
+                put_bit(rank_bits, rank);
+            }
+
+            if (!isSwitch)
+            {
+                put_bit(1, 0);
+            }
+            else
+            {
+                put_bit(1, 1);
+                put_bit(choice_bits, rank - 1);
+            }
+        }
+
+        if (head % byte_size)
+            export_str += base64_char[byte];
+
+        hash_string = export_str;
+    }
+
+    bool importBlizzardHash(
+        TalentTree& tree,
+        TalentTree* complementaryTree,
+        std::string& hash_string,
+        bool extractComplementarySkillset
+    ) {
+        extractComplementarySkillset = extractComplementarySkillset && complementaryTree != nullptr;
+
+
+        if (hash_string.find_first_not_of(base64_char) != std::string::npos)
+        {
+            return false;
+        }
+
+        if (version_bits + spec_bits + tree_bits > hash_string.size() * byte_size)
+        {
+            return false;
+        }
+
+        size_t head = 0;
+        size_t byte = base64_char.find(hash_string[0]);
+        auto get_bit = [&hash_string, &head, &byte](size_t bits) {
+            size_t val = 0;
+            for (size_t i = 0; i < bits; i++)
+            {
+                size_t bit = head % byte_size;
+                head++;
+                val += (byte >> bit & 0b1) << i;
+                if (bit == byte_size - 1)
+                {
+                    byte = base64_char.find(hash_string[head / byte_size]);
+                }
+            }
+            return val;
+        };
+
+        auto version_id = get_bit(version_bits);
+        auto spec_id = get_bit(spec_bits);
+
+        if (version_id != LOADOUT_SERIALIZATION_VERSION)
+        {
+            return false;
+        }
+
+        // complete overkill, rework this at some point
+        std::vector<std::string> rawNodeIDOrder = splitString(Presets::LOAD_RAW_NODE_ID_ORDER(tree.presetName), ":");
+        int classID = std::stoi(rawNodeIDOrder[1]);
+        int specID = std::stoi(rawNodeIDOrder[2]);
+        std::vector<int> order;
+        for (auto& nodeIDStr : splitString(rawNodeIDOrder[3], ",")) {
+            order.push_back(std::stoi(nodeIDStr));
+        }
+
+        if (spec_id != specID)
+        {
+            return false;
+        }
+
+        // As per Interface/AddOns/Blizzard_ClassTalentUI/Blizzard_ClassTalentImportExport.lua: treeHash is a 128bit hash,
+        // passed as an array of 16, 8-bit values. For SimC purposes we can ignore it, as invalid/outdated strings can error
+        // in later checks
+        get_bit(tree_bits);
+
+        std::shared_ptr<TalentSkillset> classSkillset = std::make_shared<TalentSkillset>();
+        classSkillset->name = "Ingame imported skillset";
+        std::shared_ptr<TalentSkillset> specSkillset = std::make_shared<TalentSkillset>();
+        specSkillset->name = "Ingame imported skillset";
+
+        TalentTree* classTree, * specTree;
+        if (tree.type == TreeType::CLASS) {
+            classTree = &tree;
+            specTree = complementaryTree;
+        }
+        else {
+            specTree = &tree;
+            classTree = complementaryTree;
+        }
+
+        // prepare map that holds talent with node ids as key
+        std::map<int, std::pair<std::shared_ptr<TalentSkillset>, std::shared_ptr<Talent>>> nodeIDTalentMap;
+        if (classTree) {
+            for (auto& indexTalentPair : classTree->orderedTalents) {
+                nodeIDTalentMap[indexTalentPair.second->nodeID] = std::pair<std::shared_ptr<TalentSkillset>, std::shared_ptr<Talent>>(classSkillset, indexTalentPair.second);
+                classSkillset->assignedSkillPoints[indexTalentPair.first] = 0;
+            }
+        }
+        if (specTree) {
+            for (auto& indexTalentPair : specTree->orderedTalents) {
+                nodeIDTalentMap[indexTalentPair.second->nodeID] = std::pair<std::shared_ptr<TalentSkillset>, std::shared_ptr<Talent>>(specSkillset, indexTalentPair.second);
+                specSkillset->assignedSkillPoints[indexTalentPair.first] = 0;
+            }
+        }
+
+
+        for (int& nodeID : order) {
+            if (get_bit(1)) { // selected
+                size_t rank = nodeIDTalentMap.count(nodeID) ? nodeIDTalentMap[nodeID].second->maxPoints : 0;
+                if (get_bit(1))  // partially ranked normal trait
+                {
+                    rank = get_bit(rank_bits);
+                }
+
+                if (get_bit(1))  // choice trait
+                {
+                    size_t choice = get_bit(choice_bits);
+
+                    rank += choice;
+                }
+
+                if (nodeIDTalentMap.count(nodeID)) {
+                    nodeIDTalentMap[nodeID].first->assignedSkillPoints[nodeIDTalentMap[nodeID].second->index] = static_cast<int>(rank);
+                }
+            }
+        }
+
+        if (classTree) {
+            for (auto& indexPointsPair : classSkillset->assignedSkillPoints) {
+                if (classTree->orderedTalents.at(indexPointsPair.first)->type == TalentType::SWITCH) {
+                    classSkillset->talentPointsSpent += indexPointsPair.second > 0 ? 1 : 0;
+                }
+                else {
+                    classSkillset->talentPointsSpent += indexPointsPair.second;
+                }
+            }
+        }
+        if (specTree) {
+            for (auto& indexPointsPair : specSkillset->assignedSkillPoints) {
+                if (specTree->orderedTalents.at(indexPointsPair.first)->type == TalentType::SWITCH) {
+                    specSkillset->talentPointsSpent += indexPointsPair.second > 0 ? 1 : 0;
+                }
+                else {
+                    specSkillset->talentPointsSpent += indexPointsPair.second;
+                }
+            }
+        }
+
+        if (tree.type == TreeType::CLASS) {
+            if (validateSkillset(tree, classSkillset)) {
+                tree.loadout.push_back(classSkillset);
+                tree.activeSkillsetIndex = static_cast<int>(tree.loadout.size() - 1);
+                activateSkillset(tree, tree.activeSkillsetIndex);
+            }
+            if (extractComplementarySkillset) {
+                if (validateSkillset(*complementaryTree, specSkillset)) {
+                    complementaryTree->loadout.push_back(specSkillset);
+                    complementaryTree->activeSkillsetIndex = static_cast<int>(specTree->loadout.size() - 1);
+                    activateSkillset(*complementaryTree, specTree->activeSkillsetIndex);
+                }
+            }
+        }
+        else {
+            if (validateSkillset(tree, specSkillset)) {
+                tree.loadout.push_back(specSkillset);
+                tree.activeSkillsetIndex = static_cast<int>(tree.loadout.size() - 1);
+                activateSkillset(tree, tree.activeSkillsetIndex);
+            }
+            if (extractComplementarySkillset) {
+                if (validateSkillset(*complementaryTree, classSkillset)) {
+                    complementaryTree->loadout.push_back(classSkillset);
+                    complementaryTree->activeSkillsetIndex = static_cast<int>(complementaryTree->loadout.size() - 1);
+                    activateSkillset(*complementaryTree, complementaryTree->activeSkillsetIndex);
+                }
+            }
+        }
+
+        return true;
     }
 
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset) {

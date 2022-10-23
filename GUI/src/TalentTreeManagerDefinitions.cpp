@@ -149,10 +149,18 @@ namespace TTM {
         if (talentTreeCollection.activeTreeIndex == -1 || (!forceReload && uiData.loadedIconTreeIndex == talentTreeCollection.activeTreeIndex)) {
             return;
         }
+        loadActiveIcons(uiData, talentTreeCollection.activeTree(), talentTreeCollection.activeTreeIndex, forceReload);
+    }
+
+    void loadActiveIcons(UIData& uiData, Engine::TalentTree* tree, int treeIndex, bool forceReload) {
+        loadActiveIcons(uiData, *tree, treeIndex, forceReload);
+    }
+
+    void loadActiveIcons(UIData & uiData, Engine::TalentTree& tree, int treeIndex, bool forceReload) {
         uiData.iconIndexMap.clear();
         uiData.iconIndexMapGrayed.clear();
 
-        for (auto& talent : talentTreeCollection.activeTree().orderedTalents) {
+        for (auto& talent : tree.orderedTalents) {
             std::pair<TextureInfo*, TextureInfo*> talentIconPtrs = { nullptr, nullptr };
             std::pair<TextureInfo*, TextureInfo*> talentIconGrayedPtrs = { nullptr, nullptr };
             if (uiData.iconMap.count(talent.second->iconName.first)) {
@@ -175,7 +183,7 @@ namespace TTM {
             uiData.iconIndexMapGrayed[talent.first] = talentIconGrayedPtrs;
         }
 
-        uiData.loadedIconTreeIndex = talentTreeCollection.activeTreeIndex;
+        uiData.loadedIconTreeIndex = treeIndex;
     }
 
     /*
@@ -1206,7 +1214,6 @@ namespace TTM {
         ImVec2 windowPos,
         ImVec2 scroll,
         UIData& uiData,
-        TalentTreeCollection& talentTreeCollection,
         float disabledAlpha)
     {
         ImVec4 borderCol = colors[ImGuiCol_WindowBg];
@@ -1403,9 +1410,18 @@ namespace TTM {
         uiData.loadoutEditorExportActiveSkillsetSimcString = "";
         uiData.loadoutEditorExportAllSkillsetsSimcString = "";
         uiData.loadoutEditorImportSkillsetsString = "";
+        uiData.loadoutEditorImportBlizzardHashString = "";
+        uiData.loadoutEditorExportBlizzardHashString = "";
         uiData.loadoutSolverSkillsetPrefix = "";
         uiData.raidbotsInputURL = "";
         uiData.simAnalysisSingleTalentExportString = "";
+    }
+
+    void resetComplementaryIndices(TalentTreeCollection& talentTreeCollection) {
+        for (auto& treeData : talentTreeCollection.trees) {
+            treeData.tree.complementarySkillsetIndex = -1;
+            treeData.tree.complementaryTreeIndex = -1;
+        }
     }
 
     void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate) {
@@ -1607,9 +1623,18 @@ namespace TTM {
         Presets::POP_FONT();
     }
 
+
     void drawSkillsetPreview(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::shared_ptr<Engine::TalentSkillset> skillset) {
         Engine::TalentTree& tree = talentTreeCollection.activeTree();
+        drawSkillsetPreview(uiData, tree, skillset);
+    }
 
+
+    void drawSkillsetPreview(UIData& uiData, Engine::TalentTree* tree, std::shared_ptr<Engine::TalentSkillset> skillset) {
+        drawSkillsetPreview(uiData, *tree, skillset);
+    }
+
+    void drawSkillsetPreview(UIData& uiData, Engine::TalentTree& tree, std::shared_ptr<Engine::TalentSkillset> skillset) {
         int talentHalfSpacing = static_cast<int>(uiData.treeEditorBaseTalentHalfSpacing * uiData.treeEditorZoomFactor);
         int talentSize = static_cast<int>(uiData.treeEditorBaseTalentSize * uiData.treeEditorZoomFactor);
         float talentWindowPaddingX = static_cast<float>(uiData.treeEditorTalentWindowPaddingX);
@@ -1708,6 +1733,12 @@ namespace TTM {
                     iconContent = uiData.iconIndexMapGrayed[talent.second->index].first;
                 }
             }
+            if (!iconContent) {
+                iconContent = skillset->assignedSkillPoints[talent.first] > 0 ? &uiData.defaultIcon : &uiData.defaultIconGray;
+            }
+            if (!iconContentChoice) {
+                iconContentChoice = &uiData.defaultIconGray;
+            }
             ImGui::PopID();
             if (talent.second->type != Engine::TalentType::SWITCH || skillset->assignedSkillPoints[talent.first] > 0) {
                 ImGui::SetCursorPos(ImVec2(posX, posY));
@@ -1781,7 +1812,6 @@ namespace TTM {
                 ImGui::GetWindowPos(),
                 ImVec2(ImGui::GetScrollX(), ImGui::GetScrollY()),
                 uiData,
-                talentTreeCollection,
                 1.0f - 0.8f * talentDisabled);
             
             if (talentDisabled) {

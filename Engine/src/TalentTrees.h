@@ -146,6 +146,7 @@ namespace Engine {
     struct TalentTree {
         std::string presetName = "custom";
         TreeType type = TreeType::CLASS;
+        Presets::CLASS_IDS classID = Presets::CLASS_IDS::CLASS_IDS_NONE;
         std::string name = "defaultTree";
         std::string treeDescription = "";
         std::string loadoutDescription = "";
@@ -158,6 +159,10 @@ namespace Engine {
         std::map<int, std::shared_ptr<Talent>> orderedTalents;
         std::vector<std::shared_ptr<TalentSkillset>> loadout;
         int activeSkillsetIndex = -1;
+
+        //complimentary tree for blizzard hash exports
+        int complementaryTreeIndex = -1;
+        int complementarySkillsetIndex = -1;
 
         std::vector<std::pair<int, float>> requirementSeparatorInfo;
 
@@ -263,6 +268,17 @@ namespace Engine {
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset = false);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree, std::vector<std::shared_ptr<TalentSkillset>> loadout);
+    void exportBlizzardHash(
+        const TalentTree& tree,
+        const TalentTree* complementaryTree,
+        const std::shared_ptr<TalentSkillset> complementarySkillset,
+        std::string& hash_string);
+    bool importBlizzardHash(
+        TalentTree& tree,
+        TalentTree* complementaryTree,
+        std::string& hash_string,
+        bool extractComplementarySkillset
+    );
     int getLevelRequirement(const TalentSkillset& sk, const TalentTree& tree, int offset = 0);
     int getLevelRequirement(const int& pointsSpent, const TalentTree& tree, int offset = 0);
 

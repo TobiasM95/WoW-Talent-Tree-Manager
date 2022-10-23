@@ -29,7 +29,8 @@ namespace Presets {//ENGINE PRESETS
         CLASS_IDS_ROGUE = 9,
         CLASS_IDS_SHAMAN = 10,
         CLASS_IDS_WARLOCK = 11,
-        CLASS_IDS_WARRIOR = 12
+        CLASS_IDS_WARRIOR = 12,
+        CLASS_IDS_NONE = 13
     };
 
     enum DEATHKNIGHT_SPEC_IDS {
@@ -168,6 +169,8 @@ namespace Presets {//ENGINE PRESETS
 
     std::filesystem::path getAppPath();
     std::map<std::string, std::string> LOAD_PRESETS();
+    CLASS_IDS CLASS_ID_FROM_PRESET_NAME(std::string presetName);
+    std::string LOAD_RAW_NODE_ID_ORDER(std::string presetName);
 
     /*
     First line (";" is line separator, ":" separates different parts of a single line, "," separates individual components of a property):
