@@ -665,6 +665,9 @@ namespace TTM {
             }
 
             // Submit our regular tabs
+            int differentTreeIndex = -1;
+            bool tabNotHovered = true;
+            static bool treeSwitchCD = false;
             for (int n = 0; n < talentTreeCollection.trees.size(); )
             {
                 Presets::SET_TAB_ITEM_COLOR(uiData.style, talentTreeCollection.trees[n].tree.presetName);
@@ -680,18 +683,22 @@ namespace TTM {
                     if (n == talentTreeCollection.activeTreeIndex) {
                         RenderTreeViewTabs(uiData, talentTreeCollection);
                     }
+                    else {
+                        differentTreeIndex = n;
+                    }
                     ImGui::EndTabItem();
                 }
-                if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                    if (talentTreeCollection.activeTreeIndex != n) {
+                if (ImGui::IsItemHovered()) {
+                    if (talentTreeCollection.activeTreeIndex != n && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
                         clearTextboxes(uiData);
-                        //TTMNOTE: all the other operations should go in here too?
+                        resetComplementaryIndices(talentTreeCollection);
+                        talentTreeCollection.activeTreeIndex = n;
+                        uiData.editorView = EditorView::None;
+                        uiData.isLoadoutInitValidated = false;
+                        uiData.treeEditorSelectedTalent = nullptr;
+                        loadActiveIcons(uiData, talentTreeCollection);
                     }
-                    talentTreeCollection.activeTreeIndex = n;
-                    uiData.editorView = EditorView::None;
-                    uiData.isLoadoutInitValidated = false;
-                    uiData.treeEditorSelectedTalent = nullptr;
-                    loadActiveIcons(uiData, talentTreeCollection);
+                    tabNotHovered = false;
                 }
 
                 if (!open) {
@@ -702,6 +709,21 @@ namespace TTM {
                 if (!isReset) {
                     Presets::RESET_TAB_ITEM_COLOR();
                 }
+            }
+            if (tabNotHovered && differentTreeIndex >= 0 && !treeSwitchCD) {
+                if (talentTreeCollection.activeTreeIndex != differentTreeIndex) {
+                    treeSwitchCD = true;
+                    clearTextboxes(uiData);
+                    resetComplementaryIndices(talentTreeCollection);
+                    talentTreeCollection.activeTreeIndex = differentTreeIndex;
+                    uiData.editorView = EditorView::None;
+                    uiData.isLoadoutInitValidated = false;
+                    uiData.treeEditorSelectedTalent = nullptr;
+                    loadActiveIcons(uiData, talentTreeCollection);
+                }
+            }
+            else {
+                treeSwitchCD = false;
             }
             if (uiData.deleteTreeIndex >= 0) {
                 ImGui::OpenPopup("Delete tree confirmation");
