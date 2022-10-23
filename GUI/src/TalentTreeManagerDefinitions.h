@@ -246,8 +246,13 @@ namespace TTM {
 		std::string loadoutEditorExportActiveSkillsetSimcString;
 		std::string loadoutEditorExportAllSkillsetsSimcString;
 		std::string loadoutEditorImportSkillsetsString;
+		std::string loadoutEditorComplementarySelection;
+		bool loadoutEditorImportBlizzardOtherTreeCheckbox = false;
+		std::string loadoutEditorImportBlizzardHashString;
+		std::string loadoutEditorExportBlizzardHashString;
 		std::pair<int, int> loadoutEditorImportSkillsetsResult;
 		std::shared_ptr<Engine::TalentSkillset> hoveredEditorSkillset = nullptr;
+		std::shared_ptr<std::pair<Engine::TalentTree*, std::shared_ptr<Engine::TalentSkillset>>> hoveredBlizzHashCombo = nullptr;
 
 		//############# LOADOUT SOLVER VARIABLES ########################
 		const int maxConcurrentSolvers = 3;
@@ -292,6 +297,8 @@ namespace TTM {
 
 	void refreshIconMap(UIData& uiData);
 	void loadActiveIcons(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceReload = false);
+	void loadActiveIcons(UIData& uiData, Engine::TalentTree* tree, int treeIndex, bool forceReload);
+	void loadActiveIcons(UIData& uiData, Engine::TalentTree& tree, int treeIndex, bool forceReload);
 	//void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType);
 	//void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight);
 	std::pair<TextureInfo, TextureInfo> loadTextureInfoFromFile(UIData& uiData, std::string path);
@@ -376,7 +383,6 @@ namespace TTM {
 		ImVec2 windowPos,
 		ImVec2 scroll,
 		UIData& uiData,
-		TalentTreeCollection& talentTreeCollection,
 		float disabledAlpha);
 
 	void drawSimAnalysisShapeAroundTalent(
@@ -393,8 +399,11 @@ namespace TTM {
 		bool talentIsSearchedFor);
 
 	void drawSkillsetPreview(UIData& uiData, TalentTreeCollection& talentTreeCollection, std::shared_ptr<Engine::TalentSkillset> skillset);
+	void drawSkillsetPreview(UIData& uiData, Engine::TalentTree* tree, std::shared_ptr<Engine::TalentSkillset> skillset);
+	void drawSkillsetPreview(UIData& uiData, Engine::TalentTree& tree, std::shared_ptr<Engine::TalentSkillset> skillset);
 
 	void clearTextboxes(UIData& uiData);
+	void resetComplementaryIndices(TalentTreeCollection& talentTreeCollection);
 	void updateSolverStatus(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool forceUpdate = false);
 	void stopAllSolvers(TalentTreeCollection& talentTreeCollection);
 	void clearSolvingProcess(UIData& uiData, TalentTreeCollection& talentTreeCollection, bool onlyUIData = false);

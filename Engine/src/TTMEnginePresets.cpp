@@ -265,4 +265,85 @@ namespace Presets {
 
 		return presets;
 	}
+
+	CLASS_IDS CLASS_ID_FROM_PRESET_NAME(std::string presetName) {
+		std::string classIdentifier = presetName.substr(0, presetName.find('_'));
+		if (classIdentifier == "deathknight") {
+			return CLASS_IDS_DEATHKNIGHT;
+		}
+		else if (classIdentifier == "demonhunter") {
+			return CLASS_IDS_DEMONHUNTER;
+		}
+		else if (classIdentifier == "druid") {
+			return CLASS_IDS_DRUID;
+		}
+		else if (classIdentifier == "evoker") {
+			return CLASS_IDS_EVOKER;
+		}
+		else if (classIdentifier == "hunter") {
+			return CLASS_IDS_HUNTER;
+		}
+		else if (classIdentifier == "mage") {
+			return CLASS_IDS_MAGE;
+		}
+		else if (classIdentifier == "monk") {
+			return CLASS_IDS_MONK;
+		}
+		else if (classIdentifier == "paladin") {
+			return CLASS_IDS_PALADIN;
+		}
+		else if (classIdentifier == "priest") {
+			return CLASS_IDS_PRIEST;
+		}
+		else if (classIdentifier == "rogue") {
+			return CLASS_IDS_ROGUE;
+		}
+		else if (classIdentifier == "shaman") {
+			return CLASS_IDS_SHAMAN;
+		}
+		else if (classIdentifier == "warlock") {
+			return CLASS_IDS_WARLOCK;
+		}
+		else if (classIdentifier == "warrior") {
+			return CLASS_IDS_WARRIOR;
+		}
+	}
+
+	// first two ints are class id and spec id, if vector empty then file read error
+	std::string LOAD_RAW_NODE_ID_ORDER(std::string presetName) {
+		size_t classPresetNamePos = presetName.find("_class");
+		if (classPresetNamePos != std::string::npos) {
+			presetName = presetName.substr(0, classPresetNamePos) + presetName.substr(classPresetNamePos + 6);
+		}
+		bool foundPresetName = false;
+		std::filesystem::path nodeIDOrdersPath = getAppPath() / "resources" / "node_id_orders.txt";
+		std::string line;
+		if (std::filesystem::is_regular_file(nodeIDOrdersPath)) {
+			std::ifstream treeFile;
+			treeFile.open(nodeIDOrdersPath);
+
+			if (treeFile.is_open())
+			{
+				while (!treeFile.eof())
+				{
+					std::getline(treeFile, line);
+					if (line.substr(0, line.find(':')) == presetName) {
+						foundPresetName = true;
+						break;
+					}
+				}
+			}
+		}
+		else {
+			//TTMTODO: Implement error logger for engine too
+			std::ofstream presetErrorFile("error_log.txt");
+			presetErrorFile << "Preset file was not present and couldn't be updated (maybe no internet connection)\n";
+		}
+
+		if (!foundPresetName) {
+			return "";
+		}
+
+		return line;
+	}
 }
