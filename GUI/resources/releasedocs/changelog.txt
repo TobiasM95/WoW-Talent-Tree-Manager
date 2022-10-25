@@ -1,3 +1,11 @@
+v. 1.4.0:
+- SimC analysis screen version 1
+- SimC export strings
+- Ingame skillset string import/export
+- Auto-updater improvements
+- Skillset previews on hover in most screens
+- Better loadout solver experience
+
 v. 1.3.8:
 - Persistency of UI state between sessions
 - Stability improvements and reduced crashes

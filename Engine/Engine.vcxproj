@@ -154,7 +154,8 @@
     </Lib>
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
-copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\node_id_orders.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -187,8 +188,10 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)TalentTreeManager\resources\"
+copy "$(ProjectDir)resources\node_id_orders.txt" "$(OutputPath)TalentTreeManager\resources\"
 mkdir "$(OutputPath)resources\"
-copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\node_id_orders.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -214,7 +217,8 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
     </Lib>
     <PostBuildEvent>
       <Command>mkdir "$(OutputPath)resources\"
-copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\node_id_orders.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -247,8 +251,10 @@ copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 mkdir "$(OutputPath)TalentTreeManager\resources\"
 copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)TalentTreeManager\resources\"
+copy "$(ProjectDir)resources\node_id_orders.txt" "$(OutputPath)TalentTreeManager\resources\"
 mkdir "$(OutputPath)resources\"
-copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"</Command>
+copy "$(ProjectDir)resources\presets.txt" "$(OutputPath)resources\"
+copy "$(ProjectDir)resources\node_id_orders.txt" "$(OutputPath)resources\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
