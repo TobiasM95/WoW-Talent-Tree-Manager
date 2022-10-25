@@ -14,7 +14,7 @@ namespace Engine {
 }
 
 namespace Presets {//ENGINE PRESETS
-    static const std::string TTM_VERSION = "1.3.8";
+    static const std::string TTM_VERSION = "1.4.0";
 
     enum CLASS_IDS {
         CLASS_IDS_DEATHKNIGHT = 0,
