@@ -421,6 +421,9 @@ namespace TTM {
                     if (success) {
                         ImGui::OpenPopup("Import ingame skillset result");
                     }
+                    else {
+                        uiData.loadoutEditorImportBlizzardHashString = "Invalid import string!";
+                    }
                 }
 
                 ImGui::Text("Export ingame skillset string:");
