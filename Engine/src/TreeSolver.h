@@ -42,7 +42,14 @@ namespace Engine {
         bool safetyGuardTriggered = false;
     };
 
-    std::shared_ptr<TreeDAGInfoLegacy> countConfigurations(TalentTree tree, int talentPointsLimit);
+    void countConfigurationsFiltered(
+        TalentTree tree,
+        std::shared_ptr<Engine::TalentSkillset> filter,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered
+    );
     void countConfigurationsParallel(
         TalentTree tree,
         int talentPointsLimit,
@@ -51,7 +58,7 @@ namespace Engine {
         bool& safetyGuardTriggered);
     TreeDAGInfo createSortedMinimalDAG(TalentTree tree);
     TreeDAGInfoLegacy createSortedMinimalDAGLegacy(TalentTree tree);
-    void visitTalentLegacy(
+    void visitTalentFiltered(
         std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
@@ -59,9 +66,14 @@ namespace Engine {
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<std::pair<int, int>> possibleTalents,
-        const TreeDAGInfoLegacy& sortedTreeDAG,
-        std::vector<std::pair<SIND, int>>& combinations,
-        int& allCombinations
+        const TreeDAGInfo& sortedTreeDAG,
+        std::vector<SIND>& combinations,
+        int& runningCount,
+        bool& safetyGuardTriggered,
+        SIND& includeFilter,
+        SIND& excludeFilter,
+        SIND& orFilter,
+        std::vector<std::pair<SIND, SIND>>& oneFilter
     );
     void visitTalentParallel(
         std::pair<int, int> talentIndexReqPair,
@@ -97,6 +109,12 @@ namespace Engine {
     void insertIntoVector(std::vector<std::pair<int, int>>& v, std::pair<int, int>& t);
 
     void filterSolvedSkillsets(const TalentTree& tree, std::shared_ptr<TreeDAGInfo> treeDAG, std::shared_ptr<TalentSkillset> filter);
+    bool checkSkillsetFilter(
+        const SIND visitedTalents,
+        const SIND includeFilter,
+        const SIND excludeFilter,
+        const SIND orFilter,
+        const std::vector<std::pair<SIND, SIND>> oneFilter);
     std::shared_ptr<TalentSkillset> skillsetIndexToSkillset(
         const TalentTree& tree,
         std::shared_ptr<TreeDAGInfo> treeDAG,

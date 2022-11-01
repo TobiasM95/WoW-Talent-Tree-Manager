@@ -731,7 +731,7 @@ namespace Engine {
 
     bool validateTalentStringFormat(std::string talentString) {
         std::vector<std::string> talentParts = splitString(talentString, ":");
-        if (talentParts.size() != 12) {
+        if (talentParts.size() != 12 && talentParts.size() != 13) {
             return false;
         }
         if (talentParts[0].find_first_not_of("0123456789") != std::string::npos) {

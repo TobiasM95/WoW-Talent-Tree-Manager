@@ -13,6 +13,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AppUpdater", "AppUpdater\Ap
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CLI", "CLI\CLI.vcxproj", "{8FD3BBC8-63EF-42E5-AE1C-E594044CE7F1}"
+	ProjectSection(ProjectDependencies) = postProject
+		{96600A75-14EB-4DD2-B0D5-10461BD7D3AD} = {96600A75-14EB-4DD2-B0D5-10461BD7D3AD}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
