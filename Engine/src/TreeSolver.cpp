@@ -30,55 +30,168 @@ namespace Engine {
     /*
     Counts configurations of a tree with given amount of talent points by topologically sorting the tree and iterating through valid paths (i.e.
     paths with monotonically increasing talent indices). See Wikipedia DAGs (which Wow Talent Trees are) and Topological Sorting.
-    Todo: Create a bulk count algorithm that does not employ early stopping if talent tree can't be filled anymore but keeps track of all sub tree binary indices
-    to do all different talent points calculations in a single run
     */
-    std::shared_ptr<TreeDAGInfoLegacy> countConfigurations(TalentTree tree, int talentPointsLimit) {
+    void countConfigurationsFiltered(
+        TalentTree tree,
+        std::shared_ptr<Engine::TalentSkillset> filter,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered
+    ) {
+        inProgress = true;
+        std::shared_ptr<TalentTree> processedTree = std::make_shared<TalentTree>(parseTree(createTreeStringRepresentation(tree)));
         tree.unspentTalentPoints = talentPointsLimit;
         int talentPoints = tree.unspentTalentPoints;
         //expand notes in tree
-        expandTreeTalents(tree);
+        expandTreeTalents(*processedTree);
         //visualizeTree(tree, "expanded");
 
         //create sorted DAG (is vector of vector and at most nx(m+1) Array where n = # nodes and m is the max amount of connections a node has to childs and 
         //+1 because first column contains the weight (1 for regular talents and 2 for switch talents))
-        TreeDAGInfoLegacy sortedTreeDAG = createSortedMinimalDAGLegacy(tree);
+        TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(*processedTree);
+        setSafetyGuard(sortedTreeDAG);
+        sortedTreeDAG.processedTree = processedTree;
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
-        std::vector<std::pair<SIND, int>> combinations;
-        int allCombinations = 0;
+        std::vector<SIND> combinations;
+
+        //create filters to be able to filter during solving
+        //skillset has compactTalentIndex information
+        //treeDAG->sortedTalents containts index->expandedTalentIndex mapping
+        //therefore we need compactTalentIndex->expandedTalentIndex mapping and reverse the index->expandedTalentIndex
+        std::map<int, int> expandedToPosIndexMap;
+        for (int i = 0; i < sortedTreeDAG.sortedTalents.size(); i++) {
+            expandedToPosIndexMap[sortedTreeDAG.sortedTalents[i]->index] = i;
+        }
+        std::map<int, std::vector<int>> compactToExpandedIndexMap;
+        for (auto& talent : tree.orderedTalents) {
+            std::vector<int> indices;
+            for (int i = 0; i < talent.second->maxPoints; i++) {
+                //this indexing is taken from TalentTrees.cpp expand talent tree routine and represents an arbitrary indexing
+                //for multipoint talents that doesn't collide for a use in a map
+                //TTMNOTE: If this changes, also change TalentTrees.cpp->expandTalentAndAdvance and TreeSolver.cpp->skillsetIndexToSkillset
+                if (i == 0) {
+                    indices.push_back(talent.second->index);
+                }
+                else {
+                    indices.push_back((talent.second->index + 1) * tree.maxTalentPoints + (i - 1));
+                }
+            }
+            compactToExpandedIndexMap[talent.second->index] = indices;
+        }
+        SIND includeFilter = 0; //this talent has to have exactly the specified amount of talent points
+        SIND excludeFilter = 0; //this talent must not have any talent points assigned
+        SIND orFilter = 0; //this group of talents has to have at least one talent point assigned
+        std::vector<std::pair<SIND, SIND>> oneFilter; //exactly one talent in this group has to be maxed while all others must not have any points
+        for (auto& indexFilterPair : filter->assignedSkillPoints) {
+            if (indexFilterPair.second == -3) {
+                SIND inc = 0;
+                SIND exc = 0;
+                for (auto& iFP : filter->assignedSkillPoints) {
+                    if (iFP.second != -3) {
+                        continue;
+                    }
+                    if (iFP.first == indexFilterPair.first) {
+                        for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
+                            int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][i];
+                            int pos = expandedToPosIndexMap[expandedTalentIndex];
+                            setTalent(inc, pos);
+                        }
+                    }
+                    else {
+                        for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
+                            int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][i];
+                            int pos = expandedToPosIndexMap[expandedTalentIndex];
+                            setTalent(exc, pos);
+                        }
+                    }
+                }
+                oneFilter.push_back({ inc, exc });
+            }
+            if (indexFilterPair.second == -2) {
+                for (int i = 0; i < compactToExpandedIndexMap[indexFilterPair.first].size(); i++) {
+                    int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][i];
+                    int pos = expandedToPosIndexMap[expandedTalentIndex];
+                    setTalent(orFilter, pos);
+                }
+            }
+            else if (indexFilterPair.second == -1) {
+                int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][0];
+                int pos = expandedToPosIndexMap[expandedTalentIndex];
+                setTalent(excludeFilter, pos);
+            }
+            else if (indexFilterPair.second > 0) {
+                for (int i = 0; i < indexFilterPair.second; i++) {
+                    int expandedTalentIndex = compactToExpandedIndexMap[indexFilterPair.first][i];
+                    int pos = expandedToPosIndexMap[expandedTalentIndex];
+                    setTalent(includeFilter, pos);
+                }
+            }
+        }
 
         //iterate through all possible combinations in order:
         //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
         //weight of combination = factor of 2 for every switch talent in path
         SIND visitedTalents = 0;
         int talentPointsLeft = tree.unspentTalentPoints;
-        //note:this will auto sort (not necessary but also doesn't hurt) and prevent duplicates
         std::vector<std::pair<int, int>> possibleTalents;
-        possibleTalents.reserve(sortedTreeDAG.minimalTreeDAG.size());
+        //possibleTalents.reserve(sortedTreeDAG.minimalTreeDAG.size());//is this faster or not?
         //add roots to the list of possible talents first, then iterate recursively with visitTalent
         for (auto& root : sortedTreeDAG.rootIndices) {
             possibleTalents.push_back(std::pair<int, int>(root, sortedTreeDAG.sortedTalents[root]->pointsRequired));
         }
+        auto t1 = std::chrono::high_resolution_clock::now();
+        //this is used for safeguarding solving process for trees that are too big
+        int runningCount = 0;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
-                visitTalentLegacy(possibleTalents[i], visitedTalents, i + 1, 1, 0, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+                visitTalentFiltered(
+                    possibleTalents[i],
+                    visitedTalents, 
+                    i + 1, 
+                    1,
+                    0, 
+                    talentPointsLeft, 
+                    possibleTalents, 
+                    sortedTreeDAG, 
+                    combinations, 
+                    runningCount, 
+                    std::ref(safetyGuardTriggered),
+                    includeFilter,
+                    excludeFilter,
+                    orFilter,
+                    oneFilter
+                );
         }
-        std::cout << "Number of configurations for " << talentPoints << " talent points without switch talents: " << combinations.size() << " and with : " << allCombinations << std::endl;
-
-        vec2d<std::pair<SIND, int>> allCombinationsVector;
+        if (safetyGuardTriggered) {
+            sortedTreeDAG.safetyGuardTriggered = true;
+        }
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+        vec2d<SIND> allCombinationsVector;
         allCombinationsVector.push_back(combinations);
         sortedTreeDAG.allCombinations = allCombinationsVector;
+        sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
+        inProgress = false;
 
-        return std::make_shared<TreeDAGInfoLegacy>(sortedTreeDAG);
+        //collect all switch talent choices
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
+                sortedTreeDAG.switchTalentChoices.push_back({ indexTalentPair.first, 1 });
+            }
+        }
+
+
+        treeDAGInfo = std::make_shared<TreeDAGInfo>(sortedTreeDAG);
     }
 
     /*
     Core recursive function in fast combination counting. Keeps track of selected talents, checks if combination is complete or cannot be finished (early stopping),
     and iterates through possible children in a sorted fashion to prevent duplicates.
     */
-    void visitTalentLegacy(
+    void visitTalentFiltered(
         std::pair<int, int> talentIndexReqPair,
         SIND visitedTalents,
         int currentPosTalIndex,
@@ -86,9 +199,14 @@ namespace Engine {
         int talentPointsSpent,
         int talentPointsLeft,
         std::vector<std::pair<int, int>> possibleTalents,
-        const TreeDAGInfoLegacy& sortedTreeDAG,
-        std::vector<std::pair<SIND, int>>& combinations,
-        int& allCombinations
+        const TreeDAGInfo& sortedTreeDAG,
+        std::vector<SIND>& combinations,
+        int& runningCount,
+        bool& safetyGuardTriggered,
+        SIND& includeFilter,
+        SIND& excludeFilter,
+        SIND& orFilter,
+        std::vector<std::pair<SIND, SIND>>& oneFilter
     ) {
         /*
         for each node visited add child nodes(in DAG array) to the vector of possible nodesand reduce talent points left
@@ -102,15 +220,16 @@ namespace Engine {
         talentPointsLeft -= 1;
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
         //check if path is complete
-        if (talentPointsLeft == 0) {
-            combinations.push_back(std::pair<SIND, int>(visitedTalents, currentMultiplier));
-            allCombinations += currentMultiplier;
+        if (talentPointsLeft == 0 && checkSkillsetFilter(visitedTalents, includeFilter, excludeFilter, orFilter, oneFilter)) {
+            combinations.push_back(visitedTalents);
             return;
         }
         //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but
         //sorting guarantees that these paths were visited earlier already)
-        if (sortedTreeDAG.sortedTalents.size() - talentIndexReqPair.first - 1 < talentPointsLeft) {
-            //cannot use up all the leftover talent points, therefore incomplete
+        //also check if exclude filter is violated and early stop as well
+        if (sortedTreeDAG.sortedTalents.size() - talentIndexReqPair.first - 1 < talentPointsLeft
+            || (visitedTalents & excludeFilter) != 0) {
+            //cannot use up all the leftover talent points, therefore incomplete, or exclude filter was violated
             return;
         }
         //add all possible children to the set for iteration
@@ -124,7 +243,22 @@ namespace Engine {
             //check if next talent is in right order andn talentPointsSpent is >= next talent points required
             if (possibleTalents[i].first > talentIndexReqPair.first &&
                 talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired) {
-                visitTalentLegacy(possibleTalents[i], visitedTalents, i + 1, currentMultiplier, talentPointsSpent, talentPointsLeft, possibleTalents, sortedTreeDAG, combinations, allCombinations);
+                visitTalentFiltered(
+                    possibleTalents[i],
+                    visitedTalents, 
+                    i + 1, 
+                    currentMultiplier, 
+                    talentPointsSpent, 
+                    talentPointsLeft, 
+                    possibleTalents, 
+                    sortedTreeDAG, 
+                    combinations, 
+                    runningCount,
+                    std::ref(safetyGuardTriggered),
+                    includeFilter,
+                    excludeFilter,
+                    orFilter,
+                    oneFilter);
             }
         }
     }
@@ -700,6 +834,34 @@ namespace Engine {
         }
 
         treeDAG->filteredCombinations = std::move(filteredCombinations);
+    }
+
+    inline bool checkSkillsetFilter(
+        const SIND skillset, 
+        const SIND includeFilter,
+        const SIND excludeFilter,
+        const SIND orFilter,
+        const std::vector<std::pair<SIND, SIND>> oneFilter) {
+        if (includeFilter == 0 && excludeFilter == 0 && orFilter == 0 && oneFilter.size() == 0) {
+            return true;
+        }
+        if ((skillset & excludeFilter) == 0 && ((~skillset) & includeFilter) == 0 && (orFilter == 0 || (skillset & orFilter) > 0)) {
+            if (oneFilter.size() == 0) {
+                return true;
+            }
+            else {
+                size_t matches = 0;
+                for (auto& filterPair : oneFilter) {
+                    if (((~skillset) & filterPair.first) == 0 && (skillset & filterPair.second) == 0) {
+                        matches += 1;
+                    }
+                }
+                if (matches == 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /*
