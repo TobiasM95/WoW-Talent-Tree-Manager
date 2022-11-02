@@ -1,6 +1,6 @@
 40
 40
-3583
+3592
 1600
 default.png
 0/abominationLimbDBlo.png
@@ -2903,6 +2903,15 @@ default.png
 34/wellhonedInstinctsDRes.png
 34/wellspringSRes.png
 34/whirlingDragonPunchMWin.png
+35/convergingStormsSEnh.png
+35/defendersAegisWPro.png
+35/fortifyingBrewDeterminationMBre.png
+35/sentinelOwlHBea.png
+35/sentinelOwlHMar.png
+35/sentinelOwlHSur.png
+35/spellname53376PHol.png
+35/spellname53376PPro.png
+35/spellname53376PRet.png
 35/whispersOfTheDamnedPSha.png
 35/wideningWhirlMWin.png
 35/wildCallHBea.png
