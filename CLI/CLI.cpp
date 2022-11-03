@@ -167,17 +167,61 @@ namespace CLI {
                         break;
                     }
                     std::vector<std::string> filterParts = Engine::splitString(filters[i], ":");
-                    if (filterParts.size() - 1 != allRunDetails[i].tree.orderedTalents.size()) {
-                        continue;
+                    bool positionalIndexing = filterParts[0].find(',') == std::string::npos;
+                    if (positionalIndexing) {
+                        if (filterParts.size() != allRunDetails[i].tree.orderedTalents.size()) {
+                            Engine::TalentSkillset skillset;
+                            for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
+                                skillset.assignedSkillPoints[indexTalentPair.first] = 0;
+                            }
+                            allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
+                            continue;
+                        }
+
+                        std::map<int, int> positionalToPresetIndexMap;
+                        std::vector<Engine::Talent_s> resortedTalents;
+                        for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
+                            resortedTalents.push_back(indexTalentPair.second);
+                        }
+                        std::sort(resortedTalents.begin(), resortedTalents.end(),
+                            [](const Engine::Talent_s& a, const Engine::Talent_s& b) -> bool
+                            {
+                                if (a->row != b->row) {
+                                    return a->row < b->row;
+                                }
+                                return a->column < b->column;
+                            });
+                        int positionalIndexCounter = 0;
+                        for (auto& talent : resortedTalents) {
+                            positionalToPresetIndexMap[positionalIndexCounter++] = talent->index;
+                        }
+
+                        Engine::TalentSkillset skillset;
+                        for (int i = 0; i < static_cast<int>(filterParts.size()); i++) {
+                            auto& skillsetPart = filterParts[i];
+                            int presetIndex = positionalToPresetIndexMap[i];
+                            skillset.assignedSkillPoints[presetIndex] = std::stoi(skillsetPart);
+                        }
+                        allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
                     }
-                    Engine::TalentSkillset skillset;
-                    int skillsetPartIndex = 1;
-                    for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
-                        auto& skillsetPart = filterParts[skillsetPartIndex];
-                        skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
-                        skillsetPartIndex++;
+                    else {
+                        if (filterParts.size() - 1 != allRunDetails[i].tree.orderedTalents.size()) {
+                            Engine::TalentSkillset skillset;
+                            for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
+                                skillset.assignedSkillPoints[indexTalentPair.first] = 0;
+                            }
+                            allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
+                            continue;
+                        }
+                        Engine::TalentSkillset skillset;
+                        int skillsetPartIndex = 1;
+                        for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
+                            auto& skillsetPart = filterParts[skillsetPartIndex];
+                            skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
+                            skillsetPartIndex++;
+                        }
+                        allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
                     }
-                    allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
                 }
             }
             else {
@@ -310,23 +354,18 @@ namespace CLI {
                 }
             }
 
-            //if (!settings.solveParallel) {
-            if (false) {
-                //parallelfor
-            }
-            else {
-                for (auto& comb : allRunDetails[i].treeDAGInfo->allCombinations[0]) {
-                    std::vector<int> assignedSwitchIndices;
-                    for (auto& bit : switchBits) {
-                        bool checkBit = (comb) & (1ULL << bit);
-                        if (checkBit) {
-                            assignedSwitchIndices.push_back(
-                                compactToPositionalIndexMap[expandedToCompactIndexMap[allRunDetails[i].treeDAGInfo->sortedTalents[bit]->index]]
-                            );
-                        }
+
+            for (auto& comb : allRunDetails[i].treeDAGInfo->allCombinations[0]) {
+                std::vector<int> assignedSwitchIndices;
+                for (auto& bit : switchBits) {
+                    bool checkBit = (comb) & (1ULL << bit);
+                    if (checkBit) {
+                        assignedSwitchIndices.push_back(
+                            compactToPositionalIndexMap[expandedToCompactIndexMap[allRunDetails[i].treeDAGInfo->sortedTalents[bit]->index]]
+                        );
                     }
-                    allRunDetails[i].assignedSwitchIndices.push_back(assignedSwitchIndices);
                 }
+                allRunDetails[i].assignedSwitchIndices.push_back(assignedSwitchIndices);
             }
         }
     }
