@@ -10,7 +10,9 @@ namespace CLI {
 		bool filterProvided = false;
 		bool generateOutput = false;
 		std::string structureFilePath;
+		std::string rawStructureIndices;
 		std::string filterFilePath;
+		std::string rawFilter;
 		std::string outputFilePath;
 		int targetTalentCount = 1;
 		bool solveParallel = false;
@@ -23,6 +25,8 @@ namespace CLI {
 		std::shared_ptr<Engine::TalentSkillset> filter;
 		Engine::SIND excludeFilter = 0;
 		bool safetyGuardTriggered = false;
+		std::vector<int> bitToIndexVec;
+		std::vector<std::vector<int>> assignedSwitchIndices;
 	};
 
 	CLSettings processCommandLine(int argc, char** argv);
