@@ -51,9 +51,16 @@ namespace CLI {
             if (component == "--structure-file-path" && argc >= i + 1) {
                 settings.structureFilePath = std::string{ argv[i + 1] };
             }
+            if (component == "--structure-indices" && argc >= i + 1) {
+                settings.rawStructureIndices = std::string{ argv[i + 1] };
+            }
             if (component == "--filter-file-path" && argc >= i + 1) {
                 settings.filterProvided = true;
                 settings.filterFilePath = std::string{ argv[i + 1] };
+            }
+            if (component == "--filter" && argc >= i + 1) {
+                settings.filterProvided = true;
+                settings.rawFilter = std::string{ argv[i + 1] };
             }
             if (component == "--output-file-path" && argc >= i + 1) {
                 settings.generateOutput = true;
@@ -84,8 +91,10 @@ namespace CLI {
     void printSettings(CLSettings settings) {
         std::cout << "Settings for the combination count:\n";
         std::cout << "Structure file path:\t" << settings.structureFilePath << "\n";
+        std::cout << "Raw structure indices:\t" << settings.rawStructureIndices << "\n";
         if (settings.filterProvided) {
             std::cout << "Filter file path:\t" << settings.filterFilePath << "\n";
+            std::cout << "Raw filter input:\t" << settings.rawFilter << "\n";
         }
         else {
             std::cout << "No filter provided.\n";
@@ -100,14 +109,25 @@ namespace CLI {
     }
 
     std::vector<RunDetails> generateRunDetails(CLSettings settings) {
+        std::map<size_t, RunDetails> allRunDetailsMap;
         std::vector<RunDetails> allRunDetails;
+        std::vector<size_t> selectedStructures;
+        for (auto& indexStr : Engine::splitString(settings.rawStructureIndices, ",")) {
+            selectedStructures.push_back(static_cast<size_t>(std::stoi(indexStr)));
+        }
 
         // first parse trees to get tree information and run count
+        size_t currentStructureIndex = 0;
         if (std::filesystem::is_regular_file(settings.structureFilePath)) {
             std::ifstream structureFile(settings.structureFilePath);
             std::string line;
 
             while (std::getline(structureFile, line)) {
+                if (selectedStructures.size() > 0 
+                    && std::find(selectedStructures.begin(), selectedStructures.end(), currentStructureIndex) == selectedStructures.end()) {
+                    currentStructureIndex++;
+                    continue;
+                }
                 std::stringstream treeRep{ "" };
                 treeRep << line.substr(0, line.find(":"));
                 treeRep << ":custom:";
@@ -117,49 +137,88 @@ namespace CLI {
                     RunDetails details;
                     details.tree = Engine::parseTree(treeRep.str());
                     details.targetTalentCount = settings.targetTalentCount;
-                    allRunDetails.push_back(details);
+                    allRunDetailsMap[currentStructureIndex] = details;
                 }
+                currentStructureIndex++;
+            }
+        }
+        if (selectedStructures.size() > 0) {
+            for (size_t& index : selectedStructures) {
+                if (allRunDetailsMap.count(index)) {
+                    allRunDetails.push_back(allRunDetailsMap[index]);
+                }
+            }
+        }
+        else {
+            for (auto& indexDetailPair : allRunDetailsMap) {
+                allRunDetails.push_back(indexDetailPair.second);
             }
         }
 
         // check if filter provided, if not, update skillsets to empty, if yes, set up filter skillsets
-        if (std::filesystem::is_regular_file(settings.filterFilePath)) {
-            std::ifstream structureFile(settings.filterFilePath);
-            std::string line;
-            int treeIndex = 0;
-
-            while (std::getline(structureFile, line)) {
-                if (treeIndex >= allRunDetails.size()) {
-                    break;
+        if (settings.filterProvided) {
+            if (settings.rawFilter != "") {
+                std::vector<std::string> filters = Engine::splitString(settings.rawFilter, ";");
+                if (filters.back() == "") {
+                    filters.pop_back();
                 }
-
-                if (line[line.size() - 1] == ';') {
-                    line = line.substr(0, line.size() - 1);
+                for (size_t i = 0; i < allRunDetails.size(); i++) {
+                    if (i >= filters.size()) {
+                        break;
+                    }
+                    std::vector<std::string> filterParts = Engine::splitString(filters[i], ":");
+                    if (filterParts.size() - 1 != allRunDetails[i].tree.orderedTalents.size()) {
+                        continue;
+                    }
+                    Engine::TalentSkillset skillset;
+                    int skillsetPartIndex = 1;
+                    for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
+                        auto& skillsetPart = filterParts[skillsetPartIndex];
+                        skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
+                        skillsetPartIndex++;
+                    }
+                    allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
                 }
+            }
+            else {
+                if (std::filesystem::is_regular_file(settings.filterFilePath)) {
+                    std::ifstream structureFile(settings.filterFilePath);
+                    std::string line;
+                    int treeIndex = 0;
 
-                std::vector<std::string> skillsetParts = Engine::splitString(line, ":");
+                    while (std::getline(structureFile, line)) {
+                        if (treeIndex >= allRunDetails.size()) {
+                            break;
+                        }
 
-                //we can ignore the name + meta info at index 0
+                        if (line[line.size() - 1] == ';') {
+                            line = line.substr(0, line.size() - 1);
+                        }
 
-                if (skillsetParts.size() - 1 != allRunDetails[treeIndex].tree.orderedTalents.size()) {
-                    treeIndex++;
-                    continue;
+                        std::vector<std::string> skillsetParts = Engine::splitString(line, ":");
+
+                        //we can ignore the name + meta info at index 0
+
+                        if (skillsetParts.size() - 1 != allRunDetails[treeIndex].tree.orderedTalents.size()) {
+                            treeIndex++;
+                            continue;
+                        }
+
+                        Engine::TalentSkillset skillset;
+                        int skillsetPartIndex = 1;
+                        for (auto& indexTalentPair : allRunDetails[treeIndex].tree.orderedTalents) {
+                            auto& skillsetPart = skillsetParts[skillsetPartIndex];
+                            skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
+                            skillsetPartIndex++;
+                        }
+
+                        allRunDetails[treeIndex].filter = std::make_shared<Engine::TalentSkillset>(skillset);
+
+                        treeIndex++;
+                    }
                 }
-
-                Engine::TalentSkillset skillset;
-                int skillsetPartIndex = 1;
-                for (auto& indexTalentPair : allRunDetails[treeIndex].tree.orderedTalents) {
-                    auto& skillsetPart = skillsetParts[skillsetPartIndex];
-                    skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
-                    skillsetPartIndex++;
-                }
-
-                allRunDetails[treeIndex].filter = std::make_shared<Engine::TalentSkillset>(skillset);
-
-                treeIndex++;
             }
         }
-
         return allRunDetails;
     }
 
@@ -192,6 +251,84 @@ namespace CLI {
                 );
             }
         }
+
+        //generate bit to talent index table
+        for (size_t i = 0; i < allRunDetails.size(); i++) {
+
+            std::map<int, int> expandedToCompactIndexMap;
+            for (auto& talent : allRunDetails[i].tree.orderedTalents) {
+                for (int j = 0; j < talent.second->maxPoints; j++) {
+                    //this indexing is taken from TalentTrees.cpp expand talent tree routine and represents an arbitrary indexing
+                    //for multipoint talents that doesn't collide for a use in a map
+                    //TTMNOTE: If this changes, also change TalentTrees.cpp->expandTalentAndAdvance and TreeSolver.cpp->filterSolvedSkillsets
+                    if (j == 0) {
+                        expandedToCompactIndexMap[talent.second->index] = talent.second->index;
+                    }
+                    else {
+                        expandedToCompactIndexMap[(talent.second->index + 1) * allRunDetails[i].tree.maxTalentPoints + (j - 1)] = talent.second->index;
+                    }
+                }
+            }
+
+            // normally, TTM indices will already be in that order but since arbitrary
+            // unique indices are allowed we're gonna make sure to adhere to this ordering now
+            Engine::TalentVec resortedTalents;
+            resortedTalents.reserve(allRunDetails[i].treeDAGInfo->sortedTalents.size());
+            for (auto& talent : allRunDetails[i].treeDAGInfo->sortedTalents) {
+                resortedTalents.push_back(talent);
+            }
+            std::sort(resortedTalents.begin(), resortedTalents.end(),
+                [](const Engine::Talent_s& a, const Engine::Talent_s& b) -> bool
+                {
+                    if (a->row != b->row) {
+                        return a->row < b->row;
+                    }
+                    return a->column < b->column;
+                });
+
+            std::map<int, int> compactToPositionalIndexMap;
+            int positionalIndex = 0;
+            for (int j = 0; j < static_cast<int>(resortedTalents.size()); j++) {
+                int compactIndex = expandedToCompactIndexMap[resortedTalents[j]->index];
+                if (!compactToPositionalIndexMap.count(compactIndex)) {
+                    compactToPositionalIndexMap[compactIndex] = positionalIndex++;
+                }
+            }
+
+            std::vector<int> bitToIndexVec;
+            bitToIndexVec.reserve(allRunDetails[i].treeDAGInfo->sortedTalents.size());
+            for (auto& talent : allRunDetails[i].treeDAGInfo->sortedTalents) {
+                bitToIndexVec.push_back(compactToPositionalIndexMap[expandedToCompactIndexMap[talent->index]]);
+            }
+
+            allRunDetails[i].bitToIndexVec = bitToIndexVec;
+
+            std::vector<Engine::SIND> switchBits;
+            for (size_t bit = 0; bit < allRunDetails[i].treeDAGInfo->sortedTalents.size(); bit++) {
+                if (allRunDetails[i].treeDAGInfo->sortedTalents[bit]->type == Engine::TalentType::SWITCH) {
+                    switchBits.push_back(bit);
+                }
+            }
+
+            //if (!settings.solveParallel) {
+            if (false) {
+                //parallelfor
+            }
+            else {
+                for (auto& comb : allRunDetails[i].treeDAGInfo->allCombinations[0]) {
+                    std::vector<int> assignedSwitchIndices;
+                    for (auto& bit : switchBits) {
+                        bool checkBit = (comb) & (1ULL << bit);
+                        if (checkBit) {
+                            assignedSwitchIndices.push_back(
+                                compactToPositionalIndexMap[expandedToCompactIndexMap[allRunDetails[i].treeDAGInfo->sortedTalents[bit]->index]]
+                            );
+                        }
+                    }
+                    allRunDetails[i].assignedSwitchIndices.push_back(assignedSwitchIndices);
+                }
+            }
+        }
     }
 
     void outputCombinations(std::vector<RunDetails>& allRunDetails, CLSettings& settings) {
@@ -200,8 +337,17 @@ namespace CLI {
         }
         std::ofstream outFile{ settings.outputFilePath };
         for(RunDetails& details : allRunDetails){
-            for (Engine::SIND& comb : details.treeDAGInfo->allCombinations[0]) {
-                outFile << comb << "\n";
+            for (size_t i = 0; i < details.bitToIndexVec.size() - 1; i++) {
+                outFile << details.bitToIndexVec[i] << "/";
+            }
+            outFile << details.bitToIndexVec[details.bitToIndexVec.size() - 1] << "\n";
+            for (size_t i = 0; i < details.treeDAGInfo->allCombinations[0].size(); i++) {
+                Engine::SIND& comb = details.treeDAGInfo->allCombinations[0][i];
+                outFile << comb;
+                for (int j = 0; j < static_cast<int>(details.assignedSwitchIndices[i].size()); j++) {
+                    outFile << "," << details.assignedSwitchIndices[i][j];
+                }
+                outFile << "\n";
             }
             outFile << "\n";
         }
