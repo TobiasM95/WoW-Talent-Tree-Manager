@@ -1819,6 +1819,8 @@ namespace Engine {
                 t->isExpanded = true;
                 t->name = talent->name + "_" + std::to_string(i + 1);
                 t->type = talent->type;
+                t->row = talent->row;
+                t->column = talent->column;
                 t->points = 0;
                 t->maxPoints = 1;
                 t->pointsRequired = talent->pointsRequired;
