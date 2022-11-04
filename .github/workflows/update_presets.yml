@@ -32,14 +32,11 @@ jobs:
           python tree_presets_generator.py
           output=$(python preset_processor.py)
           echo "toupdate=$output" >> $GITHUB_OUTPUT
-          
-      - name: test step
-        if: steps.updatestep.outputs.toupdate > 0
-        run: echo "update detected"
 
       - name: commit files # do this only when preset processor did something
         if: steps.updatestep.outputs.toupdate > 0
         run: |
+          echo "update detected, commit and push to master"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
