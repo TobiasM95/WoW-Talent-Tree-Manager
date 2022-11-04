@@ -6,12 +6,12 @@ import re
 import json
 import asyncio
 import aiohttp
-from PIL import Image
 import requests
 import pickle
-
-# import concurrent.futures
 from timeit import default_timer as timer
+
+# from PIL import Image
+# import concurrent.futures
 
 TYPE_ACTIVE = "active"
 TYPE_PASSIVE = "passive"
