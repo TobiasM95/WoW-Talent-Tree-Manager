@@ -24,9 +24,7 @@ def main():
     if new_hash != current_hash:
         for pfile, dfiles in zip(files_to_process, target_copy_locations):
             for dfile in dfiles:
-                # print(pfile, dfile)
-                # shutil.copyfile(pfile, dfiles)
-                pass
+                shutil.copyfile(pfile, dfile)
         return 1
     else:
         return 0
