@@ -299,7 +299,7 @@ def get_tooltip_urls(class_and_spec_trees):
 
 
 def get_tooltip_jsons(urls):
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     res = asyncio.run(request_tooltips(urls))
     tooltip_jsons = {}
     for resp in res:
