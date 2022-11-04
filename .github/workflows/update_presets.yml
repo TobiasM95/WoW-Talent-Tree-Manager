@@ -31,7 +31,7 @@ jobs:
         run: |
           python tree_presets_generator.py
           output=$(python preset_processor.py)
-          echo "::set-output name=toupdate::$output"
+          echo "toupdate=$output" >> $GITHUB_OUTPUT
           
       - name: test step
         if: steps.updatestep.outputs.toupdate > 0
