@@ -49,14 +49,17 @@ def update_resource_versions():
     with open(resource_version_locations[0], "r") as orig_file:
         orig_file_lines = orig_file.readlines()
     version = orig_file_lines[0].split(";")[1]
-    # current_date_string = datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
-    current_date_string = datetime.today().strftime("%Y-%m-%d")
+    current_date_string = datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
     with open("./resource_versions.txt", "w") as new_file:
-        for line in orig_file_lines:
+        for i, line in enumerate(orig_file_lines):
             if line.startswith("presets"):
-                new_file.write(f"presets;{version};{current_date_string}\n")
+                new_file.write(f"presets;{version};{current_date_string}")
+                if i < len(orig_file_lines) - 1:
+                    new_file.write("\n")
             elif line.startswith("nodeidorders"):
-                new_file.write(f"nodeidorders;{version};{current_date_string}\n")
+                new_file.write(f"nodeidorders;{version};{current_date_string}")
+                if i < len(orig_file_lines) - 1:
+                    new_file.write("\n")
             else:
                 new_file.write(line)
     for dfile in resource_version_locations:
