@@ -23,6 +23,8 @@
 
 #include "imgui_internal.h"
 
+#include <ppl.h>
+
 namespace TTM {
     void refreshIconMap(UIData& uiData) {
         std::filesystem::path iconRootPath = Presets::getAppPath() / "resources"/ "icons";
@@ -61,8 +63,20 @@ namespace TTM {
         else {
             std::filesystem::create_directory(customIconPath);
         }
+
+        std::vector<std::pair<std::string, std::string>> iconPathVec;
+        iconPathVec.reserve(iconPathMap.size());
+        std::vector<std::pair<TextureInfo, TextureInfo>> textureVec;
+        textureVec.resize(iconPathMap.size());
         for (auto& [filename, path] : iconPathMap) {
-            uiData.iconMap[filename] = loadTextureInfoFromFile(uiData, path.string());
+            iconPathVec.emplace_back(filename, path.string());
+        }
+        Concurrency::parallel_for(size_t(0), iconPathVec.size(), [&](size_t i) {
+                textureVec[i] = loadTextureInfoFromFile(uiData, iconPathVec[i].second);
+            }
+        );
+        for (size_t i = 0; i < iconPathVec.size(); i++) {
+            uiData.iconMap[iconPathVec[i].first] = textureVec[i];
         }
 
         //load default texture first
