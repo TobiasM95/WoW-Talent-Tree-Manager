@@ -205,6 +205,7 @@ namespace TTM {
                     saveWorkspace(uiData, talentTreeCollection);
                 }
                 if (ImGui::MenuItem("Close")) {
+                    saveWorkspace(uiData, talentTreeCollection);
                     done = true;
                 }
                 ImGui::EndMenu();
