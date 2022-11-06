@@ -517,6 +517,7 @@ namespace TTM {
             if (ImGui::BeginPopupModal("Create new tree", close, ImGuiWindowFlags_AlwaysAutoResize))
             {
                 if (ImGui::Button("New custom tree", ImVec2(-0.01f, 0))) {
+                    uiData.treeSwitchCD = true;
                     TalentTreeData tree;
                     tree.tree = Engine::loadTreePreset(talentTreeCollection.presets["custom"]);
 
@@ -524,6 +525,7 @@ namespace TTM {
                     talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
+                    uiData.treeEditorImportBlizzHashString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
                     uiData.treeEditorSelectedTalent = nullptr;
                     saveWorkspace(uiData, talentTreeCollection);
@@ -543,7 +545,6 @@ namespace TTM {
                 if (uiData.treeEditorPresetSpecCombo >= specCount) {
                     uiData.treeEditorPresetSpecCombo = specCount - 1;
                 }
-
                 ImGui::Combo(
                     "##treeEditorCreationPresetSpecCombo",
                     &uiData.treeEditorPresetSpecCombo,
@@ -551,7 +552,8 @@ namespace TTM {
                     specCount
                 );
                 //ImGui::SameLine();
-                if (ImGui::Button("Load preset", ImVec2(-0.01f, 0))) { 
+                if (ImGui::Button("Load preset", ImVec2(-0.01f, 0))) {
+                    uiData.treeSwitchCD = true;
                     TalentTreeData tree;
                     tree.tree = Engine::loadTreePreset(Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, uiData.treeEditorPresetSpecCombo));
                     talentTreeCollection.trees.push_back(tree);
@@ -559,14 +561,17 @@ namespace TTM {
                     talentTreeCollection.activeTree().activeSkillsetIndex = -1;
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
+                    uiData.treeEditorImportBlizzHashString = "";
                     loadActiveIcons(uiData, talentTreeCollection, true);
                     uiData.treeEditorSelectedTalent = nullptr;
                     saveWorkspace(uiData, talentTreeCollection);
                     ImGui::CloseCurrentPopup(); 
                 }
 
-                updateCustomTreeFileList(uiData);
-                uiData.treeEditorIsCustomTreeFileListValid = true;
+                if (!uiData.treeEditorIsCustomTreeFileListValid) {
+                    updateCustomTreeFileList(uiData);
+                    uiData.treeEditorIsCustomTreeFileListValid = true;
+                }
                 if (uiData.treeEditorCustomTreeFileList.size() > 0) {
                     ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                     ImGui::Text("or");
@@ -592,6 +597,7 @@ namespace TTM {
                     }
                     //ImGui::SameLine();
                     if (ImGui::Button("Load custom tree", ImVec2(-0.01f, 0))) {
+                        uiData.treeSwitchCD = true;
                         TalentTreeData tree;
                         talentTreeCollection.trees.push_back(tree);
                         talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
@@ -610,6 +616,7 @@ namespace TTM {
 
                             uiData.treeEditorImportTreeString = "";
                             uiData.treeEditorExportTreeString = "";
+                            uiData.treeEditorImportBlizzHashString = "";
                             saveWorkspace(uiData, talentTreeCollection);
                             ImGui::CloseCurrentPopup();
                         }
@@ -619,22 +626,103 @@ namespace TTM {
 
                 ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
                 ImGui::Text("or");
+                ImGui::Text("TTM tree import string:");
                 ImGui::InputText("##treeEditorCreationPopupImportText", &uiData.treeEditorImportTreeString, ImGuiInputTextFlags_AutoSelectAll);
                 if (ImGui::Button("Import tree##popup", ImVec2(-0.01f, 0))) {
                     if (!Engine::validateAndRepairTreeStringFormat(uiData.treeEditorImportTreeString)) {
                         uiData.treeEditorImportTreeString = "Invalid import string!";
                     }
                     else {
+                        uiData.treeSwitchCD = true;
                         TalentTreeData tree;
                         tree.tree = Engine::parseTree(uiData.treeEditorImportTreeString);
                         talentTreeCollection.trees.push_back(tree);
                         talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
                         uiData.treeEditorImportTreeString = "";
                         uiData.treeEditorExportTreeString = "";
+                        uiData.treeEditorImportBlizzHashString = "";
                         loadActiveIcons(uiData, talentTreeCollection, true);
                         uiData.treeEditorSelectedTalent = nullptr;
                         saveWorkspace(uiData, talentTreeCollection);
                         ImGui::CloseCurrentPopup();
+                    }
+                }
+                ImGui::SetCursorPosX((ImGui::GetWindowSize().x - ImGui::CalcTextSize("or").x) * 0.5f);
+                ImGui::Text("or");
+                ImGui::Text("In-game import string:");
+                ImGui::InputText("##treeEditorCreationPopupImportBlizzText", &uiData.treeEditorImportBlizzHashString, ImGuiInputTextFlags_AutoSelectAll);
+                oldClass = uiData.treeEditorPresetClassCombo;
+                ImGui::Combo("##treeEditorCreationPresetClassBlizzCombo", &uiData.treeEditorPresetClassCombo, Presets::CLASSES, IM_ARRAYSIZE(Presets::CLASSES));
+                if (oldClass != uiData.treeEditorPresetClassCombo) {
+                    uiData.treeEditorPresetSpecCombo = 0;
+                }
+                specCount = Presets::RETURN_SPEC_COUNT(uiData.treeEditorPresetClassCombo);
+                if (uiData.treeEditorPresetSpecCombo >= specCount) {
+                    uiData.treeEditorPresetSpecCombo = specCount - 1;
+                }
+                ImGui::Combo(
+                    "##treeEditorCreationPresetSpecBlizzCombo",
+                    &uiData.treeEditorPresetSpecCombo,
+                    Presets::RETURN_SPECS(uiData.treeEditorPresetClassCombo),
+                    specCount
+                );
+                ImGui::Checkbox("Import class tree", &uiData.treeEditorImportBlizzHashClassCheckbox);
+                ImGui::Checkbox("Import spec tree", &uiData.treeEditorImportBlizzHashSpecCheckbox);
+                ImGui::Text("Tree name:");
+                ImGui::InputText("##treeEditorBlizzImportNameText", &uiData.treeEditorImportBlizzHashNameString, ImGuiInputTextFlags_AutoSelectAll, TextFilters::FilterNameLetters);
+                if (ImGui::Button("Import tree##blizzpopup", ImVec2(-0.01f, 0)) 
+                    && (uiData.treeEditorImportBlizzHashClassCheckbox || uiData.treeEditorImportBlizzHashSpecCheckbox)) {
+                    int currentActiveTreeIndex = talentTreeCollection.activeTreeIndex;
+
+                    int classIndex = uiData.treeEditorPresetSpecCombo >= specCount / 2 ? uiData.treeEditorPresetSpecCombo : uiData.treeEditorPresetSpecCombo + specCount / 2;
+                    int specIndex = uiData.treeEditorPresetSpecCombo >= specCount / 2 ? uiData.treeEditorPresetSpecCombo - specCount / 2 : uiData.treeEditorPresetSpecCombo;
+                    TalentTreeData classTree;
+                    classTree.tree = Engine::loadTreePreset(
+                        Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, classIndex)
+                    );
+                    TalentTreeData specTree;
+                    specTree.tree = Engine::loadTreePreset(
+                        Presets::RETURN_PRESET(talentTreeCollection.presets, uiData.treeEditorPresetClassCombo, specIndex)
+                    );
+                    classTree.tree.name = uiData.treeEditorImportBlizzHashNameString + " class";
+                    specTree.tree.name = uiData.treeEditorImportBlizzHashNameString + " spec";
+                    talentTreeCollection.trees.push_back(classTree);
+                    talentTreeCollection.trees.push_back(specTree);
+
+
+                    Engine::TalentTree* compTreePtr = &talentTreeCollection.trees[talentTreeCollection.trees.size() - 2].tree;
+                    talentTreeCollection.activeTreeIndex = talentTreeCollection.trees.size() - 1;
+                    bool success = Engine::importBlizzardHash(
+                        talentTreeCollection.activeTree(),
+                        compTreePtr,
+                        uiData.treeEditorImportBlizzHashString,
+                        true
+                    );
+
+                    if (success) {
+                        if (!uiData.treeEditorImportBlizzHashClassCheckbox) {
+                            talentTreeCollection.trees.erase(talentTreeCollection.trees.end() - 2);
+                        }
+                        if (!uiData.treeEditorImportBlizzHashSpecCheckbox) {
+                            talentTreeCollection.trees.erase(talentTreeCollection.trees.end() - 1);
+                        }
+                        talentTreeCollection.activeTreeIndex = talentTreeCollection.trees.size() - 1;
+                        uiData.treeSwitchCD = true;
+                        uiData.treeEditorImportBlizzHashNameString = "Imported";
+                        uiData.isLoadoutInitValidated = false;
+                        uiData.treeEditorImportTreeString = "";
+                        uiData.treeEditorExportTreeString = "";
+                        uiData.treeEditorImportBlizzHashString = "";
+                        loadActiveIcons(uiData, talentTreeCollection, true);
+                        uiData.treeEditorSelectedTalent = nullptr;
+                        saveWorkspace(uiData, talentTreeCollection);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    else {
+                        talentTreeCollection.trees.erase(talentTreeCollection.trees.end() - 1);
+                        talentTreeCollection.trees.erase(talentTreeCollection.trees.end() - 1);
+                        talentTreeCollection.activeTreeIndex = currentActiveTreeIndex;
+                        uiData.treeEditorImportBlizzHashString = "Invalid import string!";
                     }
                 }
                 ImGui::EndPopup();
@@ -668,7 +756,6 @@ namespace TTM {
             // Submit our regular tabs
             int differentTreeIndex = -1;
             bool tabNotHovered = true;
-            static bool treeSwitchCD = false;
             for (int n = 0; n < talentTreeCollection.trees.size(); )
             {
                 Presets::SET_TAB_ITEM_COLOR(uiData.style, talentTreeCollection.trees[n].tree.presetName);
@@ -711,9 +798,9 @@ namespace TTM {
                     Presets::RESET_TAB_ITEM_COLOR();
                 }
             }
-            if (tabNotHovered && differentTreeIndex >= 0 && !treeSwitchCD) {
+            if (tabNotHovered && differentTreeIndex >= 0 && !uiData.treeSwitchCD) {
                 if (talentTreeCollection.activeTreeIndex != differentTreeIndex) {
-                    treeSwitchCD = true;
+                    uiData.treeSwitchCD = true;
                     clearTextboxes(uiData);
                     resetComplementaryIndices(talentTreeCollection);
                     talentTreeCollection.activeTreeIndex = differentTreeIndex;
@@ -724,7 +811,7 @@ namespace TTM {
                 }
             }
             else {
-                treeSwitchCD = false;
+                uiData.treeSwitchCD = false;
             }
             if (uiData.deleteTreeIndex >= 0) {
                 ImGui::OpenPopup("Delete tree confirmation");

@@ -192,6 +192,7 @@ namespace TTM {
                     uiData.treeEditPage = TreeEditPage::SaveLoadTree;
                     uiData.treeEditorImportTreeString = "";
                     uiData.treeEditorExportTreeString = "";
+                    uiData.treeEditorImportBlizzHashString = "";
                 }
             }
             ImGui::Spacing();
