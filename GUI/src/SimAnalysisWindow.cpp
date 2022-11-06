@@ -541,7 +541,8 @@ namespace TTM {
                     | ImGuiTableFlags_Resizable 
                     | ImGuiTableFlags_BordersOuter 
                     | ImGuiTableFlags_BordersV 
-                    | ImGuiTableFlags_BordersInnerH;
+                    | ImGuiTableFlags_BordersInnerH
+                    | ImGuiTableFlags_ScrollY;
 
                 auto& result = talentTreeCollection.activeTree().analysisResult;
                 ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
@@ -550,14 +551,28 @@ namespace TTM {
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
                 ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
                 ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
-                if (ImGui::BeginTable("Skillset ranking", 3, flags))
+                if (ImGui::BeginTable("Skillset ranking", 4, flags, ImGui::GetContentRegionAvail()))
                 {
+                    float pageWidth = ImGui::GetContentRegionAvail().x;
+                    float rankWidth = ImGui::CalcTextSize("_Rank_").x / pageWidth;
+                    float nameWidth = 0.44 * (1.0f - rankWidth);
+                    float perfWidth = 0.28 * (1.0f - rankWidth);
+                    float butWidth = 0.28 * (1.0f - rankWidth);
+                    float textHeight = ImGui::CalcTextSize("@").y;
+
+                    ImGui::TableSetupColumn("Rank", ImGuiTableColumnFlags_WidthStretch * 0, rankWidth, 0);
+                    ImGui::TableSetupColumn("Skillset name", ImGuiTableColumnFlags_WidthStretch * 0, nameWidth, 0);
+                    ImGui::TableSetupColumn("Performance", ImGuiTableColumnFlags_WidthStretch * 0, perfWidth, 0);
+                    ImGui::TableSetupColumn("Press to view", ImGuiTableColumnFlags_WidthStretch * 0, butWidth, 0);
+                    ImGui::TableSetupScrollFreeze(4, 1);
                     ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
                     ImGui::TableSetColumnIndex(0);
-                    ImGui::Text("Skillset name");
+                    ImGui::Text("Rank");
                     ImGui::TableSetColumnIndex(1);
-                    ImGui::Text("Performance");
+                    ImGui::Text("Skillset name");
                     ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("Performance");
+                    ImGui::TableSetColumnIndex(3);
                     ImGui::Text("Press to view");
                     float maxRatio = result.highestDPSSkillset.second / result.referenceDPS;
                     for (int row = result.skillsetCount - 1; row >= 0; row--)
@@ -568,16 +583,18 @@ namespace TTM {
                             ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_TOOLTIP_TALENT_DESC_COLOR(uiData.style));
                         }
                         ImGui::TableNextRow();
-                        for (int column = 0; column < 3; column++)
+                        for (int column = 0; column < 4; column++)
                         {
                             ImGui::TableSetColumnIndex(column);
                             float ratio = result.skillsetDPS[row] / result.referenceDPS;
-                            float textHeight = ImGui::CalcTextSize("@").y;
                             switch (column) {
                             case 0: {
-                                ImGui::Button(result.skillsetDPSNames[row], ImVec2(ImGui::GetContentRegionAvail().x, textHeight*1.375f));
+                                ImGui::Button(std::to_string(result.skillsetCount - row).c_str(), ImVec2(ImGui::GetContentRegionAvail().x, textHeight * 1.375f));
                             }break;
                             case 1: {
+                                ImGui::Button(result.skillsetDPSNames[row], ImVec2(ImGui::GetContentRegionAvail().x, textHeight*1.375f));
+                            }break;
+                            case 2: {
                                 if (!blueText) {
                                     if (ratio < 1.0f) {
                                         ImGui::PushStyleColor(ImGuiCol_Text, Presets::GET_SIM_ANALYSIS_YELLOW_COLOR(uiData.style));
@@ -593,7 +610,7 @@ namespace TTM {
                                     ImGui::PopStyleColor();
                                 }
                             }break;
-                            case 2: {
+                            case 3: {
                                 float windowWidth = ImGui::GetContentRegionAvail().x;
                                 float normRatio = (result.skillsetDPS[row] - result.lowestDPSSkillset.second)
                                     / (result.highestDPSSkillset.second - result.lowestDPSSkillset.second);
