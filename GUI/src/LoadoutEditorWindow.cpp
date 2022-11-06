@@ -310,167 +310,166 @@ namespace TTM {
                     ImVec2(ImGui::GetContentRegionAvail().x, 500.0f));
             }break;
             case LoadoutEditPage::SkillsetEdit: {
-                ImGui::Text("Import skillsets:");
-                ImGui::InputText("##loadoutEditorImportSkillsetsInput", &uiData.loadoutEditorImportSkillsetsString);
-                ImGui::SameLine();
-                if (ImGui::Button("Import##treeEditorImportTalentTreeButton")) {
-                    if (uiData.loadoutEditorImportSkillsetsString != "") {
-                        uiData.loadoutEditorImportSkillsetsResult = Engine::importSkillsets(talentTreeCollection.activeTree(), uiData.loadoutEditorImportSkillsetsString);
-                        ImGui::OpenPopup("Import skillsets result");
-                    }
-                }
-                ImGui::Text("Export active skillset:");
-                ImGui::InputText("##loadoutEditorExportActiveSkillsetInput", &uiData.loadoutEditorExportActiveSkillsetString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
-                ImGui::SameLine();
-                if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetButton")) {
-                    if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
-                        uiData.loadoutEditorExportActiveSkillsetString = Engine::createActiveSkillsetStringRepresentation(talentTreeCollection.activeTree());
-                    }
-                }
-                ImGui::Text("Export all skillsets:");
-                ImGui::InputText("##loadoutEditorExportAllSkillsetsInput", &uiData.loadoutEditorExportAllSkillsetsString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
-                ImGui::SameLine();
-                if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsButton")) {
-                    if (talentTreeCollection.activeTree().loadout.size() > 0) {
-                        uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
-                    }
-                }
-
-                ImGui::Text("Screenshot of loadout:");
-                if (ImGui::Button("To clipboard##treeEditorScreenshotExportTalentTreeButton")) {
-                    createScreenshotToClipboard(ImGui::FindWindowByName("TreeWindow")->WorkRect);
-                }
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ImGui::Text("Complementary tree/skillset:");
-                bool empty = (talentTreeCollection.activeTree().complementaryTreeIndex < 0
-                    && talentTreeCollection.activeTree().complementarySkillsetIndex < 0);
-                uiData.hoveredBlizzHashCombo = nullptr;
-                if (ImGui::BeginCombo("##talentEditIconNameSwitchCombo", empty ? "Empty skillset" : uiData.loadoutEditorComplementarySelection.c_str()))
+                if (ImGui::CollapsingHeader("Talent Tree Manager imports/exports"))
                 {
-                    const bool empty_selected = talentTreeCollection.activeTree().complementaryTreeIndex < 0;
-                    if (ImGui::Selectable("Empty skillset", empty_selected)) {
-                        talentTreeCollection.activeTree().complementaryTreeIndex = -1;
-                        talentTreeCollection.activeTree().complementarySkillsetIndex = -1;
-                        uiData.loadoutEditorComplementarySelection = "Empty skillset";
+                    ImGui::Text("Import skillsets:");
+                    ImGui::InputText("##loadoutEditorImportSkillsetsInput", &uiData.loadoutEditorImportSkillsetsString);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Import##treeEditorImportTalentTreeButton")) {
+                        if (uiData.loadoutEditorImportSkillsetsString != "") {
+                            uiData.loadoutEditorImportSkillsetsResult = Engine::importSkillsets(talentTreeCollection.activeTree(), uiData.loadoutEditorImportSkillsetsString);
+                            ImGui::OpenPopup("Import skillsets result");
+                        }
+                    }
+                    ImGui::Text("Export active skillset:");
+                    ImGui::InputText("##loadoutEditorExportActiveSkillsetInput", &uiData.loadoutEditorExportActiveSkillsetString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetButton")) {
+                        if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
+                            uiData.loadoutEditorExportActiveSkillsetString = Engine::createActiveSkillsetStringRepresentation(talentTreeCollection.activeTree());
+                        }
+                    }
+                    ImGui::Text("Export all skillsets:");
+                    ImGui::InputText("##loadoutEditorExportAllSkillsetsInput", &uiData.loadoutEditorExportAllSkillsetsString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsButton")) {
+                        if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                            uiData.loadoutEditorExportAllSkillsetsString = Engine::createAllSkillsetsStringRepresentation(talentTreeCollection.activeTree());
+                        }
                     }
 
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (empty_selected)
-                        ImGui::SetItemDefaultFocus();
+                    ImGui::Text("Screenshot of loadout:");
+                    if (ImGui::Button("To clipboard##treeEditorScreenshotExportTalentTreeButton")) {
+                        createScreenshotToClipboard(ImGui::FindWindowByName("TreeWindow")->WorkRect);
+                    }
+                }
 
-                    for (int i = 0; i < talentTreeCollection.trees.size(); i++)
+                if (ImGui::CollapsingHeader("In-game Skillsets imports/exports"))
+                {
+                    ImGui::Text("Complementary tree/skillset:");
+                    bool empty = (talentTreeCollection.activeTree().complementaryTreeIndex < 0
+                        && talentTreeCollection.activeTree().complementarySkillsetIndex < 0);
+                    uiData.hoveredBlizzHashCombo = nullptr;
+                    if (ImGui::BeginCombo("##talentEditIconNameSwitchCombo", empty ? "Empty skillset" : uiData.loadoutEditorComplementarySelection.c_str()))
                     {
-                        auto& talentTreeData = talentTreeCollection.trees[i];
-                        if (talentTreeData.tree.classID != talentTreeCollection.activeTree().classID 
-                            || talentTreeData.tree.type == talentTreeCollection.activeTree().type) {
-                            continue;
+                        const bool empty_selected = talentTreeCollection.activeTree().complementaryTreeIndex < 0;
+                        if (ImGui::Selectable("Empty skillset", empty_selected)) {
+                            talentTreeCollection.activeTree().complementaryTreeIndex = -1;
+                            talentTreeCollection.activeTree().complementarySkillsetIndex = -1;
+                            uiData.loadoutEditorComplementarySelection = "Empty skillset";
                         }
-                        for (int j = 0; j < talentTreeCollection.trees[i].tree.loadout.size(); j++) {
-                            const bool is_selected = (
+
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (empty_selected)
+                            ImGui::SetItemDefaultFocus();
+
+                        for (int i = 0; i < talentTreeCollection.trees.size(); i++)
+                        {
+                            auto& talentTreeData = talentTreeCollection.trees[i];
+                            if (talentTreeData.tree.classID != talentTreeCollection.activeTree().classID
+                                || talentTreeData.tree.type == talentTreeCollection.activeTree().type) {
+                                continue;
+                            }
+                            for (int j = 0; j < talentTreeCollection.trees[i].tree.loadout.size(); j++) {
+                                const bool is_selected = (
                                     talentTreeCollection.activeTree().complementaryTreeIndex == i &&
                                     talentTreeCollection.activeTree().complementarySkillsetIndex == j
-                            );
-                            std::string displayText = talentTreeCollection.trees[i].tree.name + ": " + talentTreeCollection.trees[i].tree.loadout[j]->name;
-                            if (ImGui::Selectable(displayText.c_str(), is_selected)) {
-                                talentTreeCollection.activeTree().complementaryTreeIndex = i;
-                                talentTreeCollection.activeTree().complementarySkillsetIndex = j;
-                                uiData.loadoutEditorComplementarySelection = displayText;
-                            }
-
-                            if (ImGui::IsItemHovered()) {
-                                uiData.hoveredBlizzHashCombo = std::make_shared<std::pair<Engine::TalentTree*, std::shared_ptr<Engine::TalentSkillset>>>(
-                                    &talentTreeCollection.trees[i].tree,
-                                    talentTreeCollection.trees[i].tree.loadout[j]
                                     );
+                                std::string displayText = talentTreeCollection.trees[i].tree.name + ": " + talentTreeCollection.trees[i].tree.loadout[j]->name;
+                                if (ImGui::Selectable(displayText.c_str(), is_selected)) {
+                                    talentTreeCollection.activeTree().complementaryTreeIndex = i;
+                                    talentTreeCollection.activeTree().complementarySkillsetIndex = j;
+                                    uiData.loadoutEditorComplementarySelection = displayText;
+                                }
+
+                                if (ImGui::IsItemHovered()) {
+                                    uiData.hoveredBlizzHashCombo = std::make_shared<std::pair<Engine::TalentTree*, std::shared_ptr<Engine::TalentSkillset>>>(
+                                        &talentTreeCollection.trees[i].tree,
+                                        talentTreeCollection.trees[i].tree.loadout[j]
+                                        );
+                                }
+
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
                             }
-
-                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
                         }
+                        ImGui::EndCombo();
                     }
-                    ImGui::EndCombo();
-                }
 
-                ImGui::Text("Import ingame skillset string:");
-                if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
-                    ImGui::Checkbox("Import spec tree into selected tree too", &uiData.loadoutEditorImportBlizzardOtherTreeCheckbox);
-                }
-                else {
-                    ImGui::Checkbox("Import class tree into selected tree too", &uiData.loadoutEditorImportBlizzardOtherTreeCheckbox);
-                }
-                ImGui::InputText("##loadoutEditorImportBlizzardHashInput", &uiData.loadoutEditorImportBlizzardHashString);
-                ImGui::SameLine();
-                if (ImGui::Button("Import##loadoutEditorImportBlizzardHashButton")) {
-                    Engine::TalentTree* compTreePtr = nullptr;
-                    if (talentTreeCollection.activeTree().complementaryTreeIndex >= 0
-                        && talentTreeCollection.activeTree().complementaryTreeIndex < talentTreeCollection.trees.size()) {
-                        compTreePtr = &talentTreeCollection.trees[talentTreeCollection.activeTree().complementaryTreeIndex].tree;
-                    }
-                    bool success = Engine::importBlizzardHash(
-                        talentTreeCollection.activeTree(),
-                        compTreePtr,
-                        uiData.loadoutEditorImportBlizzardHashString,
-                        uiData.loadoutEditorImportBlizzardOtherTreeCheckbox
-                    );
-                    uiData.isLoadoutInitValidated = false;
-                    if (success) {
-                        ImGui::OpenPopup("Import ingame skillset result");
+                    ImGui::Text("Import ingame skillset string:");
+                    if (talentTreeCollection.activeTree().type == Engine::TreeType::CLASS) {
+                        ImGui::Checkbox("Import spec tree into selected tree too", &uiData.loadoutEditorImportBlizzardOtherTreeCheckbox);
                     }
                     else {
-                        uiData.loadoutEditorImportBlizzardHashString = "Invalid import string!";
+                        ImGui::Checkbox("Import class tree into selected tree too", &uiData.loadoutEditorImportBlizzardOtherTreeCheckbox);
                     }
-                }
-
-                ImGui::Text("Export ingame skillset string:");
-                ImGui::InputText("##loadoutEditorExportBlizzardHashInput", &uiData.loadoutEditorExportBlizzardHashString);
-                ImGui::SameLine();
-                if (ImGui::Button("Export##loadoutEditorExportBlizzardHashButton")) {
-                    Engine::TalentTree* compTreePtr = nullptr;
-                    std::shared_ptr<Engine::TalentSkillset> compSsPtr = nullptr;
-                    if (talentTreeCollection.activeTree().complementaryTreeIndex >= 0
-                        && talentTreeCollection.activeTree().complementaryTreeIndex < talentTreeCollection.trees.size()) {
-                        compTreePtr = &talentTreeCollection.trees[talentTreeCollection.activeTree().complementaryTreeIndex].tree;
-                        if (talentTreeCollection.activeTree().complementarySkillsetIndex >= 0
-                            && talentTreeCollection.activeTree().complementarySkillsetIndex < compTreePtr->loadout.size()) {
-                            compSsPtr = compTreePtr->loadout[talentTreeCollection.activeTree().complementarySkillsetIndex];
+                    ImGui::InputText("##loadoutEditorImportBlizzardHashInput", &uiData.loadoutEditorImportBlizzardHashString);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Import##loadoutEditorImportBlizzardHashButton")) {
+                        Engine::TalentTree* compTreePtr = nullptr;
+                        if (talentTreeCollection.activeTree().complementaryTreeIndex >= 0
+                            && talentTreeCollection.activeTree().complementaryTreeIndex < talentTreeCollection.trees.size()) {
+                            compTreePtr = &talentTreeCollection.trees[talentTreeCollection.activeTree().complementaryTreeIndex].tree;
+                        }
+                        bool success = Engine::importBlizzardHash(
+                            talentTreeCollection.activeTree(),
+                            compTreePtr,
+                            uiData.loadoutEditorImportBlizzardHashString,
+                            uiData.loadoutEditorImportBlizzardOtherTreeCheckbox
+                        );
+                        uiData.isLoadoutInitValidated = false;
+                        if (success) {
+                            ImGui::OpenPopup("Import ingame skillset result");
+                        }
+                        else {
+                            uiData.loadoutEditorImportBlizzardHashString = "Invalid import string!";
                         }
                     }
-                    Engine::exportBlizzardHash(
-                        talentTreeCollection.activeTree(),
-                        compTreePtr,
-                        compSsPtr,
-                        uiData.loadoutEditorExportBlizzardHashString
-                    );
-                }
 
-                ImGui::Text("Placeholder Wowhead import/export");
-
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
-
-                ImGui::Text("Export active skillset to SimC:");
-                ImGui::Checkbox("Create profileset", &uiData.loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox);
-                ImGui::InputText("##loadoutEditorExportActiveSkillsetSimcInput", &uiData.loadoutEditorExportActiveSkillsetSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
-                ImGui::SameLine();
-                if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetSimcButton")) {
-                    if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
-                        uiData.loadoutEditorExportActiveSkillsetSimcString = Engine::createActiveSkillsetSimcStringRepresentation(
-                            talentTreeCollection.activeTree(), uiData.loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox
+                    ImGui::Text("Export ingame skillset string:");
+                    ImGui::InputText("##loadoutEditorExportBlizzardHashInput", &uiData.loadoutEditorExportBlizzardHashString);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export##loadoutEditorExportBlizzardHashButton")) {
+                        Engine::TalentTree* compTreePtr = nullptr;
+                        std::shared_ptr<Engine::TalentSkillset> compSsPtr = nullptr;
+                        if (talentTreeCollection.activeTree().complementaryTreeIndex >= 0
+                            && talentTreeCollection.activeTree().complementaryTreeIndex < talentTreeCollection.trees.size()) {
+                            compTreePtr = &talentTreeCollection.trees[talentTreeCollection.activeTree().complementaryTreeIndex].tree;
+                            if (talentTreeCollection.activeTree().complementarySkillsetIndex >= 0
+                                && talentTreeCollection.activeTree().complementarySkillsetIndex < compTreePtr->loadout.size()) {
+                                compSsPtr = compTreePtr->loadout[talentTreeCollection.activeTree().complementarySkillsetIndex];
+                            }
+                        }
+                        Engine::exportBlizzardHash(
+                            talentTreeCollection.activeTree(),
+                            compTreePtr,
+                            compSsPtr,
+                            uiData.loadoutEditorExportBlizzardHashString
                         );
                     }
                 }
-                ImGui::Text("Export all skillsets to SimC:");
-                ImGui::InputText("##loadoutEditorExportAllSkillsetsSimcInput", &uiData.loadoutEditorExportAllSkillsetsSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
-                ImGui::SameLine();
-                if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsSimcButton")) {
-                    if (talentTreeCollection.activeTree().loadout.size() > 0) {
-                        uiData.loadoutEditorExportAllSkillsetsSimcString = Engine::createAllSkillsetsSimcStringRepresentation(talentTreeCollection.activeTree());
+
+                if (ImGui::CollapsingHeader("SimulationCraft exports"))
+                {
+                    ImGui::Text("Export active skillset to SimC:");
+                    ImGui::Checkbox("Create profileset", &uiData.loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox);
+                    ImGui::InputText("##loadoutEditorExportActiveSkillsetSimcInput", &uiData.loadoutEditorExportActiveSkillsetSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export##loadoutEditorExportActiveSkillsetSimcButton")) {
+                        if (talentTreeCollection.activeTree().activeSkillsetIndex >= 0) {
+                            uiData.loadoutEditorExportActiveSkillsetSimcString = Engine::createActiveSkillsetSimcStringRepresentation(
+                                talentTreeCollection.activeTree(), uiData.loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox
+                            );
+                        }
+                    }
+                    ImGui::Text("Export all skillsets to SimC:");
+                    ImGui::InputText("##loadoutEditorExportAllSkillsetsSimcInput", &uiData.loadoutEditorExportAllSkillsetsSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Export##loadoutEditorExportAllSkillsetsSimcButton")) {
+                        if (talentTreeCollection.activeTree().loadout.size() > 0) {
+                            uiData.loadoutEditorExportAllSkillsetsSimcString = Engine::createAllSkillsetsSimcStringRepresentation(talentTreeCollection.activeTree());
+                        }
                     }
                 }
             }break;
