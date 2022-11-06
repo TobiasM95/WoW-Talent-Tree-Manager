@@ -146,6 +146,7 @@ namespace TTM {
 
 		std::string menuBarUpdateLabel = "";
 
+		bool treeSwitchCD = false;
 		int deleteTreeIndex = -1;
 
 		bool showAboutPopup = false;
@@ -210,6 +211,10 @@ namespace TTM {
 
 		std::string treeEditorImportTreeString = "";
 		std::string treeEditorExportTreeString = "";
+		std::string treeEditorImportBlizzHashString = "";
+		std::string treeEditorImportBlizzHashNameString = "Imported";
+		bool treeEditorImportBlizzHashClassCheckbox = true;
+		bool treeEditorImportBlizzHashSpecCheckbox = true;
 		std::string treeEditorPastebinExportTreeString = "";
 		bool pastebinExportCooldownActive = false;
 		std::chrono::steady_clock::time_point lastPastebinExportTime = std::chrono::high_resolution_clock::now() - std::chrono::seconds(60);

@@ -1417,6 +1417,7 @@ namespace TTM {
         uiData.treeEditorEditIconNameFilter = "";
         uiData.treeEditorImportTreeString = "";
         uiData.treeEditorExportTreeString = "";
+        uiData.treeEditorImportBlizzHashString = "";
         uiData.treeEditorPastebinExportTreeString = "";
         uiData.treeEditorReadableExportTreeString = "";
         uiData.loadoutEditorExportActiveSkillsetString = "";

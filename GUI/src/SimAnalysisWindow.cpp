@@ -555,9 +555,9 @@ namespace TTM {
                 {
                     float pageWidth = ImGui::GetContentRegionAvail().x;
                     float rankWidth = ImGui::CalcTextSize("_Rank_").x / pageWidth;
-                    float nameWidth = 0.44 * (1.0f - rankWidth);
-                    float perfWidth = 0.28 * (1.0f - rankWidth);
-                    float butWidth = 0.28 * (1.0f - rankWidth);
+                    float nameWidth = 0.44f * (1.0f - rankWidth);
+                    float perfWidth = 0.28f * (1.0f - rankWidth);
+                    float butWidth = 0.28f * (1.0f - rankWidth);
                     float textHeight = ImGui::CalcTextSize("@").y;
 
                     ImGui::TableSetupColumn("Rank", ImGuiTableColumnFlags_WidthStretch * 0, rankWidth, 0);
