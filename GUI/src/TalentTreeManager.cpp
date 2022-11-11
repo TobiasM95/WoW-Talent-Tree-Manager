@@ -791,6 +791,18 @@ namespace TTM {
 
                 if (!open) {
                     uiData.deleteTreeIndex = n;
+                    if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
+                        if (uiData.deleteTreeIndex >= 0 && uiData.deleteTreeIndex < talentTreeCollection.trees.size()) {
+                            talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
+                            talentTreeCollection.activeTreeIndex = static_cast<int>(talentTreeCollection.trees.size() - 1);
+                            loadActiveIcons(uiData, talentTreeCollection, true);
+                            //saveWorkspace(uiData, talentTreeCollection);
+                        }
+                        if (talentTreeCollection.trees.size() == 0) {
+                            uiData.editorView = EditorView::None;
+                        }
+                        uiData.deleteTreeIndex = -1;
+                    }
                 }
                 else
                     n++;
@@ -820,7 +832,7 @@ namespace TTM {
             ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
             if (ImGui::BeginPopupModal("Delete tree confirmation", NULL, ImGuiWindowFlags_AlwaysAutoResize))
             {
-                ImGui::Text("Delete the tree? This can not be undone!");
+                ImGui::Text("Delete the tree? This can not be undone!\n(Hold Shift to skip this warning)");
                 if (ImGui::Button("Yes", ImVec2(50, 0))) {
                     if (uiData.deleteTreeIndex >= 0 && uiData.deleteTreeIndex < talentTreeCollection.trees.size()) {
                         talentTreeCollection.trees.erase(talentTreeCollection.trees.begin() + uiData.deleteTreeIndex);
