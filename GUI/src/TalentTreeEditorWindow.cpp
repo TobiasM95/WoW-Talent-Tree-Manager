@@ -1755,14 +1755,11 @@ namespace TTM {
         {
             if (!treeFile.eof())
             {
-                std::getline(treeFile, line);
-                std::vector<std::string> treeComponents = Engine::splitString(line, ";");
-                if (treeComponents.size() > 0) {
-                    std::vector<std::string> treeInfo = Engine::splitString(treeComponents[0], ":");
-                    if (treeInfo.size() == 8) {
-                        treeName = treeInfo[3];
-                        readSuccessful = true;
-                    }
+                std::getline(treeFile, line, ';');
+                std::vector<std::string> treeInfo = Engine::splitString(line, ":");
+                if (treeInfo.size() == 8) {
+                    treeName = treeInfo[3];
+                    readSuccessful = true;
                 }
             }
             treeFile.close();
