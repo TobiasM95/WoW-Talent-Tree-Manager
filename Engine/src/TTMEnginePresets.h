@@ -166,11 +166,15 @@ namespace Presets {//ENGINE PRESETS
     const int RETURN_SPEC_COUNT(int classID);
     const char** RETURN_SPECS(int classID);
     const std::string RETURN_PRESET(std::map<std::string, std::string> presets, int classID, int specID);
+    std::pair<int, int> RETURN_IDS_FROM_PRESET_NAME(const std::string& presetName);
 
     std::filesystem::path getAppPath();
     std::map<std::string, std::string> LOAD_PRESETS();
     CLASS_IDS CLASS_ID_FROM_PRESET_NAME(std::string presetName);
     std::string LOAD_RAW_NODE_ID_ORDER(std::string presetName);
+
+    std::string PRESET_NAME_FROM_BLIZZ_SPEC_ID(size_t spec_id);
+    std::pair<std::string, std::string> CLASS_SPEC_PRESETS_FROM_BLIZZ_SPEC_ID(std::map<std::string, std::string> presets, size_t spec_id);
 
     /*
     First line (";" is line separator, ":" separates different parts of a single line, "," separates individual components of a property):
