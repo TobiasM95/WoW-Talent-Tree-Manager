@@ -404,26 +404,32 @@ namespace TTM {
                     else {
                         ImGui::Checkbox("Import class tree into selected tree too", &uiData.loadoutEditorImportBlizzardOtherTreeCheckbox);
                     }
-                    ImGui::InputText("##loadoutEditorImportBlizzardHashInput", &uiData.loadoutEditorImportBlizzardHashString);
+                    ImGui::InputText("##loadoutEditorImportBlizzardHashInput", &uiData.loadoutEditorImportBlizzardHashString, ImGuiInputTextFlags_AutoSelectAll);
                     ImGui::SameLine();
                     if (ImGui::Button("Import##loadoutEditorImportBlizzardHashButton")) {
-                        Engine::TalentTree* compTreePtr = nullptr;
-                        if (talentTreeCollection.activeTree().complementaryTreeIndex >= 0
-                            && talentTreeCollection.activeTree().complementaryTreeIndex < talentTreeCollection.trees.size()) {
-                            compTreePtr = &talentTreeCollection.trees[talentTreeCollection.activeTree().complementaryTreeIndex].tree;
-                        }
-                        bool success = Engine::importBlizzardHash(
-                            talentTreeCollection.activeTree(),
-                            compTreePtr,
-                            uiData.loadoutEditorImportBlizzardHashString,
-                            uiData.loadoutEditorImportBlizzardOtherTreeCheckbox
-                        );
-                        uiData.isLoadoutInitValidated = false;
-                        if (success) {
-                            ImGui::OpenPopup("Import ingame skillset result");
+                        bool correctClassSpec = verifyTreeIDWithBlizzHash(talentTreeCollection.activeTree(), uiData.loadoutEditorImportBlizzardHashString);
+                        if (correctClassSpec) {
+                            Engine::TalentTree* compTreePtr = nullptr;
+                            if (talentTreeCollection.activeTree().complementaryTreeIndex >= 0
+                                && talentTreeCollection.activeTree().complementaryTreeIndex < talentTreeCollection.trees.size()) {
+                                compTreePtr = &talentTreeCollection.trees[talentTreeCollection.activeTree().complementaryTreeIndex].tree;
+                            }
+                            bool success = Engine::importBlizzardHash(
+                                talentTreeCollection.activeTree(),
+                                compTreePtr,
+                                uiData.loadoutEditorImportBlizzardHashString,
+                                uiData.loadoutEditorImportBlizzardOtherTreeCheckbox
+                            );
+                            uiData.isLoadoutInitValidated = false;
+                            if (success) {
+                                ImGui::OpenPopup("Import ingame skillset result");
+                            }
+                            else {
+                                uiData.loadoutEditorImportBlizzardHashString = "Invalid import string!";
+                            }
                         }
                         else {
-                            uiData.loadoutEditorImportBlizzardHashString = "Invalid import string!";
+                            uiData.loadoutEditorImportBlizzardHashString = "Wrong class/spec or invalid import string!";
                         }
                     }
 
