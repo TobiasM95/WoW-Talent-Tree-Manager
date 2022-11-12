@@ -250,6 +250,7 @@ namespace TTM {
 		bool loadoutEditorExportActiveSkillsetSimcProfilesetCheckbox = false;
 		std::string loadoutEditorExportActiveSkillsetSimcString;
 		std::string loadoutEditorExportAllSkillsetsSimcString;
+		std::string loadoutEditorExportSingleTalentSkillsetsSimcString;
 		std::string loadoutEditorImportSkillsetsString;
 		std::string loadoutEditorComplementarySelection;
 		bool loadoutEditorImportBlizzardOtherTreeCheckbox = false;

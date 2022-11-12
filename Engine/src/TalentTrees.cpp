@@ -2105,6 +2105,40 @@ namespace Engine {
         return rep;
     }
 
+    std::string createSingleTalentComparisonSimcString(TalentTree& tree) {
+        std::string rep;
+        TalentSkillset skillset = *tree.loadout[tree.activeSkillsetIndex];
+        for (const auto& talent : tree.orderedTalents) {
+            int currentPoints = skillset.assignedSkillPoints[talent.first];
+            int maxPoints = talent.second->type == TalentType::SWITCH ? 2 : talent.second->maxPoints;
+            for (int points = 0; points <= maxPoints; points++) {
+                if (points == currentPoints) {
+                    continue;
+                }
+                skillset.assignedSkillPoints[talent.first] = points;
+                std::string talentName;
+                if (talent.second->type == TalentType::SWITCH) {
+                    if (points == 2) {
+                        talentName = talent.second->nameSwitch;
+                    }
+                    else {
+                        talentName = talent.second->name;
+                    }
+                }
+                else {
+                    talentName = talent.second->name;
+                }
+                rep += 
+                    "profileset.\"" 
+                    + talent.second->name + " " + std::to_string(currentPoints) + " to " + std::to_string(points)
+                    + "\"+=\"" + createSkillsetSimcStringRepresentation(std::make_shared<TalentSkillset>(skillset), tree) + "\"\n";
+            }
+            skillset.assignedSkillPoints[talent.first] = currentPoints;
+        }
+
+        return rep;
+    }
+
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset) {
         if (tree.loadout.size() <= tree.activeSkillsetIndex || !validateSkillset(tree, tree.loadout[tree.activeSkillsetIndex])) {
             return "Invalid skillset!";
