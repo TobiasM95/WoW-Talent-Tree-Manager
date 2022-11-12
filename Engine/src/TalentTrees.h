@@ -265,6 +265,7 @@ namespace Engine {
     std::string createActiveSkillsetStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsStringRepresentation(TalentTree& tree);
     std::string createSingleTalentsSimcString(TalentTree& tree);
+    std::string createSingleTalentComparisonSimcString(TalentTree& tree);
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset = false);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree, std::vector<std::shared_ptr<TalentSkillset>> loadout);

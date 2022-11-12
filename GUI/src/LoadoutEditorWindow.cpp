@@ -477,6 +477,16 @@ namespace TTM {
                             uiData.loadoutEditorExportAllSkillsetsSimcString = Engine::createAllSkillsetsSimcStringRepresentation(talentTreeCollection.activeTree());
                         }
                     }
+
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+
+                    ImGui::Text("Create single talent comparison profilesets:");
+                    ImGui::InputText("##loadoutEditorExportSingleTalentSkillsetsSimcInput", &uiData.loadoutEditorExportSingleTalentSkillsetsSimcString, ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AutoSelectAll);
+                    if (ImGui::Button("Export##loadoutEditorExportSingleTalentSkillsetsSimcButton")) {
+                        uiData.loadoutEditorExportSingleTalentSkillsetsSimcString = Engine::createSingleTalentComparisonSimcString(talentTreeCollection.activeTree());
+                    }
                 }
             }break;
             }

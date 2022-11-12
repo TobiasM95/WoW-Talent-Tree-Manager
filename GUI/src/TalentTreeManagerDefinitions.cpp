@@ -1424,6 +1424,7 @@ namespace TTM {
         uiData.loadoutEditorExportAllSkillsetsString = "";
         uiData.loadoutEditorExportActiveSkillsetSimcString = "";
         uiData.loadoutEditorExportAllSkillsetsSimcString = "";
+        uiData.loadoutEditorExportSingleTalentSkillsetsSimcString = "";
         uiData.loadoutEditorImportSkillsetsString = "";
         uiData.loadoutEditorImportBlizzardHashString = "";
         uiData.loadoutEditorExportBlizzardHashString = "";
