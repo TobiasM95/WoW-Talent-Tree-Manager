@@ -2270,15 +2270,42 @@ namespace Engine {
         hash_string = export_str;
     }
 
-    bool importBlizzardHash(
-        TalentTree& tree,
-        TalentTree* complementaryTree,
-        std::string& hash_string,
-        bool extractComplementarySkillset
-    ) {
-        extractComplementarySkillset = extractComplementarySkillset && complementaryTree != nullptr;
+    size_t get_bit(std::string& hash_string, size_t& head, size_t& byte, const size_t& bits) {
+        size_t val = 0;
+        for (size_t i = 0; i < bits; i++)
+        {
+            size_t bit = head % byte_size;
+            head++;
+            val += (byte >> bit & 0b1) << i;
+            if (bit == byte_size - 1)
+            {
+                byte = base64_char.find(hash_string[head / byte_size]);
+            }
+        }
+        return val;
+    }
 
+    std::pair<std::string, std::string> getClassSpecPresetsFromBlizzHash(std::map<std::string, std::string> presets, std::string& hash_string) {
+        if (hash_string.find_first_not_of(base64_char) != std::string::npos)
+        {
+            return {"", ""};
+        }
 
+        if (version_bits + spec_bits + tree_bits > hash_string.size() * byte_size)
+        {
+            return {"", ""};
+        }
+
+        size_t head = 0;
+        size_t byte = base64_char.find(hash_string[0]);
+
+        size_t version_id = get_bit(hash_string, head, byte, version_bits);
+        size_t spec_id = get_bit(hash_string, head, byte, spec_bits);
+
+        return Presets::CLASS_SPEC_PRESETS_FROM_BLIZZ_SPEC_ID(presets, spec_id);
+    }
+
+    bool verifyTreeIDWithBlizzHash(const TalentTree& tree, std::string hash_string) {
         if (hash_string.find_first_not_of(base64_char) != std::string::npos)
         {
             return false;
@@ -2291,23 +2318,46 @@ namespace Engine {
 
         size_t head = 0;
         size_t byte = base64_char.find(hash_string[0]);
-        auto get_bit = [&hash_string, &head, &byte](size_t bits) {
-            size_t val = 0;
-            for (size_t i = 0; i < bits; i++)
-            {
-                size_t bit = head % byte_size;
-                head++;
-                val += (byte >> bit & 0b1) << i;
-                if (bit == byte_size - 1)
-                {
-                    byte = base64_char.find(hash_string[head / byte_size]);
-                }
-            }
-            return val;
-        };
 
-        auto version_id = get_bit(version_bits);
-        auto spec_id = get_bit(spec_bits);
+        size_t version_id = get_bit(hash_string, head, byte, version_bits);
+        size_t spec_id = get_bit(hash_string, head, byte, spec_bits);
+
+        std::string presetName = Presets::PRESET_NAME_FROM_BLIZZ_SPEC_ID(spec_id);
+
+        if (tree.type == TreeType::CLASS) {
+            std::vector<std::string> presetNameParts = splitString(tree.presetName, "_class");
+            return presetNameParts[0] + presetNameParts[1] == presetName;
+        }
+        else {
+            return tree.presetName == presetName;
+        }
+    }
+
+    bool importBlizzardHash(
+        TalentTree& tree,
+        TalentTree* complementaryTree,
+        std::string& hash_string,
+        bool extractComplementarySkillset
+    ) {
+        extractComplementarySkillset = extractComplementarySkillset && complementaryTree != nullptr;
+        // shouldn't be necessary but doesn't hurt either way
+        std::string paddedHash = hash_string + "AAAAAAAAAAAA";
+
+        if (paddedHash.find_first_not_of(base64_char) != std::string::npos)
+        {
+            return false;
+        }
+
+        if (version_bits + spec_bits + tree_bits > paddedHash.size() * byte_size)
+        {
+            return false;
+        }
+
+        size_t head = 0;
+        size_t byte = base64_char.find(paddedHash[0]);
+
+        auto version_id = get_bit(paddedHash, head, byte, version_bits);
+        auto spec_id = get_bit(paddedHash, head, byte, spec_bits);
 
         if (version_id != LOADOUT_SERIALIZATION_VERSION)
         {
@@ -2331,7 +2381,7 @@ namespace Engine {
         // As per Interface/AddOns/Blizzard_ClassTalentUI/Blizzard_ClassTalentImportExport.lua: treeHash is a 128bit hash,
         // passed as an array of 16, 8-bit values. For SimC purposes we can ignore it, as invalid/outdated strings can error
         // in later checks
-        get_bit(tree_bits);
+        get_bit(paddedHash, head, byte, tree_bits);
 
         std::shared_ptr<TalentSkillset> classSkillset = std::make_shared<TalentSkillset>();
         classSkillset->name = "Ingame imported skillset";
@@ -2365,16 +2415,16 @@ namespace Engine {
 
 
         for (int& nodeID : order) {
-            if (get_bit(1)) { // selected
+            if (get_bit(paddedHash, head, byte, 1)) { // selected
                 size_t rank = nodeIDTalentMap.count(nodeID) ? nodeIDTalentMap[nodeID].second->maxPoints : 0;
-                if (get_bit(1))  // partially ranked normal trait
+                if (get_bit(paddedHash, head, byte, 1))  // partially ranked normal trait
                 {
-                    rank = get_bit(rank_bits);
+                    rank = get_bit(paddedHash, head, byte, rank_bits);
                 }
 
-                if (get_bit(1))  // choice trait
+                if (get_bit(paddedHash, head, byte, 1))  // choice trait
                 {
-                    size_t choice = get_bit(choice_bits);
+                    size_t choice = get_bit(paddedHash, head, byte, choice_bits);
 
                     rank += choice;
                 }

@@ -268,6 +268,9 @@ namespace Engine {
     std::string createActiveSkillsetSimcStringRepresentation(TalentTree& tree, bool createProfileset = false);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree);
     std::string createAllSkillsetsSimcStringRepresentation(TalentTree& tree, std::vector<std::shared_ptr<TalentSkillset>> loadout);
+    size_t get_bit(std::string& hash_string, size_t& head, size_t& byte, const size_t& bits);
+    std::pair<std::string, std::string> getClassSpecPresetsFromBlizzHash(std::map<std::string, std::string> presets, std::string& hash_string);
+    bool verifyTreeIDWithBlizzHash(const TalentTree& tree, std::string hash_string);
     void exportBlizzardHash(
         const TalentTree& tree,
         const TalentTree* complementaryTree,
