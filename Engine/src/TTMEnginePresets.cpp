@@ -200,6 +200,101 @@ namespace Presets {
 		}
 	}
 
+	std::pair<int, int> RETURN_IDS_FROM_PRESET_NAME(const std::string& presetName) {
+		if (presetName == "deathknight_blood") return { CLASS_IDS::CLASS_IDS_DEATHKNIGHT, DEATHKNIGHT_SPEC_IDS::DEATHKNIGHT_SPEC_IDS_BLOOD };
+		if (presetName == "deathknight_class_blood") return { CLASS_IDS::CLASS_IDS_DEATHKNIGHT, DEATHKNIGHT_SPEC_IDS::DEATHKNIGHT_SPEC_IDS_CLASS_BLOOD };
+		if (presetName == "deathknight_frost") return { CLASS_IDS::CLASS_IDS_DEATHKNIGHT, DEATHKNIGHT_SPEC_IDS::DEATHKNIGHT_SPEC_IDS_FROST };
+		if (presetName == "deathknight_class_frost") return { CLASS_IDS::CLASS_IDS_DEATHKNIGHT, DEATHKNIGHT_SPEC_IDS::DEATHKNIGHT_SPEC_IDS_CLASS_FROST };
+		if (presetName == "deathknight_unholy") return { CLASS_IDS::CLASS_IDS_DEATHKNIGHT, DEATHKNIGHT_SPEC_IDS::DEATHKNIGHT_SPEC_IDS_UNHOLY };
+		if (presetName == "deathknight_class_unholy") return { CLASS_IDS::CLASS_IDS_DEATHKNIGHT, DEATHKNIGHT_SPEC_IDS::DEATHKNIGHT_SPEC_IDS_CLASS_UNHOLY };
+
+		if (presetName == "demonhunter_havoc") return { CLASS_IDS::CLASS_IDS_DEMONHUNTER, DEMONHUNTER_SPEC_IDS::DEMONHUNTER_SPEC_IDS_HAVOC };
+		if (presetName == "demonhunter_class_havoc") return { CLASS_IDS::CLASS_IDS_DEMONHUNTER, DEMONHUNTER_SPEC_IDS::DEMONHUNTER_SPEC_IDS_CLASS_HAVOC };
+		if (presetName == "demonhunter_vengeance") return { CLASS_IDS::CLASS_IDS_DEMONHUNTER, DEMONHUNTER_SPEC_IDS::DEMONHUNTER_SPEC_IDS_VENGEANCE };
+		if (presetName == "demonhunter_class_vengeance") return { CLASS_IDS::CLASS_IDS_DEMONHUNTER, DEMONHUNTER_SPEC_IDS::DEMONHUNTER_SPEC_IDS_CLASS_VENGEANCE };
+
+		if (presetName == "druid_balance") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_BALANCE };
+		if (presetName == "druid_class_balance") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_CLASS_BALANCE };
+		if (presetName == "druid_feral") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_FERAL};
+		if (presetName == "druid_class_feral") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_CLASS_FERAL};
+		if (presetName == "druid_guardian") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_GUARDIAN };
+		if (presetName == "druid_class_guardian") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_CLASS_GUARDIAN};
+		if (presetName == "druid_restoration") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_RESTORATION };
+		if (presetName == "druid_class_restoration") return { CLASS_IDS::CLASS_IDS_DRUID, DRUID_SPEC_IDS::DRUID_SPEC_IDS_CLASS_RESTORATION};
+
+		if (presetName == "evoker_devastation") return { CLASS_IDS::CLASS_IDS_EVOKER, EVOKER_SPEC_IDS::EVOKER_SPEC_IDS_DEVASTATION };
+		if (presetName == "evoker_class_devastation") return { CLASS_IDS::CLASS_IDS_EVOKER, EVOKER_SPEC_IDS::EVOKER_SPEC_IDS_CLASS_DEVASTATION };
+		if (presetName == "evoker_preservation") return { CLASS_IDS::CLASS_IDS_EVOKER, EVOKER_SPEC_IDS::EVOKER_SPEC_IDS_PRESERVATION};
+		if (presetName == "evoker_class_preservation") return { CLASS_IDS::CLASS_IDS_EVOKER, EVOKER_SPEC_IDS::EVOKER_SPEC_IDS_CLASS_PRESERVATION};
+
+		if (presetName == "hunter_beastmastery") return { CLASS_IDS::CLASS_IDS_HUNTER, HUNTER_SPEC_IDS::HUNTER_SPEC_IDS_BEASTMASTERY };
+		if (presetName == "hunter_class_beastmastery") return { CLASS_IDS::CLASS_IDS_HUNTER, HUNTER_SPEC_IDS::HUNTER_SPEC_IDS_CLASS_BEASTMASTERY };
+		if (presetName == "hunter_marksmanship") return { CLASS_IDS::CLASS_IDS_HUNTER, HUNTER_SPEC_IDS::HUNTER_SPEC_IDS_MARKSMANSHIP };
+		if (presetName == "hunter_class_marksmanship") return { CLASS_IDS::CLASS_IDS_HUNTER, HUNTER_SPEC_IDS::HUNTER_SPEC_IDS_CLASS_MARKSMANSHIP};
+		if (presetName == "hunter_survival") return { CLASS_IDS::CLASS_IDS_HUNTER, HUNTER_SPEC_IDS::HUNTER_SPEC_IDS_SURVIVAL };
+		if (presetName == "hunter_class_survival") return { CLASS_IDS::CLASS_IDS_HUNTER, HUNTER_SPEC_IDS::HUNTER_SPEC_IDS_CLASS_SURVIVAL};
+
+		if (presetName == "mage_arcane") return { CLASS_IDS::CLASS_IDS_MAGE, MAGE_SPEC_IDS::MAGE_SPEC_IDS_ARCANE };
+		if (presetName == "mage_class_arcane") return { CLASS_IDS::CLASS_IDS_MAGE, MAGE_SPEC_IDS::MAGE_SPEC_IDS_CLASS_ARCANCE };
+		if (presetName == "mage_fire") return { CLASS_IDS::CLASS_IDS_MAGE, MAGE_SPEC_IDS::MAGE_SPEC_IDS_FIRE};
+		if (presetName == "mage_class_fire") return { CLASS_IDS::CLASS_IDS_MAGE, MAGE_SPEC_IDS::MAGE_SPEC_IDS_CLASS_FIRE};
+		if (presetName == "mage_frost") return { CLASS_IDS::CLASS_IDS_MAGE, MAGE_SPEC_IDS::MAGE_SPEC_IDS_FROST};
+		if (presetName == "mage_class_frost") return { CLASS_IDS::CLASS_IDS_MAGE, MAGE_SPEC_IDS::MAGE_SPEC_IDS_CLASS_FROST};
+
+		if (presetName == "monk_brewmaster") return { CLASS_IDS::CLASS_IDS_MONK, MONK_SPEC_IDS::MONK_SPEC_IDS_BREWMASTER };
+		if (presetName == "monk_class_brewmaster") return { CLASS_IDS::CLASS_IDS_MONK, MONK_SPEC_IDS::MONK_SPEC_IDS_CLASS_BREWMASTER };
+		if (presetName == "monk_mistweaver") return { CLASS_IDS::CLASS_IDS_MONK, MONK_SPEC_IDS::MONK_SPEC_IDS_MISTWEAVER};
+		if (presetName == "monk_class_mistweaver") return { CLASS_IDS::CLASS_IDS_MONK, MONK_SPEC_IDS::MONK_SPEC_IDS_CLASS_MISTWEAVER};
+		if (presetName == "monk_windwalker") return { CLASS_IDS::CLASS_IDS_MONK, MONK_SPEC_IDS::MONK_SPEC_IDS_WINDWALKER};
+		if (presetName == "monk_class_windwalker") return { CLASS_IDS::CLASS_IDS_MONK, MONK_SPEC_IDS::MONK_SPEC_IDS_CLASS_WINDWALKER};
+
+		if (presetName == "paladin_holy") return { CLASS_IDS::CLASS_IDS_PALADIN, PALADIN_SPEC_IDS::PALADIN_SPEC_IDS_HOLY };
+		if (presetName == "paladin_class_holy") return { CLASS_IDS::CLASS_IDS_PALADIN, PALADIN_SPEC_IDS::PALADIN_SPEC_IDS_CLASS_HOLY };
+		if (presetName == "paladin_protection") return { CLASS_IDS::CLASS_IDS_PALADIN, PALADIN_SPEC_IDS::PALADIN_SPEC_IDS_PROTECTION };
+		if (presetName == "paladin_class_protection") return { CLASS_IDS::CLASS_IDS_PALADIN, PALADIN_SPEC_IDS::PALADIN_SPEC_IDS_CLASS_PROTECTION};
+		if (presetName == "paladin_retribution") return { CLASS_IDS::CLASS_IDS_PALADIN, PALADIN_SPEC_IDS::PALADIN_SPEC_IDS_RETRIBUTION };
+		if (presetName == "paladin_class_retribution") return { CLASS_IDS::CLASS_IDS_PALADIN, PALADIN_SPEC_IDS::PALADIN_SPEC_IDS_CLASS_RETRIBUTION};
+
+		if (presetName == "priest_discipline") return { CLASS_IDS::CLASS_IDS_PRIEST, PRIEST_SPEC_IDS::PRIEST_SPEC_IDS_DISCIPLINE };
+		if (presetName == "priest_class_discipline") return { CLASS_IDS::CLASS_IDS_PRIEST, PRIEST_SPEC_IDS::PRIEST_SPEC_IDS_CLASS_DISCIPLINE };
+		if (presetName == "priest_holy") return { CLASS_IDS::CLASS_IDS_PRIEST, PRIEST_SPEC_IDS::PRIEST_SPEC_IDS_HOLY};
+		if (presetName == "priest_class_holy") return { CLASS_IDS::CLASS_IDS_PRIEST, PRIEST_SPEC_IDS::PRIEST_SPEC_IDS_CLASS_HOLY};
+		if (presetName == "priest_shadow") return { CLASS_IDS::CLASS_IDS_PRIEST, PRIEST_SPEC_IDS::PRIEST_SPEC_IDS_SHADOW };
+		if (presetName == "priest_class_shadow") return { CLASS_IDS::CLASS_IDS_PRIEST, PRIEST_SPEC_IDS::PRIEST_SPEC_IDS_CLASS_SHADOW};
+
+		if (presetName == "rogue_assassination") return { CLASS_IDS::CLASS_IDS_ROGUE, ROGUE_SPEC_IDS::ROGUE_SPEC_IDS_ASSASSINATION };
+		if (presetName == "rogue_class_assassination") return { CLASS_IDS::CLASS_IDS_ROGUE, ROGUE_SPEC_IDS::ROGUE_SPEC_IDS_CLASS_ASSASSINATION };
+		if (presetName == "rogue_outlaw") return { CLASS_IDS::CLASS_IDS_ROGUE, ROGUE_SPEC_IDS::ROGUE_SPEC_IDS_OUTLAW};
+		if (presetName == "rogue_class_outlaw") return { CLASS_IDS::CLASS_IDS_ROGUE, ROGUE_SPEC_IDS::ROGUE_SPEC_IDS_CLASS_OUTLAW};
+		if (presetName == "rogue_subtlety") return { CLASS_IDS::CLASS_IDS_ROGUE, ROGUE_SPEC_IDS::ROGUE_SPEC_IDS_SUBTLETY};
+		if (presetName == "rogue_class_subtlety") return { CLASS_IDS::CLASS_IDS_ROGUE, ROGUE_SPEC_IDS::ROGUE_SPEC_IDS_CLASS_SUBTLETY};
+
+		if (presetName == "shaman_elemental") return { CLASS_IDS::CLASS_IDS_SHAMAN, SHAMAN_SPEC_IDS::SHAMAN_SPEC_IDS_ELEMENTAL };
+		if (presetName == "shaman_class_elemental") return { CLASS_IDS::CLASS_IDS_SHAMAN, SHAMAN_SPEC_IDS::SHAMAN_SPEC_IDS_CLASS_ELEMENTAL };
+		if (presetName == "shaman_enhancement") return { CLASS_IDS::CLASS_IDS_SHAMAN, SHAMAN_SPEC_IDS::SHAMAN_SPEC_IDS_ENHANCEMENT};
+		if (presetName == "shaman_class_enhancement") return { CLASS_IDS::CLASS_IDS_SHAMAN, SHAMAN_SPEC_IDS::SHAMAN_SPEC_IDS_CLASS_ENHANCEMENT};
+		if (presetName == "shaman_restoration") return { CLASS_IDS::CLASS_IDS_SHAMAN, SHAMAN_SPEC_IDS::SHAMAN_SPEC_IDS_RESTORATION};
+		if (presetName == "shaman_class_restoration") return { CLASS_IDS::CLASS_IDS_SHAMAN, SHAMAN_SPEC_IDS::SHAMAN_SPEC_IDS_CLASS_RESTORATION};
+
+		if (presetName == "warlock_affliction") return { CLASS_IDS::CLASS_IDS_WARLOCK, WARLOCK_SPEC_IDS::WARLOCK_SPEC_IDS_AFFLICTION };
+		if (presetName == "warlock_class_affliction") return { CLASS_IDS::CLASS_IDS_WARLOCK, WARLOCK_SPEC_IDS::WARLOCK_SPEC_IDS_CLASS_AFFLICTION };
+		if (presetName == "warlock_demonology") return { CLASS_IDS::CLASS_IDS_WARLOCK, WARLOCK_SPEC_IDS::WARLOCK_SPEC_IDS_DEMONOLOGY};
+		if (presetName == "warlock_class_demonology") return { CLASS_IDS::CLASS_IDS_WARLOCK, WARLOCK_SPEC_IDS::WARLOCK_SPEC_IDS_CLASS_DEMONOLOGY};
+		if (presetName == "warlock_destruction") return { CLASS_IDS::CLASS_IDS_WARLOCK, WARLOCK_SPEC_IDS::WARLOCK_SPEC_IDS_DESTRUCTION };
+		if (presetName == "warlock_class_destruction") return { CLASS_IDS::CLASS_IDS_WARLOCK, WARLOCK_SPEC_IDS::WARLOCK_SPEC_IDS_CLASS_DESTRUCTION};
+
+		if (presetName == "warrior_arms") return { CLASS_IDS::CLASS_IDS_WARRIOR, WARRIOR_SPEC_IDS::WARRIOR_SPEC_IDS_ARMS };
+		if (presetName == "warrior_class_arms") return { CLASS_IDS::CLASS_IDS_WARRIOR, WARRIOR_SPEC_IDS::WARRIOR_SPEC_IDS_CLASS_ARMS };
+		if (presetName == "warrior_fury") return { CLASS_IDS::CLASS_IDS_WARRIOR, WARRIOR_SPEC_IDS::WARRIOR_SPEC_IDS_FURY};
+		if (presetName == "warrior_class_fury") return { CLASS_IDS::CLASS_IDS_WARRIOR, WARRIOR_SPEC_IDS::WARRIOR_SPEC_IDS_CLASS_FURY};
+		if (presetName == "warrior_protection") return { CLASS_IDS::CLASS_IDS_WARRIOR, WARRIOR_SPEC_IDS::WARRIOR_SPEC_IDS_PROTECTION };
+		if (presetName == "warrior_class_protection") return { CLASS_IDS::CLASS_IDS_WARRIOR, WARRIOR_SPEC_IDS::WARRIOR_SPEC_IDS_CLASS_PROTECTION};
+
+
+
+		return { -1, -1 };
+	}
+
 	std::filesystem::path getAppPath() {
 		std::filesystem::path path;
 		PWSTR path_tmp;
@@ -307,6 +402,9 @@ namespace Presets {
 		else if (classIdentifier == "warrior") {
 			return CLASS_IDS_WARRIOR;
 		}
+		else {
+			return CLASS_IDS_NONE;
+		}
 	}
 
 	// first two ints are class id and spec id, if vector empty then file read error
@@ -345,5 +443,63 @@ namespace Presets {
 		}
 
 		return line;
+	}
+
+	std::string PRESET_NAME_FROM_BLIZZ_SPEC_ID(size_t spec_id) {
+		std::string targetPresetName = "";
+		std::filesystem::path nodeIDOrdersPath = getAppPath() / "resources" / "node_id_orders.txt";
+		std::string line;
+		if (std::filesystem::is_regular_file(nodeIDOrdersPath)) {
+			std::ifstream treeFile;
+			treeFile.open(nodeIDOrdersPath);
+
+			if (treeFile.is_open())
+			{
+				while (!treeFile.eof())
+				{
+					std::getline(treeFile, line);
+					size_t p1 = line.find(':');
+					size_t p2 = line.find(':', p1 + 1);
+					size_t p3 = line.find(':', p2 + 1);
+					std::string presetName = line.substr(0, p1);
+					std::string blizzClassIDStr = line.substr(p1 + 1, p2 - p1 - 1);
+					std::string blizzSpecIDStr = line.substr(p2 + 1, p3 - p2 - 1);
+					if (std::atoi(blizzSpecIDStr.c_str()) == static_cast<int>(spec_id)) {
+						targetPresetName = presetName;
+						treeFile.close();
+						break;
+					}
+				}
+			}
+		}
+		else {
+			//TTMTODO: Implement error logger for engine too
+			std::ofstream presetErrorFile("error_log.txt");
+			presetErrorFile << "Preset file was not present and couldn't be updated (maybe no internet connection)\n";
+			return "";
+		}
+		return targetPresetName;
+	}
+
+	std::pair<std::string, std::string> CLASS_SPEC_PRESETS_FROM_BLIZZ_SPEC_ID(std::map<std::string, std::string> presets, size_t spec_id) {
+		bool foundPreset = false;
+		std::string targetPresetName = PRESET_NAME_FROM_BLIZZ_SPEC_ID(spec_id);
+		foundPreset = targetPresetName != "";
+		if (!foundPreset) {
+			return { "", ""};
+		}
+
+		size_t sep = targetPresetName.find('_');
+		std::string targetPresetNameClass =
+			targetPresetName.substr(0, sep)
+			+ "_class"
+			+ targetPresetName.substr(sep);
+		
+		if (presets.count(targetPresetNameClass) && presets.count(targetPresetName)) {
+			return { presets[targetPresetNameClass], presets[targetPresetName] };
+		}
+		else {
+			return { "", "" };
+		}
 	}
 }
