@@ -121,7 +121,7 @@ def generate_tree_structures_from_raidbots():
     class_and_spec_trees = {}
     node_id_orders = {}
     tree_info_json = requests.get(
-        "https://www.raidbots.com/static/data/beta/new-talent-trees.json"
+        "https://www.raidbots.com/static/data/live/talents.json"
     ).json()
 
     for spec_dict in tree_info_json:
@@ -199,7 +199,7 @@ def extract_tree(talents, is_class_tree, class_name, spec_name):
         ]
 
         talent.tooltip_urls = [
-            "https://www.wowhead.com/beta/spell=" + str(entry["spellId"])
+            "https://www.wowhead.com/spell=" + str(entry["spellId"])
             for entry in sorted(talent_dict["entries"], key=lambda x: x["index"])
         ]
 
@@ -299,7 +299,8 @@ def get_tooltip_urls(class_and_spec_trees):
 
 
 def get_tooltip_jsons(urls):
-    # asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    if os.name == "nt":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     res = asyncio.run(request_tooltips(urls))
     tooltip_jsons = {}
     for resp in res:
