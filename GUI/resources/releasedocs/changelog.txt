@@ -1,3 +1,12 @@
+v. 1.4.1:
+- Included a command line client for advanced users (not yet documented)
+- Presets will now be updated daily if changed
+- Fixed various UI bugs
+- Startup performance improvement
+- Quality of life UI changes
+- Improved Blizz skillset hash string handling
+- Low-memory tree solving feature
+
 v. 1.4.0:
 - SimC analysis screen version 1
 - SimC export strings
