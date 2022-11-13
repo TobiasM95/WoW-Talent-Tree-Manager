@@ -50,6 +50,13 @@ namespace Engine {
         bool& inProgress,
         bool& safetyGuardTriggered
     );
+    void countConfigurationsSingle(
+        TalentTree tree,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered
+    );
     void countConfigurationsParallel(
         TalentTree tree,
         int talentPointsLimit,
@@ -74,6 +81,19 @@ namespace Engine {
         SIND& excludeFilter,
         SIND& orFilter,
         std::vector<std::pair<SIND, SIND>>& oneFilter
+    );
+    void visitTalentSingle(
+        std::pair<int, int> talentIndexReqPair,
+        SIND visitedTalents,
+        int currentPosTalIndex,
+        int currentMultiplier,
+        int talentPointsSpent,
+        int talentPointsLeft,
+        std::vector<std::pair<int, int>> possibleTalents,
+        const TreeDAGInfo& sortedTreeDAG,
+        std::vector<SIND>& combinations,
+        int& runningCount,
+        bool& safetyGuardTriggered
     );
     void visitTalentParallel(
         std::pair<int, int> talentIndexReqPair,
