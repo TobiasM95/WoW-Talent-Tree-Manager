@@ -480,6 +480,8 @@ namespace TTM {
             ImGui::PushItemWidth(wrapWidth);
             ImGui::SliderInt("##loadoutSolverTalentPointsLimitSlider", &uiData.loadoutSolverTalentPointLimit, 1, uiData.loadoutSolverMaxTalentPoints, "%d", ImGuiSliderFlags_NoInput);
             ImGui::PopItemWidth();
+            ImGui::SetCursorPosX(pos.x);
+            ImGui::Checkbox("Solve only for max points", &uiData.loadoutSolverOnlyLimitSolve);
 
             ImVec2 l2BottomRight = ImGui::GetItemRectMax();
             l2BottomRight.x += boxPadding;
@@ -518,13 +520,24 @@ namespace TTM {
                 }
                 Engine::clearTree(tree);
 
-                std::thread t(Engine::countConfigurationsParallel,
-                    tree, 
-                    uiData.loadoutSolverTalentPointLimit,
-                    std::ref(talentTreeCollection.activeTreeData().treeDAGInfo),
-                    std::ref(talentTreeCollection.activeTreeData().isTreeSolveInProgress),
-                    std::ref(talentTreeCollection.activeTreeData().safetyGuardTriggered));
-                t.detach();
+                if (uiData.loadoutSolverOnlyLimitSolve) {
+                    std::thread t(Engine::countConfigurationsSingle,
+                        tree,
+                        uiData.loadoutSolverTalentPointLimit,
+                        std::ref(talentTreeCollection.activeTreeData().treeDAGInfo),
+                        std::ref(talentTreeCollection.activeTreeData().isTreeSolveInProgress),
+                        std::ref(talentTreeCollection.activeTreeData().safetyGuardTriggered));
+                    t.detach();
+                }
+                else {
+                    std::thread t(Engine::countConfigurationsParallel,
+                        tree,
+                        uiData.loadoutSolverTalentPointLimit,
+                        std::ref(talentTreeCollection.activeTreeData().treeDAGInfo),
+                        std::ref(talentTreeCollection.activeTreeData().isTreeSolveInProgress),
+                        std::ref(talentTreeCollection.activeTreeData().safetyGuardTriggered));
+                    t.detach();
+                }
                 updateSolverStatus(uiData, talentTreeCollection, true);
             }
             if (!allowNewSolver) {
