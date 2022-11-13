@@ -83,6 +83,7 @@ namespace TTM {
 		bool safetyGuardTriggered = false;
 		std::shared_ptr<Engine::TreeDAGInfo> treeDAGInfo;
 		std::shared_ptr<Engine::TalentSkillset> skillsetFilter;
+		bool onlyLimitSolve = true;
 		bool restrictTalentPoints = false;
 		int restrictedTalentPoints = 0;
 
@@ -268,7 +269,6 @@ namespace TTM {
 		std::vector<std::pair<std::string, TalentTreeData*>> solvedTrees;
 		const int loadoutSolverMaxTalentPoints = 64;
 		int loadoutSolverTalentPointLimit = 30;
-		bool loadoutSolverOnlyLimitSolve = true;
 		LoadoutSolverPage loadoutSolverPage = LoadoutSolverPage::SolutionResults;
 		int loadoutSolverTalentPointSelection = -1;
 		const int loadoutSolverResultsPerPage = 50;
