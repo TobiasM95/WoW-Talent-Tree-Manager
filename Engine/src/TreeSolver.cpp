@@ -92,6 +92,9 @@ namespace Engine {
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         vec2d<SIND> allCombinationsVector;
+        for (int i = 0; i < talentPointsLimit - 1; i++) {
+            allCombinationsVector.push_back({});
+        }
         allCombinationsVector.push_back(combinations);
         sortedTreeDAG.allCombinations = allCombinationsVector;
         sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
@@ -136,9 +139,9 @@ namespace Engine {
         talentPointsSpent += 1;
         talentPointsLeft -= 1;
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
-        runningCount++;
         //check if path is complete
         if (talentPointsLeft == 0) {
+            runningCount++;
             combinations.push_back(visitedTalents);
             return;
         }

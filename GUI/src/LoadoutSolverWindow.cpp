@@ -209,8 +209,14 @@ namespace TTM {
                     if (talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuardTriggered) {
                         ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "Safety guard triggered! There were more than %d combinations in total or solve was canceled! Values below will not be accurate!", talentTreeCollection.activeTreeData().treeDAGInfo->safetyGuard);
                     }
-                    ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
-                        talentTreeCollection.activeTree().name.c_str(), talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum, talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations.size());
+                    if (talentTreeCollection.activeTreeData().onlyLimitSolve) {
+                        ImGui::Text("%s has %d different skillset combinations with %d talent points (This does not include variations with different switch talent choices).",
+                            talentTreeCollection.activeTree().name.c_str(), talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum, talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations.size());
+                    }
+                    else {
+                        ImGui::Text("%s has %d different skillset combinations with 1 to %d talent points (This does not include variations with different switch talent choices).",
+                            talentTreeCollection.activeTree().name.c_str(), talentTreeCollection.activeTreeData().treeDAGInfo->allCombinationsSum, talentTreeCollection.activeTreeData().treeDAGInfo->allCombinations.size());
+                    }
                     ImGui::Text("Processing took %.3f seconds.", talentTreeCollection.activeTreeData().treeDAGInfo->elapsedTime);
                     if (ImGui::Button("Reset solutions")) {
                         clearSolvingProcess(uiData, talentTreeCollection);
@@ -256,33 +262,37 @@ namespace TTM {
                     if (talentTreeCollection.activeTreeData().isTreeSolveFiltered) {
                         ImGui::Separator();
                         ImGui::Text("Number of talent points (number of combinations):");
-                        ImGui::Checkbox("##loadoutSolverRestrictTalentPointsCheckbox", &talentTreeCollection.activeTreeData().restrictTalentPoints);
-                        if (!talentTreeCollection.activeTreeData().restrictTalentPoints) {
-                            ImGui::BeginDisabled();
-                        }
-                        ImGui::SameLine();
-                        ImGui::Text("Restrict talent points to:");
-                        ImGui::SameLine();
-                        if (ImGui::BeginCombo("##loadoutSolverRestrictTalentPointsCombo", std::to_string(talentTreeCollection.activeTreeData().restrictedTalentPoints + 1).c_str(), ImGuiComboFlags_None))
-                        {
-                            for (int n = 0; n < uiData.loadoutSolverTalentPointLimit; n++)
-                            {
-                                const bool is_selected = (talentTreeCollection.activeTreeData().restrictedTalentPoints == n);
-                                if (ImGui::Selectable(std::to_string(n + 1).c_str(), is_selected))
-                                    talentTreeCollection.activeTreeData().restrictedTalentPoints = n;
-
-                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                                if (is_selected)
-                                    ImGui::SetItemDefaultFocus();
+                        if (!talentTreeCollection.activeTreeData().onlyLimitSolve) {
+                            ImGui::Checkbox("##loadoutSolverRestrictTalentPointsCheckbox", &talentTreeCollection.activeTreeData().restrictTalentPoints);
+                            if (!talentTreeCollection.activeTreeData().restrictTalentPoints) {
+                                ImGui::BeginDisabled();
                             }
-                            ImGui::EndCombo();
-                        }
-                        if (!talentTreeCollection.activeTreeData().restrictTalentPoints) {
-                            ImGui::EndDisabled();
+                            ImGui::SameLine();
+                            ImGui::Text("Restrict talent points to:");
+                            ImGui::SameLine();
+                            if (ImGui::BeginCombo("##loadoutSolverRestrictTalentPointsCombo", std::to_string(talentTreeCollection.activeTreeData().restrictedTalentPoints + 1).c_str(), ImGuiComboFlags_None))
+                            {
+                                for (int n = 0; n < uiData.loadoutSolverTalentPointLimit; n++)
+                                {
+                                    const bool is_selected = (talentTreeCollection.activeTreeData().restrictedTalentPoints == n);
+                                    if (ImGui::Selectable(std::to_string(n + 1).c_str(), is_selected))
+                                        talentTreeCollection.activeTreeData().restrictedTalentPoints = n;
+
+                                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                    if (is_selected)
+                                        ImGui::SetItemDefaultFocus();
+                                }
+                                ImGui::EndCombo();
+                            }
+                            if (!talentTreeCollection.activeTreeData().restrictTalentPoints) {
+                                ImGui::EndDisabled();
+                            }
                         }
                         if (ImGui::BeginListBox("##loadoutSolverTalentPointsListbox", ImVec2(ImGui::GetContentRegionAvail().x, 0)))
                         {
-                            if (talentTreeCollection.activeTreeData().restrictTalentPoints && talentTreeCollection.activeTree().maxTalentPoints > 0) {
+                            if (!talentTreeCollection.activeTreeData().onlyLimitSolve
+                                && talentTreeCollection.activeTreeData().restrictTalentPoints 
+                                && talentTreeCollection.activeTree().maxTalentPoints > 0) {
                                 int rtp = talentTreeCollection.activeTreeData().restrictedTalentPoints;
                                 const bool is_selected = (uiData.loadoutSolverTalentPointSelection == rtp);
                                 if (ImGui::Selectable((std::to_string(rtp + 1) + " (" + std::to_string(talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[rtp].size()) + ")").c_str(), is_selected)) {
@@ -296,7 +306,7 @@ namespace TTM {
                                     ImGui::SetItemDefaultFocus();
                             }
                             else {
-                                for (int n = 0; n < uiData.loadoutSolverTalentPointLimit; n++)
+                                for (int n = 0; n < talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations.size(); n++)
                                 {
                                     if (talentTreeCollection.activeTreeData().treeDAGInfo->filteredCombinations[n].size() > 0) {
                                         const bool is_selected = (uiData.loadoutSolverTalentPointSelection == n);
@@ -481,7 +491,7 @@ namespace TTM {
             ImGui::SliderInt("##loadoutSolverTalentPointsLimitSlider", &uiData.loadoutSolverTalentPointLimit, 1, uiData.loadoutSolverMaxTalentPoints, "%d", ImGuiSliderFlags_NoInput);
             ImGui::PopItemWidth();
             ImGui::SetCursorPosX(pos.x);
-            ImGui::Checkbox("Solve only for max points", &uiData.loadoutSolverOnlyLimitSolve);
+            ImGui::Checkbox("Solve only for max points", &talentTreeCollection.activeTreeData().onlyLimitSolve);
 
             ImVec2 l2BottomRight = ImGui::GetItemRectMax();
             l2BottomRight.x += boxPadding;
@@ -520,7 +530,7 @@ namespace TTM {
                 }
                 Engine::clearTree(tree);
 
-                if (uiData.loadoutSolverOnlyLimitSolve) {
+                if (talentTreeCollection.activeTreeData().onlyLimitSolve) {
                     std::thread t(Engine::countConfigurationsSingle,
                         tree,
                         uiData.loadoutSolverTalentPointLimit,
