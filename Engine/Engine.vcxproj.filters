@@ -105,9 +105,15 @@
   <ItemGroup>
     <None Include="src\libs\libcurl\x64\copyright" />
     <None Include="src\libs\libcurl\x86\copyright" />
+    <None Include="resources\cicd_presets\preset_processor.py" />
+    <None Include="resources\cicd_presets\tree_presets_generator.py" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="resources\presets.txt" />
     <Text Include="resources\node_id_orders.txt" />
+    <Text Include="resources\cicd_presets\node_id_orders.txt" />
+    <Text Include="resources\cicd_presets\presets.txt" />
+    <Text Include="resources\cicd_presets\requirements.txt" />
+    <Text Include="resources\cicd_presets\resource_versions.txt" />
   </ItemGroup>
 </Project>
