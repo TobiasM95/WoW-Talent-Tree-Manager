@@ -31,6 +31,152 @@ namespace Engine {
     Counts configurations of a tree with given amount of talent points by topologically sorting the tree and iterating through valid paths (i.e.
     paths with monotonically increasing talent indices). See Wikipedia DAGs (which Wow Talent Trees are) and Topological Sorting.
     */
+    void countConfigurationsSingle(
+        TalentTree tree,
+        int talentPointsLimit,
+        std::shared_ptr<TreeDAGInfo>& treeDAGInfo,
+        bool& inProgress,
+        bool& safetyGuardTriggered
+    ) {
+        inProgress = true;
+        std::shared_ptr<TalentTree> processedTree = std::make_shared<TalentTree>(parseTree(createTreeStringRepresentation(tree)));
+        tree.unspentTalentPoints = talentPointsLimit;
+        int talentPoints = tree.unspentTalentPoints;
+        //expand notes in tree
+        expandTreeTalents(*processedTree);
+        //visualizeTree(tree, "expanded");
+
+        //create sorted DAG (is vector of vector and at most nx(m+1) Array where n = # nodes and m is the max amount of connections a node has to childs and 
+        //+1 because first column contains the weight (1 for regular talents and 2 for switch talents))
+        TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(*processedTree);
+        setSafetyGuard(sortedTreeDAG);
+        sortedTreeDAG.processedTree = processedTree;
+        if (sortedTreeDAG.sortedTalents.size() > 64)
+            throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
+        std::vector<SIND> combinations;
+
+        //iterate through all possible combinations in order:
+        //have 4 variables: visited nodes (int vector with capacity = # talent points), num talent points left, int vector of possible nodes to visit, weight of combination
+        //weight of combination = factor of 2 for every switch talent in path
+        SIND visitedTalents = 0;
+        int talentPointsLeft = tree.unspentTalentPoints;
+        std::vector<std::pair<int, int>> possibleTalents;
+        //possibleTalents.reserve(sortedTreeDAG.minimalTreeDAG.size());//is this faster or not?
+        //add roots to the list of possible talents first, then iterate recursively with visitTalent
+        for (auto& root : sortedTreeDAG.rootIndices) {
+            possibleTalents.push_back(std::pair<int, int>(root, sortedTreeDAG.sortedTalents[root]->pointsRequired));
+        }
+        auto t1 = std::chrono::high_resolution_clock::now();
+        //this is used for safeguarding solving process for trees that are too big
+        int runningCount = 0;
+        for (int i = 0; i < possibleTalents.size(); i++) {
+            //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
+            if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
+                visitTalentSingle(
+                    possibleTalents[i],
+                    visitedTalents,
+                    i + 1,
+                    1,
+                    0,
+                    talentPointsLeft,
+                    possibleTalents,
+                    sortedTreeDAG,
+                    combinations,
+                    runningCount,
+                    std::ref(safetyGuardTriggered)
+                );
+        }
+        if (safetyGuardTriggered) {
+            sortedTreeDAG.safetyGuardTriggered = true;
+        }
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> ms_double = t2 - t1;
+        vec2d<SIND> allCombinationsVector;
+        allCombinationsVector.push_back(combinations);
+        sortedTreeDAG.allCombinations = allCombinationsVector;
+        sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
+        inProgress = false;
+
+        //collect all switch talent choices
+        for (auto& indexTalentPair : tree.orderedTalents) {
+            if (indexTalentPair.second->type == Engine::TalentType::SWITCH) {
+                sortedTreeDAG.switchTalentChoices.push_back({ indexTalentPair.first, 1 });
+            }
+        }
+
+
+        treeDAGInfo = std::make_shared<TreeDAGInfo>(sortedTreeDAG);
+    }
+
+    void visitTalentSingle(
+        std::pair<int, int> talentIndexReqPair,
+        SIND visitedTalents,
+        int currentPosTalIndex,
+        int currentMultiplier,
+        int talentPointsSpent,
+        int talentPointsLeft,
+        std::vector<std::pair<int, int>> possibleTalents,
+        const TreeDAGInfo& sortedTreeDAG,
+        std::vector<SIND>& combinations,
+        int& runningCount,
+        bool& safetyGuardTriggered
+    ) {
+        /*
+        for each node visited add child nodes(in DAG array) to the vector of possible nodesand reduce talent points left
+        check if talent points left == 0 (finish) or num_nodes - current_node < talent_points_left (check for off by one error) (cancel cause talent tree can't be filled)
+        iterate through all nodes in vector possible nodes to visit but only visit nodes whose index > current index
+        if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
+        */
+        if (runningCount >= sortedTreeDAG.safetyGuard || safetyGuardTriggered) {
+            safetyGuardTriggered = true;
+            return;
+        }
+        //do combination housekeeping
+        setTalent(visitedTalents, talentIndexReqPair.first);
+        talentPointsSpent += 1;
+        talentPointsLeft -= 1;
+        currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
+        runningCount++;
+        //check if path is complete
+        if (talentPointsLeft == 0) {
+            combinations.push_back(visitedTalents);
+            return;
+        }
+        //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but
+        //sorting guarantees that these paths were visited earlier already)
+        //also check if exclude filter is violated and early stop as well
+        if (sortedTreeDAG.sortedTalents.size() - talentIndexReqPair.first - 1 < talentPointsLeft) {
+            //cannot use up all the leftover talent points, therefore incomplete, or exclude filter was violated
+            return;
+        }
+        //add all possible children to the set for iteration
+        for (int i = 1; i < sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first].size(); i++) {
+            int childIndex = sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][i];
+            std::pair<int, int> targetPair = std::pair<int, int>(childIndex, sortedTreeDAG.sortedTalents[childIndex]->pointsRequired);
+            insertIntoVector(possibleTalents, targetPair);
+        }
+        //visit all possible children while keeping correct order
+        for (int i = currentPosTalIndex; i < possibleTalents.size(); i++) {
+            //check if next talent is in right order andn talentPointsSpent is >= next talent points required
+            if (possibleTalents[i].first > talentIndexReqPair.first &&
+                talentPointsSpent >= sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired) {
+                visitTalentSingle(
+                    possibleTalents[i],
+                    visitedTalents,
+                    i + 1,
+                    currentMultiplier,
+                    talentPointsSpent,
+                    talentPointsLeft,
+                    possibleTalents,
+                    sortedTreeDAG,
+                    combinations,
+                    runningCount,
+                    std::ref(safetyGuardTriggered)
+                );
+            }
+        }
+    }
+
     void countConfigurationsFiltered(
         TalentTree tree,
         std::shared_ptr<Engine::TalentSkillset> filter,
