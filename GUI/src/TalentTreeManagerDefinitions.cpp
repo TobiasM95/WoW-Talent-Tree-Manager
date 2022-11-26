@@ -29,6 +29,8 @@ namespace TTM {
     void refreshIconMap(UIData& uiData) {
         std::filesystem::path iconRootPath = Presets::getAppPath() / "resources"/ "icons";
         std::filesystem::path customIconPath = Presets::getAppPath() / "resources" / "icons" / "custom";
+
+        // clear existing map
         for (auto& [filename, textureInfoPair] : uiData.iconMap) {
             if (textureInfoPair.first.texture) {
                 textureInfoPair.first.texture->Release();
@@ -40,19 +42,16 @@ namespace TTM {
             }
         }
         uiData.iconMap.clear();
+
+        // load packed, pre-shipped icons
+        loadIconsMapFromFile(
+            uiData,
+            iconRootPath / "icons_packed.png",
+            iconRootPath / "icons_packed_meta.txt"
+        );
+
+        // load custom icons
         std::map<std::string, std::filesystem::path> iconPathMap;
-        //first iterate through pre-shipped directories and add paths to map while skipping custom dir
-        if (std::filesystem::is_directory(iconRootPath)) {
-            for (auto& entry : std::filesystem::recursive_directory_iterator{ iconRootPath }) {
-                if (!std::filesystem::is_regular_file(entry)
-                    || entry.path().parent_path().compare(customIconPath) == 0) {
-                    continue;
-                }
-                if (entry.path().extension() == ".png") {
-                    iconPathMap[entry.path().filename().string()] = entry.path();
-                }
-            }
-        }
         if (std::filesystem::is_directory(customIconPath)) {
             for (auto& entry : std::filesystem::recursive_directory_iterator{ customIconPath }) {
                 if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".png") {
@@ -200,119 +199,29 @@ namespace TTM {
         uiData.loadedIconTreeIndex = treeIndex;
     }
 
-    /*
-    void loadIcon(UIData& uiData, int index, std::string iconName, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight, bool first, Engine::TalentType talentType) {
+    void loadIconsMapFromFile(UIData& uiData, std::filesystem::path packedIconsPath, std::filesystem::path metadataPath) {
         int width = 0;
         int height = 0;
-        ID3D11ShaderResourceView* texture = NULL;
-        ID3D11ShaderResourceView* textureGray = NULL;
-        std::string path;
-        if (uiData.iconPathMap.count(iconName)) {
-            path = uiData.iconPathMap[iconName].string();
-            bool ret = LoadTextureFromFile(path.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice, talentType);
-            if (!ret) {
-                TextureInfo textureInfo;
-                textureInfo.texture = defaultTexture;
-                textureInfo.width = defaultImageWidth;
-                textureInfo.height = defaultImageHeight;
-                TextureInfo textureInfoGray;
-                textureInfoGray.texture = defaultTextureGray;
-                textureInfoGray.width = defaultImageWidth;
-                textureInfoGray.height = defaultImageHeight;
-                if (first) {
-                    uiData.iconIndexMap[index].first = textureInfo;
-                    uiData.iconIndexMapGrayed[index].first = textureInfoGray;
-                }
-                else {
-                    uiData.iconIndexMap[index].second = textureInfo;
-                    uiData.iconIndexMapGrayed[index].second = textureInfoGray;
-                }
-            }
-            else {
-                TextureInfo textureInfo;
-                textureInfo.texture = texture;
-                textureInfo.width = width;
-                textureInfo.height = height;
-                TextureInfo textureInfoGray;
-                textureInfoGray.texture = textureGray;
-                textureInfoGray.width = width;
-                textureInfoGray.height = height;
-                if (first) {
-                    uiData.iconIndexMap[index].first = textureInfo;
-                    uiData.iconIndexMapGrayed[index].first = textureInfoGray;
-                }
-                else {
-                    uiData.iconIndexMap[index].second = textureInfo;
-                    uiData.iconIndexMapGrayed[index].second = textureInfoGray;
-                }
-            }
-        }
-        else {
-            TextureInfo textureInfo;
-            textureInfo.texture = defaultTexture;
-            textureInfo.width = defaultImageWidth;
-            textureInfo.height = defaultImageHeight;
-            TextureInfo textureInfoGray;
-            textureInfoGray.texture = defaultTextureGray;
-            textureInfoGray.width = defaultImageWidth;
-            textureInfoGray.height = defaultImageHeight;
-            if (first) {
-                uiData.iconIndexMap[index].first = textureInfo;
-                uiData.iconIndexMapGrayed[index].first = textureInfoGray;
-            }
-            else {
-                uiData.iconIndexMap[index].second = textureInfo;
-                uiData.iconIndexMapGrayed[index].second= textureInfoGray;
-            }
-        }
-    }
+        std::pair<
+            std::vector<std::string>, 
+            std::pair<std::vector<ID3D11ShaderResourceView*>, std::vector<ID3D11ShaderResourceView*>>
+        > unpackedIconInfo =
+            LoadPackedIcons(packedIconsPath.string().c_str(), metadataPath.string().c_str(), &width, &height, uiData.g_pd3dDevice);
 
-    void loadSplitIcon(UIData& uiData, Engine::Talent_s talent, ID3D11ShaderResourceView* defaultTexture, ID3D11ShaderResourceView* defaultTextureGray, int defaultImageWidth, int defaultImageHeight) {
-        int width = 0;
-        int height = 0;
-        ID3D11ShaderResourceView* texture = NULL;
-        ID3D11ShaderResourceView* textureGray = NULL;
-        std::string path1;
-        std::string path2;
-        if (uiData.iconPathMap.count(talent->iconName.first)) {
-            path1 = uiData.iconPathMap[talent->iconName.first].string();
-        }
-        else {
-            path1 = uiData.defaultIconPath.string();
-        }
-        if (uiData.iconPathMap.count(talent->iconName.second)) {
-            path2 = uiData.iconPathMap[talent->iconName.second].string();
-        }
-        else {
-            path2 = uiData.defaultIconPath.string();
-        }
-        bool ret = LoadSplitTextureFromFile(path1.c_str(), path2.c_str(), &texture, &textureGray, &width, &height, uiData.g_pd3dDevice);
-        if (!ret) {
-            TextureInfo textureInfo;
-            textureInfo.texture = defaultTexture;
-            textureInfo.width = defaultImageWidth;
-            textureInfo.height = defaultImageHeight;
-            TextureInfo textureInfoGray;
-            textureInfoGray.texture = defaultTextureGray;
-            textureInfoGray.width = defaultImageWidth;
-            textureInfoGray.height = defaultImageHeight;
-            uiData.splitIconIndexMap[talent->index] = textureInfo;
-            uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
-        }
-        else {
-            TextureInfo textureInfo;
-            textureInfo.texture = texture;
-            textureInfo.width = width;
-            textureInfo.height = height;
-            TextureInfo textureInfoGray;
-            textureInfoGray.texture = textureGray;
-            textureInfoGray.width = width;
-            textureInfoGray.height = height;
-            uiData.splitIconIndexMap[talent->index] = textureInfo;
-            uiData.splitIconIndexMapGrayed[talent->index] = textureInfoGray;
+        uiData.iconMap.clear();
+        for (size_t i = 0; i < unpackedIconInfo.first.size(); i++) {
+            std::pair<TextureInfo, TextureInfo> textureInfoPair;
+            textureInfoPair.first.texture = unpackedIconInfo.second.first[i];
+            textureInfoPair.first.width = width;
+            textureInfoPair.first.height = height;
+
+            textureInfoPair.second.texture = unpackedIconInfo.second.second[i];
+            textureInfoPair.second.width = width;
+            textureInfoPair.second.height = height;
+
+            uiData.iconMap[unpackedIconInfo.first[i]] = textureInfoPair;
         }
     }
-    */
 
     std::pair<TextureInfo, TextureInfo> loadTextureInfoFromFile(UIData& uiData, std::string path) {
         std::pair<TextureInfo, TextureInfo> textureInfoPair;

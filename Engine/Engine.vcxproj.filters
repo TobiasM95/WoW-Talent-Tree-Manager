@@ -115,5 +115,11 @@
     <Text Include="resources\cicd_presets\presets.txt" />
     <Text Include="resources\cicd_presets\requirements.txt" />
     <Text Include="resources\cicd_presets\resource_versions.txt" />
+    <Text Include="resources\cicd_presets\icons_packed_meta.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="resources\cicd_presets\icons_packed.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
   </ItemGroup>
 </Project>

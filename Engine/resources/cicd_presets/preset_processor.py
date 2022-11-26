@@ -2,18 +2,36 @@
 import hashlib
 import shutil
 from datetime import datetime
-
+import os
 
 # we always package all files together as a unit
-files_to_process = ["./presets.txt", "./node_id_orders.txt"]
+files_to_process = [
+    "./presets.txt",
+    "./node_id_orders.txt",
+    "./icons_packed_meta.txt",
+    "./icons_packed.png",
+]
 
-current_files = ["../presets.txt", "../node_id_orders.txt"]
+current_files = [
+    "../presets.txt",
+    "../node_id_orders.txt",
+    "../icons_packed_meta.txt",
+    "../icons_packed.png",
+]
 
 target_copy_locations = [
     ["../presets.txt", "../../../GUI/resources/updatertarget/presets.txt"],
     [
         "../node_id_orders.txt",
         "../../../GUI/resources/updatertarget/node_id_orders.txt",
+    ],
+    [
+        "../../../GUI/resources/icons/icons_packed_meta.txt",
+        "../../../GUI/resources/updatertarget/icons_packed_meta.txt",
+    ],
+    [
+        "../../../GUI/resources/icons/icons_packed.png",
+        "../../../GUI/resources/updatertarget/icons_packed.png",
     ],
 ]
 
@@ -39,6 +57,8 @@ def main():
 def md5(filepaths):
     hash_md5 = hashlib.md5()
     for filepath in filepaths:
+        if not os.path.isfile(filepath):
+            continue
         with open(filepath, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
@@ -54,6 +74,10 @@ def update_resource_versions():
         for i, line in enumerate(orig_file_lines):
             if line.startswith("presets"):
                 new_file.write(f"presets;{version};{current_date_string}")
+                if i < len(orig_file_lines) - 1:
+                    new_file.write("\n")
+            elif line.startswith("icons"):
+                new_file.write(f"icons;{version};{current_date_string}")
                 if i < len(orig_file_lines) - 1:
                     new_file.write("\n")
             elif line.startswith("nodeidorders"):

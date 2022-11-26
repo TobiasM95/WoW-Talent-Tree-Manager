@@ -9,9 +9,11 @@ import aiohttp
 import requests
 import pickle
 from timeit import default_timer as timer
+import hashlib
+import numpy as np
 
-# from PIL import Image
-# import concurrent.futures
+from PIL import Image
+import concurrent.futures
 
 TYPE_ACTIVE = "active"
 TYPE_PASSIVE = "passive"
@@ -70,6 +72,11 @@ else:
     overwrite_icons = False
 icons_dir = "./icons/"
 
+# we always package all files together as a unit
+files_to_process = ["./presets.txt", "./node_id_orders.txt"]
+current_files = ["../presets.txt", "../node_id_orders.txt"]
+pack_name = "icons_packed.png"
+
 
 def main():
     scrape_start = timer()
@@ -77,38 +84,35 @@ def main():
     class_and_spec_trees, node_id_orders = generate_tree_structures_from_raidbots()
 
     tree_strings = []
-    # icon_download_info = []
-    # downloaded_icons_list = next(os.walk(icons_dir))[2]
+    icon_download_info = []
     for class_name, class_trees_dict in class_and_spec_trees.items():
         for spec_name, tree_dict in class_trees_dict.items():
             tree_clean = clean_tree(tree_dict)
-            # export_tree_to_file(class_name, spec_name, tree_clean)
             tree_strings.append(create_tree_string(class_name, spec_name, tree_clean))
-            # do this all at once?
-            # for index, talent in tree_clean.items():
-            #     for name, url in zip(talent.icon_names, talent.icon_urls):
-            #         # check if icon exists
-            #         if not overwrite_icons and name + ".png" in downloaded_icons_list:
-            #             continue
-            #         icon_download_info.append([name, url])
+            for index, talent in tree_clean.items():
+                for name, url in zip(talent.icon_names, talent.icon_urls):
+                    icon_download_info.append([name, url])
 
     combine_tree_strings(tree_strings)
     export_node_orders_to_file(node_id_orders)
 
-    # download_start = timer()
-    # print(f"Download {len(icon_download_info)} icons..")
-    # os.makedirs("./raidbots_wowhead_trees/icons/", exist_ok=True)
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
-    #     future_to_url = {
-    #         executor.submit(download_icon, name, url, icons_dir): url
-    #         for name, url in icon_download_info
-    #     }
-    #     for future in concurrent.futures.as_completed(future_to_url):
-    #         url = future_to_url[future]
-    #         try:
-    #             future.result()
-    #         except Exception as exc:
-    #             print("%r generated an exception: %s" % (url, exc))
+    current_hash = md5(current_files)
+    new_hash = md5(files_to_process)
+    icon_list = []
+    if new_hash != current_hash:
+        print(f"Download {len(icon_download_info)} icons..")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
+            future_to_url = {
+                executor.submit(download_icon, name, url, icon_list): url
+                for name, url in icon_download_info
+            }
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    future.result()
+                except Exception as exc:
+                    print("%r generated an exception: %s" % (url, exc))
+        pack_and_save_icons(icon_list)
 
     finish = timer()
     # print(f"Scraping took {download_start - scrape_start} seconds.")
@@ -446,12 +450,8 @@ def clean_string(string):
     )
 
 
-def download_icon(name, url, icons_dir):
+def download_icon(name, url, icon_list):
     target_size = (40, 40)
-    target_format = "png"
-    # if not, download, format, and save
-    filename = name + ".png"
-    # print(f"Fetch icon {i+1}/{len(icon_urls)}: {filename}")
     success = False
     while "_" in url:
         try:
@@ -466,7 +466,47 @@ def download_icon(name, url, icons_dir):
         return
     img = img.resize(target_size, Image.Resampling.LANCZOS)
     img.putalpha(255)
-    img.save(icons_dir + filename, format=target_format)
+    icon_list.append([name, img])
+
+
+def pack_and_save_icons(icon_list):
+    target_resolution = 40
+    target_width = target_resolution * target_resolution
+    icon_list = [
+        ["default", Image.open("../../../GUI/resources/icons/default.png")]
+    ] + icon_list
+    target_image_data = 255 * np.ones((len(icon_list), target_width, 4)).astype(
+        np.uint8
+    )
+    meta_info = [
+        target_resolution,
+        target_resolution,
+        len(icon_list),
+        target_width,
+        "default.png",
+    ]
+
+    for i, (img_name, image) in enumerate(icon_list):
+        image.putalpha(255)
+
+        # resize image to target resolution
+        if not image.size == (target_resolution, target_resolution):
+            image.resize(
+                (target_resolution, target_resolution), Image.Resampling.LANCZOS
+            )
+
+        im_arr = np.array(image)
+        target_image_data[i] = im_arr.reshape((-1, 4))
+
+        if i > 0:
+            meta_info.append(f"{img_name}.png")
+
+    target_image = Image.fromarray(target_image_data)
+    target_image.save(pack_name, format="png")
+
+    with open(pack_name.split(".")[0] + "_meta.txt", "w") as metafile:
+        for info in meta_info:
+            metafile.write(str(info) + "\n")
 
 
 def download_icons(tree):
@@ -532,6 +572,15 @@ def export_node_orders_to_file(node_id_orders):
                     + ",".join([str(idx) for idx in spec_node_ids_order])
                     + "\n"
                 )
+
+
+def md5(filepaths):
+    hash_md5 = hashlib.md5()
+    for filepath in filepaths:
+        with open(filepath, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+    return hash_md5.hexdigest()
 
 
 if __name__ == "__main__":
