@@ -66,7 +66,7 @@ namespace Updater {
             return;
         }
 
-#ifndef _DEBUG
+#ifdef _DEBUG
         updateStatus.setUpdateStep(Updater::UpdateStep::EXTRACT_FILES_ERROR);
         updateStatus.setStatusString("Don't extract files while running from debug mode to not corrupt the debug bin directory!");
         updateStatus.setUpdatedFlag(true);
@@ -383,7 +383,7 @@ namespace Updater {
 
             mz_zip_reader_get_filename(&zip_archive, i, buffer, 512);
             std::string filename{ buffer };
-            filename = "autoupdatertemp/" + filename.substr(filename.find("/") + 1);
+            filename = filename.substr(filename.find("/") + 1);
             bool isDir = mz_zip_reader_is_file_a_directory(&zip_archive, i);
 
             if (isDir) {
