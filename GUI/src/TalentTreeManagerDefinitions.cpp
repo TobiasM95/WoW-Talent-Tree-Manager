@@ -272,21 +272,26 @@ namespace TTM {
         int talentSize,
         float talentPadding,
         UIData& uiData,
-        bool colored)
+        bool colored,
+        float alpha)
     {
         //Arrow constants
         float thickness = 2.0f * uiData.treeEditorZoomFactor;
         float relArrowSpace = 0.15f; //how much space should be between arrow and connecting talents in terms of relative to talentSize
         float relArrowHeadSize = 0.15f; //how long should each side of the the arrow head triangle be in terms of relative to talentSize
         float relArrowHeadAngle = 2.1f;
-        ImU32 color = ImColor(120, 120, 120, 255);;
+        ImU32 color = ImColor(120, 120, 120, static_cast<int>(alpha * 255));;
         if (colored) {
             if (t2->points > 0 && t1->points == t1->maxPoints) {
                 if (t2->points == t2->maxPoints) {
-                    color = ImColor(Presets::TALENT_MAXED_BORDER_COLOR); //Gold
+                    auto colorVec = Presets::TALENT_MAXED_BORDER_COLOR;
+                    colorVec.w = alpha;
+                    color = ImColor(colorVec); //Gold
                 }
                 else {
-                    color = ImColor(Presets::TALENT_PARTIAL_BORDER_COLOR);
+                    auto colorVec = Presets::TALENT_PARTIAL_BORDER_COLOR;
+                    colorVec.w = alpha;
+                    color = ImColor(colorVec);
                 }
             }
         }
@@ -400,21 +405,26 @@ namespace TTM {
         int talentSize,
         float talentPadding,
         UIData& uiData,
-        bool colored)
+        bool colored,
+        float alpha)
     {
         //Arrow constants
         float thickness = 2.0f * uiData.treeEditorZoomFactor;
         float relArrowSpace = 0.15f; //how much space should be between arrow and connecting talents in terms of relative to talentSize
         float relArrowHeadSize = 0.15f; //how long should each side of the the arrow head triangle be in terms of relative to talentSize
         float relArrowHeadAngle = 2.1f;
-        ImU32 color = ImColor(120, 120, 120, 255);;
+        ImU32 color = ImColor(120, 120, 120, static_cast<int>(alpha * 255));;
         if (colored) {
             if (pointsSpent2 > 0 && pointsSpent1 >= t1->maxPoints) {
                 if (pointsSpent2 >= t2->maxPoints) {
-                    color = ImColor(Presets::TALENT_MAXED_BORDER_COLOR); //Gold
+                    auto colorVec = Presets::TALENT_MAXED_BORDER_COLOR;
+                    colorVec.w = alpha;
+                    color = ImColor(colorVec); //Gold
                 }
                 else {
-                    color = ImColor(Presets::TALENT_PARTIAL_BORDER_COLOR);
+                    auto colorVec = Presets::TALENT_PARTIAL_BORDER_COLOR;
+                    colorVec.w = alpha;
+                    color = ImColor(colorVec);
                 }
             }
         }
@@ -1586,7 +1596,25 @@ namespace TTM {
         Presets::POP_FONT();
 
         for (auto& talent : tree.orderedTalents) {
+            int talentPoints = skillset->assignedSkillPoints[talent.second->index];
             for (auto& child : talent.second->children) {
+                int childPoints = skillset->assignedSkillPoints[child->index];
+                bool talentDisabled = false;
+                if (talent.second->pointsRequired > skillset->talentPointsSpent - tree.preFilledTalentPoints
+                    || talent.second->preFilled
+                    || talentPoints < talent.second->maxPoints
+                    || (skillset->useLevelCap
+                        && Engine::getLevelRequirement(*skillset, tree, 1) > skillset->levelCap
+                        && talentPoints == 0)) {
+                    talentDisabled = true;
+                }
+                if (child->pointsRequired > skillset->talentPointsSpent - tree.preFilledTalentPoints
+                    || child->preFilled
+                    || (skillset->useLevelCap
+                        && Engine::getLevelRequirement(*skillset, tree, 1) > skillset->levelCap
+                        && childPoints == 0)) {
+                    talentDisabled = true;
+                }
                 drawPreviewArrowBetweenTalents(
                     talent.second,
                     child,
@@ -1600,7 +1628,8 @@ namespace TTM {
                     talentSize,
                     0.0f,
                     uiData,
-                    true);
+                    true,
+                    talentDisabled ? 0.2f : 1.0f);
             }
         }
         for (auto& reqInfo : tree.requirementSeparatorInfo) {

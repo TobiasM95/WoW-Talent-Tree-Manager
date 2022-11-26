@@ -320,7 +320,8 @@ namespace TTM {
 		int talentSize,
 		float talentPadding,
 		UIData& uiData,
-		bool colored = false);
+		bool colored = false,
+		float alpha = 1.0f);
 
 	void drawPreviewArrowBetweenTalents(
 		Engine::Talent_s t1,
@@ -335,7 +336,8 @@ namespace TTM {
 		int talentSize,
 		float talentPadding,
 		UIData& uiData,
-		bool colored = false);
+		bool colored = false,
+		float alpha = 1.0f);
 
 	void drawLoadoutEditorShapeAroundTalent(
 		Engine::Talent_s talent,

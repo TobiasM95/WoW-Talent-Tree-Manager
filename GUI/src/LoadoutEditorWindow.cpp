@@ -573,6 +573,22 @@ namespace TTM {
 
         for (auto& talent : tree.orderedTalents) {
             for (auto& child : talent.second->children) {
+                bool talentDisabled = false;
+                if (talent.second->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints
+                    || talent.second->preFilled
+                    || talent.second->points != talent.second->maxPoints
+                    || (talentTreeCollection.activeSkillset()->useLevelCap
+                        && Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree(), 1) > talentTreeCollection.activeSkillset()->levelCap
+                        && talent.second->points == 0)) {
+                    talentDisabled = true;
+                }
+                if (child->pointsRequired > talentTreeCollection.activeSkillset()->talentPointsSpent - talentTreeCollection.activeTree().preFilledTalentPoints
+                    || child->preFilled
+                    || (talentTreeCollection.activeSkillset()->useLevelCap
+                        && Engine::getLevelRequirement(*talentTreeCollection.activeSkillset(), talentTreeCollection.activeTree(), 1) > talentTreeCollection.activeSkillset()->levelCap
+                        && child->points == 0)) {
+                    talentDisabled = true;
+                }
                 drawArrowBetweenTalents(
                     talent.second,
                     child,
@@ -584,7 +600,8 @@ namespace TTM {
                     talentSize,
                     0.0f,
                     uiData,
-                    true);
+                    true,
+                    talentDisabled ? 0.2f : 1.0f);
             }
         }
         for (auto& reqInfo : tree.requirementSeparatorInfo) {
