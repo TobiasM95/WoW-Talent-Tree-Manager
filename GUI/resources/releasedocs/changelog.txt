@@ -1,3 +1,8 @@
+v. 1.4.2:
+- Icons get updated automatically from now on
+- Icons get shipped in a packed format for better performance
+- Small UI improvements
+
 v. 1.4.1:
 - Included a command line client for advanced users (not yet documented)
 - Presets will now be updated daily if changed
