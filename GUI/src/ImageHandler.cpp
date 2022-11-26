@@ -21,6 +21,8 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <fstream>
+#include <ppl.h>
 
 #include "ImageHandler.h"
 
@@ -142,6 +144,168 @@ namespace TTM {
         stbi_image_free(image_data_gray);
 
         return true;
+    }
+
+    std::pair<
+        std::vector<std::string>,
+        std::pair<std::vector<ID3D11ShaderResourceView*>, std::vector<ID3D11ShaderResourceView*>>
+    > LoadPackedIcons(
+        const char* packedIconsPath,
+        const char* metadataPath,
+        int* width,
+        int* height,
+        ID3D11Device* g_pd3dDevice
+    ) {
+        std::vector<std::string> iconNames;
+        std::pair<
+            std::vector<ID3D11ShaderResourceView*>,
+            std::vector<ID3D11ShaderResourceView*>
+        > iconTextures;
+
+        // load metadata
+        std::ifstream metadataFile(metadataPath);
+        std::string line;
+
+        // load width and height
+        std::getline(metadataFile, line);
+        *width = std::atoi(line.c_str());
+        std::getline(metadataFile, line);
+        *height = std::atoi(line.c_str());
+
+        // get number of icons
+        std::getline(metadataFile, line);
+        int numIcons = std::atoi(line.c_str());
+
+        // get packed width
+        std::getline(metadataFile, line);
+        int packedWidth = std::atoi(line.c_str());
+
+        // read icon names
+        while (std::getline(metadataFile, line))
+        {
+            iconNames.push_back(line);
+        }
+
+        // Load from disk into a raw RGBA buffer
+        int packed_image_width = DEFAULT_ICON_SIZE_W;
+        int packed_image_height = DEFAULT_ICON_SIZE_H;
+        unsigned char* packed_image_data = stbi_load(packedIconsPath, &packed_image_width, &packed_image_height, NULL, 4);
+        if (packed_image_data == NULL || packed_image_height != numIcons || packed_image_width != packedWidth) {
+            iconNames.clear();
+            return { iconNames, iconTextures };
+        }
+
+        for (int iconNumber = 0; iconNumber < numIcons; iconNumber++) {
+            iconTextures.first.emplace_back(nullptr);
+            iconTextures.second.emplace_back(nullptr);
+        }
+
+        bool success = true;
+        // for (int iconNumber = 0; iconNumber < numIcons; iconNumber++) {
+        Concurrency::parallel_for(int(0), numIcons, [&](int iconNumber) {
+            unsigned char* image_data = (unsigned char*)malloc(4 * *width * *height);
+            unsigned char* image_data_gray = (unsigned char*)malloc(4 * *width * *height);
+
+            if (image_data == NULL || image_data_gray == NULL) {
+                success = false;
+                return;
+            }
+
+            for (int i = 0; i < 4 * packedWidth; i++) {
+                *(image_data + i) = *(packed_image_data + 4 * packedWidth * iconNumber + i);
+            }
+
+            for (int i = 0; i < packedWidth; i++) {
+                unsigned char grayVal = static_cast<unsigned char>(0.299f * (*(image_data + 4 * i + 0)) + 0.587f * (*(image_data + 4 * i + 1)) + 0.114f * (*(image_data + 4 * i + 2)));
+                *(image_data_gray + 4 * i + 0) = grayVal;
+                *(image_data_gray + 4 * i + 1) = grayVal;
+                *(image_data_gray + 4 * i + 2) = grayVal;
+                *(image_data_gray + 4 * i + 3) = *(image_data + 4 * i + 3);
+            }
+
+            // Create texture
+            D3D11_TEXTURE2D_DESC desc;
+            ZeroMemory(&desc, sizeof(desc));
+            desc.Width = *width;
+            desc.Height = *height;
+            desc.MipLevels = 1;
+            desc.ArraySize = 1;
+            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            desc.SampleDesc.Count = 1;
+            desc.Usage = D3D11_USAGE_DEFAULT;
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.CPUAccessFlags = 0;
+
+            ID3D11Texture2D* pTexture = NULL;
+            D3D11_SUBRESOURCE_DATA subResource;
+            subResource.pSysMem = image_data;
+            subResource.SysMemPitch = desc.Width * 4;
+            subResource.SysMemSlicePitch = 0;
+            g_pd3dDevice->CreateTexture2D(&desc, &subResource, &pTexture);
+            if (pTexture == NULL) {
+                success = false;
+                stbi_image_free(image_data);
+                stbi_image_free(image_data_gray);
+                return;
+            }
+
+            // Create texture view
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+            ZeroMemory(&srvDesc, sizeof(srvDesc));
+            srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvDesc.Texture2D.MipLevels = desc.MipLevels;
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            g_pd3dDevice->CreateShaderResourceView(pTexture, &srvDesc, &iconTextures.first[iconNumber]);
+            pTexture->Release();
+
+            ID3D11Texture2D* pTextureGray = NULL;
+            D3D11_SUBRESOURCE_DATA subResourceGray;
+            subResourceGray.pSysMem = image_data_gray;
+            subResourceGray.SysMemPitch = desc.Width * 4;
+            subResourceGray.SysMemSlicePitch = 0;
+            g_pd3dDevice->CreateTexture2D(&desc, &subResourceGray, &pTextureGray);
+            if (pTextureGray == NULL) {
+                success = false;
+                stbi_image_free(image_data);
+                stbi_image_free(image_data_gray);
+                return;
+            }
+
+            // Create texture view
+            D3D11_SHADER_RESOURCE_VIEW_DESC srvDescGray;
+            ZeroMemory(&srvDescGray, sizeof(srvDescGray));
+            srvDescGray.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+            srvDescGray.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            srvDescGray.Texture2D.MipLevels = desc.MipLevels;
+            srvDescGray.Texture2D.MostDetailedMip = 0;
+            g_pd3dDevice->CreateShaderResourceView(pTextureGray, &srvDescGray, &iconTextures.second[iconNumber]);
+            pTextureGray->Release();
+
+            stbi_image_free(image_data);
+            stbi_image_free(image_data_gray);
+            }
+        );
+
+        if (!success) {
+            iconNames.clear();
+            for (size_t i = 0; i < iconTextures.first.size(); i++) {
+                if (iconTextures.first[i]) {
+                    iconTextures.first[i]->Release();
+                    iconTextures.first[i] = nullptr;
+                }
+            }
+            for (size_t i = 0; i < iconTextures.second.size(); i++) {
+                if (iconTextures.second[i]) {
+                    iconTextures.second[i]->Release();
+                    iconTextures.second[i] = nullptr;
+                }
+            }
+            iconTextures.first.clear();
+            iconTextures.second.clear();
+            return { iconNames, iconTextures };
+        }
+        return { iconNames, iconTextures };
     }
 
     bool LoadTTMBanner(

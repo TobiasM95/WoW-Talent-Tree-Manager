@@ -114,9 +114,7 @@ mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
 xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
-del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
-del "$(OutputPath)resources\icons\icons_packed_meta.txt"
 
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
@@ -152,9 +150,7 @@ mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
 xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
-del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
-del "$(OutputPath)resources\icons\icons_packed_meta.txt"
 
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"
@@ -206,9 +202,7 @@ mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
 xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
-del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
-del "$(OutputPath)resources\icons\icons_packed_meta.txt"
 
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl-d.pdb" "$(OutputPath)"
@@ -244,9 +238,7 @@ mkdir "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)resources\icons\"
 copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)resources\TTM_Banner.png"
 xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)resources\icons\" /s/e/k/c/y/i/q/d
-del "$(OutputPath)resources\icons\icons_packed.png
 del "$(OutputPath)resources\icons\organize_pack_icons.py"
-del "$(OutputPath)resources\icons\icons_packed_meta.txt"
 
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\libcurl.dll" "$(OutputPath)"
 copy "$(ProjectDir)src\libs\libcurl\$(PlatformShortName)\bin\zlib1.dll" "$(OutputPath)"

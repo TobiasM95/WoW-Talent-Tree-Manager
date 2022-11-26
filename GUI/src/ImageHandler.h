@@ -19,6 +19,16 @@ namespace TTM {
 		ID3D11Device* g_pd3dDevice, 
 		Engine::TalentType talentType
 	);
+	std::pair<
+		std::vector<std::string>,
+		std::pair<std::vector<ID3D11ShaderResourceView*>, std::vector<ID3D11ShaderResourceView*>>
+	> LoadPackedIcons(
+		const char* packedIconsPath, 
+		const char* metadataPath, 
+		int* width, 
+		int* height,
+		ID3D11Device* g_pd3dDevice
+	);
 	bool LoadTTMBanner(
 		ID3D11ShaderResourceView** out_srv,
 		int* out_width,

@@ -1029,7 +1029,12 @@ namespace TTM {
         }
         std::filesystem::copy_file(shippedResourcesDir / "resource_versions.txt", appPath / "resources" / "resource_versions.txt", std::filesystem::copy_options::skip_existing);
         std::filesystem::copy_file(shippedResourcesDir / "presets.txt", appPath / "resources" / "presets.txt", std::filesystem::copy_options::skip_existing);
-        if (!std::filesystem::is_directory(appPath / "resources" / "icons")) {
+        std::filesystem::copy_file(shippedResourcesDir / "node_id_orders.txt", appPath / "resources" / "node_id_orders.txt", std::filesystem::copy_options::skip_existing);
+        if (!std::filesystem::is_directory(appPath / "resources" / "icons")
+            || !std::filesystem::is_regular_file(appPath / "resources" / "icons" / "icons_packed.png")
+            || !std::filesystem::is_regular_file(appPath / "resources" / "icons" / "icons_packed_meta.txt")) {
+            std::filesystem::create_directory(appPath / "resources" / "icons");
+            std::filesystem::create_directory(appPath / "resources" / "icons" / "custom");
             std::filesystem::copy(shippedResourcesDir / "icons", appPath / "resources" / "icons", std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_existing);
         }
     }

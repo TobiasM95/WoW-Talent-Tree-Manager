@@ -286,35 +286,44 @@ namespace TTM {
     }
 
     void updateIcons(UIData& uiData) {
-        std::string metaDataRaw;
         CURL* curl;
         CURLcode res;
+        FILE* fp = nullptr;
+
+        std::filesystem::path pathToMetaData = Presets::getAppPath() / "resources" / "icons" / "icons_packed_meta.txt";
+        if (!std::filesystem::is_directory(pathToMetaData.parent_path())) {
+            std::filesystem::create_directory(pathToMetaData.parent_path());
+        }
         curl = curl_easy_init();
         if (curl) {
+            fp = fopen(pathToMetaData.string().c_str(), "wb");
+            if (fp == NULL) {
+                uiData.updateStatus = UpdateStatus::UPDATEERROR;
+                return;
+            }
 #ifdef DEBUGREMOTE
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/icons/icons_packed_meta.txt");
 #else
             curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/TobiasM95/WoW-Talent-Tree-Manager/master/GUI/resources/updatertarget/icons_packed_meta.txt");
 #endif
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &metaDataRaw);
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, NULL);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
-            //TTMTODO: this seems very very very dangerous
-            if (CURLE_OK != res || metaDataRaw.find("404:") != std::string::npos) {
+            if (CURLE_OK != res) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
             }
+            fclose(fp);
         }
-        std::vector<std::string> metaData = Engine::splitString(metaDataRaw, "\n");
 
         std::filesystem::path pathToPackedIcons = Presets::getAppPath() / "resources" / "icons" / "icons_packed.png";
         if (!std::filesystem::is_directory(pathToPackedIcons.parent_path())) {
             std::filesystem::create_directory(pathToPackedIcons.parent_path());
         }
-        FILE* fp = nullptr;
+        fp = nullptr;
         curl = curl_easy_init();
         if (curl) {
             fp = fopen(pathToPackedIcons.string().c_str(), "wb");
@@ -333,28 +342,13 @@ namespace TTM {
             curl_easy_setopt(curl, CURLOPT_USERAGENT, "libcurl-agent/1.0");
             res = curl_easy_perform(curl);
             curl_easy_cleanup(curl);
-            //TTMTODO: this seems very very very dangerous
-            if (CURLE_OK != res || metaDataRaw.find("404:") != std::string::npos) {
+            if (CURLE_OK != res) {
                 uiData.updateStatus = UpdateStatus::UPDATEERROR;
                 return;
             }
             fclose(fp);
         }
 
-
-        if (metaData.size() < 4) {
-            uiData.updateStatus = UpdateStatus::UPDATEERROR;
-            return;
-        }
-
-        if (!unpackIcons(pathToPackedIcons.string().c_str(), metaData)) {
-            std::filesystem::remove(pathToPackedIcons);
-            uiData.updateStatus = UpdateStatus::UPDATEERROR;
-            return;
-        }
-
-        //we should also delete the temporary packed file!
-        std::filesystem::remove(pathToPackedIcons);
         refreshIconMap(uiData);
     }
 
