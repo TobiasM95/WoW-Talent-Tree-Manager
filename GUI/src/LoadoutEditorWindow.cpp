@@ -422,6 +422,7 @@ namespace TTM {
                             );
                             uiData.isLoadoutInitValidated = false;
                             if (success) {
+                                uiData.loadoutEditPage = LoadoutEditPage::LoadoutInformation;
                                 ImGui::OpenPopup("Import ingame skillset result");
                             }
                             else {
@@ -434,7 +435,7 @@ namespace TTM {
                     }
 
                     ImGui::Text("Export ingame skillset string:");
-                    ImGui::InputText("##loadoutEditorExportBlizzardHashInput", &uiData.loadoutEditorExportBlizzardHashString);
+                    ImGui::InputText("##loadoutEditorExportBlizzardHashInput", &uiData.loadoutEditorExportBlizzardHashString, ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_ReadOnly);
                     ImGui::SameLine();
                     if (ImGui::Button("Export##loadoutEditorExportBlizzardHashButton")) {
                         Engine::TalentTree* compTreePtr = nullptr;
@@ -494,7 +495,9 @@ namespace TTM {
             {
                 ImGui::Text("Imported %d skillsets!\n(%d skillsets might have been discarded due to mismatched trees\nor corrupted import strings.)", 
                     uiData.loadoutEditorImportSkillsetsResult.first, uiData.loadoutEditorImportSkillsetsResult.second);
-
+                if (uiData.loadoutEditorImportSkillsetsResult.first > 0) {
+                    uiData.loadoutEditPage = LoadoutEditPage::LoadoutInformation;
+                }
                 ImGui::SetItemDefaultFocus();
                 if (ImGui::Button("OK", ImVec2(120, 0))) {
                     ImGui::CloseCurrentPopup();
