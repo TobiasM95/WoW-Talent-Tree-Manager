@@ -1,3 +1,4 @@
 aiohttp==3.8.1
 requests==2.27.1
 numpy==1.22.4
+pillow==9.1.1
