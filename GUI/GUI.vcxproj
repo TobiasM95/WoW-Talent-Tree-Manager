@@ -168,9 +168,7 @@ mkdir "$(OutputPath)TalentTreeManager\resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)TalentTreeManager\resources\icons\"
 copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)TalentTreeManager\resources\TTM_Banner.png"
 xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i/q/d
-del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed.png
 del "$(OutputPath)TalentTreeManager\resources\icons\organize_pack_icons.py"
-del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
 
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
@@ -256,9 +254,7 @@ mkdir "$(OutputPath)TalentTreeManager\resources\icons\"
 copy "$(ProjectDir)resources\icons\default.png" "$(OutputPath)TalentTreeManager\resources\icons\"
 copy "$(ProjectDir)resources\TTM_Banner.png" "$(OutputPath)TalentTreeManager\resources\TTM_Banner.png"
 xcopy "$(ProjectDir)resources\icons\" "$(OutputPath)TalentTreeManager\resources\icons\" /s/e/k/c/y/i/q/d
-del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed.png
 del "$(OutputPath)TalentTreeManager\resources\icons\organize_pack_icons.py"
-del "$(OutputPath)TalentTreeManager\resources\icons\icons_packed_meta.txt"
 
 mkdir "$(OutputPath)TalentTreeManager\licenses\"
 copy "$(SolutionDir)GUI\src\libs\ImGui\LICENSE.txt" "$(OutputPath)TalentTreeManager\licenses\ImGui_LICENSE.txt"
