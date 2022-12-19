@@ -101,7 +101,7 @@ def main():
     print("current/old hash:", current_hash)
     print("new hash:", new_hash)
     icon_list = []
-    if new_hash != current_hash:
+    if new_hash != current_hash and False:
         print(f"Download {len(icon_download_info)} icons..")
         with concurrent.futures.ThreadPoolExecutor(max_workers=32) as executor:
             future_to_url = {
