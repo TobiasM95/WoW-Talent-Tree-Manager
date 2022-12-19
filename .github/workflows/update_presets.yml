@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
 
       - name: checkout repo content
@@ -30,9 +30,8 @@ jobs:
         working-directory: ./Engine/resources/cicd_presets
         run: |
           python tree_presets_generator.py
-          # output=$(python preset_processor.py)
-          # echo "toupdate=$output" >> $GITHUB_OUTPUT
-          echo "toupdate=0" >> $GITHUB_OUTPUT
+          output=$(python preset_processor.py)
+          echo "toupdate=$output" >> $GITHUB_OUTPUT
 
       - name: commit files # do this only when preset processor did something
         if: steps.updatestep.outputs.toupdate > 0
