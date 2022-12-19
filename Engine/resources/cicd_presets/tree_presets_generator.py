@@ -98,6 +98,8 @@ def main():
 
     current_hash = md5(current_files)
     new_hash = md5(files_to_process)
+    print("current/old hash:", current_hash)
+    print("new hash:", new_hash)
     icon_list = []
     if new_hash != current_hash:
         print(f"Download {len(icon_download_info)} icons..")
