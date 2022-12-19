@@ -44,6 +44,8 @@ resource_version_locations = [
 def main():
     current_hash = md5(current_files)
     new_hash = md5(files_to_process)
+    print("current/old hash:", current_hash)
+    print("new hash:", new_hash)
     if new_hash != current_hash:
         for pfile, dfiles in zip(files_to_process, target_copy_locations):
             for dfile in dfiles:
