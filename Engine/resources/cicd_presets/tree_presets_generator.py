@@ -577,6 +577,7 @@ def export_node_orders_to_file(node_id_orders):
 
 
 def md5(filepaths):
+    print(f"hash filepaths ", filepaths)
     hash_md5 = hashlib.md5()
     for filepath in filepaths:
         with open(filepath, "rb") as f:

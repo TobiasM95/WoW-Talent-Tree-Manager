@@ -15,8 +15,8 @@ files_to_process = [
 current_files = [
     "../presets.txt",
     "../node_id_orders.txt",
-    "../icons_packed_meta.txt",
-    "../icons_packed.png",
+    "../../../GUI/resources/icons/icons_packed_meta.txt",
+    "../../../GUI/resources/icons/icons_packed.png",
 ]
 
 target_copy_locations = [
