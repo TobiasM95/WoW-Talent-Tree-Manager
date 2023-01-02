@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import os
+import pathlib
 from dataclasses import dataclass
 import re
 import json
@@ -580,6 +581,7 @@ def md5(filepaths):
     print(f"hash filepaths ", filepaths)
     hash_md5 = hashlib.md5()
     for filepath in filepaths:
+        print(pathlib.Path(filepath).absolute().resolve())
         with open(filepath, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
