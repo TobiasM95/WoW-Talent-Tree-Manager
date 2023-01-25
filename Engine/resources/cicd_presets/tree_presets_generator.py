@@ -289,7 +289,7 @@ def get_tooltip_urls(class_and_spec_trees):
                         urls.append(
                             [
                                 [sid, 1],
-                                f"https://nether.wowhead.com/tooltip/spell/{sid}?def={definition}&rank=1&dataEnv=3",
+                                f"https://nether.wowhead.com/tooltip/spell/{sid}?def={definition}&rank=1&dataEnv=1",
                             ]
                         )
                 else:
@@ -299,7 +299,7 @@ def get_tooltip_urls(class_and_spec_trees):
                         urls.append(
                             [
                                 [sid, rank],
-                                f"https://nether.wowhead.com/tooltip/spell/{sid}?{definition}rank={rank}&dataEnv=3",
+                                f"https://nether.wowhead.com/tooltip/spell/{sid}?{definition}rank={rank}&dataEnv=1",
                             ]
                         )
     return urls
