@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { tokens } from "../../theme";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
@@ -16,7 +16,7 @@ const Item = ({ title, to, icon, selected, setSelected }) => {
       active={selected === title}
       onClick={() => setSelected(title)}
       icon={icon}
-      component={<Link to={to} />}
+      component={<NavLink to={to} />}
     >
       <Typography>{title}</Typography>
     </MenuItem>
@@ -35,7 +35,7 @@ const AppSidebar = () => {
         backgroundColor: `${colors.primary[900]}`,
         color: `${colors.grey[100]}`,
       },
-      [`&.ps-active`]: {
+      [`&.active`]: {
         backgroundColor: `${colors.primary[700]}`,
         color: `${colors.primary[100]}`,
       },
