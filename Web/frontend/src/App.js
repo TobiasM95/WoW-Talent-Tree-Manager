@@ -5,8 +5,10 @@ import Topbar from "./scenes/global/topbar";
 import Dashboard from "./scenes/dashboard";
 import AppSidebar from "./scenes/global/appsidebar";
 import Team from "./scenes/team";
-// import Form from "./scenes/form";
+import Form from "./scenes/form";
 import FAQ from "./scenes/faq";
+import Bar from "./scenes/bar";
+import Tree from "./scenes/tree";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -22,8 +24,10 @@ function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/team" element={<Team />} />
-              {/* <Route path="/form" element={<Form />} /> */}
+              <Route path="/form" element={<Form />} />
               <Route path="/faq" element={<FAQ />} />
+              <Route path="/bar" element={<Bar />} />
+              <Route path="/tree" element={<Tree />} />
             </Routes>
           </main>
         </div>
