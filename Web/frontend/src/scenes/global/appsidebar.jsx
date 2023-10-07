@@ -5,10 +5,10 @@ import { NavLink } from "react-router-dom";
 import { tokens } from "../../theme";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
-import ReceiptOutlinedIcon from "@mui/icons-material/ReceiptOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
+import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
 
 const Item = ({ title, to, icon, selected, setSelected }) => {
   return (
@@ -105,13 +105,6 @@ const AppSidebar = () => {
                   selected={selected}
                   setSelected={setSelected}
                 />
-                <Item
-                  title="Invoices Balances"
-                  to="/invoices"
-                  icon={<ReceiptOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                />
 
                 <Typography
                   variant="h6"
@@ -141,6 +134,20 @@ const AppSidebar = () => {
                 >
                   Charts
                 </Typography>
+                <Item
+                  title="Bar Chart"
+                  to="/bar"
+                  icon={<BarChartOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
+                <Item
+                  title="Tree View"
+                  to="/tree"
+                  icon={<BarChartOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                />
               </Box>
             </Menu>
           </div>
