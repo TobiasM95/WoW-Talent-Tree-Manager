@@ -7,7 +7,8 @@ export const initialNodes = [
   },
   {
     id: "2",
-    position: { x: 0, y: 100 },
+    type: "passiveNode",
+    position: { x: 0, y: 160 },
     data: { label: "2" },
   },
 ];

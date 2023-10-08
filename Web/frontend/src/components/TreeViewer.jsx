@@ -13,7 +13,6 @@ import { initialEdges, initialNodes } from "../data/mockTree";
 
 import "reactflow/dist/style.css";
 
-import "./tree_components/node-styles.css";
 import PassiveNode from "./tree_components/PassiveNode";
 
 const proOptions = { hideAttribution: true };
