@@ -1,6 +1,7 @@
 import os
 import hashlib
 import datetime
+import uuid
 from typing import Union
 
 from dotenv import load_dotenv
@@ -16,7 +17,7 @@ from flask_jwt_extended import (
     get_jwt,
 )
 from sqlalchemy import create_engine
-from database_handler import Login, DBHandler
+from database_handler import Login, DBHandler, Activation
 
 load_dotenv()
 
@@ -54,7 +55,7 @@ def validate_login(data: dict) -> tuple[bool, Union[Login, None]]:
         )
         if login_info is None:
             return (False, None)
-        password_hash: str = hash_password(password, login_info.salt)
+        password_hash: bytes = hash_password(password, login_info.salt)
         if password_hash != login_info.password_hash:
             return (False, None)
     else:
@@ -62,7 +63,7 @@ def validate_login(data: dict) -> tuple[bool, Union[Login, None]]:
     return (True, login_info)
 
 
-def hash_password(password, salt):
+def hash_password(password: str, salt: bytes) -> bytes:
     return hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1)
 
 
@@ -112,6 +113,66 @@ def logout():
     response = jsonify({"msg": "logout successful"})
     unset_jwt_cookies(response)
     return response
+
+
+@app.route("/create_account", methods=["POST"])
+def create_account():
+    data = request.json
+    existing_login_user_name: Union[Login, None] = db_handler.get_login(
+        auth_method="USERNAMEEMAIL",
+        user_name_email=data["user_name"],
+    )
+    if existing_login_user_name is not None:
+        return jsonify({"msg": "username already taken"}), 400
+
+    existing_login_email: Union[Login, None] = db_handler.get_login(
+        auth_method="USERNAMEEMAIL",
+        user_name_email=data["email"],
+    )
+    if existing_login_email is not None:
+        return jsonify({"msg": "email already in use"}), 400
+
+    salt: bytes = os.urandom(16)
+    user_id = uuid.uuid4()
+    alt_user_id = uuid.uuid4()
+    new_login: Login = Login(
+        user_id=user_id,
+        alt_user_id=alt_user_id,
+        auth_method="PW",
+        email=data["email"],
+        password_hash=hash_password(data["password"], salt),
+        salt=salt,
+        user_name=data["user_name"],
+        last_login_timestamp=datetime.datetime.now(),
+        is_activated=False,
+    )
+    new_activation: Activation = Activation(
+        alt_user_id=alt_user_id, activation_id=uuid.uuid4()
+    )
+    db_handler.create_login(new_login)
+    db_handler.create_activation(new_activation)
+
+    return jsonify({"msg": "user created successfully"}), 200
+
+
+@app.route("/activate_account/<string:activation_id>", methods=["GET"])
+def activate_account(activation_id: str):
+    activation: Union[Activation, None] = db_handler.get_activation(
+        activation_id=activation_id
+    )
+    if activation is None:
+        return jsonify({"msg": "Account couldn't be activated"}), 400
+
+    existing_login: Union[Login, None] = db_handler.get_login(
+        auth_method="ALTUSERID", user_id=activation.alt_user_id
+    )
+    if existing_login is None:
+        return jsonify({"msg": "Account couldn't be activated"}), 400
+
+    db_handler.activate_login(alt_user_id=activation.alt_user_id)
+    db_handler.delete_activation(activation.alt_user_id)
+
+    return jsonify({"msg": "Account was activated"})
 
 
 @app.route("/who_am_i", methods=["GET"])
