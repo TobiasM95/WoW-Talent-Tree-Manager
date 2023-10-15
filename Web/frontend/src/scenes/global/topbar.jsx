@@ -1,5 +1,6 @@
-import { Box, IconButton, useTheme } from "@mui/material";
+import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { useContext } from "react";
+import { NavLink } from "react-router-dom";
 import { ColorModeContext, tokens } from "../../theme";
 import { InputBase } from "@mui/material";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
@@ -29,6 +30,19 @@ const Topbar = () => {
       </Box>
       {/* ICONS */}
       <Box display="flex">
+        <Button
+          sx={{
+            backgroundColor: colors.greenAccent[700],
+            color: colors.grey[100],
+            fontSize: "14px",
+            fontWeight: "bold",
+            padding: "10px 20px",
+          }}
+          component={NavLink}
+          to={"/login"}
+        >
+          <Typography>Login</Typography>
+        </Button>
         <IconButton onClick={colorMode.toggleColorMode}>
           {theme.palette.mode === "dark" ? (
             <LightModeOutlinedIcon />

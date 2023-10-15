@@ -12,7 +12,7 @@ class Login:
         self,
         user_id: str,
         alt_user_id: str,
-        auth_method: Literal["PW", "SSIO"],
+        auth_method: Literal["PW", "SSO"],
         email: str,
         password_hash: str,
         salt: str,
@@ -22,7 +22,7 @@ class Login:
     ):
         self.user_id: str = user_id
         self.alt_user_id: str = alt_user_id
-        self.auth_method: Literal["PW", "SSIO"] = auth_method
+        self.auth_method: Literal["PW", "SSO"] = auth_method
         self.email: str = email
         self.password_hash: str = password_hash
         self.salt: str = salt
@@ -175,10 +175,9 @@ class DBHandler:
 
     def get_login(
         self,
-        auth_method: Literal["USERID", "ALTUSERID", "USERNAME", "EMAIL", "SSIO"],
+        auth_method: Literal["USERID", "ALTUSERID", "USERNAMEEMAIL", "SSO"],
         user_id: Union[None, str] = None,
-        user_name: Union[None, str] = None,
-        email: Union[None, str] = None,
+        user_name_email: Union[None, str] = None,
     ) -> Union[Login, None]:
         table: Table = Table("Logins")
         login_cols: tuple[str] = (
@@ -200,16 +199,21 @@ class DBHandler:
                 .select(*login_cols)
                 .where((table.AltUserID == user_id))
             )
-        elif auth_method == "USERNAME":
+        elif auth_method == "USERNAMEEMAIL":
             q = (
                 Query.from_(table)
                 .select(*login_cols)
-                .where((table.UserName == user_name))
+                .where(
+                    (table.UserName == user_name_email)
+                    | (table.Email == user_name_email)
+                )
             )
-        elif auth_method == "EMAIL":
-            q = Query.from_(table).select(*login_cols).where((table.Email == email))
-        elif auth_method == "SSIO":
-            q = Query.from_(table).select(*login_cols).where((table.Email == email))
+        elif auth_method == "SSO":
+            q = (
+                Query.from_(table)
+                .select(*login_cols)
+                .where((table.Email == user_name_email))
+            )
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Login(*res)
