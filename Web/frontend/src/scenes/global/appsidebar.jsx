@@ -169,7 +169,12 @@ const AppSidebar = () => {
                     />
                   </a>
                 </Box>
-                <Box textAlign="center">
+                <Box
+                  textAlign="center"
+                  justifyContent="center"
+                  alignItems="center"
+                  display="flex"
+                >
                   <Typography
                     variant="h5"
                     color={colors.grey[100]}
@@ -177,6 +182,20 @@ const AppSidebar = () => {
                   >
                     Github
                   </Typography>
+                </Box>
+                <Box
+                  textAlign="center"
+                  justifyContent="center"
+                  alignItems="center"
+                  display="flex"
+                >
+                  <iframe
+                    src="https://ghbtns.com/github-btn.html?user=TobiasM95&repo=WoW-Talent-Tree-Manager&type=star&count=true&size=small"
+                    frameborder="0"
+                    width="78"
+                    height="30"
+                    title="TTM"
+                  ></iframe>
                 </Box>
               </Box>
             )}
