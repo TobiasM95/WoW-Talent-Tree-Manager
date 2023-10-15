@@ -9,6 +9,7 @@ import Form from "./scenes/form";
 import FAQ from "./scenes/faq";
 import Bar from "./scenes/bar";
 import Tree from "./scenes/tree";
+import Login from "./scenes/login";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -28,6 +29,7 @@ function App() {
               <Route path="/faq" element={<FAQ />} />
               <Route path="/bar" element={<Bar />} />
               <Route path="/tree" element={<Tree />} />
+              <Route path="/login" element={<Login />} />
             </Routes>
           </main>
         </div>
