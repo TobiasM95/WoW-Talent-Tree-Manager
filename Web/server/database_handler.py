@@ -1,10 +1,8 @@
-import sys
 import os
-import sqlite3
 from typing import Literal, Union
 import datetime
-from pypika import Table, Query, Database
-from sqlalchemy import Engine, text
+from pypika import Table, Query, Parameter
+from sqlalchemy import Engine, text, TextClause
 
 
 class Login:
@@ -14,8 +12,8 @@ class Login:
         alt_user_id: str,
         auth_method: Literal["PW", "SSO"],
         email: str,
-        password_hash: str,
-        salt: str,
+        password_hash: bytes,
+        salt: bytes,
         user_name: str,
         last_login_timestamp: datetime.datetime,
         is_activated: bool,
@@ -24,11 +22,17 @@ class Login:
         self.alt_user_id: str = alt_user_id
         self.auth_method: Literal["PW", "SSO"] = auth_method
         self.email: str = email
-        self.password_hash: str = password_hash
-        self.salt: str = salt
+        self.password_hash: bytes = password_hash
+        self.salt: bytes = salt
         self.user_name: str = user_name
         self.last_login_timestamp: datetime.datetime = last_login_timestamp
         self.is_activated: bool = is_activated
+
+
+class Activation:
+    def __init__(self, alt_user_id: str, activation_id: str):
+        self.alt_user_id: str = alt_user_id
+        self.activation_id: str = activation_id
 
 
 class Workspace:
@@ -128,7 +132,8 @@ class DBHandler:
 
         with self.engine.connect() as conn:
             # fmt: off
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Logins (UserID TEXT, AltUserID TEXT, AuthMethod TEXT, Email TEXT, PasswordHash TEXT, Salt BLOB, UserName TEXT, LastLoginTimestamp TEXT, IsActivated INTEGER)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Logins (UserID TEXT, AltUserID TEXT, AuthMethod TEXT, Email TEXT, PasswordHash BLOB, Salt BLOB, UserName TEXT, LastLoginTimestamp TEXT, IsActivated INTEGER)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Activations (AltUserID TEXT, ActivationID TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, TreeString TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, TreeID TEXT, LoadoutString TEXT)"))
@@ -156,21 +161,24 @@ class DBHandler:
             login.alt_user_id,
             login.auth_method,
             login.email,
-            login.password_hash,
-            login.salt,
+            Parameter(":pwhash"),
+            Parameter(":salt"),
             login.user_name,
             login.last_login_timestamp,
             login.is_activated,
         )
+        q: TextClause = text(q.get_sql())
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(
+                q, parameters=dict(pwhash=login.password_hash, salt=login.salt)
+            )
             conn.commit()
 
     def delete_login(self, user_id: str) -> None:
         table: Table = Table("Logins")
         q = Query.from_(table).where(table.UserID == user_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_login(
@@ -218,23 +226,60 @@ class DBHandler:
             res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Login(*res)
 
-    def add_login_variant_to_user(self):
+    def add_login_variant_to_user(self) -> None:
         # TODO: Add possibility to extend login information to both login methods
         raise Exception("Not yet implemented!")
+
+    def activate_login(self, alt_user_id: str) -> None:
+        table: Table = Table("Logins")
+        q = (
+            Query.update(table)
+            .set(table.IsActivated, True)
+            .where(table.AltUserID == alt_user_id)
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def create_activation(self, activation: Activation) -> None:
+        q = Query.into("Activations").insert(
+            activation.alt_user_id, activation.activation_id
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def delete_activation(self, alt_user_id: str) -> None:
+        table: Table = Table("Activations")
+        q = Query.from_(table).where(table.AltUserID == alt_user_id).delete()
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def get_activation(self, activation_id: str) -> Union[Activation, None]:
+        table: Table = Table("Activations")
+        q = (
+            Query.from_(table)
+            .select("AltUserID", "ActivationID")
+            .where((table.ActivationID == activation_id))
+        )
+        with self.engine.connect() as conn:
+            res = conn.execute(text(q.get_sql())).first()
+        return None if res is None else Activation(*res)
 
     def create_workspace(self, workspace: Workspace) -> None:
         q = Query.into("Workspaces").insert(
             workspace.user_id, workspace.content_type, workspace.content_id
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_workspace(self, user_id: str) -> None:
         table: Table = Table("Workspaces")
         q = Query.from_(table).where(table.UserID == user_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_workspace(self, user_id: str) -> Union[Workspace, None]:
@@ -245,20 +290,20 @@ class DBHandler:
             .where((table.UserID == user_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql()).first()
+            res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Workspace(*res)
 
     def create_tree(self, tree: Tree) -> None:
         q = Query.into("Trees").insert(tree.content_id, tree.tree_string)
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_tree(self, content_id: str) -> None:
         table: Table = Table("Trees")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_tree(self, content_id: str) -> Union[Tree, None]:
@@ -269,7 +314,7 @@ class DBHandler:
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql()).first()
+            res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Tree(*res)
 
     def update_tree(self, tree: Tree) -> None:
@@ -280,7 +325,7 @@ class DBHandler:
             .where(table.ContentID == tree.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def create_loadout(self, loadout: Loadout) -> None:
@@ -288,14 +333,14 @@ class DBHandler:
             loadout.content_id, loadout.tree_id, loadout.loadout_string
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_loadout(self, content_id: str) -> None:
         table: Table = Table("Loadouts")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_loadout(self, content_id: str) -> Union[Loadout, None]:
@@ -306,7 +351,7 @@ class DBHandler:
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql()).first()
+            res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Loadout(*res)
 
     def update_loadout(self, loadout: Loadout) -> None:
@@ -317,7 +362,7 @@ class DBHandler:
             .where(table.ContentID == loadout.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def create_build(self, build: Build) -> None:
@@ -325,14 +370,14 @@ class DBHandler:
             build.content_id, build.tree_id, build.loadout_id, build.build_string
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_build(self, content_id: str) -> None:
         table: Table = Table("Builds")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_build(self, content_id: str) -> Union[Build, None]:
@@ -343,7 +388,7 @@ class DBHandler:
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql()).first()
+            res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Login(*res)
 
     def update_Build(self, build: Build) -> None:
@@ -354,13 +399,13 @@ class DBHandler:
             .where(table.ContentID == build.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def create_like(self, like: Like) -> None:
         q = Query.into("Likes").insert(like.user_id, like.content_id, like.timestamp)
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_like(self, user_id: str, content_id: str) -> None:
@@ -371,7 +416,7 @@ class DBHandler:
             .delete()
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_likes(
@@ -399,7 +444,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql())
+            res = conn.execute(text(q.get_sql()))
             likes: list(Like) = []
             for row in res.all():
                 likes.append(Like(*row))
@@ -416,14 +461,14 @@ class DBHandler:
             comment.was_edited,
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_comment(self, comment_id: str) -> None:
         table: Table = Table("Comments")
         q = Query.from_(table).where((table.CommentID == comment_id)).delete()
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def get_comment(self, comment_id: str) -> Union[Comment, None]:
@@ -442,7 +487,7 @@ class DBHandler:
             .where((table.CommentID == comment_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql()).first()
+            res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Comment(*res)
 
     def get_comments(
@@ -494,7 +539,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
         with self.engine.connect() as conn:
-            res = conn.execute(q.get_sql())
+            res = conn.execute(text(q.get_sql()))
             comments: list(Comment) = []
             for row in res.all():
                 comments.append(Like(*row))
@@ -510,7 +555,7 @@ class DBHandler:
             .where(table.comment_id == comment.comment_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
     def create_feedback(self, feedback: Feedback) -> None:
@@ -518,7 +563,7 @@ class DBHandler:
             feedback.feedback_id, feedback.user_id, feedback.message
         )
         with self.engine.connect() as conn:
-            conn.execute(q.get_sql())
+            conn.execute(text(q.get_sql()))
             conn.commit()
 
 
