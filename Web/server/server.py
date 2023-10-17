@@ -18,6 +18,7 @@ from flask_jwt_extended import (
 )
 from sqlalchemy import create_engine
 from database_handler import Login, DBHandler, Activation
+from email_handler import EmailHandler
 
 load_dotenv()
 
@@ -40,7 +41,7 @@ jwt = JWTManager(app)
 
 def validate_login(data: dict) -> tuple[bool, Union[Login, None]]:
     auth_method: str = data.get("auth_method")
-    user_name_email: Union[str, None] = data.get("user_name_email")
+    user_name_email: Union[str, None] = data.get("user_name_email").lower()
     password: Union[str, None] = data.get("password")
     if auth_method == "SSO":
         login_info: Union[Login, None] = db_handler.get_login(
@@ -60,7 +61,7 @@ def validate_login(data: dict) -> tuple[bool, Union[Login, None]]:
             return (False, None)
     else:
         return (False, None)
-    return (True, login_info)
+    return (login_info.is_activated, login_info)
 
 
 def hash_password(password: str, salt: bytes) -> bytes:
@@ -83,8 +84,10 @@ def user_lookup_callback(_jwt_header, jwt_data) -> Union[Login, None]:
 def refresh_expiring_jwts(response):
     try:
         exp_timestamp = get_jwt()["exp"]
-        now = datetime.now(datetime.timezone.utc)
-        target_timestamp = datetime.timestamp(now + datetime.timedelta(minutes=30))
+        now = datetime.datetime.now(datetime.timezone.utc)
+        target_timestamp = datetime.datetime.timestamp(
+            now + datetime.timedelta(minutes=30)
+        )
         if target_timestamp > exp_timestamp:
             access_token = create_access_token(identity=get_jwt_identity(), fresh=False)
             set_access_cookies(response, access_token)
@@ -99,10 +102,13 @@ def login():
     data = request.json
     login_validated, login = validate_login(data)
     if not login_validated:
-        return jsonify("Wrong username or password"), 401
+        if login is None:
+            return jsonify({"msg": "Wrong username or password"}), 401
+        else:
+            return jsonify({"msg": "Account is not activated"}), 401
 
     response = jsonify({"msg": "login successful"})
-    access_token = create_access_token(identity=login)
+    access_token = create_access_token(identity=login, fresh=True)
     set_access_cookies(response, access_token)
 
     return response
@@ -120,7 +126,7 @@ def create_account():
     data = request.json
     existing_login_user_name: Union[Login, None] = db_handler.get_login(
         auth_method="USERNAMEEMAIL",
-        user_name_email=data["user_name"],
+        user_name_email=data["user_name"].lower(),
     )
     if existing_login_user_name is not None:
         return jsonify({"msg": "username already taken"}), 400
@@ -142,7 +148,7 @@ def create_account():
         email=data["email"],
         password_hash=hash_password(data["password"], salt),
         salt=salt,
-        user_name=data["user_name"],
+        user_name=data["user_name"].lower(),
         last_login_timestamp=datetime.datetime.now(),
         is_activated=False,
     )
@@ -151,6 +157,7 @@ def create_account():
     )
     db_handler.create_login(new_login)
     db_handler.create_activation(new_activation)
+    EmailHandler.send_verification_email(data["email"], new_activation.activation_id)
 
     return jsonify({"msg": "user created successfully"}), 200
 
@@ -175,9 +182,19 @@ def activate_account(activation_id: str):
     return jsonify({"msg": "Account was activated"})
 
 
+@app.route("/delete_account", methods=["GET"])
+@jwt_required(fresh=True)
+def delete_account():
+    # We can now access our sqlalchemy User object via `current_user`.
+    db_handler.delete_login(current_user.user_id)
+    response = jsonify({"msg": "Account deleted successfully"})
+    unset_jwt_cookies(response)
+    return response
+
+
 @app.route("/who_am_i", methods=["GET"])
 @jwt_required(fresh=True)
-def protected():
+def who_am_i():
     # We can now access our sqlalchemy User object via `current_user`.
     return jsonify(
         alt_user_id=current_user.alt_user_id,
