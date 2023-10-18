@@ -3,9 +3,12 @@ import hashlib
 import datetime
 import uuid
 from typing import Union
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 from dotenv import load_dotenv
-from flask import Flask, abort, request, jsonify
+from flask import Flask, Request, abort, request, jsonify
+from flask_cors import CORS
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -36,14 +39,34 @@ app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_COOKIE_SECURE"] = os.environ["JWT_COOKIE_SECURE"] == "True"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(hours=1)
 
+CORS(
+    app,
+    resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}},
+    supports_credentials=True,
+)
+
 jwt = JWTManager(app)
 
 
 def validate_login(data: dict) -> tuple[bool, Union[Login, None]]:
     auth_method: str = data.get("auth_method")
-    user_name_email: Union[str, None] = data.get("user_name_email").lower()
+    user_name_email: Union[str, None] = data.get("user_name_email")
+    if user_name_email is not None:
+        user_name_email = user_name_email.lower()
     password: Union[str, None] = data.get("password")
+    sso_token: Union[str, None] = data.get("sso_token")
     if auth_method == "SSO":
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                sso_token, requests.Request(), os.environ["GOOGLE_AUTH_CLIENT_ID"]
+            )
+            print(idinfo)
+
+            # ID token is valid. Get the user's Google Account ID from the decoded token.
+            user_name_email = idinfo["email"]
+        except ValueError:
+            # Invalid token
+            return (False, None)
         login_info: Union[Login, None] = db_handler.get_login(
             auth_method=auth_method, user_name_email=user_name_email
         )
@@ -99,24 +122,24 @@ def refresh_expiring_jwts(response):
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.json
+    data: dict = request.json
     login_validated, login = validate_login(data)
     if not login_validated:
         if login is None:
-            return jsonify({"msg": "Wrong username or password"}), 401
+            return jsonify({"success": False, "msg": "Wrong username or password"}), 200
         else:
-            return jsonify({"msg": "Account is not activated"}), 401
+            return jsonify({"success": False, "msg": "Account is not activated"}), 200
 
-    response = jsonify({"msg": "login successful"})
+    response = jsonify({"success": True, "msg": "login successful"})
     access_token = create_access_token(identity=login, fresh=True)
     set_access_cookies(response, access_token)
 
-    return response
+    return response, 200
 
 
 @app.route("/logout", methods=["POST"])
 def logout():
-    response = jsonify({"msg": "logout successful"})
+    response = jsonify({"success": True, "msg": "logout successful"})
     unset_jwt_cookies(response)
     return response
 
@@ -129,14 +152,14 @@ def create_account():
         user_name_email=data["user_name"].lower(),
     )
     if existing_login_user_name is not None:
-        return jsonify({"msg": "username already taken"}), 400
+        return jsonify({"success": False, "msg": "username already taken"}), 200
 
     existing_login_email: Union[Login, None] = db_handler.get_login(
         auth_method="USERNAMEEMAIL",
         user_name_email=data["email"],
     )
     if existing_login_email is not None:
-        return jsonify({"msg": "email already in use"}), 400
+        return jsonify({"success": False, "msg": "email already in use"}), 200
 
     salt: bytes = os.urandom(16)
     user_id = uuid.uuid4()
@@ -159,7 +182,7 @@ def create_account():
     db_handler.create_activation(new_activation)
     EmailHandler.send_verification_email(data["email"], new_activation.activation_id)
 
-    return jsonify({"msg": "user created successfully"}), 200
+    return jsonify({"success": True, "msg": "user created successfully"}), 200
 
 
 @app.route("/activate_account/<string:activation_id>", methods=["GET"])
@@ -168,18 +191,18 @@ def activate_account(activation_id: str):
         activation_id=activation_id
     )
     if activation is None:
-        return jsonify({"msg": "Account couldn't be activated"}), 400
+        return jsonify({"success": False, "msg": "Account couldn't be activated"}), 200
 
     existing_login: Union[Login, None] = db_handler.get_login(
         auth_method="ALTUSERID", user_id=activation.alt_user_id
     )
     if existing_login is None:
-        return jsonify({"msg": "Account couldn't be activated"}), 400
+        return jsonify({"success": False, "msg": "Account couldn't be activated"}), 200
 
     db_handler.activate_login(alt_user_id=activation.alt_user_id)
     db_handler.delete_activation(activation.alt_user_id)
 
-    return jsonify({"msg": "Account was activated"})
+    return jsonify({"success": True, "msg": "Account was activated"})
 
 
 @app.route("/delete_account", methods=["GET"])
@@ -187,9 +210,19 @@ def activate_account(activation_id: str):
 def delete_account():
     # We can now access our sqlalchemy User object via `current_user`.
     db_handler.delete_login(current_user.user_id)
-    response = jsonify({"msg": "Account deleted successfully"})
+    response = jsonify({"success": True, "msg": "Account deleted successfully"})
     unset_jwt_cookies(response)
     return response
+
+
+@app.route("/check_if_logged_in", methods=["GET"])
+@jwt_required(optional=True)
+def check_if_logged_in():
+    current_identity = get_jwt_identity()
+    if current_identity:
+        return jsonify({"success": True, "msg": "Logged in"}), 200
+    else:
+        return jsonify({"success": False, "msg": "Not logged in"}), 200
 
 
 @app.route("/who_am_i", methods=["GET"])

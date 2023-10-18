@@ -1,11 +1,7 @@
-import { ToggleButtonGroup, ToggleButton, useTheme } from "@mui/material";
-import { tokens } from "../theme";
+import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 import { useState } from "react";
 
 const ToggleButtons = ({ selection }) => {
-  const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-
   const [selected, setSelected] = useState(selection[0]);
 
   const handleSelected = (event, newSelected) => {
