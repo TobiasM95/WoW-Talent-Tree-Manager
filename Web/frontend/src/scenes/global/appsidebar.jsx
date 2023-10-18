@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
 import { Box, IconButton, Typography, useTheme } from "@mui/material";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../../components/AuthProvider";
 import { tokens } from "../../theme";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
@@ -28,6 +29,8 @@ const AppSidebar = () => {
   const colors = tokens(theme.palette.mode);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selected, setSelected] = useState("Dashboard");
+
+  const { loginState } = useAuth();
 
   const menuItemStyles = {
     button: {
@@ -91,21 +94,24 @@ const AppSidebar = () => {
                   setSelected={setSelected}
                 />
 
-                <Typography
-                  variant="h6"
-                  color={colors.grey[300]}
-                  sx={{ m: "15px 0 5px 20px" }}
-                >
-                  Data
-                </Typography>
-                <Item
-                  title="Manage Team"
-                  to="/team"
-                  icon={<PeopleOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                />
-
+                {loginState === true && (
+                  <Box>
+                    <Typography
+                      variant="h6"
+                      color={colors.grey[300]}
+                      sx={{ m: "15px 0 5px 20px" }}
+                    >
+                      Member Area
+                    </Typography>
+                    <Item
+                      title="Manage Team"
+                      to="/team"
+                      icon={<PeopleOutlinedIcon />}
+                      selected={selected}
+                      setSelected={setSelected}
+                    />
+                  </Box>
+                )}
                 <Typography
                   variant="h6"
                   color={colors.grey[300]}
@@ -191,7 +197,7 @@ const AppSidebar = () => {
                 >
                   <iframe
                     src="https://ghbtns.com/github-btn.html?user=TobiasM95&repo=WoW-Talent-Tree-Manager&type=star&count=true&size=small"
-                    frameborder="0"
+                    frameBorder="0"
                     width="78"
                     height="30"
                     title="TTM"

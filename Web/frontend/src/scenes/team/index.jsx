@@ -81,7 +81,7 @@ const Team = () => {
           slots={{ toolbar: GridToolbar }}
           slotProps={{
             toolbar: {
-              disableDensitySelector: true,
+              disabledensityselector: "true",
             },
           }}
         />

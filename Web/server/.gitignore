@@ -1,2 +1,3 @@
 database/*
+secrets/*
 .env

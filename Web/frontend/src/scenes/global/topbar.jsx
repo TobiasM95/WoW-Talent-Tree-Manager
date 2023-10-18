@@ -2,6 +2,7 @@ import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
 import { useContext } from "react";
 import { NavLink } from "react-router-dom";
 import { ColorModeContext, tokens } from "../../theme";
+import { useAuth } from "../../components/AuthProvider";
 import { InputBase } from "@mui/material";
 import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
@@ -14,6 +15,13 @@ const Topbar = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const colorMode = useContext(ColorModeContext);
+
+  const { loginState, setLogout } = useAuth();
+
+  const buttonLogout = async () => {
+    const error_information = await setLogout();
+    console.log("logout status", error_information);
+  };
 
   return (
     <Box display="flex" justifyContent="space-between" p={2}>
@@ -30,19 +38,35 @@ const Topbar = () => {
       </Box>
       {/* ICONS */}
       <Box display="flex">
-        <Button
-          sx={{
-            backgroundColor: colors.greenAccent[700],
-            color: colors.grey[100],
-            fontSize: "14px",
-            fontWeight: "bold",
-            padding: "10px 20px",
-          }}
-          component={NavLink}
-          to={"/login"}
-        >
-          <Typography>Login</Typography>
-        </Button>
+        {loginState === true && (
+          <Button
+            sx={{
+              backgroundColor: colors.greenAccent[500],
+              color: "#000",
+              fontSize: "14px",
+              fontWeight: "bold",
+              padding: "10px 20px",
+            }}
+            onClick={buttonLogout}
+          >
+            <Typography>Logout</Typography>
+          </Button>
+        )}
+        {loginState === false && (
+          <Button
+            sx={{
+              backgroundColor: colors.greenAccent[500],
+              color: "#000",
+              fontSize: "14px",
+              fontWeight: "bold",
+              padding: "10px 20px",
+            }}
+            component={NavLink}
+            to={"/login"}
+          >
+            <Typography>Login</Typography>
+          </Button>
+        )}
         <IconButton onClick={colorMode.toggleColorMode}>
           {theme.palette.mode === "dark" ? (
             <LightModeOutlinedIcon />
