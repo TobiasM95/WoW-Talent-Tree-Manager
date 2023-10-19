@@ -5,6 +5,8 @@ import {
   TextField,
   Typography,
   useTheme,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import { Formik } from "formik";
@@ -13,7 +15,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import Header from "../../components/Header";
 import { googleClientID } from "../../data/secrets";
 import { useAuth } from "../../components/AuthProvider";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { baseAPI } from "../../api/backendAPI";
 
 // LOGIN SCHEMA
@@ -31,15 +33,15 @@ const userLoginSchema = yup.object().shape({
 // CREATION SCHEMA
 
 const initialCreationValues = {
-  userName: "",
+  userNameCreate: "",
   email: "",
-  initialPassword: "",
+  passwordCreate: "",
 };
 
 const userCreationSchema = yup.object().shape({
-  userName: yup.string().required("required"),
+  userNameCreate: yup.string().required("required"),
   email: yup.string().email().required("required"),
-  initialPassword: yup.string().required("required"),
+  passwordCreate: yup.string().required("required"),
 });
 
 const Login = () => {
@@ -47,15 +49,25 @@ const Login = () => {
   const colors = tokens(theme.palette.mode);
   const isNonMobile = useMediaQuery("(min-width:600px)");
 
-  const { loginState, setLogin } = useAuth();
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarText, setSnackbarText] = useState("");
+  const [snackbarType, setSnackbarType] = useState("error");
 
-  const manualLoginCheck = () => {
-    async function checkLogin() {
-      const is_logged_in = await baseAPI.checkIfLoggedIn();
-      console.log(is_logged_in, loginState);
-    }
-    checkLogin();
+  const setSnackbar = (open, text, type) => {
+    setSnackbarOpen(open);
+    setSnackbarText(text);
+    setSnackbarType(type);
   };
+
+  const handleClose = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+
+    setSnackbarOpen(false);
+  };
+
+  const { setLogin } = useAuth();
 
   // GOOGLE SSO
   const divRef = useRef(null);
@@ -86,25 +98,54 @@ const Login = () => {
   }
   /************************/
 
-  const handleLoginFormSubmit = async (values) => {
+  const handleLoginFormSubmit = async (values, { resetForm }) => {
+    resetForm();
     const loginInformation = {
       auth_method: "USERNAMEEMAIL",
       user_name_email: values["userNameEmail"],
       password: values["password"],
     };
     const error_information = await setLogin(loginInformation);
-    // TODO: User error to display an error message
     console.log("error after navigate", error_information);
+    setSnackbar(true, "Wrong username, email or password!", "error");
   };
 
-  const handleCreationFormSubmit = (values) => {
-    console.log(values);
+  const handleCreationFormSubmit = async (values, { resetForm }) => {
+    const accountInformation = {
+      user_name: values["userNameCreate"],
+      email: values["email"],
+      password: values["passwordCreate"],
+    };
+    const response = await baseAPI.createAccount(accountInformation);
+    console.log("error after navigate", response);
+    if (response["success"] === true) {
+      setSnackbar(
+        true,
+        "Account creation successful! Check your email account!",
+        "success"
+      );
+    } else {
+      setSnackbar(true, response["msg"], "error");
+    }
   };
 
   return (
     <Box m="20px">
       <Header title="LOGIN" subtitle="Login via username and password" />
-
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        autoHideDuration={4000}
+        open={snackbarOpen}
+        onClose={handleClose}
+      >
+        <Alert
+          onClose={handleClose}
+          severity={snackbarType}
+          sx={{ width: "100%" }}
+        >
+          <Typography>{snackbarText}</Typography>
+        </Alert>
+      </Snackbar>
       <Box
         display="grid"
         gap="30px"
@@ -155,7 +196,7 @@ const Login = () => {
                   <TextField
                     fullWidth
                     variant="filled"
-                    type="text"
+                    type="password"
                     label="Password"
                     onBlur={handleBlur}
                     onChange={handleChange}
@@ -167,7 +208,15 @@ const Login = () => {
                   />
                 </Box>
                 <Box display="flex" justifyContent="center" mt="20px" mb="20px">
-                  <Button type="submit" color="secondary" variant="contained">
+                  <Button
+                    type="submit"
+                    color={
+                      snackbarOpen && snackbarType === "error"
+                        ? "error"
+                        : "secondary"
+                    }
+                    variant="contained"
+                  >
                     Login
                   </Button>
                 </Box>
@@ -202,6 +251,9 @@ const Login = () => {
         {isNonMobile && <Box gridColumn="span 2" />}
       </Box>
       <Divider />
+      <Box mt="20px">
+        <Header title="CREATE" subtitle="Create an account" />
+      </Box>
       <Formik
         onSubmit={handleCreationFormSubmit}
         initialValues={initialCreationValues}
@@ -233,10 +285,10 @@ const Login = () => {
                 label="Username"
                 onBlur={handleBlur}
                 onChange={handleChange}
-                value={values.userName}
-                name="userName"
-                error={!!touched.userName && !!errors.userName}
-                helperText={touched.userName && errors.userName}
+                value={values.userNameCreate}
+                name="userNameCreate"
+                error={!!touched.userNameCreate && !!errors.userNameCreate}
+                helperText={touched.userNameCreate && errors.userNameCreate}
                 sx={{ gridColumn: "span 1" }}
               />
               {isNonMobile && <Box gridColumn="span 2" />}
@@ -259,29 +311,26 @@ const Login = () => {
               <TextField
                 fullWidth
                 variant="filled"
-                type="text"
+                type="password"
                 label="Password"
                 onBlur={handleBlur}
                 onChange={handleChange}
-                value={values.initialPassword}
-                name="initialPassword"
-                error={!!touched.initialPassword && !!errors.initialPassword}
-                helperText={touched.initialPassword && errors.initialPassword}
+                value={values.passwordCreate}
+                name="passwordCreate"
+                error={!!touched.passwordCreate && !!errors.passwordCreate}
+                helperText={touched.passwordCreate && errors.passwordCreate}
                 sx={{ gridColumn: "span 1" }}
               />
               {isNonMobile && <Box gridColumn="span 2" />}
             </Box>
             <Box display="flex" justifyContent="center" mt="20px">
               <Button
-                sx={{
-                  backgroundColor: colors.greenAccent[500],
-                  fontSize: "14px",
-                  fontWeight: "bold",
-                  padding: "10px 20px",
-                  mb: "20px",
-                }}
                 type="submit"
-                color="secondary"
+                color={
+                  snackbarOpen && snackbarType === "error"
+                    ? "error"
+                    : "secondary"
+                }
                 variant="contained"
               >
                 <Typography>Create account</Typography>
@@ -290,23 +339,6 @@ const Login = () => {
           </form>
         )}
       </Formik>
-      <Divider></Divider>
-      <Box display="flex" justifyContent="center" mt="20px">
-        <Button
-          sx={{
-            backgroundColor: colors.greenAccent[500],
-            fontSize: "14px",
-            fontWeight: "bold",
-            padding: "10px 20px",
-          }}
-          type="submit"
-          color="secondary"
-          variant="contained"
-          onClick={manualLoginCheck}
-        >
-          <Typography>Check if logged in</Typography>
-        </Button>
-      </Box>
     </Box>
   );
 };

@@ -38,10 +38,21 @@ app.config["JWT_SECRET_KEY"]: str = os.environ["JWT_SECRET_KEY"]
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 app.config["JWT_COOKIE_SECURE"] = os.environ["JWT_COOKIE_SECURE"] == "True"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(hours=1)
+app.config["JWT_COOKIE_SAMESITE"] = "Lax"
+
 
 CORS(
     app,
-    resources={r"/*": {"origins": ["http://localhost:3000", "http://127.0.0.1:3000"]}},
+    resources={
+        r"/*": {
+            "origins": [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+                "http://localhost:3000/*",
+                "http://127.0.0.1:3000/*",
+            ]
+        }
+    },
     supports_credentials=True,
 )
 
@@ -147,19 +158,20 @@ def logout():
 @app.route("/create_account", methods=["POST"])
 def create_account():
     data = request.json
+    print(data)
     existing_login_user_name: Union[Login, None] = db_handler.get_login(
         auth_method="USERNAMEEMAIL",
         user_name_email=data["user_name"].lower(),
     )
     if existing_login_user_name is not None:
-        return jsonify({"success": False, "msg": "username already taken"}), 200
+        return jsonify({"success": False, "msg": "Username already taken!"}), 200
 
     existing_login_email: Union[Login, None] = db_handler.get_login(
         auth_method="USERNAMEEMAIL",
         user_name_email=data["email"],
     )
     if existing_login_email is not None:
-        return jsonify({"success": False, "msg": "email already in use"}), 200
+        return jsonify({"success": False, "msg": "Email already in use!"}), 200
 
     salt: bytes = os.urandom(16)
     user_id = uuid.uuid4()
@@ -223,14 +235,3 @@ def check_if_logged_in():
         return jsonify({"success": True, "msg": "Logged in"}), 200
     else:
         return jsonify({"success": False, "msg": "Not logged in"}), 200
-
-
-@app.route("/who_am_i", methods=["GET"])
-@jwt_required(fresh=True)
-def who_am_i():
-    # We can now access our sqlalchemy User object via `current_user`.
-    return jsonify(
-        alt_user_id=current_user.alt_user_id,
-        email=current_user.email,
-        username=current_user.user_name,
-    )
