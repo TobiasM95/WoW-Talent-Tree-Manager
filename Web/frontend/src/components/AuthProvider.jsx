@@ -16,7 +16,7 @@ const AuthProvider = ({ children }) => {
     async function checkLogin() {
       const is_logged_in = await baseAPI.checkIfLoggedIn();
       console.log(is_logged_in, loginState);
-      setLoginState(is_logged_in["success"]);
+      setLoginState(is_logged_in["success"] === true);
     }
     checkLogin();
   }, []);

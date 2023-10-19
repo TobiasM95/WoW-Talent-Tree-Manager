@@ -3,10 +3,11 @@ import { apiURL } from "../data/settings";
 const baseUrl = apiURL;
 const loginURL = baseUrl + "/login";
 const logoutURL = baseUrl + "/logout";
+const createAccountURL = baseUrl + "/create_account";
 const loginCheckURL = baseUrl + "/check_if_logged_in";
 
 function translateStatusToErrorMessage(status) {
-  return "There was an error retrieving the conversations overview. Please try again.";
+  return "There was an error. Please try again.";
 }
 
 function checkStatus(response) {
@@ -19,7 +20,9 @@ function checkStatus(response) {
       url: response.url,
     };
     console.log(`log server http error: ${JSON.stringify(httpErrorInfo)}`);
-
+    if (httpErrorInfo.status === 401) {
+      return response;
+    }
     let errorMessage = translateStatusToErrorMessage(httpErrorInfo.status);
     throw new Error(errorMessage);
   }
@@ -29,7 +32,7 @@ function parseJSON(response) {
   return response.json();
 }
 
-function extractLoginStatus(data) {
+function extractStatus(data) {
   return data;
 }
 
@@ -47,7 +50,7 @@ const baseAPI = {
     return fetch(`${loginURL}`, options)
       .then(checkStatus)
       .then(parseJSON)
-      .then(extractLoginStatus)
+      .then(extractStatus)
       .catch((error) => {
         console.log("log client error " + error);
         throw new Error("There was a client error during the login process.");
@@ -60,7 +63,7 @@ const baseAPI = {
     return fetch(`${loginCheckURL}`, options)
       .then(checkStatus)
       .then(parseJSON)
-      .then(extractLoginStatus)
+      .then(extractStatus)
       .catch((error) => {
         console.log("log client error " + error);
         throw new Error("There was a client error during the login process.");
@@ -74,7 +77,26 @@ const baseAPI = {
     return fetch(`${logoutURL}`, options)
       .then(checkStatus)
       .then(parseJSON)
-      .then(extractLoginStatus)
+      .then(extractStatus)
+      .catch((error) => {
+        console.log("log client error " + error);
+        throw new Error("There was a client error during the login process.");
+      });
+  },
+  createAccount(accountInformation) {
+    const options = {
+      method: "POST",
+      body: JSON.stringify(accountInformation),
+      headers: {
+        Accept: "application/json, text/plain",
+        "Content-Type": "application/json;charset=UTF-8",
+      },
+      credentials: "include",
+    };
+    return fetch(`${createAccountURL}`, options)
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(extractStatus)
       .catch((error) => {
         console.log("log client error " + error);
         throw new Error("There was a client error during the login process.");
