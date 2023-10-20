@@ -124,6 +124,7 @@ const Login = () => {
         "Account creation successful! Check your email account!",
         "success"
       );
+      resetForm();
     } else {
       setSnackbar(true, response["msg"], "error");
     }
