@@ -1,27 +1,67 @@
 import { useState } from "react";
 import { Sidebar, Menu, MenuItem } from "react-pro-sidebar";
-import { Box, IconButton, Typography, useTheme } from "@mui/material";
+import { Box, IconButton, Typography, useTheme, Tooltip } from "@mui/material";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../components/AuthProvider";
 import { tokens } from "../../theme";
-import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import HelpOutlineOutlinedIcon from "@mui/icons-material/HelpOutlined";
 import MenuOutlinedIcon from "@mui/icons-material/MenuOutlined";
 import BarChartOutlinedIcon from "@mui/icons-material/BarChartOutlined";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import ViewComfyOutlinedIcon from "@mui/icons-material/ViewComfyOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import QueryStatsOutlinedIcon from "@mui/icons-material/QueryStatsOutlined";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
 
-const Item = ({ title, to, icon, selected, setSelected }) => {
-  return (
-    <MenuItem
-      active={selected === title}
-      onClick={() => setSelected(title)}
-      icon={icon}
-      component={<NavLink to={to} />}
-    >
-      <Typography>{title}</Typography>
-    </MenuItem>
-  );
+const Item = ({ title, to, icon, selected, setSelected, isCollapsed }) => {
+  const theme = useTheme();
+  const colors = tokens(theme.palette.mode);
+  if (isCollapsed === true) {
+    return (
+      <Tooltip
+        title={title}
+        placement="right"
+        slotProps={{
+          tooltip: {
+            sx: {
+              bgcolor:
+                theme.palette.mode === "dark"
+                  ? `${colors.primary[500]}`
+                  : "#fff",
+              "& .MuiTooltip-arrow": {
+                color: "common.black",
+              },
+              border: `1px solid ${colors.grey[100]}`,
+              color: `${colors.grey[100]}`,
+              fontSize: 12,
+            },
+          },
+        }}
+      >
+        <MenuItem
+          active={selected === title}
+          onClick={() => setSelected(title)}
+          icon={icon}
+          component={<NavLink to={to} />}
+        >
+          <Typography>{title}</Typography>
+        </MenuItem>
+      </Tooltip>
+    );
+  } else {
+    return (
+      <MenuItem
+        active={selected === title}
+        onClick={() => setSelected(title)}
+        icon={icon}
+        component={<NavLink to={to} />}
+      >
+        <Typography>{title}</Typography>
+      </MenuItem>
+    );
+  }
 };
 
 const AppSidebar = () => {
@@ -87,11 +127,20 @@ const AppSidebar = () => {
               </MenuItem>
               <Box>
                 <Item
-                  title="Dashboard"
+                  title="Popular"
                   to="/"
-                  icon={<HomeOutlinedIcon />}
+                  icon={<AssessmentOutlinedIcon />}
                   selected={selected}
                   setSelected={setSelected}
+                  isCollapsed={isCollapsed}
+                />
+                <Item
+                  title="Configurator"
+                  to="/configurator"
+                  icon={<AccountTreeIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                  isCollapsed={isCollapsed}
                 />
 
                 {loginState === true && (
@@ -101,14 +150,39 @@ const AppSidebar = () => {
                       color={colors.grey[300]}
                       sx={{ m: "15px 0 5px 20px" }}
                     >
-                      Member Area
+                      Member
                     </Typography>
                     <Item
-                      title="Manage Team"
-                      to="/team"
-                      icon={<PeopleOutlinedIcon />}
+                      title="Workspace"
+                      to="/workspace"
+                      icon={<FolderOutlinedIcon />}
                       selected={selected}
                       setSelected={setSelected}
+                      isCollapsed={isCollapsed}
+                    />
+                    <Item
+                      title="Viewer"
+                      to="/viewer"
+                      icon={<ViewComfyOutlinedIcon />}
+                      selected={selected}
+                      setSelected={setSelected}
+                      isCollapsed={isCollapsed}
+                    />
+                    <Item
+                      title="Editor"
+                      to="/editor"
+                      icon={<EditOutlinedIcon />}
+                      selected={selected}
+                      setSelected={setSelected}
+                      isCollapsed={isCollapsed}
+                    />
+                    <Item
+                      title="Analysis"
+                      to="/analysis"
+                      icon={<QueryStatsOutlinedIcon />}
+                      selected={selected}
+                      setSelected={setSelected}
+                      isCollapsed={isCollapsed}
                     />
                   </Box>
                 )}
@@ -117,14 +191,23 @@ const AppSidebar = () => {
                   color={colors.grey[300]}
                   sx={{ m: "15px 0 5px 20px" }}
                 >
-                  Pages
+                  DEBUG
                 </Typography>
+                <Item
+                  title="Team"
+                  to="/team"
+                  icon={<PersonOutlinedIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                  isCollapsed={isCollapsed}
+                />
                 <Item
                   title="Profile Form"
                   to="/form"
                   icon={<PersonOutlinedIcon />}
                   selected={selected}
                   setSelected={setSelected}
+                  isCollapsed={isCollapsed}
                 />
                 <Item
                   title="FAQ Page"
@@ -132,27 +215,23 @@ const AppSidebar = () => {
                   icon={<HelpOutlineOutlinedIcon />}
                   selected={selected}
                   setSelected={setSelected}
+                  isCollapsed={isCollapsed}
                 />
-                <Typography
-                  variant="h6"
-                  color={colors.grey[300]}
-                  sx={{ m: "15px 0 5px 20px" }}
-                >
-                  Charts
-                </Typography>
                 <Item
                   title="Bar Chart"
                   to="/bar"
                   icon={<BarChartOutlinedIcon />}
                   selected={selected}
                   setSelected={setSelected}
+                  isCollapsed={isCollapsed}
                 />
                 <Item
                   title="Tree View"
                   to="/tree"
-                  icon={<BarChartOutlinedIcon />}
+                  icon={<AccountTreeIcon />}
                   selected={selected}
                   setSelected={setSelected}
+                  isCollapsed={isCollapsed}
                 />
               </Box>
             </Menu>

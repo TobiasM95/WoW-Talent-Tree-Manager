@@ -52,14 +52,40 @@ const AppDisplay = () => {
         <Topbar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/configurator" element={<></>} />
           <Route
-            path="/team"
+            path="/workspace"
             element={
               <ProtectedRoute>
-                <Team />
+                <></>
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/viewer"
+            element={
+              <ProtectedRoute>
+                <></>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/editor"
+            element={
+              <ProtectedRoute>
+                <></>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analysis"
+            element={
+              <ProtectedRoute>
+                <></>
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/team" element={<Team />} />
           <Route path="/form" element={<Form />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/bar" element={<Bar />} />
