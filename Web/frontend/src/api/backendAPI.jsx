@@ -4,6 +4,7 @@ const baseUrl = apiURL;
 const loginURL = baseUrl + "/login";
 const logoutURL = baseUrl + "/logout";
 const createAccountURL = baseUrl + "/create_account";
+const activateAccountURL = baseUrl + "/activate_account";
 const loginCheckURL = baseUrl + "/check_if_logged_in";
 
 function translateStatusToErrorMessage(status) {
@@ -94,6 +95,20 @@ const baseAPI = {
       credentials: "include",
     };
     return fetch(`${createAccountURL}`, options)
+      .then(checkStatus)
+      .then(parseJSON)
+      .then(extractStatus)
+      .catch((error) => {
+        console.log("log client error " + error);
+        throw new Error("There was a client error during the login process.");
+      });
+  },
+  activateAccount(activationID) {
+    const options = {
+      method: "GET",
+      credentials: "include",
+    };
+    return fetch(`${activateAccountURL}/${activationID}`, options)
       .then(checkStatus)
       .then(parseJSON)
       .then(extractStatus)

@@ -21,7 +21,7 @@ class EmailHandler:
     def send_verification_email(
         EmailHandler: "EmailHandler", receiver_email: str, activation_id: str
     ) -> None:
-        message = f"From: Talent Tree Manager <{EmailHandler.sender_email}>\nTo: {receiver_email}\nSubject: Activate your Talent Tree Manager account\n\nClick the following link to activate your account: {EmailHandler.domain}/activate_account/{activation_id}"
+        message = f"From: Talent Tree Manager <{EmailHandler.sender_email}>\nTo: {receiver_email}\nSubject: Activate your Talent Tree Manager account\n\nClick the following link to activate your account: {EmailHandler.domain}/activation/{activation_id}"
 
         with smtplib.SMTP_SSL(
             EmailHandler.smtp_server,

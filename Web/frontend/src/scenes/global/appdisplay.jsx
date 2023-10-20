@@ -12,6 +12,7 @@ import FAQ from "../faq";
 import Bar from "../bar";
 import Tree from "../tree";
 import Login from "../login";
+import Activation from "../activation";
 
 const AppDisplay = () => {
   const { loginState } = useAuth();
@@ -64,6 +65,7 @@ const AppDisplay = () => {
           <Route path="/bar" element={<Bar />} />
           <Route path="/tree" element={<Tree />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/activation/:activationID?" element={<Activation />} />
         </Routes>
       </main>
     </div>
