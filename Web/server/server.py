@@ -174,8 +174,8 @@ def create_account():
         return jsonify({"success": False, "msg": "Email already in use!"}), 200
 
     salt: bytes = os.urandom(16)
-    user_id = uuid.uuid4()
-    alt_user_id = uuid.uuid4()
+    user_id = str(uuid.uuid4())
+    alt_user_id = str(uuid.uuid4())
     new_login: Login = Login(
         user_id=user_id,
         alt_user_id=alt_user_id,
@@ -188,7 +188,7 @@ def create_account():
         is_activated=False,
     )
     new_activation: Activation = Activation(
-        alt_user_id=alt_user_id, activation_id=uuid.uuid4()
+        alt_user_id=alt_user_id, activation_id=str(uuid.uuid4())
     )
     db_handler.create_login(new_login)
     db_handler.create_activation(new_activation)
