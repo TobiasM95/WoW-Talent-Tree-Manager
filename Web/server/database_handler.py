@@ -1,8 +1,9 @@
 import os
-from typing import Literal, Union
+import json
+from typing import Literal, Union, Sequence, Any
 import datetime
 from pypika import Table, Query, Parameter
-from sqlalchemy import Engine, text, TextClause
+from sqlalchemy import Engine, text, TextClause, Row
 
 
 class Login:
@@ -48,24 +49,102 @@ class Workspace:
 
 
 class Tree:
-    def __init__(self, content_id: str, tree_string: str):
+    def __init__(
+        self,
+        content_id: str,
+        name: str,
+        description: str,
+        class_talents: Union[str, list[str]],
+        spec_talents: Union[str, list[str]],
+    ):
         self.content_id: str = content_id
-        self.tree_string: str = tree_string
+        self.name: str = name
+        self.description: str = description
+        if type(class_talents) == str:
+            self.class_talents = class_talents
+        else:
+            self.class_talents: str = json.dumps(class_talents)
+        if type(spec_talents) == str:
+            self.spec_talents = spec_talents
+        else:
+            self.spec_talents: str = json.dumps(spec_talents)
 
 
 class Loadout:
-    def __init__(self, content_id: str, tree_id: str, loadout_string: str):
+    def __init__(self, content_id: str, tree_id: str, name: str, description: str):
         self.content_id: str = content_id
         self.tree_id: str = tree_id
-        self.loadout_string: str = loadout_string
+        self.name: str = name
+        self.description: str = description
 
 
 class Build:
-    def __init__(self, content_id: str, tree_id: str, loadout_id: str, build_string):
+    def __init__(
+        self,
+        content_id: str,
+        tree_id: str,
+        loadout_id: str,
+        name: str,
+        level_cap: int,
+        use_level_cap: bool,
+        assigned_skills: Union[str, list[int]],
+    ):
         self.content_id: str = content_id
         self.tree_id: str = tree_id
         self.loadout_id: str = loadout_id
-        self.build_string: str = build_string
+        self.name: str = name
+        self.level_cap: int = level_cap
+        self.use_level_cap: bool = use_level_cap
+        if type(assigned_skills) == str:
+            self.assigned_skills = assigned_skills
+        else:
+            self.assigned_skills: str = json.dumps(assigned_skills)
+
+
+class Talent:
+    def __init__(
+        self,
+        content_id: str,
+        order_id: int,
+        node_id: int,
+        t_type: str,
+        name: str,
+        name_switch: str,
+        description: str,
+        description_switch: str,
+        row: int,
+        column: int,
+        max_points: int,
+        required_points: int,
+        pre_filled: bool,
+        parent_ids: Union[str, list[int]],
+        child_ids: Union[str, list[int]],
+        icon_name: str,
+        icon_name_switch: str,
+    ):
+        self.content_id: str = content_id
+        self.order_id: int = order_id
+        self.node_id: int = node_id
+        self.talent_type: str = t_type
+        self.name: str = name
+        self.name_switch: str = name_switch
+        self.description: str = description
+        self.description_switch: str = description_switch
+        self.row: int = row
+        self.column: int = column
+        self.max_points: int = max_points
+        self.required_points: int = required_points
+        self.pre_filled: bool = pre_filled
+        if type(parent_ids) == str:
+            self.parent_ids: str = parent_ids
+        else:
+            self.parent_ids: str = json.dumps(parent_ids)
+        if type(child_ids) == str:
+            self.child_ids: str = child_ids
+        else:
+            self.child_ids: str = json.dumps(child_ids)
+        self.icon_name: str = icon_name
+        self.icon_name_switch: str = icon_name_switch
 
 
 class Like:
@@ -135,9 +214,12 @@ class DBHandler:
             conn.execute(text("CREATE TABLE IF NOT EXISTS Logins (UserID TEXT, AltUserID TEXT, AuthMethod TEXT, Email TEXT, PasswordHash BLOB, Salt BLOB, UserName TEXT, LastLoginTimestamp TEXT, IsActivated INTEGER)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Activations (AltUserID TEXT, ActivationID TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, TreeString TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, TreeID TEXT, LoadoutString TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, TreeID TEXT, LoadoutID TEXT, BuildString TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Talents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTalents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Likes (UserID TEXT, ContentID TEXT, Timestamp TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Comments (CommentID TEXT, UserID TEXT, ContentID TEXT, Message TEXT, Timestamp TEXT, ReplyID TEXT, WasEdited INTEGER)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Feedbacks (FeedbackID TEXT, UserID TEXT, Message TEXT)"))
@@ -145,15 +227,18 @@ class DBHandler:
 
             conn.commit()
 
-        self._load_in_presets()
-
-    def _load_in_presets(self) -> None:
-        # TODO: Load in tree presets
-        pass
-
     def commit(self) -> None:
         with self.engine.connect() as conn:
             conn.commit()
+
+    def execute_query(
+        self, query: Query, expects_results: bool = False
+    ) -> Sequence[Row[Any]]:
+        with self.engine.connect() as conn:
+            res = conn.execute(text(query.get_sql()))
+            conn.commit()
+        if expects_results:
+            return res.all()
 
     def create_login(self, login: Login) -> None:
         q = Query.into("Logins").insert(
@@ -293,35 +378,63 @@ class DBHandler:
             res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Workspace(*res)
 
-    def create_tree(self, tree: Tree) -> None:
-        q = Query.into("Trees").insert(tree.content_id, tree.tree_string)
+    def create_tree(self, tree: Tree, custom: bool = True) -> None:
+        table: Table = Table("Trees" if custom else "PresetTrees")
+        q = Query.into(table).insert(
+            tree.content_id,
+            tree.name,
+            tree.description,
+            tree.class_talents,
+            tree.spec_talents,
+        )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
-    def delete_tree(self, content_id: str) -> None:
-        table: Table = Table("Trees")
+    def create_trees(self, trees: list[Tree], custom: bool = True) -> None:
+        table: Table = Table("Trees" if custom else "PresetTrees")
+        with self.engine.connect() as conn:
+            for tree in trees:
+                q = Query.into(table).insert(
+                    tree.content_id,
+                    tree.name,
+                    tree.description,
+                    tree.class_talents,
+                    tree.spec_talents,
+                )
+
+                conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def delete_tree(self, content_id: str, custom: bool = True) -> None:
+        table: Table = Table("Trees" if custom else "PresetTrees")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
-    def get_tree(self, content_id: str) -> Union[Tree, None]:
-        table: Table = Table("Trees")
+    def get_tree(self, content_id: str, custom: bool = True) -> Union[Tree, None]:
+        table: Table = Table("Trees" if custom else "PresetTrees")
         q = (
             Query.from_(table)
-            .select("ContentID", "TreeString")
+            .select("ContentID", "Name", "Description", "ClassTalents", "SpecTalents")
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
-        return None if res is None else Tree(*res)
+        if res is None:
+            return None
+        else:
+            return Tree(*res)
 
-    def update_tree(self, tree: Tree) -> None:
-        table: Table = Table("Trees")
+    def update_tree(self, tree: Tree, custom: bool = True) -> None:
+        table: Table = Table("Trees" if custom else "PresetTrees")
         q = (
             Query.update(table)
-            .set(table.TreeString, tree.tree_string)
+            .set(table.Name, tree.name)
+            .set(table.Description, tree.description)
+            .set(table.ClassTalents, tree.class_talents)
+            .set(table.SpecTalents, tree.spec_talents)
             .where(table.ContentID == tree.content_id)
         )
         with self.engine.connect() as conn:
@@ -330,7 +443,7 @@ class DBHandler:
 
     def create_loadout(self, loadout: Loadout) -> None:
         q = Query.into("Loadouts").insert(
-            loadout.content_id, loadout.tree_id, loadout.loadout_string
+            loadout.content_id, loadout.tree_id, loadout.name, loadout.description
         )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
@@ -347,7 +460,7 @@ class DBHandler:
         table: Table = Table("Loadouts")
         q = (
             Query.from_(table)
-            .select("ContentID", "TreeID", "LoadoutString")
+            .select("ContentID", "TreeID", "Name", "Description")
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
@@ -358,7 +471,8 @@ class DBHandler:
         table: Table = Table("Loadouts")
         q = (
             Query.update(table)
-            .set(table.LoadoutString, loadout.loadout_string)
+            .set(table.Name, loadout.name)
+            .set(table.Description, loadout.description)
             .where(table.ContentID == loadout.content_id)
         )
         with self.engine.connect() as conn:
@@ -367,7 +481,13 @@ class DBHandler:
 
     def create_build(self, build: Build) -> None:
         q = Query.into("Builds").insert(
-            build.content_id, build.tree_id, build.loadout_id, build.build_string
+            build.content_id,
+            build.tree_id,
+            build.loadout_id,
+            build.name,
+            build.level_cap,
+            build.use_level_cap,
+            build.assigned_skills,
         )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
@@ -384,19 +504,107 @@ class DBHandler:
         table: Table = Table("Builds")
         q = (
             Query.from_(table)
-            .select("ContentID", "TreeID", "LoadoutID", "BuildString")
+            .select(
+                "ContentID",
+                "TreeID",
+                "LoadoutID",
+                "Name",
+                "LevelCap",
+                "UseLevelCap",
+                "AssignedSkills",
+            )
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
-        return None if res is None else Login(*res)
+        return None if res is None else Build(*res)
 
-    def update_Build(self, build: Build) -> None:
+    def update_build(self, build: Build) -> None:
         table: Table = Table("Builds")
         q = (
             Query.update(table)
-            .set(table.LoadoutString, build.build_string)
+            .set(table.Name, build.name)
+            .set(table.LevelCap, build.level_cap)
+            .set(table.UseLevelCap, build.use_level_cap)
+            .set(table.AssignedSkills, build.assigned_skills)
             .where(table.ContentID == build.content_id)
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def create_talent(self, talent: Talent, custom: bool) -> None:
+        table: Table = Table("Talents" if custom else "PresetTalents")
+        q = Query.into(table).insert(*vars(talent).values())
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def create_talents(self, talents: list[Talent], custom: bool) -> None:
+        table: Table = Table("Talents" if custom else "PresetTalents")
+        with self.engine.connect() as conn:
+            for talent in talents:
+                q = Query.into(table).insert(*vars(talent).values())
+                conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def delete_talent(self, content_id: str, custom: bool) -> None:
+        table: Table = Table("Talents" if custom else "PresetTalents")
+        q = Query.from_(table).where(table.ContentID == content_id).delete()
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def get_talent(self, content_id: str, custom: bool) -> Union[Talent, None]:
+        table: Table = Table("Talents" if custom else "PresetTalents")
+        q = (
+            Query.from_(table)
+            .select(
+                "ContentID",
+                "OrderID",
+                "NodeID",
+                "Name",
+                "NameSwitch",
+                "Description",
+                "DescriptionSwitch",
+                "TalentType",
+                "Row",
+                "Column",
+                "MaxPoints",
+                "RequiredPoints",
+                "PreFilled",
+                "ParentIDs",
+                "ChildIDs",
+                "IconName",
+                "IconNameSwitch",
+            )
+            .where((table.ContentID == content_id))
+        )
+        with self.engine.connect() as conn:
+            res = conn.execute(text(q.get_sql())).first()
+        return None if res is None else Talent(*res)
+
+    def update_talent(self, talent: Talent, custom: bool) -> None:
+        table: Table = Table("Talents" if custom else "PresetTalents")
+        q = (
+            Query.update(table)
+            .set(table.ContentID, talent.content_id)
+            .set(table.NodeID, talent.node_id)
+            .set(table.Name, talent.name)
+            .set(table.NameSwitch, talent.name_switch)
+            .set(table.Description, talent.description)
+            .set(table.DescriptionSwitch, talent.description_switch)
+            .set(table.TalentType, talent.talent_type)
+            .set(table.Row, talent.row)
+            .set(table.Column, talent.column)
+            .set(table.MaxPoints, talent.max_points)
+            .set(table.RequiredPoints, talent.required_points)
+            .set(table.PreFilled, talent.pre_filled)
+            .set(table.ParentIDs, talent.parent_ids)
+            .set(table.ChildIDs, talent.child_ids)
+            .set(table.IconName, talent.icon_name)
+            .set(table.IconNameSwitch, talent.icon_name_switch)
+            .where(table.ContentID == talent.content_id)
         )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
