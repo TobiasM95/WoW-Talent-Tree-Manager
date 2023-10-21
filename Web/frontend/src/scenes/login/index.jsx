@@ -36,12 +36,19 @@ const initialCreationValues = {
   userNameCreate: "",
   email: "",
   passwordCreate: "",
+  passwordConfirmation: "",
 };
 
 const userCreationSchema = yup.object().shape({
   userNameCreate: yup.string().required("required"),
   email: yup.string().email().required("required"),
-  passwordCreate: yup.string().required("required"),
+  passwordCreate: yup
+    .string()
+    .required("required")
+    .min(8, "password is too short - should be 8 chars minimum"),
+  passwordConfirmation: yup
+    .string()
+    .oneOf([yup.ref("passwordCreate")], "passwords must match"),
 });
 
 const Login = () => {
@@ -320,6 +327,26 @@ const Login = () => {
                 name="passwordCreate"
                 error={!!touched.passwordCreate && !!errors.passwordCreate}
                 helperText={touched.passwordCreate && errors.passwordCreate}
+                sx={{ gridColumn: "span 1" }}
+              />
+              {isNonMobile && <Box gridColumn="span 2" />}
+              {isNonMobile && <Box gridColumn="span 2" />}
+              <TextField
+                fullWidth
+                variant="filled"
+                type="password"
+                label="Confirm Password"
+                onBlur={handleBlur}
+                onChange={handleChange}
+                value={values.passwordConfirmation}
+                name="passwordConfirmation"
+                error={
+                  !!touched.passwordConfirmation &&
+                  !!errors.passwordConfirmation
+                }
+                helperText={
+                  touched.passwordConfirmation && errors.passwordConfirmation
+                }
                 sx={{ gridColumn: "span 1" }}
               />
               {isNonMobile && <Box gridColumn="span 2" />}
