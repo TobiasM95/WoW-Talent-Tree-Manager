@@ -52,6 +52,7 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
             meta_information: list[str] = tree_parts[0].split(":")
             tree: Tree = Tree(
                 str(uuid.uuid4()),
+                None,
                 restore_string(meta_information[3]),
                 ". ".join(restore_string(meta_information[4]).split(".")[:2]),
                 [],
@@ -130,6 +131,7 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
 
         tree: Tree = Tree(
             str(uuid.uuid4()),
+            None,
             restore_string(meta_information[3]),
             restore_string(meta_information[4]).split(".")[0] + ".",
             class_talents=class_talents,

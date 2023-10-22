@@ -40,11 +40,11 @@ class Workspace:
     def __init__(
         self,
         user_id: str,
-        content_type: Literal["tree", "loadout", "build"],
+        content_type: Literal["TREE", "LOADOUT", "BUILD"],
         content_id: str,
     ):
         self.user_id: str = user_id
-        self.content_type: Literal["tree", "loadout", "build"] = content_type
+        self.content_type: Literal["TREE", "LOADOUT", "BUILD"] = content_type
         self.content_id: str = content_id
 
 
@@ -52,12 +52,14 @@ class Tree:
     def __init__(
         self,
         content_id: str,
+        import_id: Union[str, None],
         name: str,
         description: str,
         class_talents: Union[str, list[str]],
         spec_talents: Union[str, list[str]],
     ):
         self.content_id: str = content_id
+        self.import_id: Union[str, None] = import_id
         self.name: str = name
         self.description: str = description
         if type(class_talents) == str:
@@ -71,8 +73,11 @@ class Tree:
 
 
 class Loadout:
-    def __init__(self, content_id: str, tree_id: str, name: str, description: str):
+    def __init__(
+        self, content_id: str, import_id: str, tree_id: str, name: str, description: str
+    ):
         self.content_id: str = content_id
+        self.import_id: str = import_id
         self.tree_id: str = tree_id
         self.name: str = name
         self.description: str = description
@@ -82,14 +87,16 @@ class Build:
     def __init__(
         self,
         content_id: str,
+        import_id: str,
         tree_id: str,
         loadout_id: str,
         name: str,
         level_cap: int,
         use_level_cap: bool,
-        assigned_skills: Union[str, list[int]],
+        assigned_skills: Union[str, dict[int, int]],
     ):
         self.content_id: str = content_id
+        self.import_id: str = import_id
         self.tree_id: str = tree_id
         self.loadout_id: str = loadout_id
         self.name: str = name
@@ -214,10 +221,10 @@ class DBHandler:
             conn.execute(text("CREATE TABLE IF NOT EXISTS Logins (UserID TEXT, AltUserID TEXT, AuthMethod TEXT, Email TEXT, PasswordHash BLOB, Salt BLOB, UserName TEXT, LastLoginTimestamp TEXT, IsActivated INTEGER)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Activations (AltUserID TEXT, ActivationID TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, ImportID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, ImportID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, ImportID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Talents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTalents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Likes (UserID TEXT, ContentID TEXT, Timestamp TEXT)"))
@@ -380,13 +387,23 @@ class DBHandler:
 
     def create_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
-        q = Query.into(table).insert(
-            tree.content_id,
-            tree.name,
-            tree.description,
-            tree.class_talents,
-            tree.spec_talents,
-        )
+        if custom:
+            q = Query.into(table).insert(
+                tree.content_id,
+                tree.import_id,
+                tree.name,
+                tree.description,
+                tree.class_talents,
+                tree.spec_talents,
+            )
+        else:
+            q = Query.into(table).insert(
+                tree.content_id,
+                tree.name,
+                tree.description,
+                tree.class_talents,
+                tree.spec_talents,
+            )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
             conn.commit()
@@ -395,13 +412,23 @@ class DBHandler:
         table: Table = Table("Trees" if custom else "PresetTrees")
         with self.engine.connect() as conn:
             for tree in trees:
-                q = Query.into(table).insert(
-                    tree.content_id,
-                    tree.name,
-                    tree.description,
-                    tree.class_talents,
-                    tree.spec_talents,
-                )
+                if custom:
+                    q = Query.into(table).insert(
+                        tree.content_id,
+                        tree.import_id,
+                        tree.name,
+                        tree.description,
+                        tree.class_talents,
+                        tree.spec_talents,
+                    )
+                else:
+                    q = Query.into(table).insert(
+                        tree.content_id,
+                        tree.name,
+                        tree.description,
+                        tree.class_talents,
+                        tree.spec_talents,
+                    )
 
                 conn.execute(text(q.get_sql()))
             conn.commit()
@@ -415,35 +442,69 @@ class DBHandler:
 
     def get_tree(self, content_id: str, custom: bool = True) -> Union[Tree, None]:
         table: Table = Table("Trees" if custom else "PresetTrees")
-        q = (
-            Query.from_(table)
-            .select("ContentID", "Name", "Description", "ClassTalents", "SpecTalents")
-            .where((table.ContentID == content_id))
-        )
+        if custom:
+            q = (
+                Query.from_(table)
+                .select(
+                    "ContentID",
+                    "ImportID",
+                    "Name",
+                    "Description",
+                    "ClassTalents",
+                    "SpecTalents",
+                )
+                .where((table.ContentID == content_id))
+            )
+        else:
+            q = (
+                Query.from_(table)
+                .select(
+                    "ContentID", "Name", "Description", "ClassTalents", "SpecTalents"
+                )
+                .where((table.ContentID == content_id))
+            )
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
         if res is None:
             return None
         else:
-            return Tree(*res)
+            if custom:
+                return Tree(*res)
+            else:
+                return Tree(res[0], None, res[2], res[3], res[4], res[5])
 
     def update_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
-        q = (
-            Query.update(table)
-            .set(table.Name, tree.name)
-            .set(table.Description, tree.description)
-            .set(table.ClassTalents, tree.class_talents)
-            .set(table.SpecTalents, tree.spec_talents)
-            .where(table.ContentID == tree.content_id)
-        )
+        if custom:
+            q = (
+                Query.update(table)
+                .set(table.ImportID, tree.import_id)
+                .set(table.Name, tree.name)
+                .set(table.Description, tree.description)
+                .set(table.ClassTalents, tree.class_talents)
+                .set(table.SpecTalents, tree.spec_talents)
+                .where(table.ContentID == tree.content_id)
+            )
+        else:
+            q = (
+                Query.update(table)
+                .set(table.Name, tree.name)
+                .set(table.Description, tree.description)
+                .set(table.ClassTalents, tree.class_talents)
+                .set(table.SpecTalents, tree.spec_talents)
+                .where(table.ContentID == tree.content_id)
+            )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
     def create_loadout(self, loadout: Loadout) -> None:
         q = Query.into("Loadouts").insert(
-            loadout.content_id, loadout.tree_id, loadout.name, loadout.description
+            loadout.content_id,
+            loadout.import_id,
+            loadout.tree_id,
+            loadout.name,
+            loadout.description,
         )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
@@ -460,7 +521,7 @@ class DBHandler:
         table: Table = Table("Loadouts")
         q = (
             Query.from_(table)
-            .select("ContentID", "TreeID", "Name", "Description")
+            .select("ContentID", "ImportID", "TreeID", "Name", "Description")
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
@@ -482,6 +543,7 @@ class DBHandler:
     def create_build(self, build: Build) -> None:
         q = Query.into("Builds").insert(
             build.content_id,
+            build.import_id,
             build.tree_id,
             build.loadout_id,
             build.name,
@@ -506,6 +568,7 @@ class DBHandler:
             Query.from_(table)
             .select(
                 "ContentID",
+                "ImportID",
                 "TreeID",
                 "LoadoutID",
                 "Name",
