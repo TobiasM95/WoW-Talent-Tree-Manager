@@ -5,6 +5,7 @@ import { Box, CircularProgress, Typography, Stack } from "@mui/material";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import Topbar from "../global/topbar";
 import Dashboard from "../dashboard";
+import Workspace from "../workspace";
 import AppSidebar from "../global/appsidebar";
 import Team from "../team";
 import Form from "../form";
@@ -57,7 +58,7 @@ const AppDisplay = () => {
             path="/workspace"
             element={
               <ProtectedRoute>
-                <></>
+                <Workspace />
               </ProtectedRoute>
             }
           />
