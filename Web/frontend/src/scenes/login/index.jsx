@@ -16,7 +16,7 @@ import Header from "../../components/Header";
 import { googleClientID } from "../../data/secrets";
 import { useAuth } from "../../components/AuthProvider";
 import { useRef, useEffect, useState } from "react";
-import { baseAPI } from "../../api/backendAPI";
+import { userAPI } from "../../api/userAPI";
 
 // LOGIN SCHEMA
 
@@ -123,7 +123,7 @@ const Login = () => {
       email: values["email"],
       password: values["passwordCreate"],
     };
-    const response = await baseAPI.createAccount(accountInformation);
+    const response = await userAPI.createAccount(accountInformation);
     console.log("error after navigate", response);
     if (response["success"] === true) {
       setSnackbar(

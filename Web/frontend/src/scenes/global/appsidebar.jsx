@@ -40,14 +40,17 @@ const Item = ({ title, to, icon, selected, setSelected, isCollapsed }) => {
           },
         }}
       >
-        <MenuItem
-          active={selected === title}
-          onClick={() => setSelected(title)}
-          icon={icon}
-          component={<NavLink to={to} />}
-        >
-          <Typography>{title}</Typography>
-        </MenuItem>
+        {/* span is here to avoid error with tooltip and child ref */}
+        <span>
+          <MenuItem
+            active={selected === title}
+            onClick={() => setSelected(title)}
+            icon={icon}
+            component={<NavLink to={to} />}
+          >
+            <Typography>{title}</Typography>
+          </MenuItem>
+        </span>
       </Tooltip>
     );
   } else {
