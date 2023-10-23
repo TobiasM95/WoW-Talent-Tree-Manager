@@ -38,14 +38,9 @@ class Activation:
 
 class Workspace:
     def __init__(
-        self,
-        user_id: str,
-        content_type: Literal["TREE", "LOADOUT", "BUILD"],
-        content_id: str,
+        self, items: list[tuple[str, Literal["TREE", "LOADOUT", "BUILD"], str]]
     ):
-        self.user_id: str = user_id
-        self.content_type: Literal["TREE", "LOADOUT", "BUILD"] = content_type
-        self.content_id: str = content_id
+        self.items = items if items is not None else []
 
 
 class Tree:
@@ -360,11 +355,10 @@ class DBHandler:
         return None if res is None else Activation(*res)
 
     def create_workspace(self, workspace: Workspace) -> None:
-        q = Query.into("Workspaces").insert(
-            workspace.user_id, workspace.content_type, workspace.content_id
-        )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            for item in workspace.items:
+                q = Query.into("Workspaces").insert(*item)
+                conn.execute(text(q.get_sql()))
             conn.commit()
 
     def delete_workspace(self, user_id: str) -> None:
@@ -382,8 +376,8 @@ class DBHandler:
             .where((table.UserID == user_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
-        return None if res is None else Workspace(*res)
+            res = conn.execute(text(q.get_sql())).all()
+        return Workspace(items=res)
 
     def create_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
@@ -440,9 +434,13 @@ class DBHandler:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
-    def get_tree(self, content_id: str, custom: bool = True) -> Union[Tree, None]:
-        table: Table = Table("Trees" if custom else "PresetTrees")
-        if custom:
+    def get_tree(
+        self, content_id: str, custom: Union[bool, None] = None
+    ) -> Union[Tree, None]:
+        res = None
+        auto_custom = True
+        if custom == True or custom is None:
+            table: Table = Table("Trees")
             q = (
                 Query.from_(table)
                 .select(
@@ -455,7 +453,11 @@ class DBHandler:
                 )
                 .where((table.ContentID == content_id))
             )
-        else:
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).first()
+        if custom == False or (custom is None and res is None):
+            table: Table = Table("PresetTrees")
+            auto_custom = False
             q = (
                 Query.from_(table)
                 .select(
@@ -463,15 +465,15 @@ class DBHandler:
                 )
                 .where((table.ContentID == content_id))
             )
-        with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).first()
         if res is None:
             return None
         else:
-            if custom:
+            if custom or auto_custom:
                 return Tree(*res)
             else:
-                return Tree(res[0], None, res[2], res[3], res[4], res[5])
+                return Tree(res[0], None, res[1], res[2], res[3], res[4])
 
     def update_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")

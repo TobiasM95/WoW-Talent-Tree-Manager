@@ -1,6 +1,6 @@
 import { Box, Stack, Typography } from "@mui/material";
 import { useEffect, useState } from "react";
-import { baseAPI } from "../../api/backendAPI";
+import { userAPI } from "../../api/userAPI";
 import { useParams } from "react-router-dom";
 import Header from "../../components/Header";
 import CheckIcon from "@mui/icons-material/Check";
@@ -11,7 +11,7 @@ const Activation = () => {
 
   const [activated, setActivated] = useState(null);
   const activateAccount = async () => {
-    const response_information = await baseAPI.activateAccount(activationID);
+    const response_information = await userAPI.activateAccount(activationID);
     console.log("error after navigate", response_information);
     setActivated(
       response_information["success"] ? response_information["success"] : false

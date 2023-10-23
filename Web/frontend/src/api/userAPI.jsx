@@ -37,7 +37,7 @@ function extractStatus(data) {
   return data;
 }
 
-const baseAPI = {
+const userAPI = {
   login(loginInformation) {
     const options = {
       method: "POST",
@@ -119,4 +119,4 @@ const baseAPI = {
   },
 };
 
-export { baseAPI };
+export { userAPI };

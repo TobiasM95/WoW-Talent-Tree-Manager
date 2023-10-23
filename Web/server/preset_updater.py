@@ -16,7 +16,7 @@ def main() -> str:
         "database",
         "data.sqlite",
     )
-    engine = create_engine(f"sqlite+pysqlite:///{db_path}")
+    engine = create_engine(f"sqlite+pysqlite:///{db_path}", echo=False)
     db_handler: DBHandler = DBHandler(engine)
 
     presets: list[str] = load_presets()
