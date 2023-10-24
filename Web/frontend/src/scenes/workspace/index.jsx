@@ -67,7 +67,11 @@ const Workspace = () => {
               </Typography>
             </Box>
             {query.isPending && (
-              <Box>
+              <Box
+                display="flex"
+                flexDirection={"row"}
+                justifyContent={"center"}
+              >
                 <CircularProgress />
               </Box>
             )}

@@ -70,10 +70,19 @@ const Item = ({ title, to, icon, selected, setSelected, isCollapsed }) => {
 const AppSidebar = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  var ls = require("local-storage");
+
+  const [isCollapsed, setIsCollapsed] = useState(
+    ls.get("sidebarCollapsed") ? ls.get("sidebarCollapsed") : false
+  );
   const [selected, setSelected] = useState("Dashboard");
 
   const { loginState } = useAuth();
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+    ls.set("sidebarCollapsed", !isCollapsed);
+  };
 
   const menuItemStyles = {
     button: {
@@ -105,7 +114,7 @@ const AppSidebar = () => {
             <Menu iconShape="square" menuItemStyles={menuItemStyles}>
               {/* LOGO AND MENU ICON */}
               <MenuItem
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={toggleCollapse}
                 icon={isCollapsed ? <MenuOutlinedIcon /> : undefined}
                 style={{
                   margin: "10px 0 20px 0",
@@ -122,7 +131,7 @@ const AppSidebar = () => {
                     <Typography color={colors.grey[100]}>
                       Talent Tree Manager
                     </Typography>
-                    <IconButton onClick={() => setIsCollapsed(!isCollapsed)}>
+                    <IconButton onClick={toggleCollapse}>
                       <MenuOutlinedIcon />
                     </IconButton>
                   </Box>
