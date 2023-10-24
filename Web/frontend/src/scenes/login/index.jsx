@@ -7,6 +7,7 @@ import {
   useTheme,
   Snackbar,
   Alert,
+  CircularProgress,
 } from "@mui/material";
 import { tokens } from "../../theme";
 import { Formik } from "formik";
@@ -48,6 +49,7 @@ const userCreationSchema = yup.object().shape({
     .min(8, "password is too short - should be 8 chars minimum"),
   passwordConfirmation: yup
     .string()
+    .required("required")
     .oneOf([yup.ref("passwordCreate")], "passwords must match"),
 });
 
@@ -59,6 +61,8 @@ const Login = () => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarText, setSnackbarText] = useState("");
   const [snackbarType, setSnackbarType] = useState("error");
+
+  const [creationPending, setCreationPending] = useState(false);
 
   const setSnackbar = (open, text, type) => {
     setSnackbarOpen(open);
@@ -123,7 +127,10 @@ const Login = () => {
       email: values["email"],
       password: values["passwordCreate"],
     };
-    const response = await userAPI.createAccount(accountInformation);
+    var response = userAPI.createAccount(accountInformation);
+    setCreationPending(true);
+    response = await response;
+    setCreationPending(false);
     console.log("error after navigate", response);
     if (response["success"] === true) {
       setSnackbar(
@@ -279,13 +286,13 @@ const Login = () => {
             <Box
               display="grid"
               gap="30px"
-              gridTemplateColumns="repeat(5, minmax(0, 1fr))"
+              gridTemplateColumns="repeat(10, minmax(0, 1fr))"
               mt="20px"
               sx={{
                 "& > div": { gridColumn: isNonMobile ? undefined : "span 5" },
               }}
             >
-              {isNonMobile && <Box gridColumn="span 2" />}
+              {isNonMobile && <Box gridColumn="span 3" />}
               <TextField
                 fullWidth
                 variant="filled"
@@ -297,25 +304,8 @@ const Login = () => {
                 name="userNameCreate"
                 error={!!touched.userNameCreate && !!errors.userNameCreate}
                 helperText={touched.userNameCreate && errors.userNameCreate}
-                sx={{ gridColumn: "span 1" }}
+                sx={{ gridColumn: "span 2" }}
               />
-              {isNonMobile && <Box gridColumn="span 2" />}
-              {isNonMobile && <Box gridColumn="span 2" />}
-              <TextField
-                fullWidth
-                variant="filled"
-                type="text"
-                label="Email"
-                onBlur={handleBlur}
-                onChange={handleChange}
-                value={values.email}
-                name="email"
-                error={!!touched.email && !!errors.email}
-                helperText={touched.email && errors.email}
-                sx={{ gridColumn: "span 1" }}
-              />
-              {isNonMobile && <Box gridColumn="span 2" />}
-              {isNonMobile && <Box gridColumn="span 2" />}
               <TextField
                 fullWidth
                 variant="filled"
@@ -327,10 +317,23 @@ const Login = () => {
                 name="passwordCreate"
                 error={!!touched.passwordCreate && !!errors.passwordCreate}
                 helperText={touched.passwordCreate && errors.passwordCreate}
-                sx={{ gridColumn: "span 1" }}
+                sx={{ gridColumn: "span 2" }}
               />
-              {isNonMobile && <Box gridColumn="span 2" />}
-              {isNonMobile && <Box gridColumn="span 2" />}
+              {isNonMobile && <Box gridColumn="span 3" />}
+              {isNonMobile && <Box gridColumn="span 3" />}
+              <TextField
+                fullWidth
+                variant="filled"
+                type="text"
+                label="Email"
+                onBlur={handleBlur}
+                onChange={handleChange}
+                value={values.email}
+                name="email"
+                error={!!touched.email && !!errors.email}
+                helperText={touched.email && errors.email}
+                sx={{ gridColumn: "span 2" }}
+              />
               <TextField
                 fullWidth
                 variant="filled"
@@ -347,23 +350,29 @@ const Login = () => {
                 helperText={
                   touched.passwordConfirmation && errors.passwordConfirmation
                 }
-                sx={{ gridColumn: "span 1" }}
+                sx={{ gridColumn: "span 2" }}
               />
-              {isNonMobile && <Box gridColumn="span 2" />}
+              {isNonMobile && <Box gridColumn="span 3" />}
             </Box>
-            <Box display="flex" justifyContent="center" mt="20px">
-              <Button
-                type="submit"
-                color={
-                  snackbarOpen && snackbarType === "error"
-                    ? "error"
-                    : "secondary"
-                }
-                variant="contained"
-              >
-                <Typography>Create account</Typography>
-              </Button>
-            </Box>
+            {creationPending ? (
+              <Box display="flex" justifyContent="center" mt="20px">
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Box display="flex" justifyContent="center" mt="20px">
+                <Button
+                  type="submit"
+                  color={
+                    snackbarOpen && snackbarType === "error"
+                      ? "error"
+                      : "secondary"
+                  }
+                  variant="contained"
+                >
+                  <Typography>Create account</Typography>
+                </Button>
+              </Box>
+            )}
           </form>
         )}
       </Formik>
