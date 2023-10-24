@@ -291,20 +291,20 @@ def get_workspace():
     tree_column_definition: list[dict] = [
         {"field": "name", "headerName": "Name", "flex": 1},
         {"field": "isImported", "headerName": "Import", "convertCheckbox": True},
-        {"field": "actions", "headerName": "Actions"},
+        {"field": "actions", "headerName": "Actions", "convertActions": True},
     ]
     loadout_column_definition: list[dict] = [
         {"field": "name", "headerName": "Name", "flex": 1},
         {"field": "isImported", "headerName": "Import", "convertCheckbox": True},
         {"field": "treeName", "headerName": "Tree name", "flex": 1},
-        {"field": "actions", "headerName": "Actions"},
+        {"field": "actions", "headerName": "Actions", "convertActions": True},
     ]
     build_column_definition: list[dict] = [
         {"field": "name", "headerName": "Name", "flex": 1},
         {"field": "isImported", "headerName": "Import", "convertCheckbox": True},
         {"field": "treeName", "headerName": "Tree name", "flex": 1},
         {"field": "loadoutName", "headerName": "Loadout name", "flex": 1},
-        {"field": "actions", "headerName": "Actions"},
+        {"field": "actions", "headerName": "Actions", "convertActions": True},
     ]
     tree_data: list[dict] = [
         {"name": info[1], "isImported": info[0], "actions": content_id}
@@ -337,6 +337,7 @@ def get_workspace():
         "loadoutData": loadout_data,
         "buildData": build_data,
     }
+
     return jsonify(response_data), 200
 
 
