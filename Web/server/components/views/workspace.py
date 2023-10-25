@@ -3,6 +3,7 @@ from typing import Union
 from database_handler import Workspace, Tree, Loadout, Build
 from flask import jsonify
 from flask_jwt_extended import jwt_required, current_user
+from .tree import find_root_tree
 
 
 @app.route("/workspace", methods=["GET"])
@@ -89,19 +90,6 @@ def get_workspace():
 
     return jsonify(response_data), 200
 
-
-def find_root_tree(content_id: str) -> tuple[bool, Tree]:
-    is_imported: bool = False
-    tree: Tree = db_handler.get_tree(content_id, custom=None)
-    while tree.name is None:
-        is_imported = True
-        tree = db_handler.get_tree(tree.import_id, custom=None)
-        if tree.import_id is None and tree.name is None:
-            raise Exception(
-                f"Import ID and name None at the same time {tree.content_id}"
-            )
-
-    return is_imported, tree
 
 
 def find_root_loadout(content_id: str) -> tuple[bool, Loadout]:

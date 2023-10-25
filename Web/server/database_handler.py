@@ -628,11 +628,11 @@ class DBHandler:
                 "ContentID",
                 "OrderID",
                 "NodeID",
+                "TalentType",
                 "Name",
                 "NameSwitch",
                 "Description",
                 "DescriptionSwitch",
-                "TalentType",
                 "Row",
                 "Column",
                 "MaxPoints",
@@ -649,17 +649,61 @@ class DBHandler:
             res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Talent(*res)
 
+    def get_talents(
+        self, content_ids: list[str], custom: Union[bool, None]
+    ) -> list[Talent]:
+        talent_list: list = []
+        talent_columns = (
+            "ContentID",
+            "OrderID",
+            "NodeID",
+            "TalentType",
+            "Name",
+            "NameSwitch",
+            "Description",
+            "DescriptionSwitch",
+            "Row",
+            "Column",
+            "MaxPoints",
+            "RequiredPoints",
+            "PreFilled",
+            "ParentIDs",
+            "ChildIDs",
+            "IconName",
+            "IconNameSwitch",
+        )
+        with self.engine.connect() as conn:
+            if custom == True or custom is None:
+                table: Table = Table("Talents")
+                q = (
+                    Query.from_(table)
+                    .select(*talent_columns)
+                    .where(table.ContentID.isin(content_ids))
+                )
+                res = conn.execute(text(q.get_sql())).all()
+                talent_list += res
+            if custom == False or len(talent_list) < len(content_ids):
+                table: Table = Table("PresetTalents")
+                q = (
+                    Query.from_(table)
+                    .select(*talent_columns)
+                    .where(table.ContentID.isin(content_ids))
+                )
+                res = conn.execute(text(q.get_sql())).all()
+                talent_list += res
+        return [Talent(*x) for x in talent_list]
+
     def update_talent(self, talent: Talent, custom: bool) -> None:
         table: Table = Table("Talents" if custom else "PresetTalents")
         q = (
             Query.update(table)
-            .set(table.ContentID, talent.content_id)
+            .set(table.OrderID, talent.order_id)
             .set(table.NodeID, talent.node_id)
+            .set(table.TalentType, talent.talent_type)
             .set(table.Name, talent.name)
             .set(table.NameSwitch, talent.name_switch)
             .set(table.Description, talent.description)
             .set(table.DescriptionSwitch, talent.description_switch)
-            .set(table.TalentType, talent.talent_type)
             .set(table.Row, talent.row)
             .set(table.Column, talent.column)
             .set(table.MaxPoints, talent.max_points)
