@@ -1,4 +1,7 @@
-import { Box, useTheme } from "@mui/material";
+import { Box, useTheme, Typography, CircularProgress } from "@mui/material";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { treeAPI } from "../../api/treeAPI";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
 import TreeViewer from "../../components/TreeViewer";
@@ -7,6 +10,27 @@ import ToggleButtons from "../../components/ToggleButtons";
 const Tree = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+
+  const [treeName, setTreeName] = useState("");
+  const [treeDescription, setTreeDescription] = useState("");
+
+  const queryTree = async () => {
+    return treeAPI.get("8bf345aa-0bd8-4e67-ae1f-7103f1712887");
+  };
+
+  const query = useQuery({
+    queryKey: ["treeViewerQueryTree"],
+    queryFn: () => queryTree(),
+  });
+
+  useEffect(() => {
+    if (query.data) {
+      setTreeName(query.data[1].name);
+      setTreeDescription(query.data[1].description);
+      console.log(query.data, treeName, treeDescription);
+    }
+  }, [query.data]);
+
   return (
     <Box m="20px">
       <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -29,7 +53,7 @@ const Tree = () => {
           alignItems="center"
           justifyContent="center"
         >
-          <ToggleButtons selection={["Class Tree", "Spec Tree"]} />
+          <ToggleButtons selection={["Class Tree", "Spec Tree", treeName]} />
         </Box>
         <Box
           gridColumn="span 6"
@@ -49,7 +73,21 @@ const Tree = () => {
           border={1}
           borderColor={colors.blueAccent[700]}
         >
-          <TreeViewer />
+          {query.isPending && (
+            <Box display="flex" flexDirection={"row"} justifyContent={"center"}>
+              <CircularProgress />
+            </Box>
+          )}
+          {query.error && (
+            <Box>
+              <Typography>
+                "An error has occurred: " + {query.error.message}
+              </Typography>
+            </Box>
+          )}
+          {query.error === null && query.isPending === false && query.data && (
+            <TreeViewer treeData={query.data[1].classTalents} />
+          )}
         </Box>
         <Box
           gridColumn="span 6"
@@ -61,7 +99,23 @@ const Tree = () => {
           sx={{ borderRadius: "10px" }}
           border={1}
           borderColor={colors.blueAccent[700]}
-        ></Box>
+        >
+          {query.isPending && (
+            <Box display="flex" flexDirection={"row"} justifyContent={"center"}>
+              <CircularProgress />
+            </Box>
+          )}
+          {query.error && (
+            <Box>
+              <Typography>
+                "An error has occurred: " + {query.error.message}
+              </Typography>
+            </Box>
+          )}
+          {query.error === null && query.isPending === false && query.data && (
+            <TreeViewer treeData={query.data[1].specTalents} />
+          )}
+        </Box>
       </Box>
     </Box>
   );

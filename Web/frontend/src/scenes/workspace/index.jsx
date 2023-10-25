@@ -34,9 +34,9 @@ const Workspace = () => {
         gap="20px"
       >
         {[
-          ["TREES", "Create tree", "treeColumns", "treeData"],
-          ["LOADOUTS", "Create loadout", "loadoutColumns", "loadoutData"],
-          ["BUILDS", "Create build", "buildColumns", "buildData"],
+          ["Trees", "Create tree", "treeColumns", "treeData"],
+          ["Loadouts", "Create loadout", "loadoutColumns", "loadoutData"],
+          ["Builds", "Create build", "buildColumns", "buildData"],
         ].map(([header, createStr, colsName, dataName]) => (
           <Box
             gridColumn="span 4"

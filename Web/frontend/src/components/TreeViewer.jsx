@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Box, useTheme } from "@mui/material";
 import { tokens } from "../theme";
 import ReactFlow, {
@@ -9,7 +9,6 @@ import ReactFlow, {
   useEdgesState,
   addEdge,
 } from "reactflow";
-import { initialEdges, initialNodes } from "../data/mockTree";
 
 import "reactflow/dist/style.css";
 
@@ -19,11 +18,15 @@ const proOptions = { hideAttribution: true };
 
 const nodeTypes = { passiveNode: PassiveNode };
 
-const TreeViewer = () => {
+const TreeViewer = ({ treeData }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  useEffect(() => {
+    console.log(treeData);
+  }, [treeData]);
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -40,7 +43,7 @@ const TreeViewer = () => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        snapGrid={[80, 80]}
+        snapGrid={[40, 40]}
         snapToGrid
         fitView
       >
