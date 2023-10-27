@@ -73,7 +73,6 @@ def user_identity_lookup(login: Login):
 @jwt.user_lookup_loader
 def user_lookup_callback(_jwt_header, jwt_data) -> Union[Login, None]:
     identity = jwt_data["sub"]
-    print(jwt_data)
     return db_handler.get_login(auth_method="ALTUSERID", user_id=identity)
 
 
