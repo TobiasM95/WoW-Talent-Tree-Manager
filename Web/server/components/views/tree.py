@@ -35,8 +35,12 @@ def get_tree_and_talent_descriptions(content_id: str) -> dict:
         for talent in talents[: len(class_talent_ids)]
     ]
     spec_talents = [
-        {key: value for key, value in vars(talent).items() if key != "content_id"}
-        for talent in talents[: len(spec_talent_ids)]
+        {
+            key: json.loads(value) if key in ["child_ids", "parent_ids"] else value
+            for key, value in vars(talent).items()
+            if key != "content_id"
+        }
+        for talent in talents[len(class_talent_ids) :]
     ]
     res["classTalents"] = class_talents
     res["specTalents"] = spec_talents
