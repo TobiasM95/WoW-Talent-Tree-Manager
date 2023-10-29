@@ -1,4 +1,5 @@
-import { Box, Paper, useTheme } from "@mui/material";
+import { Box, Paper, useTheme, Tooltip, CircularProgress } from "@mui/material";
+import { Fragment } from "react";
 //import { useCallback } from "react";
 import { Handle, Position } from "reactflow";
 import Image from "mui-image";
@@ -110,49 +111,72 @@ export function SwitchNode({ data }) {
   // }, []);
 
   return (
-    <Box className="switch-nodes" width={data.size} height={data.size}>
-      <Box
-        className="octagon-shape"
-        bgcolor={data.preFilled ? "#cca100" : "#000000"}
-        width={`${data.size}px`}
-        height={`${data.size}px`}
-      >
-        <Image
-          className="octagon-shape-left"
-          position="absolute"
-          sx={{ top: `${0.05 * data.size}px`, left: `${0.05 * data.size}px` }}
-          src={`/preset_icons/${data.iconName}`}
-          width={`${0.9 * data.size}px`}
-          height={`${0.9 * data.size}px`}
-          duration={treeNodeSettings.imageFadeInDuration}
-        />
-        <Image
-          className="octagon-shape-right"
-          position="absolute"
-          sx={{ top: `${0.05 * data.size}px`, left: `${0.05 * data.size}px` }}
-          src={`/preset_icons/${data.iconNameSwitch}`}
-          width={`${0.9 * data.size}px`}
-          height={`${0.9 * data.size}px`}
-          duration={treeNodeSettings.imageFadeInDuration}
-        />
-      </Box>
-      <Box position="absolute" top="75%" left="65%">
-        <Paper
-          variant="outlined"
-          square
-          sx={{
-            width: `${data.size * 0.65}px`,
-            fontSize: `${data.size * 0.3}px`,
-            fontWeight: "600",
-            textAlign: "center",
-            color: colors.grey[200],
-          }}
+    <Tooltip
+      title={
+        <Fragment>
+          <CircularProgress />
+        </Fragment>
+      }
+      placement="right"
+      slotProps={{
+        tooltip: {
+          sx: {
+            bgcolor:
+              theme.palette.mode === "dark" ? `${colors.primary[500]}` : "#fff",
+            "& .MuiTooltip-arrow": {
+              color: "common.black",
+            },
+            border: `1px solid ${colors.grey[100]}`,
+            color: `${colors.grey[100]}`,
+            fontSize: 12,
+          },
+        },
+      }}
+    >
+      <Box className="switch-nodes" width={data.size} height={data.size}>
+        <Box
+          className="octagon-shape"
+          bgcolor={data.preFilled ? "#cca100" : "#000000"}
+          width={`${data.size}px`}
+          height={`${data.size}px`}
         >
-          {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
-        </Paper>
+          <Image
+            className="octagon-shape-left"
+            position="absolute"
+            sx={{ top: `${0.05 * data.size}px`, left: `${0.05 * data.size}px` }}
+            src={`/preset_icons/${data.iconName}`}
+            width={`${0.9 * data.size}px`}
+            height={`${0.9 * data.size}px`}
+            duration={treeNodeSettings.imageFadeInDuration}
+          />
+          <Image
+            className="octagon-shape-right"
+            position="absolute"
+            sx={{ top: `${0.05 * data.size}px`, left: `${0.05 * data.size}px` }}
+            src={`/preset_icons/${data.iconNameSwitch}`}
+            width={`${0.9 * data.size}px`}
+            height={`${0.9 * data.size}px`}
+            duration={treeNodeSettings.imageFadeInDuration}
+          />
+        </Box>
+        <Box position="absolute" top="75%" left="65%">
+          <Paper
+            variant="outlined"
+            square
+            sx={{
+              width: `${data.size * 0.65}px`,
+              fontSize: `${data.size * 0.3}px`,
+              fontWeight: "600",
+              textAlign: "center",
+              color: colors.grey[200],
+            }}
+          >
+            {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
+          </Paper>
+        </Box>
+        <Handle type="target" position={Position.Top} isConnectable={true} />
+        <Handle type="source" position={Position.Bottom} isConnectable={true} />
       </Box>
-      <Handle type="target" position={Position.Top} isConnectable={true} />
-      <Handle type="source" position={Position.Bottom} isConnectable={true} />
-    </Box>
+    </Tooltip>
   );
 }
