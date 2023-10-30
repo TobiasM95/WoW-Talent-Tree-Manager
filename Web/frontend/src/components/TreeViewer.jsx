@@ -15,6 +15,7 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import {
+  DividerNode,
   PassiveNode,
   ActiveNode,
   SwitchNode,
@@ -23,11 +24,13 @@ import {
 const proOptions = { hideAttribution: true };
 
 const typeToNodeType = {
+  DIVIDER: "dividerNode",
   PASSIVE: "passiveNode",
   ACTIVE: "activeNode",
   SWITCH: "switchNode",
 };
 const nodeTypes = {
+  dividerNode: DividerNode,
   passiveNode: PassiveNode,
   activeNode: ActiveNode,
   switchNode: SwitchNode,
@@ -48,6 +51,7 @@ const TreeObjectToFlowNode = (treeObject) => {
         (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
     },
     data: {
+      id: treeObject.order_id,
       size: treeViewerSettings.nodeSize,
       description: treeObject.description,
       descriptionSwitch: treeObject.description_switch,
@@ -59,6 +63,8 @@ const TreeObjectToFlowNode = (treeObject) => {
       nodeID: treeObject.node_id,
       preFilled: treeObject.pre_filled,
       requiredPoints: treeObject.required_points,
+      row: treeObject.row,
+      column: treeObject.column,
       // for completeness sake
       childIDs: treeObject.child_ids,
       parentIDs: treeObject.parent_ids,
@@ -78,11 +84,11 @@ const TreeObjectToFlowEdges = (treeObject) => {
         type: MarkerType.ArrowClosed,
         width: 10,
         height: 10,
-        color: "#cca100",
+        color: "#888888",
       },
       style: {
         strokeWidth: 4,
-        stroke: "#cca100",
+        stroke: "#888888",
       },
     });
   }
@@ -95,6 +101,61 @@ const TreeViewer = ({ treeData }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  const insertDividerLines = (newNodes, newEdges) => {
+    // we need min col max col, we need appropriate divider heights
+    newNodes.push({
+      id: "d1",
+      type: "dividerNode",
+      draggable: false,
+      connectable: false,
+      position: {
+        x:
+          0.5 *
+          0 *
+          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+        y:
+          0.5 *
+          (6.4 + 1) *
+          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+      },
+      data: {
+        size: treeViewerSettings.nodeSize,
+        position: "left",
+      },
+    });
+    newNodes.push({
+      id: "d2",
+      type: "dividerNode",
+      draggable: false,
+      connectable: false,
+      position: {
+        x:
+          0.5 *
+          20 *
+          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+        y:
+          0.5 *
+          (6.4 + 1) *
+          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+      },
+      data: {
+        size: treeViewerSettings.nodeSize,
+        position: "right",
+      },
+    });
+
+    newEdges.unshift({
+      id: `de1-2`,
+      source: `d1`,
+      target: `d2`,
+      type: "straight",
+      style: {
+        strokeWidth: 3,
+        stroke: "#a1a1ff",
+      },
+    });
+  };
+
   useEffect(() => {
     // console.log(treeData);
     var newNodes = [];
@@ -103,6 +164,7 @@ const TreeViewer = ({ treeData }) => {
       newNodes.push(TreeObjectToFlowNode(rawNode));
       newEdges.push(...TreeObjectToFlowEdges(rawNode));
     }
+    insertDividerLines(newNodes, newEdges);
     setNodes(newNodes);
     setEdges(newEdges);
     console.log("rerender...");
@@ -115,6 +177,10 @@ const TreeViewer = ({ treeData }) => {
     [setEdges]
   );
 
+  const onMoveEnd = () => {
+    console.log("on move end");
+  };
+
   return (
     <Box sx={{ width: "100%", height: "100%" }} p="5px">
       <ReactFlow
@@ -125,6 +191,7 @@ const TreeViewer = ({ treeData }) => {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeDragStop={onMoveEnd}
         snapGrid={[40, 40]}
         snapToGrid
         fitView

@@ -21,6 +21,7 @@ const Tree = () => {
   const query = useQuery({
     queryKey: ["treeViewerQueryTree"],
     queryFn: () => queryTree(),
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
