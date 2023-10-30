@@ -8,6 +8,7 @@ from typing import Union
 from sqlalchemy import create_engine
 from database_handler import DBHandler, Tree, Talent
 from pypika import Table, Query, Parameter
+import json
 
 
 def main() -> str:
@@ -111,7 +112,7 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
                     talent_type,
                     restore_string(name),
                     restore_string(name_switch),
-                    restore_string(description),
+                    restore_talent_description(description, talent_type),
                     restore_string(description_switch),
                     int(talent_information[4]),
                     int(talent_information[5]),
@@ -149,6 +150,15 @@ def update_db(
     db_handler.execute_query(Query.from_("PresetTalents").delete())
     db_handler.create_trees(presets_converted[0], custom=False)
     db_handler.create_talents(presets_converted[1], custom=False)
+
+
+def restore_talent_description(description: Union[str, None], talent_type: str):
+    if description is None:
+        return None
+    if talent_type != "PASSIVE":
+        return restore_string(description)
+    descriptions = description.split(",")
+    return json.dumps([restore_string(s) for s in descriptions])
 
 
 def restore_string(orig: Union[str, None]) -> str:
