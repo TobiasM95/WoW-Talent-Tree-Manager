@@ -112,7 +112,7 @@ class Talent:
         t_type: str,
         name: str,
         name_switch: str,
-        description: str,
+        description: Union[str, list[str]],
         description_switch: str,
         row: int,
         column: int,
@@ -130,7 +130,10 @@ class Talent:
         self.talent_type: str = t_type
         self.name: str = name
         self.name_switch: str = name_switch
-        self.description: str = description
+        if type(description) == str:
+            self.description: str = description
+        else:
+            self.description: str = json.dumps(description)
         self.description_switch: str = description_switch
         self.row: int = row
         self.column: int = column
