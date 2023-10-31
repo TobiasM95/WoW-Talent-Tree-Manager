@@ -28,7 +28,6 @@ const Tree = () => {
     if (query.data) {
       setTreeName(query.data[1].name);
       setTreeDescription(query.data[1].description);
-      console.log(query.data, treeName, treeDescription);
     }
   }, [query.data]);
 
