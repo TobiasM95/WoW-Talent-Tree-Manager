@@ -250,7 +250,7 @@ const AppSidebar = () => {
           </div>
           <div>
             {!isCollapsed && (
-              <Box mb="25px">
+              <Box my="25px">
                 <Box display="flex" justifyContent="center" alignItems="center">
                   <a
                     href="https://github.com/TobiasM95/WoW-Talent-Tree-Manager"
