@@ -1,7 +1,8 @@
-import { useCallback, useEffect } from "react";
+import { createContext, useCallback, useEffect, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { tokens } from "../theme";
 import { treeViewerSettings } from "../data/settings";
+import { insertDividerLines } from "./tree_components/utils";
 import ReactFlow, {
   // MiniMap,
   Controls,
@@ -35,10 +36,11 @@ const nodeTypes = {
   activeNode: ActiveNode,
   switchNode: SwitchNode,
 };
+export const DragProvider = createContext(null);
 
 const TreeObjectToFlowNode = (treeObject) => {
   return {
-    id: "" + treeObject.order_id,
+    id: "n" + treeObject.order_id,
     type: typeToNodeType[treeObject.talent_type],
     position: {
       x:
@@ -77,8 +79,8 @@ const TreeObjectToFlowEdges = (treeObject) => {
   for (const childIndex of treeObject.child_ids) {
     edges.push({
       id: `e${treeObject.order_id}-${childIndex}`,
-      source: `${treeObject.order_id}`,
-      target: `${childIndex}`,
+      source: `n${treeObject.order_id}`,
+      target: `n${childIndex}`,
       type: "straight",
       markerEnd: {
         type: MarkerType.ArrowClosed,
@@ -100,64 +102,9 @@ const TreeViewer = ({ treeData }) => {
   const colors = tokens(theme.palette.mode);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  const insertDividerLines = (newNodes, newEdges) => {
-    // we need min col max col, we need appropriate divider heights
-    newNodes.push({
-      id: "d1",
-      type: "dividerNode",
-      draggable: false,
-      connectable: false,
-      position: {
-        x:
-          0.5 *
-          0 *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-        y:
-          0.5 *
-          (6.4 + 1) *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-      },
-      data: {
-        size: treeViewerSettings.nodeSize,
-        position: "left",
-      },
-    });
-    newNodes.push({
-      id: "d2",
-      type: "dividerNode",
-      draggable: false,
-      connectable: false,
-      position: {
-        x:
-          0.5 *
-          20 *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-        y:
-          0.5 *
-          (6.4 + 1) *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-      },
-      data: {
-        size: treeViewerSettings.nodeSize,
-        position: "right",
-      },
-    });
-
-    newEdges.unshift({
-      id: `de1-2`,
-      source: `d1`,
-      target: `d2`,
-      type: "straight",
-      style: {
-        strokeWidth: 3,
-        stroke: "#a1a1ff",
-      },
-    });
-  };
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    // console.log(treeData);
     var newNodes = [];
     var newEdges = [];
     for (const rawNode of treeData) {
@@ -167,9 +114,6 @@ const TreeViewer = ({ treeData }) => {
     insertDividerLines(newNodes, newEdges);
     setNodes(newNodes);
     setEdges(newEdges);
-    console.log("rerender...");
-    // console.log(newNodes);
-    // console.log(newEdges);
   }, [treeData]);
 
   const onConnect = useCallback(
@@ -177,30 +121,54 @@ const TreeViewer = ({ treeData }) => {
     [setEdges]
   );
 
-  const onMoveEnd = () => {
-    console.log("on move end");
+  const onNodeDragStart = (event, draggedNode) => {
+    setIsDragging(true);
+  };
+
+  const onNodeDragStop = (event, draggedNode) => {
+    setIsDragging(false);
+    for (var node of nodes) {
+      if (node.id === draggedNode.id) {
+        node.data.row =
+          (2 * node.position.y) /
+            (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace) -
+          1;
+        node.data.column =
+          (2 * node.position.x) /
+            (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace) -
+          1;
+      }
+    }
+    var newNodes = [...nodes];
+    var newEdges = [...edges];
+    insertDividerLines(newNodes, newEdges);
+    setNodes(newNodes);
+    setEdges(newEdges);
   };
 
   return (
-    <Box sx={{ width: "100%", height: "100%" }} p="5px">
-      <ReactFlow
-        proOptions={proOptions}
-        nodeTypes={nodeTypes}
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeDragStop={onMoveEnd}
-        snapGrid={[40, 40]}
-        snapToGrid
-        fitView
-      >
-        <Controls />
-        {/* <MiniMap /> */}
-        <Background variant="dots" gap={24} size={1} />
-      </ReactFlow>
-    </Box>
+    <DragProvider.Provider value={isDragging}>
+      <Box sx={{ width: "100%", height: "100%" }} p="5px">
+        <ReactFlow
+          proOptions={proOptions}
+          nodeTypes={nodeTypes}
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDragStop={onNodeDragStop}
+          onNodeDragStart={onNodeDragStart}
+          snapGrid={[40, 40]}
+          snapToGrid
+          fitView
+        >
+          <Controls />
+          {/* <MiniMap /> */}
+          <Background variant="dots" gap={24} size={1} />
+        </ReactFlow>
+      </Box>
+    </DragProvider.Provider>
   );
 };
 

@@ -3,16 +3,16 @@ import {
   Paper,
   useTheme,
   Tooltip,
-  CircularProgress,
   Typography,
   Divider,
 } from "@mui/material";
-import { Fragment } from "react";
+import { Fragment, useContext } from "react";
 //import { useCallback } from "react";
 import { Handle, Position } from "reactflow";
 import Image from "mui-image";
 import { tokens } from "../../theme";
 import { treeNodeSettings } from "../../data/settings";
+import { DragProvider } from "../TreeViewer";
 
 import "./treeComponentTheming.css";
 
@@ -37,7 +37,7 @@ export function DividerNode({ data }) {
             fontSize={`${data.size * 0.3}px`}
             fontWeight="600"
           >
-            8 points
+            {data.requiredPoints} points
           </Typography>
         </Paper>
       </Box>
@@ -59,44 +59,50 @@ export function PassiveNode({ data }) {
   //   console.log(evt.target.value);
   // }, []);
 
+  const isDragged = useContext(DragProvider);
+
   const descriptionArray = JSON.parse(data.description);
-  if (data.name === "Astral Influence") console.log(descriptionArray);
 
   return (
     <Tooltip
       title={
-        <Fragment>
-          <Typography variant="h3" fontWeight="bold">
-            {data.name}
-          </Typography>
-          <Image
-            src={`/preset_icons/${data.iconName}`}
-            width={0.5 * data.size}
-            height={0.5 * data.size}
-            duration={0}
-          />
-          <Typography>
-            Id: {data.id}, Pos: ({data.row}, {data.column})
-          </Typography>
-          <Typography color="#eb7070">(active)</Typography>
-          <Typography sx={{ marginBottom: "10px" }}>
-            Max points: {data.maxPoints}, points required: {data.requiredPoints}
-          </Typography>
-          {descriptionArray.map((d, index) => (
-            <Fragment key={index + 10000}>
-              <Typography
-                color="#a1a1ff"
-                key={index}
-                style={{ whiteSpace: "pre-line" }}
-              >
-                {d}
-              </Typography>
-              {index !== descriptionArray.length - 1 && (
-                <Divider sx={{ marginY: "10px" }} key={index + 100}></Divider>
-              )}
-            </Fragment>
-          ))}
-        </Fragment>
+        isDragged ? (
+          false
+        ) : (
+          <Fragment>
+            <Typography variant="h3" fontWeight="bold">
+              {data.name}
+            </Typography>
+            <Image
+              src={`/preset_icons/${data.iconName}`}
+              width={0.5 * data.size}
+              height={0.5 * data.size}
+              duration={0}
+            />
+            <Typography>
+              Id: {data.id}, Pos: ({data.row}, {data.column})
+            </Typography>
+            <Typography color="#eb7070">(active)</Typography>
+            <Typography sx={{ marginBottom: "10px" }}>
+              Max points: {data.maxPoints}, points required:{" "}
+              {data.requiredPoints}
+            </Typography>
+            {descriptionArray.map((d, index) => (
+              <Fragment key={index + 10000}>
+                <Typography
+                  color="#a1a1ff"
+                  key={index}
+                  style={{ whiteSpace: "pre-line" }}
+                >
+                  {d}
+                </Typography>
+                {index !== descriptionArray.length - 1 && (
+                  <Divider sx={{ marginY: "10px" }} key={index + 100}></Divider>
+                )}
+              </Fragment>
+            ))}
+          </Fragment>
+        )
       }
       disableInteractive
       placement="right"
@@ -163,30 +169,37 @@ export function ActiveNode({ data }) {
   //   console.log(evt.target.value);
   // }, []);
 
+  const isDragged = useContext(DragProvider);
+
   return (
     <Tooltip
       title={
-        <Fragment>
-          <Typography variant="h3" fontWeight="bold">
-            {data.name}
-          </Typography>
-          <Image
-            src={`/preset_icons/${data.iconName}`}
-            width={0.5 * data.size}
-            height={0.5 * data.size}
-            duration={0}
-          />
-          <Typography>
-            Id: {data.id}, Pos: ({data.row}, {data.column})
-          </Typography>
-          <Typography color="#eb7070">(active)</Typography>
-          <Typography sx={{ marginBottom: "10px" }}>
-            Max points: {data.maxPoints}, points required: {data.requiredPoints}
-          </Typography>
-          <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
-            {data.description}
-          </Typography>
-        </Fragment>
+        isDragged ? (
+          false
+        ) : (
+          <Fragment>
+            <Typography variant="h3" fontWeight="bold">
+              {data.name}
+            </Typography>
+            <Image
+              src={`/preset_icons/${data.iconName}`}
+              width={0.5 * data.size}
+              height={0.5 * data.size}
+              duration={0}
+            />
+            <Typography>
+              Id: {data.id}, Pos: ({data.row}, {data.column})
+            </Typography>
+            <Typography color="#eb7070">(active)</Typography>
+            <Typography sx={{ marginBottom: "10px" }}>
+              Max points: {data.maxPoints}, points required:{" "}
+              {data.requiredPoints}
+            </Typography>
+            <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
+              {data.description}
+            </Typography>
+          </Fragment>
+        )
       }
       disableInteractive
       placement="right"
@@ -251,50 +264,58 @@ export function SwitchNode({ data }) {
   //   console.log(evt.target.value);
   // }, []);
 
+  const isDragged = useContext(DragProvider);
+
   return (
     <Tooltip
       title={
-        <Fragment>
-          <Typography variant="h3" fontWeight="bold">
-            {data.name}
-          </Typography>
-          <Image
-            src={`/preset_icons/${data.iconName}`}
-            width={0.5 * data.size}
-            height={0.5 * data.size}
-            duration={0}
-          />
-          <Typography>
-            Id: {data.id}, Pos: ({data.row}, {data.column})
-          </Typography>
-          <Typography color="#eb7070">(switch)</Typography>
-          <Typography sx={{ marginBottom: "10px" }}>
-            Max points: {data.maxPoints}, points required: {data.requiredPoints}
-          </Typography>
-          <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
-            {data.description}
-          </Typography>
-          <Divider sx={{ marginY: "10px" }}></Divider>
-          <Typography variant="h3" fontWeight="bold">
-            {data.nameSwitch}
-          </Typography>
-          <Image
-            src={`/preset_icons/${data.iconNameSwitch}`}
-            width={0.5 * data.size}
-            height={0.5 * data.size}
-            duration={0}
-          />
-          <Typography>
-            Id: {data.id}, Pos: ({data.row}, {data.column})
-          </Typography>
-          <Typography color="#eb7070">(switch)</Typography>
-          <Typography sx={{ marginBottom: "10px" }}>
-            Max points: {data.maxPoints}, points required: {data.requiredPoints}
-          </Typography>
-          <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
-            {data.descriptionSwitch}
-          </Typography>
-        </Fragment>
+        isDragged ? (
+          false
+        ) : (
+          <Fragment>
+            <Typography variant="h3" fontWeight="bold">
+              {data.name}
+            </Typography>
+            <Image
+              src={`/preset_icons/${data.iconName}`}
+              width={0.5 * data.size}
+              height={0.5 * data.size}
+              duration={0}
+            />
+            <Typography>
+              Id: {data.id}, Pos: ({data.row}, {data.column})
+            </Typography>
+            <Typography color="#eb7070">(switch)</Typography>
+            <Typography sx={{ marginBottom: "10px" }}>
+              Max points: {data.maxPoints}, points required:{" "}
+              {data.requiredPoints}
+            </Typography>
+            <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
+              {data.description}
+            </Typography>
+            <Divider sx={{ marginY: "10px" }}></Divider>
+            <Typography variant="h3" fontWeight="bold">
+              {data.nameSwitch}
+            </Typography>
+            <Image
+              src={`/preset_icons/${data.iconNameSwitch}`}
+              width={0.5 * data.size}
+              height={0.5 * data.size}
+              duration={0}
+            />
+            <Typography>
+              Id: {data.id}, Pos: ({data.row}, {data.column})
+            </Typography>
+            <Typography color="#eb7070">(switch)</Typography>
+            <Typography sx={{ marginBottom: "10px" }}>
+              Max points: {data.maxPoints}, points required:{" "}
+              {data.requiredPoints}
+            </Typography>
+            <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
+              {data.descriptionSwitch}
+            </Typography>
+          </Fragment>
+        )
       }
       disableInteractive
       placement="right"
