@@ -67,7 +67,7 @@ def hash_password(password: str, salt: bytes) -> bytes:
 
 @jwt.user_identity_loader
 def user_identity_lookup(login: Login):
-    return login.alt_user_id
+    return login
 
 
 @jwt.user_lookup_loader
@@ -110,7 +110,9 @@ def login():
             "user_id": login_information.user_id,
         }
     )
-    access_token = create_access_token(identity=login_information, fresh=True)
+    access_token = create_access_token(
+        identity=login_information.alt_user_id, fresh=True
+    )
     set_access_cookies(response, access_token)
 
     return response, 200

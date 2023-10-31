@@ -14,19 +14,26 @@ const AuthProvider = ({ children }) => {
   const [userID, setUserID] = useState(null);
 
   useEffect(() => {
-    async function checkLogin() {
-      const is_logged_in = await userAPI.checkIfLoggedIn();
-      console.log(is_logged_in, loginState);
-      if (is_logged_in["success"] === true) {
-        setLoginState(true);
-        setUserID(is_logged_in["user_id"]);
+    checkLogin();
+  }, []);
+
+  const checkLogin = async () => {
+    const is_logged_in = await userAPI.checkIfLoggedIn();
+    console.log(is_logged_in, loginState);
+    if (is_logged_in["success"] === true) {
+      setLoginState(true);
+      setUserID(is_logged_in["user_id"]);
+    } else {
+      if (loginState) {
+        setLoginState(false);
+        setUserID(null);
+        navigate("/");
       } else {
         setLoginState(false);
         setUserID(null);
       }
     }
-    checkLogin();
-  }, []);
+  };
 
   const setLoginStateManually = (newState) => {
     setLoginState(newState);
@@ -57,6 +64,7 @@ const AuthProvider = ({ children }) => {
     setLogin: handleLogin,
     setLogout: handleLogout,
     setLoginState: setLoginStateManually,
+    checkLogin: checkLogin,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

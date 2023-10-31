@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { useAuth } from "../../components/AuthProvider";
 import { Box, CircularProgress, Typography, Stack } from "@mui/material";
 import ProtectedRoute from "../../components/ProtectedRoute";
@@ -16,10 +16,11 @@ import Login from "../login";
 import Activation from "../activation";
 
 const AppDisplay = () => {
-  const { loginState } = useAuth();
+  const { loginState, checkLogin } = useAuth();
   const [canShow, setCanShow] = useState(loginState !== null);
 
-  // Set Time out
+  let location = useLocation();
+
   useEffect(() => {
     const timer = setTimeout(
       () => setCanShow(true),
@@ -27,6 +28,11 @@ const AppDisplay = () => {
     );
     return () => clearTimeout(timer);
   }, [loginState]);
+
+  useEffect(() => {
+    checkLogin();
+  }, [location]);
+
   if (!canShow) {
     return <></>;
   }
