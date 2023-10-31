@@ -13,6 +13,10 @@ const CustomDataGrid = ({ columns, data, rowIDCol }) => {
     console.log(action);
   };
 
+  if (columns === undefined || data === undefined || rowIDCol === undefined) {
+    return <></>;
+  }
+
   columns.forEach((item) => {
     if (Object.hasOwn(item, "convertCheckbox")) {
       item.renderCell = ({ row: { isImported } }) => {
