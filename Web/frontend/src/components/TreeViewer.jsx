@@ -68,7 +68,7 @@ const TreeObjectToFlowNode = (treeObject) => {
   };
 };
 
-const TreeObjectToFlowEdges = (treeObject) => {
+const TreeObjectToFlowEdges = (treeObject, colors) => {
   var edges = [];
   for (const childIndex of treeObject.child_ids) {
     edges.push({
@@ -80,11 +80,11 @@ const TreeObjectToFlowEdges = (treeObject) => {
         type: MarkerType.ArrowClosed,
         width: 10,
         height: 10,
-        color: "#888888",
+        color: colors.treeColors.grey,
       },
       style: {
         strokeWidth: 4,
-        stroke: "#888888",
+        stroke: colors.treeColors.grey,
       },
     });
   }
@@ -102,10 +102,10 @@ const TreeViewer = ({ treeData }) => {
     var newNodes = [];
     var newEdges = [];
     for (const rawNode of treeData) {
-      newNodes.push(TreeObjectToFlowNode(rawNode));
-      newEdges.push(...TreeObjectToFlowEdges(rawNode));
+      newNodes.push(TreeObjectToFlowNode(rawNode, colors));
+      newEdges.push(...TreeObjectToFlowEdges(rawNode, colors));
     }
-    insertDividerLines(newNodes, newEdges);
+    insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
     setEdges(newEdges);
   }, [treeData]);
@@ -131,7 +131,7 @@ const TreeViewer = ({ treeData }) => {
     }
     var newNodes = [...nodes];
     var newEdges = [...edges];
-    insertDividerLines(newNodes, newEdges);
+    insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
     setEdges(newEdges);
   };
@@ -155,6 +155,7 @@ const TreeViewer = ({ treeData }) => {
           ]}
           snapToGrid
           fitView
+          nodesDraggable={false}
         >
           <Controls />
           {/* <MiniMap /> */}

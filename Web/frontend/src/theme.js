@@ -60,6 +60,16 @@ export const tokens = (mode) => ({
           800: "#2a2d64",
           900: "#151632",
         },
+        treeColors: {
+          black: "#000000",
+          grey: "#737373",
+          green: "#00aa00",
+          gold: "#cca100",
+          blue: "#a1a1ff",
+          red: "#ff6666",
+          tooltipBg: "#141b2d",
+          tooltipBorder: "#3e4396",
+        },
       }
     : {
         grey: {
@@ -116,6 +126,16 @@ export const tokens = (mode) => ({
           700: "#a4a9fc",
           800: "#c3c6fd",
           900: "#e1e2fe",
+        },
+        treeColors: {
+          black: "#000000",
+          grey: "#222222",
+          green: "#00aa00",
+          gold: "#b68e00",
+          blue: "#4a4ed6",
+          red: "#d94142",
+          tooltipBg: "#eeeeee",
+          tooltipBorder: "#a4a9fc",
         },
       }),
 });
