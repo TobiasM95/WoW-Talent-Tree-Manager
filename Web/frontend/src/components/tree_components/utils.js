@@ -1,6 +1,6 @@
 import { treeViewerSettings } from "../../data/settings";
 
-export function insertDividerLines(newNodes, newEdges) {
+export function insertDividerLines(newNodes, newEdges, colors) {
   const { separators, minMaxColumns } = extractDividerInfo(newNodes);
   for (var i = newNodes.length - 1; i >= 0; --i) {
     if (newNodes[i].id.startsWith("d")) {
@@ -51,7 +51,7 @@ export function insertDividerLines(newNodes, newEdges) {
       type: "straight",
       style: {
         strokeWidth: 3,
-        stroke: "#a1a1ff",
+        stroke: colors.treeColors.blue,
       },
     });
   }

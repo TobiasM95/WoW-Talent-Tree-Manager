@@ -33,7 +33,7 @@ export function DividerNode({ data }) {
         <Paper variant="outlined" square={false}>
           <Typography
             marginX="10px"
-            color="#a1a1ff"
+            color={colors.treeColors.blue}
             fontSize={`${data.size * 0.3}px`}
             fontWeight="600"
           >
@@ -82,7 +82,7 @@ export function PassiveNode({ data }) {
             <Typography>
               Id: {data.id}, Pos: ({data.row}, {data.column})
             </Typography>
-            <Typography color="#eb7070">(active)</Typography>
+            <Typography color={colors.treeColors.red}>(active)</Typography>
             <Typography sx={{ marginBottom: "10px" }}>
               Max points: {data.maxPoints}, points required:{" "}
               {data.requiredPoints}
@@ -90,7 +90,7 @@ export function PassiveNode({ data }) {
             {descriptionArray.map((d, index) => (
               <Fragment key={index + 10000}>
                 <Typography
-                  color="#a1a1ff"
+                  color={colors.treeColors.blue}
                   key={index}
                   style={{ whiteSpace: "pre-line" }}
                 >
@@ -109,12 +109,11 @@ export function PassiveNode({ data }) {
       slotProps={{
         tooltip: {
           sx: {
-            bgcolor:
-              theme.palette.mode === "dark" ? `${colors.primary[500]}` : "#fff",
+            bgcolor: colors.treeColors.tooltipBg,
             "& .MuiTooltip-arrow": {
               color: "common.black",
             },
-            border: `1px solid ${colors.grey[100]}`,
+            border: `1px solid ${colors.treeColors.tooltipBorder}`,
             color: `${colors.grey[100]}`,
             fontSize: 12,
           },
@@ -124,7 +123,9 @@ export function PassiveNode({ data }) {
       <Box className="passive-nodes" width={data.size} height={data.size}>
         <Box
           className="circle-shape"
-          bgcolor={data.preFilled ? "#cca100" : "#000000"}
+          bgcolor={
+            data.preFilled ? colors.treeColors.gold : colors.treeColors.black
+          }
           width={data.size}
           height={data.size}
           display="flex"
@@ -190,12 +191,15 @@ export function ActiveNode({ data }) {
             <Typography>
               Id: {data.id}, Pos: ({data.row}, {data.column})
             </Typography>
-            <Typography color="#eb7070">(active)</Typography>
+            <Typography color={colors.treeColors.red}>(active)</Typography>
             <Typography sx={{ marginBottom: "10px" }}>
               Max points: {data.maxPoints}, points required:{" "}
               {data.requiredPoints}
             </Typography>
-            <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
+            <Typography
+              color={colors.treeColors.blue}
+              style={{ whiteSpace: "pre-line" }}
+            >
               {data.description}
             </Typography>
           </Fragment>
@@ -206,12 +210,11 @@ export function ActiveNode({ data }) {
       slotProps={{
         tooltip: {
           sx: {
-            bgcolor:
-              theme.palette.mode === "dark" ? `${colors.primary[500]}` : "#fff",
+            bgcolor: colors.treeColors.tooltipBg,
             "& .MuiTooltip-arrow": {
               color: "common.black",
             },
-            border: `1px solid ${colors.grey[100]}`,
+            border: `1px solid ${colors.treeColors.tooltipBorder}`,
             color: `${colors.grey[100]}`,
             fontSize: 12,
           },
@@ -220,7 +223,9 @@ export function ActiveNode({ data }) {
     >
       <Box className="active-nodes" width={data.size} height={data.size}>
         <Box
-          bgcolor={data.preFilled ? "#cca100" : "#000000"}
+          bgcolor={
+            data.preFilled ? colors.treeColors.gold : colors.treeColors.black
+          }
           width={data.size}
           height={data.size}
           display="flex"
@@ -285,12 +290,15 @@ export function SwitchNode({ data }) {
             <Typography>
               Id: {data.id}, Pos: ({data.row}, {data.column})
             </Typography>
-            <Typography color="#eb7070">(switch)</Typography>
+            <Typography color={colors.treeColors.red}>(switch)</Typography>
             <Typography sx={{ marginBottom: "10px" }}>
               Max points: {data.maxPoints}, points required:{" "}
               {data.requiredPoints}
             </Typography>
-            <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
+            <Typography
+              color={colors.treeColors.blue}
+              style={{ whiteSpace: "pre-line" }}
+            >
               {data.description}
             </Typography>
             <Divider sx={{ marginY: "10px" }}></Divider>
@@ -306,12 +314,15 @@ export function SwitchNode({ data }) {
             <Typography>
               Id: {data.id}, Pos: ({data.row}, {data.column})
             </Typography>
-            <Typography color="#eb7070">(switch)</Typography>
+            <Typography color={colors.treeColors.red}>(switch)</Typography>
             <Typography sx={{ marginBottom: "10px" }}>
               Max points: {data.maxPoints}, points required:{" "}
               {data.requiredPoints}
             </Typography>
-            <Typography color="#a1a1ff" style={{ whiteSpace: "pre-line" }}>
+            <Typography
+              color={colors.treeColors.blue}
+              style={{ whiteSpace: "pre-line" }}
+            >
               {data.descriptionSwitch}
             </Typography>
           </Fragment>
@@ -322,12 +333,11 @@ export function SwitchNode({ data }) {
       slotProps={{
         tooltip: {
           sx: {
-            bgcolor:
-              theme.palette.mode === "dark" ? `${colors.primary[500]}` : "#fff",
+            bgcolor: colors.treeColors.tooltipBg,
             "& .MuiTooltip-arrow": {
               color: "common.black",
             },
-            border: `1px solid ${colors.grey[100]}`,
+            border: `1px solid ${colors.treeColors.tooltipBorder}`,
             color: `${colors.grey[100]}`,
             fontSize: 12,
           },
@@ -337,7 +347,9 @@ export function SwitchNode({ data }) {
       <Box className="switch-nodes" width={data.size} height={data.size}>
         <Box
           className="octagon-shape"
-          bgcolor={data.preFilled ? "#cca100" : "#000000"}
+          bgcolor={
+            data.preFilled ? colors.treeColors.gold : colors.treeColors.black
+          }
           width={`${data.size}px`}
           height={`${data.size}px`}
         >
