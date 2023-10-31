@@ -19,14 +19,8 @@ export function insertDividerLines(newNodes, newEdges) {
       draggable: false,
       connectable: false,
       position: {
-        x:
-          0.5 *
-          (minMaxColumns[0] - 1) *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-        y:
-          0.5 *
-          (separator[1] + 1.4) *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+        x: 0.5 * (minMaxColumns[0] - 1) * treeViewerSettings.gridSpace,
+        y: 0.5 * (separator[1] + 1.4) * treeViewerSettings.gridSpace,
       },
       data: {
         size: treeViewerSettings.nodeSize,
@@ -40,14 +34,8 @@ export function insertDividerLines(newNodes, newEdges) {
       draggable: false,
       connectable: false,
       position: {
-        x:
-          0.5 *
-          (minMaxColumns[1] + 3) *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-        y:
-          0.5 *
-          (separator[1] + 1.4) *
-          (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+        x: 0.5 * (minMaxColumns[1] + 3) * treeViewerSettings.gridSpace,
+        y: 0.5 * (separator[1] + 1.4) * treeViewerSettings.gridSpace,
       },
       data: {
         size: treeViewerSettings.nodeSize,

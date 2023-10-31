@@ -43,14 +43,8 @@ const TreeObjectToFlowNode = (treeObject) => {
     id: "n" + treeObject.order_id,
     type: typeToNodeType[treeObject.talent_type],
     position: {
-      x:
-        0.5 *
-        (treeObject.column + 1) *
-        (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
-      y:
-        0.5 *
-        (treeObject.row + 1) *
-        (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace),
+      x: 0.5 * (treeObject.column + 1) * treeViewerSettings.gridSpace,
+      y: 0.5 * (treeObject.row + 1) * treeViewerSettings.gridSpace,
     },
     data: {
       id: treeObject.order_id,
@@ -130,13 +124,9 @@ const TreeViewer = ({ treeData }) => {
     for (var node of nodes) {
       if (node.id === draggedNode.id) {
         node.data.row =
-          (2 * node.position.y) /
-            (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace) -
-          1;
+          (2 * node.position.y) / treeViewerSettings.gridSpace - 1;
         node.data.column =
-          (2 * node.position.x) /
-            (treeViewerSettings.nodeSize + treeViewerSettings.gridSpace) -
-          1;
+          (2 * node.position.x) / treeViewerSettings.gridSpace - 1;
       }
     }
     var newNodes = [...nodes];
@@ -159,7 +149,10 @@ const TreeViewer = ({ treeData }) => {
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           onNodeDragStart={onNodeDragStart}
-          snapGrid={[40, 40]}
+          snapGrid={[
+            treeViewerSettings.gridSpace,
+            treeViewerSettings.gridSpace,
+          ]}
           snapToGrid
           fitView
         >
