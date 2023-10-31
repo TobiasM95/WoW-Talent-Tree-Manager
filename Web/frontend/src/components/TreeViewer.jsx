@@ -115,6 +115,14 @@ const TreeViewer = ({ treeData }) => {
     [setEdges]
   );
 
+  const onMoveStart = () => {
+    setIsDragging(true);
+  };
+
+  const onMoveEnd = () => {
+    setIsDragging(false);
+  };
+
   const onNodeDragStart = (event, draggedNode) => {
     setIsDragging(true);
   };
@@ -149,6 +157,8 @@ const TreeViewer = ({ treeData }) => {
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           onNodeDragStart={onNodeDragStart}
+          onMoveStart={onMoveStart}
+          onMoveEnd={onMoveEnd}
           snapGrid={[
             treeViewerSettings.gridSpace,
             treeViewerSettings.gridSpace,
