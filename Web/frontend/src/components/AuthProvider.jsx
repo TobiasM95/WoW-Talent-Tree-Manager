@@ -18,7 +18,16 @@ const AuthProvider = ({ children }) => {
   }, []);
 
   const checkLogin = async () => {
-    const is_logged_in = await userAPI.checkIfLoggedIn();
+    var is_logged_in;
+    try {
+      is_logged_in = await userAPI.checkIfLoggedIn();
+    } catch {
+      is_logged_in = {
+        success: false,
+        msg: "There was a client error during the login process or the server cannot be reached.",
+      };
+    }
+
     console.log(is_logged_in, loginState);
     if (is_logged_in["success"] === true) {
       setLoginState(true);
