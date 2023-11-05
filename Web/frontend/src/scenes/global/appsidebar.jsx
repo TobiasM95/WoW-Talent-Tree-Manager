@@ -245,6 +245,14 @@ const AppSidebar = () => {
                   setSelected={setSelected}
                   isCollapsed={isCollapsed}
                 />
+                <Item
+                  title="Build View"
+                  to="/build"
+                  icon={<AccountTreeIcon />}
+                  selected={selected}
+                  setSelected={setSelected}
+                  isCollapsed={isCollapsed}
+                />
               </Box>
             </Menu>
           </div>

@@ -12,7 +12,7 @@ import { Handle, Position } from "reactflow";
 import Image from "mui-image";
 import { tokens } from "../../theme";
 import { treeNodeSettings } from "../../data/settings";
-import { DragProvider } from "./TreeViewer";
+import { useDrag } from "../DragProvider";
 
 import "./treeComponentTheming.css";
 
@@ -59,14 +59,14 @@ export function PassiveNode({ data }) {
   //   console.log(evt.target.value);
   // }, []);
 
-  const isDragged = useContext(DragProvider);
+  const { isDragging } = useDrag();
 
   const descriptionArray = JSON.parse(data.description);
 
   return (
     <Tooltip
       title={
-        isDragged ? (
+        isDragging ? (
           false
         ) : (
           <Fragment>
@@ -178,12 +178,12 @@ export function ActiveNode({ data }) {
   //   console.log(evt.target.value);
   // }, []);
 
-  const isDragged = useContext(DragProvider);
+  const { isDragging } = useDrag();
 
   return (
     <Tooltip
       title={
-        isDragged ? (
+        isDragging ? (
           false
         ) : (
           <Fragment>
@@ -285,12 +285,12 @@ export function SwitchNode({ data }) {
   //   console.log(evt.target.value);
   // }, []);
 
-  const isDragged = useContext(DragProvider);
+  const { isDragging } = useDrag();
 
   return (
     <Tooltip
       title={
-        isDragged ? (
+        isDragging ? (
           false
         ) : (
           <Fragment>

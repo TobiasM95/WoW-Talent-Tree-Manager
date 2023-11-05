@@ -12,6 +12,7 @@ import Form from "../form";
 import FAQ from "../faq";
 import Bar from "../bar";
 import Tree from "../tree";
+import Build from "../build";
 import Login from "../login";
 import Activation from "../activation";
 
@@ -97,6 +98,7 @@ const AppDisplay = () => {
           <Route path="/faq" element={<FAQ />} />
           <Route path="/bar" element={<Bar />} />
           <Route path="/tree" element={<Tree />} />
+          <Route path="/build" element={<Build />} />
           <Route path="/login" element={<Login />} />
           <Route path="/activation/:activationID?" element={<Activation />} />
         </Routes>

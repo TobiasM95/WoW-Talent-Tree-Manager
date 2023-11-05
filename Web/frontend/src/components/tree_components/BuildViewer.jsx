@@ -88,7 +88,7 @@ const TreeObjectToFlowEdges = (treeObject, treeData, colors) => {
   return edges;
 };
 
-const TreeViewer = ({ treeData }) => {
+const BuildViewer = ({ treeData }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -179,4 +179,4 @@ const TreeViewer = ({ treeData }) => {
   );
 };
 
-export default TreeViewer;
+export default BuildViewer;
