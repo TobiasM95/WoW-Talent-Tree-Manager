@@ -155,8 +155,16 @@ export function PassiveNode({ data }) {
             {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
           </Paper>
         </Box>
-        <Handle type="target" position={Position.Top} isConnectable={true} />
-        <Handle type="source" position={Position.Bottom} isConnectable={true} />
+        <Handle
+          type="target"
+          position={Position.Top}
+          isConnectable={data.isConnectable}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          isConnectable={data.isConnectable}
+        />
       </Box>
     </Tooltip>
   );
@@ -254,8 +262,16 @@ export function ActiveNode({ data }) {
             {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
           </Paper>
         </Box>
-        <Handle type="target" position={Position.Top} isConnectable={true} />
-        <Handle type="source" position={Position.Bottom} isConnectable={true} />
+        <Handle
+          type="target"
+          position={Position.Top}
+          isConnectable={data.isConnectable}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          isConnectable={data.isConnectable}
+        />
       </Box>
     </Tooltip>
   );
@@ -387,8 +403,16 @@ export function SwitchNode({ data }) {
             {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
           </Paper>
         </Box>
-        <Handle type="target" position={Position.Top} isConnectable={true} />
-        <Handle type="source" position={Position.Bottom} isConnectable={true} />
+        <Handle
+          type="target"
+          position={Position.Top}
+          isConnectable={data.isConnectable}
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          isConnectable={data.isConnectable}
+        />
       </Box>
     </Tooltip>
   );

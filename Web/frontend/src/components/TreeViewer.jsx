@@ -61,16 +61,18 @@ const TreeObjectToFlowNode = (treeObject) => {
       requiredPoints: treeObject.required_points,
       row: treeObject.row,
       column: treeObject.column,
-      // for completeness sake
       childIDs: treeObject.child_ids,
       parentIDs: treeObject.parent_ids,
+      isConnectable: false,
     },
   };
 };
 
-const TreeObjectToFlowEdges = (treeObject, colors) => {
+const TreeObjectToFlowEdges = (treeObject, treeData, colors) => {
   var edges = [];
   for (const childIndex of treeObject.child_ids) {
+    const goldArrow =
+      treeObject.pre_filled === 1 && treeData[childIndex].pre_filled === 1;
     edges.push({
       id: `e${treeObject.order_id}-${childIndex}`,
       source: `n${treeObject.order_id}`,
@@ -80,11 +82,11 @@ const TreeObjectToFlowEdges = (treeObject, colors) => {
         type: MarkerType.ArrowClosed,
         width: 10,
         height: 10,
-        color: colors.treeColors.grey,
+        color: goldArrow ? colors.treeColors.gold : colors.treeColors.grey,
       },
       style: {
         strokeWidth: 4,
-        stroke: colors.treeColors.grey,
+        stroke: goldArrow ? colors.treeColors.gold : colors.treeColors.grey,
       },
     });
   }
@@ -101,9 +103,9 @@ const TreeViewer = ({ treeData }) => {
   useEffect(() => {
     var newNodes = [];
     var newEdges = [];
-    for (const rawNode of treeData) {
+    for (const [order_id, rawNode] of Object.entries(treeData)) {
       newNodes.push(TreeObjectToFlowNode(rawNode, colors));
-      newEdges.push(...TreeObjectToFlowEdges(rawNode, colors));
+      newEdges.push(...TreeObjectToFlowEdges(rawNode, treeData, colors));
     }
     insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
