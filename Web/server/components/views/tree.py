@@ -93,13 +93,14 @@ def get_build_information(content_id: str) -> dict:
         "name": build.name,
         "levelCap": build.level_cap,
         "useLevelCap": build.use_level_cap,
-        "assignedSkills": build.assigned_skills,
+        "assignedSkills": json.loads(build.assigned_skills),
     }
     tree_info: list[bool, dict] = get_tree_and_talent_descriptions(build.tree_id)
     return {
         "isImported": is_imported,
         "classTalents": tree_info[1]["classTalents"],
         "specTalents": tree_info[1]["specTalents"],
+        "treeName": tree_info[1]["name"],
         "loadoutName": "No loadout" if early_loadout is None else early_loadout.name,
         "buildInformation": build_info,
     }
