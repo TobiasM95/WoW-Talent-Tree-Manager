@@ -382,6 +382,19 @@ class DBHandler:
             res = conn.execute(text(q.get_sql())).all()
         return Workspace(items=res)
 
+    # this is used in other views to check if a user has access to a content_id
+    # in case a logged in user does manual api calls
+    def validate_content_access(self, user_id: str, content_id: str) -> bool:
+        table: Table = Table("Workspaces")
+        q = (
+            Query.from_(table)
+            .select("UserID")
+            .where((table.UserID == user_id) | (table.ContentID == content_id))
+        )
+        with self.engine.connect() as conn:
+            res = conn.execute(text(q.get_sql())).first()
+        return res is not None
+
     def create_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
         if custom:
