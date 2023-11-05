@@ -66,6 +66,9 @@ const TreeObjectToFlowNode = (treeObject) => {
 const TreeObjectToFlowEdges = (treeObject, treeData, colors) => {
   var edges = [];
   for (const childIndex of treeObject.child_ids) {
+    if (!treeData.hasOwnProperty(childIndex)) {
+      continue;
+    }
     const goldArrow =
       treeObject.pre_filled === 1 && treeData[childIndex].pre_filled === 1;
     edges.push({
@@ -117,6 +120,7 @@ const BuildViewer = ({ treeData }) => {
   );
 
   const onMoveStart = () => {
+    console.log("Start");
     if (!isReadyToDrag) {
       setDragReady(true);
       return;
@@ -171,7 +175,18 @@ const BuildViewer = ({ treeData }) => {
         fitView
         nodesDraggable={false}
       >
-        <Controls showInteractive={false} />
+        <Controls
+          showInteractive={false}
+          onZoomIn={() => {
+            setTimeout(onMoveEnd, 500);
+          }}
+          onZoomOut={() => {
+            setTimeout(onMoveEnd, 500);
+          }}
+          onFitView={() => {
+            setTimeout(onMoveEnd, 500);
+          }}
+        />
         {/* <MiniMap /> */}
         <Background variant="dots" gap={24} size={1} />
       </ReactFlow>

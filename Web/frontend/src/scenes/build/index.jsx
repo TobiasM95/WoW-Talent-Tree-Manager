@@ -1,7 +1,7 @@
 import { Box, useTheme, Typography, CircularProgress } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { treeAPI } from "../../api/treeAPI";
+import { buildAPI } from "../../api/buildAPI";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
 import BuildViewer from "../../components/tree_components/BuildViewer";
@@ -12,22 +12,24 @@ const Build = () => {
   const colors = tokens(theme.palette.mode);
 
   const [treeName, setTreeName] = useState("");
-  const [treeDescription, setTreeDescription] = useState("");
+  const [loadoutName, setLoadoutName] = useState("");
+  const [buildName, setBuildName] = useState("");
 
   const queryTree = async () => {
-    return treeAPI.get("8bf345aa-0bd8-4e67-ae1f-7103f1712887");
+    return buildAPI.get("5b63a753-31dc-454b-b134-9701383c7fad");
   };
 
   const query = useQuery({
-    queryKey: ["buildViewerQueryTree"],
+    queryKey: ["buildViewerQueryBuild"],
     queryFn: () => queryTree(),
     refetchOnWindowFocus: false,
   });
 
   useEffect(() => {
     if (query.data) {
-      setTreeName(query.data[1].name);
-      setTreeDescription(query.data[1].description);
+      setBuildName(query.data.buildInformation.name);
+      setLoadoutName(query.data.loadoutName);
+      setTreeName(query.data.treeName);
     }
   }, [query.data]);
 
@@ -86,7 +88,7 @@ const Build = () => {
             </Box>
           )}
           {query.error === null && query.isPending === false && query.data && (
-            <BuildViewer treeData={query.data[1].classTalents} />
+            <BuildViewer treeData={query.data.classTalents} />
           )}
         </Box>
         <Box
@@ -113,7 +115,7 @@ const Build = () => {
             </Box>
           )}
           {query.error === null && query.isPending === false && query.data && (
-            <BuildViewer treeData={query.data[1].specTalents} />
+            <BuildViewer treeData={query.data.specTalents} />
           )}
         </Box>
       </Box>
