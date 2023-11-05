@@ -120,7 +120,6 @@ const BuildViewer = ({ treeData }) => {
   );
 
   const onMoveStart = () => {
-    console.log("Start");
     if (!isReadyToDrag) {
       setDragReady(true);
       return;
