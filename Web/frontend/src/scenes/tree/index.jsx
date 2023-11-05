@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { treeAPI } from "../../api/treeAPI";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
-import TreeViewer from "../../components/TreeViewer";
+import TreeViewer from "../../components/tree_components/TreeViewer";
 import ToggleButtons from "../../components/ToggleButtons";
 
 const Tree = () => {

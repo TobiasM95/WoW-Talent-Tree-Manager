@@ -12,7 +12,7 @@ import { Handle, Position } from "reactflow";
 import Image from "mui-image";
 import { tokens } from "../../theme";
 import { treeNodeSettings } from "../../data/settings";
-import { DragProvider } from "../TreeViewer";
+import { DragProvider } from "./TreeViewer";
 
 import "./treeComponentTheming.css";
 

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useEffect, useState } from "react";
 import { Box, useTheme } from "@mui/material";
-import { tokens } from "../theme";
-import { treeViewerSettings } from "../data/settings";
-import { insertDividerLines } from "./tree_components/utils";
+import { tokens } from "../../theme";
+import { treeViewerSettings } from "../../data/settings";
+import { insertDividerLines } from "./utils";
 import ReactFlow, {
   // MiniMap,
   Controls,
@@ -15,12 +15,7 @@ import ReactFlow, {
 
 import "reactflow/dist/style.css";
 
-import {
-  DividerNode,
-  PassiveNode,
-  ActiveNode,
-  SwitchNode,
-} from "./tree_components/NodeTypes";
+import { DividerNode, PassiveNode, ActiveNode, SwitchNode } from "./NodeTypes";
 
 const proOptions = { hideAttribution: true };
 
@@ -118,13 +113,13 @@ const TreeViewer = ({ treeData }) => {
   );
 
   const onMoveStart = () => {
-    setIsDragging(true);
-    console.log("on move start");
+    if (!isDragging) {
+      setIsDragging(true);
+    }
   };
 
   const onMoveEnd = () => {
     setIsDragging(false);
-    console.log("on move end");
   };
 
   // these have to be moved to the tree editor later
