@@ -119,32 +119,37 @@ const TreeViewer = ({ treeData }) => {
 
   const onMoveStart = () => {
     setIsDragging(true);
+    console.log("on move start");
   };
 
   const onMoveEnd = () => {
     setIsDragging(false);
+    console.log("on move end");
   };
 
-  const onNodeDragStart = (event, draggedNode) => {
-    setIsDragging(true);
-  };
+  // these have to be moved to the tree editor later
+  // const onNodeDragStart = (event, draggedNode) => {
+  //   setIsDragging(true);
+  //   console.log("on node drag start");
+  // };
 
-  const onNodeDragStop = (event, draggedNode) => {
-    setIsDragging(false);
-    for (var node of nodes) {
-      if (node.id === draggedNode.id) {
-        node.data.row =
-          (2 * node.position.y) / treeViewerSettings.gridSpace - 1;
-        node.data.column =
-          (2 * node.position.x) / treeViewerSettings.gridSpace - 1;
-      }
-    }
-    var newNodes = [...nodes];
-    var newEdges = [...edges];
-    insertDividerLines(newNodes, newEdges, colors);
-    setNodes(newNodes);
-    setEdges(newEdges);
-  };
+  // const onNodeDragStop = (event, draggedNode) => {
+  //   setIsDragging(false);
+  //   console.log("on node drag stop");
+  //   for (var node of nodes) {
+  //     if (node.id === draggedNode.id) {
+  //       node.data.row =
+  //         (2 * node.position.y) / treeViewerSettings.gridSpace - 1;
+  //       node.data.column =
+  //         (2 * node.position.x) / treeViewerSettings.gridSpace - 1;
+  //     }
+  //   }
+  //   var newNodes = [...nodes];
+  //   var newEdges = [...edges];
+  //   insertDividerLines(newNodes, newEdges, colors);
+  //   setNodes(newNodes);
+  //   setEdges(newEdges);
+  // };
 
   return (
     <DragProvider.Provider value={isDragging}>
@@ -157,9 +162,7 @@ const TreeViewer = ({ treeData }) => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
-          onNodeDragStop={onNodeDragStop}
-          onNodeDragStart={onNodeDragStart}
-          onMoveStart={onMoveStart}
+          onMove={onMoveStart}
           onMoveEnd={onMoveEnd}
           snapGrid={[
             treeViewerSettings.gridSpace,
