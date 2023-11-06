@@ -88,7 +88,7 @@ class Build:
         name: str,
         level_cap: int,
         use_level_cap: bool,
-        assigned_skills: Union[str, dict[int, int]],
+        assigned_skills: Union[str, list[dict[int, int]]],
     ):
         self.content_id: str = content_id
         self.import_id: str = import_id

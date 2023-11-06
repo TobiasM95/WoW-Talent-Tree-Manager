@@ -89,7 +89,7 @@ def find_root_tree(content_id: str) -> tuple[Union[bool, None], Union[Tree, None
 
 def get_build_information(content_id: str) -> dict:
     is_imported, build, early_loadout = find_root_build(content_id)
-    build_info: dict[str, str] = {
+    build_info: dict[str, Union[int, str, dict]] = {
         "name": build.name,
         "levelCap": build.level_cap,
         "useLevelCap": build.use_level_cap,
