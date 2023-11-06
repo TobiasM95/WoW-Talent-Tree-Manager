@@ -16,7 +16,7 @@ const Build = () => {
   const [buildName, setBuildName] = useState("");
 
   const queryTree = async () => {
-    return buildAPI.get("5b63a753-31dc-454b-b134-9701383c7fad");
+    return buildAPI.get("25998983-f381-48ee-8194-161840871a68");
   };
 
   const query = useQuery({
@@ -55,7 +55,15 @@ const Build = () => {
           alignItems="center"
           justifyContent="center"
         >
-          <ToggleButtons selection={["Class Tree", "Spec Tree", treeName]} />
+          <ToggleButtons
+            selection={[
+              "Class Tree",
+              "Spec Tree",
+              treeName ? treeName : "Unknown tree name",
+              loadoutName ? loadoutName : "Unknown loadout name",
+              buildName ? buildName : "Unknown build name",
+            ]}
+          />
         </Box>
         <Box
           gridColumn="span 6"
@@ -88,7 +96,11 @@ const Build = () => {
             </Box>
           )}
           {query.error === null && query.isPending === false && query.data && (
-            <BuildViewer treeData={query.data.classTalents} />
+            <BuildViewer
+              treeData={query.data.classTalents}
+              buildData={query.data.buildInformation}
+              isClassTree={true}
+            />
           )}
         </Box>
         <Box
@@ -115,7 +127,11 @@ const Build = () => {
             </Box>
           )}
           {query.error === null && query.isPending === false && query.data && (
-            <BuildViewer treeData={query.data.specTalents} />
+            <BuildViewer
+              treeData={query.data.specTalents}
+              buildData={query.data.buildInformation}
+              isClassTree={false}
+            />
           )}
         </Box>
       </Box>

@@ -33,7 +33,15 @@ const nodeTypes = {
   switchNode: SwitchNode,
 };
 
-const TreeObjectToFlowNode = (treeObject) => {
+const TreeObjectToFlowNode = (treeObject, assignedSkills, colors) => {
+  var points = 0;
+  if (treeObject.pre_filled === 1) {
+    points = treeObject.max_points;
+  } else {
+    points = assignedSkills.hasOwnProperty(treeObject.order_id)
+      ? assignedSkills[treeObject.order_id]
+      : 0;
+  }
   return {
     id: "n" + treeObject.order_id,
     type: typeToNodeType[treeObject.talent_type],
@@ -48,6 +56,7 @@ const TreeObjectToFlowNode = (treeObject) => {
       descriptionSwitch: treeObject.description_switch,
       iconName: treeObject.icon_name,
       iconNameSwitch: treeObject.icon_name_switch,
+      points: points > treeObject.max_points ? 0 : points,
       maxPoints: treeObject.max_points,
       name: treeObject.name,
       nameSwitch: treeObject.name_switch,
@@ -59,18 +68,53 @@ const TreeObjectToFlowNode = (treeObject) => {
       childIDs: treeObject.child_ids,
       parentIDs: treeObject.parent_ids,
       isConnectable: false,
+      // NodeTypes data
+      borderColor:
+        points === 0 || points > treeObject.max_points
+          ? colors.treeColors.grey
+          : points === treeObject.max_points
+          ? colors.treeColors.gold
+          : colors.treeColors.green,
+      pointsDisplayLow: points > treeObject.max_points ? 0 : points,
+      pointsDisplayHigh: treeObject.max_points,
     },
   };
 };
 
-const TreeObjectToFlowEdges = (treeObject, treeData, colors) => {
+const TreeObjectToFlowEdges = (
+  treeObject,
+  treeData,
+  assignedSkills,
+  colors
+) => {
+  var points = 0;
+  if (treeObject.pre_filled === 1) {
+    points = treeObject.max_points;
+  } else {
+    points = assignedSkills.hasOwnProperty(treeObject.order_id)
+      ? assignedSkills[treeObject.order_id]
+      : 0;
+  }
   var edges = [];
   for (const childIndex of treeObject.child_ids) {
     if (!treeData.hasOwnProperty(childIndex)) {
       continue;
     }
-    const goldArrow =
-      treeObject.pre_filled === 1 && treeData[childIndex].pre_filled === 1;
+    var arrowColor = colors.treeColors.grey;
+    if (points === treeObject.max_points) {
+      if (assignedSkills.hasOwnProperty(childIndex)) {
+        if (
+          assignedSkills[childIndex] > 0 &&
+          assignedSkills[childIndex] < treeData[childIndex].max_points
+        ) {
+          arrowColor = colors.treeColors.green;
+        } else if (
+          assignedSkills[childIndex] === treeData[childIndex].max_points
+        ) {
+          arrowColor = colors.treeColors.gold;
+        }
+      }
+    }
     edges.push({
       id: `e${treeObject.order_id}-${childIndex}`,
       source: `n${treeObject.order_id}`,
@@ -80,18 +124,18 @@ const TreeObjectToFlowEdges = (treeObject, treeData, colors) => {
         type: MarkerType.ArrowClosed,
         width: 10,
         height: 10,
-        color: goldArrow ? colors.treeColors.gold : colors.treeColors.grey,
+        color: arrowColor,
       },
       style: {
         strokeWidth: 4,
-        stroke: goldArrow ? colors.treeColors.gold : colors.treeColors.grey,
+        stroke: arrowColor,
       },
     });
   }
   return edges;
 };
 
-const BuildViewer = ({ treeData }) => {
+const BuildViewer = ({ treeData, buildData, isClassTree }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -106,13 +150,26 @@ const BuildViewer = ({ treeData }) => {
     var newNodes = [];
     var newEdges = [];
     for (const [order_id, rawNode] of Object.entries(treeData)) {
-      newNodes.push(TreeObjectToFlowNode(rawNode, colors));
-      newEdges.push(...TreeObjectToFlowEdges(rawNode, treeData, colors));
+      newNodes.push(
+        TreeObjectToFlowNode(
+          rawNode,
+          buildData.assignedSkills[1 - isClassTree],
+          colors
+        )
+      );
+      newEdges.push(
+        ...TreeObjectToFlowEdges(
+          rawNode,
+          treeData,
+          buildData.assignedSkills[1 - isClassTree],
+          colors
+        )
+      );
     }
     insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [treeData]);
+  }, [treeData, buildData]);
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -132,30 +189,6 @@ const BuildViewer = ({ treeData }) => {
   const onMoveEnd = () => {
     setIsDragging(false);
   };
-
-  // these have to be moved to the tree editor later
-  // const onNodeDragStart = (event, draggedNode) => {
-  //   setIsDragging(true);
-  //   console.log("on node drag start");
-  // };
-
-  // const onNodeDragStop = (event, draggedNode) => {
-  //   setIsDragging(false);
-  //   console.log("on node drag stop");
-  //   for (var node of nodes) {
-  //     if (node.id === draggedNode.id) {
-  //       node.data.row =
-  //         (2 * node.position.y) / treeViewerSettings.gridSpace - 1;
-  //       node.data.column =
-  //         (2 * node.position.x) / treeViewerSettings.gridSpace - 1;
-  //     }
-  //   }
-  //   var newNodes = [...nodes];
-  //   var newEdges = [...edges];
-  //   insertDividerLines(newNodes, newEdges, colors);
-  //   setNodes(newNodes);
-  //   setEdges(newEdges);
-  // };
 
   return (
     <Box sx={{ width: "100%", height: "100%" }} p="5px">
