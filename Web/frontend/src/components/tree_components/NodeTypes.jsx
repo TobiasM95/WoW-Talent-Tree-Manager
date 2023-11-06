@@ -123,9 +123,7 @@ export function PassiveNode({ data }) {
       <Box className="passive-nodes" width={data.size} height={data.size}>
         <Box
           className="circle-shape"
-          bgcolor={
-            data.preFilled ? colors.treeColors.gold : colors.treeColors.black
-          }
+          bgcolor={data.borderColor}
           width={data.size}
           height={data.size}
           display="flex"
@@ -152,7 +150,7 @@ export function PassiveNode({ data }) {
               color: colors.grey[200],
             }}
           >
-            {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
+            {`${data.pointsDisplayLow} / ${data.pointsDisplayHigh}`}
           </Paper>
         </Box>
         <Handle
@@ -231,9 +229,7 @@ export function ActiveNode({ data }) {
     >
       <Box className="active-nodes" width={data.size} height={data.size}>
         <Box
-          bgcolor={
-            data.preFilled ? colors.treeColors.gold : colors.treeColors.black
-          }
+          bgcolor={data.borderColor}
           width={data.size}
           height={data.size}
           display="flex"
@@ -259,7 +255,7 @@ export function ActiveNode({ data }) {
               color: colors.grey[200],
             }}
           >
-            {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
+            {`${data.pointsDisplayLow} / ${data.pointsDisplayHigh}`}
           </Paper>
         </Box>
         <Handle
@@ -363,9 +359,7 @@ export function SwitchNode({ data }) {
       <Box className="switch-nodes" width={data.size} height={data.size}>
         <Box
           className="octagon-shape"
-          bgcolor={
-            data.preFilled ? colors.treeColors.gold : colors.treeColors.black
-          }
+          bgcolor={data.borderColor}
           width={`${data.size}px`}
           height={`${data.size}px`}
         >
@@ -400,7 +394,7 @@ export function SwitchNode({ data }) {
               color: colors.grey[200],
             }}
           >
-            {`${data.preFilled ? data.maxPoints : "0"} / ${data.maxPoints}`}
+            {`${data.pointsDisplayLow} / ${data.pointsDisplayHigh}`}
           </Paper>
         </Box>
         <Handle

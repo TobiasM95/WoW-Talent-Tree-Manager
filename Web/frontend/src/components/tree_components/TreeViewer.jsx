@@ -33,7 +33,7 @@ const nodeTypes = {
   switchNode: SwitchNode,
 };
 
-const TreeObjectToFlowNode = (treeObject) => {
+const TreeObjectToFlowNode = (treeObject, colors) => {
   return {
     id: "n" + treeObject.order_id,
     type: typeToNodeType[treeObject.talent_type],
@@ -59,6 +59,13 @@ const TreeObjectToFlowNode = (treeObject) => {
       childIDs: treeObject.child_ids,
       parentIDs: treeObject.parent_ids,
       isConnectable: false,
+      // NodeTypes data
+      borderColor:
+        treeObject.pre_filled === 1
+          ? colors.treeColors.gold
+          : colors.treeColors.grey,
+      pointsDisplayLow: treeObject.pre_filled === 1 ? treeObject.max_points : 0,
+      pointsDisplayHigh: treeObject.max_points,
     },
   };
 };
