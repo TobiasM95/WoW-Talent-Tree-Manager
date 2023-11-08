@@ -114,6 +114,8 @@ const TreeObjectToFlowEdges = (
         ) {
           arrowColor = colors.treeColors.gold;
         }
+      } else if (treeData[childIndex].pre_filled === 1) {
+        arrowColor = colors.treeColors.gold;
       }
     }
     edges.push({
