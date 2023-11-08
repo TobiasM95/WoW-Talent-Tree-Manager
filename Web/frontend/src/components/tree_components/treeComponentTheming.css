@@ -12,11 +12,18 @@
 }
 
 .octagon-shape-left {
-  clip-path: polygon(27% 0%, 42.5% 0%, 42.5% 90%, 27% 90%, 0% 63%, 0% 27%);
+  clip-path: polygon(30% 0%, 43.75% 0%, 43.75% 100%, 30% 100%, 0% 70%, 0% 30%);
 }
 
 .octagon-shape-right {
-  clip-path: polygon(47.5% 0%, 63% 0%, 90% 27%, 90% 63%, 63% 90%, 47.5% 90%);
+  clip-path: polygon(
+    56.75% 0%,
+    70% 0%,
+    100% 30%,
+    100% 70%,
+    70% 100%,
+    56.75% 100%
+  );
 }
 
 .circle-shape {

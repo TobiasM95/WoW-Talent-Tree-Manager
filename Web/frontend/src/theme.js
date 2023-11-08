@@ -63,6 +63,7 @@ export const tokens = (mode) => ({
         treeColors: {
           black: "#000000",
           grey: "#737373",
+          greyDim: "#73737366",
           green: "#00aa00",
           gold: "#cca100",
           blue: "#a1a1ff",
@@ -130,6 +131,7 @@ export const tokens = (mode) => ({
         treeColors: {
           black: "#000000",
           grey: "#222222",
+          greyDim: "#22222266",
           green: "#00aa00",
           gold: "#b68e00",
           blue: "#4a4ed6",

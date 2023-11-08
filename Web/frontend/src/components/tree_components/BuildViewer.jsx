@@ -77,6 +77,7 @@ const TreeObjectToFlowNode = (treeObject, assignedSkills, colors) => {
           : colors.treeColors.green,
       pointsDisplayLow: points > treeObject.max_points ? 0 : points,
       pointsDisplayHigh: treeObject.max_points,
+      opacity: points === 0 ? 0.4 : 1.0,
     },
   };
 };
@@ -100,7 +101,7 @@ const TreeObjectToFlowEdges = (
     if (!treeData.hasOwnProperty(childIndex)) {
       continue;
     }
-    var arrowColor = colors.treeColors.grey;
+    var arrowColor = colors.treeColors.greyDim;
     if (points === treeObject.max_points) {
       if (assignedSkills.hasOwnProperty(childIndex)) {
         if (
@@ -127,7 +128,7 @@ const TreeObjectToFlowEdges = (
         color: arrowColor,
       },
       style: {
-        strokeWidth: 4,
+        strokeWidth: 6,
         stroke: arrowColor,
       },
     });

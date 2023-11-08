@@ -90,7 +90,7 @@ const TreeObjectToFlowEdges = (treeObject, treeData, colors) => {
         color: goldArrow ? colors.treeColors.gold : colors.treeColors.grey,
       },
       style: {
-        strokeWidth: 4,
+        strokeWidth: 6,
         stroke: goldArrow ? colors.treeColors.gold : colors.treeColors.grey,
       },
     });
