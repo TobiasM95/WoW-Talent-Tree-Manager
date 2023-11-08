@@ -120,7 +120,12 @@ export function PassiveNode({ data }) {
         },
       }}
     >
-      <Box className="passive-nodes" width={data.size} height={data.size}>
+      <Box
+        className="passive-nodes"
+        width={`${data.size}px`}
+        height={`${data.size}px`}
+        sx={{ opacity: data.opacity }}
+      >
         <Box
           className="circle-shape"
           bgcolor={data.borderColor}
@@ -130,15 +135,15 @@ export function PassiveNode({ data }) {
           justifyContent="center"
           alignItems="center"
         >
-          <Image
+          <Box
             className="circle-shape"
+            component="img"
             src={`/preset_icons/${data.iconName}`}
-            width="90%"
-            height="90%"
-            duration={treeNodeSettings.imageFadeInDuration}
+            width="80%"
+            height="80%"
           />
         </Box>
-        <Box position="absolute" top="75%" left="65%">
+        <Box position="absolute" top="60%" left="75%">
           <Paper
             variant="outlined"
             square
@@ -227,7 +232,12 @@ export function ActiveNode({ data }) {
         },
       }}
     >
-      <Box className="active-nodes" width={data.size} height={data.size}>
+      <Box
+        className="active-nodes"
+        width={`${data.size}px`}
+        height={`${data.size}px`}
+        sx={{ opacity: data.opacity }}
+      >
         <Box
           bgcolor={data.borderColor}
           width={data.size}
@@ -236,14 +246,14 @@ export function ActiveNode({ data }) {
           justifyContent="center"
           alignItems="center"
         >
-          <Image
+          <Box
+            component="img"
             src={`/preset_icons/${data.iconName}`}
-            width="90%"
-            height="90%"
-            duration={treeNodeSettings.imageFadeInDuration}
+            width="80%"
+            height="80%"
           />
         </Box>
-        <Box position="absolute" top="75%" left="65%">
+        <Box position="absolute" top="60%" left="75%">
           <Paper
             variant="outlined"
             square
@@ -356,33 +366,38 @@ export function SwitchNode({ data }) {
         },
       }}
     >
-      <Box className="switch-nodes" width={data.size} height={data.size}>
+      <Box
+        className="switch-nodes"
+        width={`${data.size}px`}
+        height={`${data.size}px`}
+        sx={{ opacity: data.opacity }}
+      >
         <Box
           className="octagon-shape"
           bgcolor={data.borderColor}
           width={`${data.size}px`}
           height={`${data.size}px`}
         >
-          <Image
+          <Box
             className="octagon-shape-left"
-            position="absolute"
-            sx={{ top: `${0.05 * data.size}px`, left: `${0.05 * data.size}px` }}
+            component="img"
             src={`/preset_icons/${data.iconName}`}
-            width={`${0.9 * data.size}px`}
-            height={`${0.9 * data.size}px`}
-            duration={treeNodeSettings.imageFadeInDuration}
-          />
-          <Image
-            className="octagon-shape-right"
             position="absolute"
-            sx={{ top: `${0.05 * data.size}px`, left: `${0.05 * data.size}px` }}
+            sx={{ top: `${0.1 * data.size}px`, left: `${0.1 * data.size}px` }}
+            width={`${0.8 * data.size}px`}
+            height={`${0.8 * data.size}px`}
+          />
+          <Box
+            className="octagon-shape-right"
+            component="img"
             src={`/preset_icons/${data.iconNameSwitch}`}
-            width={`${0.9 * data.size}px`}
-            height={`${0.9 * data.size}px`}
-            duration={treeNodeSettings.imageFadeInDuration}
+            position="absolute"
+            sx={{ top: `${0.1 * data.size}px`, left: `${0.1 * data.size}px` }}
+            width={`${0.8 * data.size}px`}
+            height={`${0.8 * data.size}px`}
           />
         </Box>
-        <Box position="absolute" top="75%" left="65%">
+        <Box position="absolute" top="60%" left="75%">
           <Paper
             variant="outlined"
             square
