@@ -38,9 +38,12 @@ class Activation:
 
 class Workspace:
     def __init__(
-        self, items: list[tuple[str, Literal["TREE", "LOADOUT", "BUILD"], str, bool]]
+        self, items: list[list[str, Literal["TREE", "LOADOUT", "BUILD"], str, bool]]
     ):
-        self.items = items if items is not None else []
+        if items is None:
+            self.items = []
+            return
+        self.items = [[item[0], item[1], item[2], item[3] == 1] for item in items]
 
 
 class Tree:
