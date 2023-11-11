@@ -4,7 +4,10 @@ import {
   useTheme,
   Button,
   CircularProgress,
+  Tabs,
+  Tab,
 } from "@mui/material";
+import { useState } from "react";
 import AddCircleOutlineOutlinedIcon from "@mui/icons-material/AddCircleOutlineOutlined";
 import { useQuery } from "@tanstack/react-query";
 import { workspaceAPI } from "../../api/workspaceAPI";
@@ -15,11 +18,40 @@ import CustomDataGrid from "../../components/CustomDataGrid";
 const Workspace = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [category, setCategory] = useState("TREE");
+  const allCategoryParams = {
+    TREE: {
+      header: "Trees",
+      createString: "Create tree",
+      colsName: "treeColumns",
+      dataName: "treeData",
+    },
+    LOADOUT: {
+      header: "Loadouts",
+      createString: "Create loadout",
+      colsName: "loadoutColumns",
+      dataName: "loadoutData",
+    },
+    BUILD: {
+      header: "Builds",
+      createString: "Create build",
+      colsName: "buildColumns",
+      dataName: "buildData",
+    },
+  };
+  const [categoryParams, setCategoryParams] = useState(
+    allCategoryParams["TREE"]
+  );
 
   const query = useQuery({
     queryKey: ["workspaceQueryWorkspace"],
     queryFn: () => workspaceAPI.get(),
   });
+
+  const handleTabChange = (event, newCategory) => {
+    setCategory(newCategory);
+    setCategoryParams(allCategoryParams[newCategory]);
+  };
 
   return (
     <Box m="20px">
@@ -27,83 +59,64 @@ const Workspace = () => {
         title="WORKSPACE"
         subtitle="View your trees, loadouts and builds"
       />
+      <Tabs
+        value={category}
+        onChange={handleTabChange}
+        centered
+        sx={{ mb: "20px" }}
+      >
+        <Tab label="Trees" value="TREE" />
+        <Tab label="Loadouts" value="LOADOUT" />
+        <Tab label="Builds" value="BUILD" />
+      </Tabs>
       <Box
         display="grid"
         gridTemplateColumns="repeat(12, 1fr)"
-        gridAutoRows="75vh"
+        gridAutoRows="65vh"
         gap="20px"
       >
-        {[
-          ["Trees", "Create tree", "treeColumns", "treeData"],
-          ["Loadouts", "Create loadout", "loadoutColumns", "loadoutData"],
-          ["Builds", "Create build", "buildColumns", "buildData"],
-        ].map(([header, createStr, colsName, dataName]) => (
-          <Box
-            gridColumn="span 4"
-            backgroundColor={colors.primary[400]}
-            display="flex"
-            flexDirection="column"
-            justifyContent="space-between"
-            sx={{ borderRadius: "20px" }}
-            key={header + createStr}
-          >
-            <Box
-              width="100%"
-              height="30px"
-              border={1}
-              borderRadius="20px 20px 0px 0px"
-              borderColor={colors.grey[100]}
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-            >
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-                textAlign={"center"}
-                color={colors.grey[100]}
-              >
-                {header}
+        <Box
+          gridColumn="span 12"
+          backgroundColor={colors.primary[400]}
+          display="flex"
+          flexDirection="column"
+          justifyContent="space-between"
+          sx={{ borderRadius: "5px" }}
+          key={categoryParams.header + categoryParams.createStr}
+        >
+          {query.isPending && (
+            <Box display="flex" flexDirection={"row"} justifyContent={"center"}>
+              <CircularProgress />
+            </Box>
+          )}
+          {query.error && (
+            <Box>
+              <Typography>
+                "An error has occurred: " + {query.error.message}
               </Typography>
             </Box>
-            {query.isPending && (
-              <Box
-                display="flex"
-                flexDirection={"row"}
-                justifyContent={"center"}
-              >
-                <CircularProgress />
-              </Box>
-            )}
-            {query.error && (
-              <Box>
-                <Typography>
-                  "An error has occurred: " + {query.error.message}
-                </Typography>
-              </Box>
-            )}
-            {query.error === null && query.isPending === false && (
-              <CustomDataGrid
-                columns={query.data[colsName]}
-                data={query.data[dataName]}
-                rowIDCol={"actions"}
-              />
-            )}
-            <Button
-              width="100%"
-              variant="text"
-              sx={{
-                border: 1,
-                borderRadius: "0px 0px 20px 20px",
-                height: "30px",
-                color: colors.greenAccent[400],
-              }}
-              startIcon={<AddCircleOutlineOutlinedIcon />}
-            >
-              <Typography>{createStr}</Typography>
-            </Button>
-          </Box>
-        ))}
+          )}
+          {query.error === null && query.isPending === false && (
+            <CustomDataGrid
+              columns={query.data[categoryParams.colsName]}
+              data={query.data[categoryParams.dataName]}
+              rowIDCol={"actions"}
+            />
+          )}
+          <Button
+            width="100%"
+            variant="text"
+            sx={{
+              border: 1,
+              borderRadius: "0px 0px 5px 5px",
+              height: "30px",
+              color: colors.greenAccent[400],
+            }}
+            startIcon={<AddCircleOutlineOutlinedIcon />}
+          >
+            <Typography>{categoryParams.createString}</Typography>
+          </Button>
+        </Box>
       </Box>
     </Box>
   );

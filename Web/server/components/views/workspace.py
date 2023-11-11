@@ -52,17 +52,17 @@ def get_workspace():
     ]
     loadout_column_definition: list[dict] = [
         {"field": "name", "headerName": "Name", "flex": 1},
+        {"field": "treeName", "headerName": "Tree name", "flex": 1},
         {"field": "isImported", "headerName": "Import", "convertCheckbox": True},
         {"field": "isPublic", "headerName": "Public", "convertCheckbox": True},
-        {"field": "treeName", "headerName": "Tree name", "flex": 1},
         {"field": "actions", "headerName": "Actions", "convertActions": True},
     ]
     build_column_definition: list[dict] = [
         {"field": "name", "headerName": "Name", "flex": 1},
-        {"field": "isImported", "headerName": "Import", "convertCheckbox": True},
-        {"field": "isPublic", "headerName": "Public", "convertCheckbox": True},
         {"field": "treeName", "headerName": "Tree name", "flex": 1},
         {"field": "loadoutName", "headerName": "Loadout name", "flex": 1},
+        {"field": "isImported", "headerName": "Import", "convertCheckbox": True},
+        {"field": "isPublic", "headerName": "Public", "convertCheckbox": True},
         {"field": "actions", "headerName": "Actions", "convertActions": True},
     ]
     tree_data: list[dict] = [

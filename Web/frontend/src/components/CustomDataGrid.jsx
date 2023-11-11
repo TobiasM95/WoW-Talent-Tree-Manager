@@ -4,13 +4,18 @@ import { tokens } from "../theme";
 import CheckIcon from "@mui/icons-material/Check";
 import RemoveRedEyeOutlinedIcon from "@mui/icons-material/RemoveRedEyeOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import { useNavigate } from "react-router-dom";
 
 const CustomDataGrid = ({ columns, data, rowIDCol }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const navigate = useNavigate();
 
-  const actionButtonPressedTest = (action) => {
-    console.log(action);
+  const viewActionButtonPressed = (content_id) => {
+    navigate(`/viewer/${content_id}`);
+  };
+  const editActionButtonPressed = (content_id) => {
+    console.log(content_id);
   };
 
   if (columns === undefined || data === undefined || rowIDCol === undefined) {
@@ -27,7 +32,7 @@ const CustomDataGrid = ({ columns, data, rowIDCol }) => {
         }
       };
     } else if (Object.hasOwn(item, "convertActions")) {
-      item.renderCell = ({ row: { actions } }) => {
+      item.renderCell = ({ row }) => {
         return (
           <Box display="flex" flexDirection={"row"} justifyContent={"center"}>
             <Tooltip
@@ -52,7 +57,7 @@ const CustomDataGrid = ({ columns, data, rowIDCol }) => {
             >
               <IconButton
                 onClick={() => {
-                  actionButtonPressedTest(actions);
+                  viewActionButtonPressed(row.actions);
                 }}
               >
                 <RemoveRedEyeOutlinedIcon />
@@ -80,7 +85,7 @@ const CustomDataGrid = ({ columns, data, rowIDCol }) => {
             >
               <IconButton
                 onClick={() => {
-                  actionButtonPressedTest(actions);
+                  editActionButtonPressed(row.actions);
                 }}
               >
                 <EditOutlinedIcon />
