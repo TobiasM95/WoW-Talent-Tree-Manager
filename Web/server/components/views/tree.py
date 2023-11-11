@@ -213,6 +213,7 @@ def format_build_information(
         "levelCap": build.level_cap,
         "useLevelCap": build.use_level_cap,
         "assignedSkills": json.loads(build.assigned_skills),
+        "description": build.description,
         "treeName": tree_info["name"],
         "loadoutName": "No loadout" if early_loadout is None else early_loadout.name,
     }
