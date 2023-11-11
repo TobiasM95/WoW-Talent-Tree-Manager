@@ -19,8 +19,8 @@ const CustomDataGrid = ({ columns, data, rowIDCol }) => {
 
   columns.forEach((item) => {
     if (Object.hasOwn(item, "convertCheckbox")) {
-      item.renderCell = ({ row: { isImported } }) => {
-        if (isImported) {
+      item.renderCell = (params) => {
+        if (params.row[item.field]) {
           return <CheckIcon />;
         } else {
           return <></>;
