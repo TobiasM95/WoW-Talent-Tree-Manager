@@ -6,6 +6,7 @@ import ProtectedRoute from "../../components/ProtectedRoute";
 import Topbar from "../global/topbar";
 import Dashboard from "../dashboard";
 import Workspace from "../workspace";
+import Viewer from "../viewer";
 import AppSidebar from "../global/appsidebar";
 import Team from "../team";
 import Form from "../form";
@@ -70,10 +71,10 @@ const AppDisplay = () => {
             }
           />
           <Route
-            path="/viewer"
+            path="/viewer/:contentID?"
             element={
               <ProtectedRoute>
-                <></>
+                <Viewer />
               </ProtectedRoute>
             }
           />

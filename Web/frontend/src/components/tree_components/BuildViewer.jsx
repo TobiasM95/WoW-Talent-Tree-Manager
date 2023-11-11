@@ -138,7 +138,7 @@ const TreeObjectToFlowEdges = (
   return edges;
 };
 
-const BuildViewer = ({ treeData, buildData, isClassTree }) => {
+const BuildViewer = ({ treeData, assignedSkills, isClassTree }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -150,21 +150,18 @@ const BuildViewer = ({ treeData, buildData, isClassTree }) => {
   }, []);
 
   useEffect(() => {
+    if (!assignedSkills) return;
     var newNodes = [];
     var newEdges = [];
     for (const [order_id, rawNode] of Object.entries(treeData)) {
       newNodes.push(
-        TreeObjectToFlowNode(
-          rawNode,
-          buildData.assignedSkills[1 - isClassTree],
-          colors
-        )
+        TreeObjectToFlowNode(rawNode, assignedSkills[1 - isClassTree], colors)
       );
       newEdges.push(
         ...TreeObjectToFlowEdges(
           rawNode,
           treeData,
-          buildData.assignedSkills[1 - isClassTree],
+          assignedSkills[1 - isClassTree],
           colors
         )
       );
@@ -172,7 +169,7 @@ const BuildViewer = ({ treeData, buildData, isClassTree }) => {
     insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
     setEdges(newEdges);
-  }, [treeData, buildData]);
+  }, [treeData, assignedSkills]);
 
   const onConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),

@@ -26,8 +26,8 @@ const Tree = () => {
 
   useEffect(() => {
     if (query.data) {
-      setTreeName(query.data[1].name);
-      setTreeDescription(query.data[1].description);
+      setTreeName(query.data.name);
+      setTreeDescription(query.data.description);
     }
   }, [query.data]);
 
@@ -86,7 +86,7 @@ const Tree = () => {
             </Box>
           )}
           {query.error === null && query.isPending === false && query.data && (
-            <TreeViewer treeData={query.data[1].classTalents} />
+            <TreeViewer treeData={query.data.classTalents} />
           )}
         </Box>
         <Box
@@ -113,7 +113,7 @@ const Tree = () => {
             </Box>
           )}
           {query.error === null && query.isPending === false && query.data && (
-            <TreeViewer treeData={query.data[1].specTalents} />
+            <TreeViewer treeData={query.data.specTalents} />
           )}
         </Box>
       </Box>

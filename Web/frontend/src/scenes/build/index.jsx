@@ -27,7 +27,7 @@ const Build = () => {
 
   useEffect(() => {
     if (query.data) {
-      setBuildName(query.data.buildInformation.name);
+      setBuildName(query.data.name);
       setLoadoutName(query.data.loadoutName);
       setTreeName(query.data.treeName);
     }
@@ -98,7 +98,7 @@ const Build = () => {
           {query.error === null && query.isPending === false && query.data && (
             <BuildViewer
               treeData={query.data.classTalents}
-              buildData={query.data.buildInformation}
+              assignedSkills={query.data.assignedSkills}
               isClassTree={true}
             />
           )}
@@ -129,7 +129,7 @@ const Build = () => {
           {query.error === null && query.isPending === false && query.data && (
             <BuildViewer
               treeData={query.data.specTalents}
-              buildData={query.data.buildInformation}
+              assignedSkills={query.data.assignedSkills}
               isClassTree={false}
             />
           )}
