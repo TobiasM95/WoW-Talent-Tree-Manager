@@ -38,7 +38,7 @@ class Activation:
 
 class Workspace:
     def __init__(
-        self, items: list[tuple[str, Literal["TREE", "LOADOUT", "BUILD"], str]]
+        self, items: list[tuple[str, Literal["TREE", "LOADOUT", "BUILD"], str, bool]]
     ):
         self.items = items if items is not None else []
 
@@ -84,7 +84,7 @@ class Build:
         content_id: str,
         import_id: str,
         tree_id: str,
-        loadout_id: str,
+        loadout_id: Union[str, None],
         name: str,
         level_cap: int,
         use_level_cap: bool,
@@ -93,7 +93,7 @@ class Build:
         self.content_id: str = content_id
         self.import_id: str = import_id
         self.tree_id: str = tree_id
-        self.loadout_id: str = loadout_id
+        self.loadout_id: Union[str, None] = loadout_id
         self.name: str = name
         self.level_cap: int = level_cap
         self.use_level_cap: bool = use_level_cap
@@ -218,7 +218,7 @@ class DBHandler:
             # fmt: off
             conn.execute(text("CREATE TABLE IF NOT EXISTS Logins (UserID TEXT, AltUserID TEXT, AuthMethod TEXT, Email TEXT, PasswordHash BLOB, Salt BLOB, UserName TEXT, LastLoginTimestamp TEXT, IsActivated INTEGER)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Activations (AltUserID TEXT, ActivationID TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT, Public INTEGER)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, ImportID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, ImportID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
@@ -375,7 +375,7 @@ class DBHandler:
         table: Table = Table("Workspaces")
         q = (
             Query.from_(table)
-            .select("UserID", "ContentType", "ContentID")
+            .select("UserID", "ContentType", "ContentID", "Public")
             .where((table.UserID == user_id))
         )
         with self.engine.connect() as conn:
@@ -384,16 +384,21 @@ class DBHandler:
 
     # this is used in other views to check if a user has access to a content_id
     # in case a logged in user does manual api calls
-    def validate_content_access(self, user_id: str, content_id: str) -> bool:
+    def validate_content_access(
+        self, user_id: str, content_id: str
+    ) -> Union[str, None]:
         table: Table = Table("Workspaces")
         q = (
             Query.from_(table)
-            .select("UserID")
-            .where((table.UserID == user_id) | (table.ContentID == content_id))
+            .select("ContentType")
+            .where(
+                ((table.UserID == user_id) | (table.Public == 1))
+                & (table.ContentID == content_id)
+            )
         )
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
-        return res is not None
+        return res[0] if res is not None else None
 
     def create_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
@@ -545,6 +550,26 @@ class DBHandler:
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
         return None if res is None else Loadout(*res)
+
+    def get_loadout_builds(self, user_id: str, content_id: str) -> list[str]:
+        builds = Table("Builds")
+        workspaces = Table("Workspaces")
+
+        # Create the query
+        build_query = (
+            Query.from_(builds)
+            .select(builds.ContentID)
+            .join(workspaces)
+            .on(builds.ContentID == workspaces.ContentID)
+            .where(
+                (workspaces.ContentType == "BUILD")
+                & ((workspaces.Public == 1) | (workspaces.UserID == user_id))
+                & (builds.LoadoutID == content_id)
+            )
+        )
+        with self.engine.connect() as conn:
+            build_content_ids = conn.execute(text(build_query.get_sql())).all()
+        return [bcid[0] for bcid in build_content_ids]
 
     def update_loadout(self, loadout: Loadout) -> None:
         table: Table = Table("Loadouts")

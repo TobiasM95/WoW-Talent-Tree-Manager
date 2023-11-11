@@ -26,9 +26,9 @@ def get_workspace():
                 root_tree.name,
             ]
         else:  # BUILD
-            is_imported, root_build, early_loadout = find_root_build(content_id)
-            if early_loadout is not None:
-                _, root_loadout = find_root_loadout(early_loadout.content_id)
+            (is_imported, root_build, leaf_loadout_id) = find_root_build(content_id)
+            if root_build is not None:
+                _, root_loadout = find_root_loadout(leaf_loadout_id)
             else:
                 root_loadout = None
             _, root_tree = find_root_tree(root_build.tree_id)
