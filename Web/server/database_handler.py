@@ -92,6 +92,7 @@ class Build:
         level_cap: int,
         use_level_cap: bool,
         assigned_skills: Union[str, list[dict[int, int]]],
+        description: str,
     ):
         self.content_id: str = content_id
         self.import_id: str = import_id
@@ -104,6 +105,7 @@ class Build:
             self.assigned_skills = assigned_skills
         else:
             self.assigned_skills: str = json.dumps(assigned_skills)
+        self.description: str = description
 
 
 class Talent:
@@ -221,11 +223,11 @@ class DBHandler:
             # fmt: off
             conn.execute(text("CREATE TABLE IF NOT EXISTS Logins (UserID TEXT, AltUserID TEXT, AuthMethod TEXT, Email TEXT, PasswordHash BLOB, Salt BLOB, UserName TEXT, LastLoginTimestamp TEXT, IsActivated INTEGER)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Activations (AltUserID TEXT, ActivationID TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT, Public INTEGER)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT, Public INTEGER DEFAULT 0)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, ImportID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, ImportID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, ImportID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, ImportID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Talents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTalents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Likes (UserID TEXT, ContentID TEXT, Timestamp TEXT)"))
@@ -596,6 +598,7 @@ class DBHandler:
             build.level_cap,
             build.use_level_cap,
             build.assigned_skills,
+            build.description,
         )
         with self.engine.connect() as conn:
             conn.execute(text(q.get_sql()))
@@ -621,6 +624,7 @@ class DBHandler:
                 "LevelCap",
                 "UseLevelCap",
                 "AssignedSkills",
+                "Description",
             )
             .where((table.ContentID == content_id))
         )
@@ -636,6 +640,7 @@ class DBHandler:
             .set(table.LevelCap, build.level_cap)
             .set(table.UseLevelCap, build.use_level_cap)
             .set(table.AssignedSkills, build.assigned_skills)
+            .set(table.Description, build.description)
             .where(table.ContentID == build.content_id)
         )
         with self.engine.connect() as conn:
