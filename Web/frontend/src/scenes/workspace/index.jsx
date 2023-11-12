@@ -98,19 +98,20 @@ const Workspace = () => {
           )}
           {query.error === null && query.isPending === false && (
             <CustomDataGrid
-              columns={query.data[categoryParams.colsName]}
-              data={query.data[categoryParams.dataName]}
+              columns={query.data.msg[categoryParams.colsName]}
+              data={query.data.msg[categoryParams.dataName]}
               rowIDCol={"actions"}
             />
           )}
           <Button
             width="100%"
-            variant="text"
+            variant="contained"
             sx={{
               border: 1,
               borderRadius: "0px 0px 5px 5px",
               height: "30px",
-              color: colors.greenAccent[400],
+              backgroundColor: colors.greenAccent[400],
+              color: colors.primary[900],
             }}
             startIcon={<AddCircleOutlineOutlinedIcon />}
           >

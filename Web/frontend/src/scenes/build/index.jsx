@@ -26,10 +26,10 @@ const Build = () => {
   });
 
   useEffect(() => {
-    if (query.data) {
-      setBuildName(query.data.name);
-      setLoadoutName(query.data.loadoutName);
-      setTreeName(query.data.treeName);
+    if (query.data && query.data.success) {
+      setBuildName(query.data.msg.name);
+      setLoadoutName(query.data.msg.loadoutName);
+      setTreeName(query.data.msg.treeName);
     }
   }, [query.data]);
 
@@ -95,13 +95,16 @@ const Build = () => {
               </Typography>
             </Box>
           )}
-          {query.error === null && query.isPending === false && query.data && (
-            <BuildViewer
-              treeData={query.data.classTalents}
-              assignedSkills={query.data.assignedSkills}
-              isClassTree={true}
-            />
-          )}
+          {query.error === null &&
+            query.isPending === false &&
+            query.data &&
+            query.data.success && (
+              <BuildViewer
+                treeData={query.data.msg.classTalents}
+                assignedSkills={query.data.msg.assignedSkills}
+                isClassTree={true}
+              />
+            )}
         </Box>
         <Box
           gridColumn="span 6"
@@ -126,13 +129,16 @@ const Build = () => {
               </Typography>
             </Box>
           )}
-          {query.error === null && query.isPending === false && query.data && (
-            <BuildViewer
-              treeData={query.data.specTalents}
-              assignedSkills={query.data.assignedSkills}
-              isClassTree={false}
-            />
-          )}
+          {query.error === null &&
+            query.isPending === false &&
+            query.data &&
+            query.data.success && (
+              <BuildViewer
+                treeData={query.data.msg.specTalents}
+                assignedSkills={query.data.msg.assignedSkills}
+                isClassTree={false}
+              />
+            )}
         </Box>
       </Box>
     </Box>

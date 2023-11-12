@@ -37,12 +37,12 @@ function parseJSON(response) {
 }
 
 const contentAPI = {
-  get() {
+  get(contentID) {
     const options = {
       method: "GET",
       credentials: "include",
     };
-    return fetch(`${contentURL}`, options)
+    return fetch(`${contentURL}/${contentID}`, options)
       .then(checkStatus)
       .then(parseJSON)
       .catch((error) => {

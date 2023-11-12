@@ -25,9 +25,9 @@ const Tree = () => {
   });
 
   useEffect(() => {
-    if (query.data) {
-      setTreeName(query.data.name);
-      setTreeDescription(query.data.description);
+    if (query.data && query.data.success) {
+      setTreeName(query.data.msg.name);
+      setTreeDescription(query.data.msg.description);
     }
   }, [query.data]);
 
@@ -85,9 +85,12 @@ const Tree = () => {
               </Typography>
             </Box>
           )}
-          {query.error === null && query.isPending === false && query.data && (
-            <TreeViewer treeData={query.data.classTalents} />
-          )}
+          {query.error === null &&
+            query.isPending === false &&
+            query.data &&
+            query.data.success && (
+              <TreeViewer treeData={query.data.msg.classTalents} />
+            )}
         </Box>
         <Box
           gridColumn="span 6"
@@ -112,9 +115,12 @@ const Tree = () => {
               </Typography>
             </Box>
           )}
-          {query.error === null && query.isPending === false && query.data && (
-            <TreeViewer treeData={query.data.specTalents} />
-          )}
+          {query.error === null &&
+            query.isPending === false &&
+            query.data &&
+            query.data.success && (
+              <TreeViewer treeData={query.data.msg.specTalents} />
+            )}
         </Box>
       </Box>
     </Box>
