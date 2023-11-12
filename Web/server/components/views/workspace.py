@@ -104,4 +104,4 @@ def get_workspace():
         "buildData": build_data,
     }
 
-    return jsonify(response_data), 200
+    return jsonify({"success": True, "msg": response_data}), 200
