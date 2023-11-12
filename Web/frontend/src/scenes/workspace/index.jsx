@@ -69,14 +69,16 @@ const Workspace = () => {
         <Tab label="Loadouts" value="LOADOUT" />
         <Tab label="Builds" value="BUILD" />
       </Tabs>
+      {/* TODO: This is complete garbage layouting */}
       <Box
         display="grid"
-        gridTemplateColumns="repeat(12, 1fr)"
+        gridTemplateColumns="repeat(20, 1fr)"
         gridAutoRows="65vh"
         gap="20px"
       >
+        <Box gridColumn="span 1"></Box>
         <Box
-          gridColumn="span 12"
+          gridColumn="span 18"
           backgroundColor={colors.primary[400]}
           display="flex"
           flexDirection="column"

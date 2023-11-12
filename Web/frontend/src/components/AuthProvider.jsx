@@ -28,7 +28,6 @@ const AuthProvider = ({ children }) => {
       };
     }
 
-    console.log(is_logged_in, loginState);
     if (is_logged_in["success"] === true) {
       setLoginState(true);
       setUserID(is_logged_in["user_id"]);
