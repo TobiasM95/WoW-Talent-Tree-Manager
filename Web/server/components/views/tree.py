@@ -17,7 +17,12 @@ def tree(content_id: str) -> Response:
             200,
         )
     if request.method == "GET":
-        return jsonify(get_tree_and_talent_descriptions(content_id)), 200
+        return (
+            jsonify(
+                {"success": True, "msg": get_tree_and_talent_descriptions(content_id)}
+            ),
+            200,
+        )
     else:
         return jsonify(content_id), 200
 
@@ -33,7 +38,15 @@ def loadout(content_id: str) -> Response:
             200,
         )
     if request.method == "GET":
-        return jsonify(get_loadout_information(content_id, current_user.user_id)), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "msg": get_loadout_information(content_id, current_user.user_id),
+                }
+            ),
+            200,
+        )
     else:
         return jsonify(content_id), 200
 
@@ -49,7 +62,7 @@ def build(content_id: str) -> Response:
             200,
         )
     if request.method == "GET":
-        return jsonify(get_build_information(content_id)), 200
+        return jsonify({"success": True, "msg": get_build_information(content_id)}), 200
     else:
         return jsonify(content_id), 200
 

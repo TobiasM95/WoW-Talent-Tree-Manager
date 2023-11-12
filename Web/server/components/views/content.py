@@ -53,7 +53,7 @@ def get_build_content(content_id: str, user_id: str) -> Response:
     is_build_imported, root_build, leaf_loadout_id = find_root_build(content_id)
     is_loadout_imported, root_loadout = find_root_loadout(leaf_loadout_id)
     is_tree_imported, root_tree = find_root_tree(root_build.tree_id)
-    res: dict = {}
+    res: dict = {"contentType": "BUILD"}
     res["tree"] = format_tree_and_talent_description(is_tree_imported, root_tree)
     res["build"] = format_build_information(
         is_build_imported,
@@ -79,9 +79,25 @@ def get_build_content(content_id: str, user_id: str) -> Response:
 
 
 def get_loadout_content(content_id: str, user_id: str) -> Response:
-    pass
+    is_loadout_imported, root_loadout = find_root_loadout(content_id)
+    is_tree_imported, root_tree = find_root_tree(root_loadout.tree_id)
+    res: dict = {"contentType": "LOADOUT"}
+    res["tree"] = format_tree_and_talent_description(is_tree_imported, root_tree)
+    loadout_build_content_ids: list[str] = db_handler.get_loadout_builds(
+        user_id, content_id
+    )
+    loadout_builds: dict[str, dict] = {}
+    for bcid in loadout_build_content_ids:
+        is_build_imported, build, _ = find_root_build(bcid)
+        loadout_builds[bcid] = {"name": build.name, "isImported": is_build_imported}
+    res["loadout"] = format_loadout_information(
+        is_loadout_imported, root_loadout, loadout_builds, res["tree"], False
+    )
+    return jsonify({"success": True, "msg": res})
 
 
 def get_tree_content(content_id: str) -> Response:
     is_imported, tree = find_root_tree(content_id)
-    return jsonify({"success": True, "msg": f"{is_imported},"})
+    res: dict = {"contentType": "TREE"}
+    res["tree"] = format_tree_and_talent_description(is_imported, tree)
+    return jsonify({"success": True, "msg": res})
