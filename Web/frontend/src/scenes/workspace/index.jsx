@@ -53,6 +53,14 @@ const Workspace = () => {
     setCategoryParams(allCategoryParams[newCategory]);
   };
 
+  if (query && query.data && query.data.msg) {
+    console.log(
+      "cols and data name msg",
+      query.data.msg[categoryParams.colsName],
+      query.data.msg[categoryParams.dataName]
+    );
+  }
+
   return (
     <Box m="20px">
       <Header

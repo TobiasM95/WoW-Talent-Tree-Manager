@@ -6,7 +6,7 @@ import RemoveRedEyeOutlinedIcon from "@mui/icons-material/RemoveRedEyeOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useNavigate } from "react-router-dom";
 
-const CustomDataGrid = ({ columns, data, rowIDCol }) => {
+const CustomDataGrid = ({ columns, data, rowIDCol, height }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const navigate = useNavigate();
@@ -98,7 +98,7 @@ const CustomDataGrid = ({ columns, data, rowIDCol }) => {
   });
 
   return (
-    <Box height="75vh">
+    <Box height={height ?? "75vh"}>
       <DataGrid
         sx={{
           // "& .MuiDataGrid-cell": { borderBottom: "none" },
