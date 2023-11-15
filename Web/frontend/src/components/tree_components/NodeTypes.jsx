@@ -298,7 +298,7 @@ export function SwitchNode({ data }) {
       title={
         isDragging ? (
           false
-        ) : (
+        ) : data.points === 0 ? (
           <Fragment>
             <Typography variant="h3" fontWeight="bold">
               {data.name}
@@ -348,6 +348,34 @@ export function SwitchNode({ data }) {
               {data.descriptionSwitch}
             </Typography>
           </Fragment>
+        ) : (
+          <Fragment>
+            <Typography variant="h3" fontWeight="bold">
+              {data.points === 1 ? data.name : data.nameSwitch}
+            </Typography>
+            <Image
+              src={`/preset_icons/${
+                data.points === 1 ? data.iconName : data.iconNameSwitch
+              }`}
+              width={0.5 * data.size}
+              height={0.5 * data.size}
+              duration={0}
+            />
+            <Typography>
+              Id: {data.id}, Pos: ({data.row}, {data.column})
+            </Typography>
+            <Typography color={colors.treeColors.red}>(active)</Typography>
+            <Typography sx={{ marginBottom: "10px" }}>
+              Max points: {data.maxPoints}, points required:{" "}
+              {data.requiredPoints}
+            </Typography>
+            <Typography
+              color={colors.treeColors.blue}
+              style={{ whiteSpace: "pre-line" }}
+            >
+              {data.points === 1 ? data.description : data.descriptionSwitch}
+            </Typography>
+          </Fragment>
         )
       }
       disableInteractive
@@ -378,24 +406,51 @@ export function SwitchNode({ data }) {
           width={`${data.size}px`}
           height={`${data.size}px`}
         >
-          <Box
-            className="octagon-shape-left"
-            component="img"
-            src={`/preset_icons/${data.iconName}`}
-            position="absolute"
-            sx={{ top: `${0.1 * data.size}px`, left: `${0.1 * data.size}px` }}
-            width={`${0.8 * data.size}px`}
-            height={`${0.8 * data.size}px`}
-          />
-          <Box
-            className="octagon-shape-right"
-            component="img"
-            src={`/preset_icons/${data.iconNameSwitch}`}
-            position="absolute"
-            sx={{ top: `${0.1 * data.size}px`, left: `${0.1 * data.size}px` }}
-            width={`${0.8 * data.size}px`}
-            height={`${0.8 * data.size}px`}
-          />
+          {data.points === 0 ? (
+            <Fragment>
+              <Box
+                className="octagon-shape-left"
+                component="img"
+                src={`/preset_icons/${data.iconName}`}
+                position="absolute"
+                sx={{
+                  top: `${0.1 * data.size}px`,
+                  left: `${0.1 * data.size}px`,
+                }}
+                width={`${0.8 * data.size}px`}
+                height={`${0.8 * data.size}px`}
+              />
+              <Box
+                className="octagon-shape-right"
+                component="img"
+                src={`/preset_icons/${data.iconNameSwitch}`}
+                position="absolute"
+                sx={{
+                  top: `${0.1 * data.size}px`,
+                  left: `${0.1 * data.size}px`,
+                }}
+                width={`${0.8 * data.size}px`}
+                height={`${0.8 * data.size}px`}
+              />
+            </Fragment>
+          ) : (
+            <Fragment>
+              <Box
+                className="octagon-shape"
+                component="img"
+                src={`/preset_icons/${
+                  data.points === 1 ? data.iconName : data.iconNameSwitch
+                }`}
+                position="absolute"
+                sx={{
+                  top: `${0.1 * data.size}px`,
+                  left: `${0.1 * data.size}px`,
+                }}
+                width={`${0.8 * data.size}px`}
+                height={`${0.8 * data.size}px`}
+              />
+            </Fragment>
+          )}
         </Box>
         <Box position="absolute" top="60%" left="75%">
           <Paper

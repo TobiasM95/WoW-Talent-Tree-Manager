@@ -56,7 +56,7 @@ const TreeObjectToFlowNode = (treeObject, assignedSkills, colors) => {
       descriptionSwitch: treeObject.description_switch,
       iconName: treeObject.icon_name,
       iconNameSwitch: treeObject.icon_name_switch,
-      points: points > treeObject.max_points ? 0 : points,
+      points: points,
       maxPoints: treeObject.max_points,
       name: treeObject.name,
       nameSwitch: treeObject.name_switch,
@@ -70,14 +70,15 @@ const TreeObjectToFlowNode = (treeObject, assignedSkills, colors) => {
       isConnectable: false,
       // NodeTypes data
       borderColor:
-        points === 0 || points > treeObject.max_points
+        points === 0
           ? colors.treeColors.grey
-          : points === treeObject.max_points
+          : points >= treeObject.max_points
           ? colors.treeColors.gold
           : colors.treeColors.green,
-      pointsDisplayLow: points > treeObject.max_points ? 0 : points,
+      pointsDisplayLow:
+        points > treeObject.max_points ? treeObject.max_points : points,
       pointsDisplayHigh: treeObject.max_points,
-      opacity: points === 0 || points > treeObject.max_points ? 0.4 : 1.0,
+      opacity: points === 0 ? 0.4 : 1.0,
     },
   };
 };
@@ -102,7 +103,7 @@ const TreeObjectToFlowEdges = (
       continue;
     }
     var arrowColor = colors.treeColors.greyDim;
-    if (points === treeObject.max_points) {
+    if (points >= treeObject.max_points) {
       if (assignedSkills.hasOwnProperty(childIndex)) {
         if (
           assignedSkills[childIndex] > 0 &&
@@ -110,7 +111,7 @@ const TreeObjectToFlowEdges = (
         ) {
           arrowColor = colors.treeColors.green;
         } else if (
-          assignedSkills[childIndex] === treeData[childIndex].max_points
+          assignedSkills[childIndex] >= treeData[childIndex].max_points
         ) {
           arrowColor = colors.treeColors.gold;
         }

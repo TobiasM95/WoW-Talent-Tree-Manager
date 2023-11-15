@@ -3,11 +3,11 @@ import { tokens } from "../theme";
 
 import { MuiMarkdown } from "mui-markdown";
 
-const MarkdownTextBox = ({ text }) => {
+const MarkdownTextBox = ({ text, defaultText }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   if (!text || text == "") {
-    return <></>;
+    return <Typography>{defaultText ?? "No text set"}</Typography>;
   }
   return (
     <Box p="10px" border={1}>
