@@ -208,7 +208,10 @@ const Viewer = () => {
                     {data.msg.tree.isImported ? <CheckIcon /> : <ClearIcon />}
                   </Box>
                   <Typography>Description:</Typography>
-                  <MarkdownTextBox text={data.msg.tree.description} />
+                  <MarkdownTextBox
+                    text={data.msg.tree.description}
+                    defaultText="No description set"
+                  />
                 </Fragment>
               }
               theme={theme}
@@ -259,7 +262,10 @@ const Viewer = () => {
                   </Box>
                   <Typography>Description:</Typography>
                   <Box width="100%">
-                    <MarkdownTextBox text={data.msg.loadout.description} />
+                    <MarkdownTextBox
+                      text={data.msg.loadout.description}
+                      defaultText="No description set"
+                    />
                   </Box>
                 </Box>
                 <Box
@@ -367,7 +373,10 @@ const Viewer = () => {
                     {data.msg.build.isImported ? <CheckIcon /> : <ClearIcon />}
                   </Box>
                   <Typography>Description:</Typography>
-                  <MarkdownTextBox text={data.msg.build.description} />
+                  <MarkdownTextBox
+                    text={data.msg.build.description}
+                    defaultText="No description set"
+                  />
                 </Fragment>
               }
               theme={theme}
