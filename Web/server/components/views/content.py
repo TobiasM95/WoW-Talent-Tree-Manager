@@ -67,9 +67,14 @@ def get_build_content(content_id: str, user_id: str) -> Response:
             user_id, leaf_loadout_id
         )
         loadout_builds: dict[str, dict] = {}
+        loadout_builds["columns"] = [
+            {"field": "name", "headerName": "Name", "flex": 1},
+            {"field": "actions", "headerName": "Actions", "convertActions": True},
+        ]
+        loadout_builds["rows"] = []
         for bcid in loadout_build_content_ids:
-            is_build_imported, build, _ = find_root_build(bcid)
-            loadout_builds[bcid] = {"name": build.name, "isImported": is_build_imported}
+            _, build, _ = find_root_build(bcid)
+            loadout_builds["rows"].append({"name": build.name, "actions": bcid})
         res["loadout"] = format_loadout_information(
             is_loadout_imported, root_loadout, loadout_builds, res["tree"], False
         )
@@ -87,9 +92,14 @@ def get_loadout_content(content_id: str, user_id: str) -> Response:
         user_id, content_id
     )
     loadout_builds: dict[str, dict] = {}
+    loadout_builds["columns"] = [
+        {"field": "name", "headerName": "Name", "flex": 1},
+        {"field": "actions", "headerName": "Actions", "convertActions": True},
+    ]
+    loadout_builds["rows"] = []
     for bcid in loadout_build_content_ids:
-        is_build_imported, build, _ = find_root_build(bcid)
-        loadout_builds[bcid] = {"name": build.name, "isImported": is_build_imported}
+        _, build, _ = find_root_build(bcid)
+        loadout_builds["rows"].append({"name": build.name, "actions": bcid})
     res["loadout"] = format_loadout_information(
         is_loadout_imported, root_loadout, loadout_builds, res["tree"], False
     )

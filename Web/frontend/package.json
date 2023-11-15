@@ -18,6 +18,7 @@
     "jwt-decode": "^3.1.2",
     "local-storage": "^2.0.0",
     "mui-image": "^1.0.7",
+    "mui-markdown": "^1.1.11",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-pro-sidebar": "^1.1.0-alpha.1",

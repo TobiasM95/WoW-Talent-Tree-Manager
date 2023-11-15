@@ -20,6 +20,10 @@ import BuildViewer from "../../components/tree_components/BuildViewer";
 import TreeViewer from "../../components/tree_components/TreeViewer";
 import { contentAPI } from "../../api/contentAPI";
 import SearchIcon from "@mui/icons-material/Search";
+import CheckIcon from "@mui/icons-material/Check";
+import ClearIcon from "@mui/icons-material/Clear";
+import MarkdownTextBox from "../../components/MarkdownTextBox";
+import CustomDataGrid from "../../components/CustomDataGrid";
 
 const Viewer = () => {
   const theme = useTheme();
@@ -136,7 +140,7 @@ const Viewer = () => {
     );
   }
   return (
-    <Box m="20px">
+    <Box m="20px" height="88dvh" overflow="auto">
       <Tabs
         value={category}
         onChange={handleTabChange}
@@ -193,18 +197,18 @@ const Viewer = () => {
               summary={"Tree details  (click to expand)"}
               content={
                 <Fragment>
-                  <Typography>Name: {data.msg.tree.name}</Typography>
+                  <Typography variant="h3">{data.msg.tree.name}</Typography>
                   <Typography>
                     Number of talents (class / spec):{" "}
                     {Object.keys(data.msg.tree.classTalents).length} /{" "}
                     {Object.keys(data.msg.tree.specTalents).length}
                   </Typography>
-                  <Typography>
-                    Imported: {data.msg.tree.isImported ? "Yes" : "No"}
-                  </Typography>
-                  <Typography>
-                    Description: {data.msg.tree.description}
-                  </Typography>
+                  <Box display="flex" flexDirection="row">
+                    <Typography>Imported:</Typography>
+                    {data.msg.tree.isImported ? <CheckIcon /> : <ClearIcon />}
+                  </Box>
+                  <Typography>Description:</Typography>
+                  <MarkdownTextBox text={data.msg.tree.description} />
                 </Fragment>
               }
               theme={theme}
@@ -219,28 +223,78 @@ const Viewer = () => {
             display="grid"
             gridTemplateColumns="repeat(12, 1fr)"
             gap="20px"
-            height="70vh"
+            height="80vh"
           >
-            <Box
-              gridColumn="span 6"
-              backgroundColor={colors.primary[400]}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              sx={{ borderRadius: "10px" }}
-              border={1}
-              borderColor={colors.blueAccent[700]}
-            ></Box>
-            <Box
-              gridColumn="span 6"
-              backgroundColor={colors.primary[400]}
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              sx={{ borderRadius: "10px" }}
-              border={1}
-              borderColor={colors.blueAccent[700]}
-            ></Box>
+            {data.msg.loadout ? (
+              <Fragment>
+                <Box
+                  gridColumn="span 8"
+                  backgroundColor={colors.primary[400]}
+                  display="flex"
+                  flexDirection="column"
+                  alignItems="flex-start"
+                  justifyContent="start"
+                  padding="20px"
+                  sx={{ borderRadius: "10px" }}
+                  border={1}
+                  borderColor={colors.blueAccent[700]}
+                  overflow="auto"
+                  height="80vh"
+                >
+                  <Typography variant="h3">{data.msg.loadout.name}</Typography>
+                  <Typography>
+                    Tree name: {data.msg.loadout.treeName}
+                  </Typography>
+                  <Typography>
+                    Number of builds in this loadout:{" "}
+                    {Object.keys(data.msg.loadout.builds).length}
+                  </Typography>
+                  <Box display="flex" flexDirection="row">
+                    <Typography>Imported:</Typography>
+                    {data.msg.loadout.isImported ? (
+                      <CheckIcon />
+                    ) : (
+                      <ClearIcon />
+                    )}
+                  </Box>
+                  <Typography>Description:</Typography>
+                  <Box width="100%">
+                    <MarkdownTextBox text={data.msg.loadout.description} />
+                  </Box>
+                </Box>
+                <Box
+                  gridColumn="span 4"
+                  backgroundColor={colors.primary[400]}
+                  sx={{ borderRadius: "0px 10px 10px 0px" }}
+                  border={1}
+                  borderColor={colors.blueAccent[700]}
+                  height="80vh"
+                  p="10px"
+                >
+                  <Typography variant="h2" sx={{ mb: "10px" }}>
+                    Builds in this Loadout:
+                  </Typography>
+                  <CustomDataGrid
+                    columns={data.msg.loadout.builds.columns}
+                    data={data.msg.loadout.builds.rows}
+                    rowIDCol={"actions"}
+                    height={"72vh"}
+                  />
+                </Box>
+              </Fragment>
+            ) : (
+              <Box
+                gridColumn="span 12"
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+              >
+                <Typography variant="h3">
+                  This build does not belong to a loadout
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Fragment>
       )}
@@ -295,7 +349,7 @@ const Viewer = () => {
               summary={"Build details  (click to expand)"}
               content={
                 <Fragment>
-                  <Typography>Name: {data.msg.build.name}</Typography>
+                  <Typography variant="h3">{data.msg.build.name}</Typography>
                   <Typography>
                     Assigned skillpoints (class / spec):{" "}
                     {Object.keys(data.msg.build.assignedSkills[0]).length} /{" "}
@@ -308,12 +362,12 @@ const Viewer = () => {
                     Loadout name: {data.msg.build.loadoutName}
                   </Typography>
                   <Typography>Tree name: {data.msg.build.treeName}</Typography>
-                  <Typography>
-                    Imported: {data.msg.build.isImported ? "Yes" : "No"}
-                  </Typography>
-                  <Typography>
-                    Description: {data.msg.build.description}
-                  </Typography>
+                  <Box display="flex" flexDirection="row">
+                    <Typography>Imported:</Typography>
+                    {data.msg.build.isImported ? <CheckIcon /> : <ClearIcon />}
+                  </Box>
+                  <Typography>Description:</Typography>
+                  <MarkdownTextBox text={data.msg.build.description} />
                 </Fragment>
               }
               theme={theme}

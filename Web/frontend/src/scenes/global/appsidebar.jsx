@@ -98,235 +98,233 @@ const AppSidebar = () => {
   };
 
   return (
-    <Box>
-      <Sidebar
-        collapsed={isCollapsed}
-        backgroundColor={`${colors.primary[400]}`}
-        style={{ height: "100vh" }}
-        rootStyles={{
-          borderColor: `transparent`,
-        }}
-      >
-        <div
-          style={{ height: "100%", display: "flex", flexDirection: "column" }}
-        >
-          <div style={{ flex: 1 }}>
-            <Menu iconShape="square" menuItemStyles={menuItemStyles}>
-              {/* LOGO AND MENU ICON */}
-              <MenuItem
-                onClick={toggleCollapse}
-                icon={isCollapsed ? <MenuOutlinedIcon /> : undefined}
-                style={{
-                  margin: "10px 0 20px 0",
-                  color: colors.grey[100],
-                }}
-              >
-                {!isCollapsed && (
-                  <Box
-                    display="flex"
-                    justifyContent="space-between"
-                    alignItems="center"
-                    ml="15px"
-                  >
-                    <Typography color={colors.grey[100]}>
-                      Talent Tree Manager
-                    </Typography>
-                    <IconButton onClick={toggleCollapse}>
-                      <MenuOutlinedIcon />
-                    </IconButton>
-                  </Box>
-                )}
-              </MenuItem>
-              <Box>
-                <Item
-                  title="Popular"
-                  to="/"
-                  icon={<AssessmentOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-                <Item
-                  title="Configurator"
-                  to="/configurator"
-                  icon={<AccountTreeIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-
-                {loginState === true && (
-                  <Box>
-                    <Typography
-                      variant="h6"
-                      color={colors.grey[300]}
-                      sx={{ m: "15px 0 5px 20px" }}
-                    >
-                      Member
-                    </Typography>
-                    <Item
-                      title="Workspace"
-                      to="/workspace"
-                      icon={<FolderOutlinedIcon />}
-                      selected={selected}
-                      setSelected={setSelected}
-                      isCollapsed={isCollapsed}
-                    />
-                    <Item
-                      title="Viewer"
-                      to="/viewer"
-                      icon={<ViewComfyOutlinedIcon />}
-                      selected={selected}
-                      setSelected={setSelected}
-                      isCollapsed={isCollapsed}
-                    />
-                    <Item
-                      title="Editor"
-                      to="/editor"
-                      icon={<EditOutlinedIcon />}
-                      selected={selected}
-                      setSelected={setSelected}
-                      isCollapsed={isCollapsed}
-                    />
-                    <Item
-                      title="Analysis"
-                      to="/analysis"
-                      icon={<QueryStatsOutlinedIcon />}
-                      selected={selected}
-                      setSelected={setSelected}
-                      isCollapsed={isCollapsed}
-                    />
-                  </Box>
-                )}
-                <Typography
-                  variant="h6"
-                  color={colors.grey[300]}
-                  sx={{ m: "15px 0 5px 20px" }}
-                >
-                  DEBUG
-                </Typography>
-                <Item
-                  title="Team"
-                  to="/team"
-                  icon={<PersonOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-                <Item
-                  title="Profile Form"
-                  to="/form"
-                  icon={<PersonOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-                <Item
-                  title="FAQ Page"
-                  to="/faq"
-                  icon={<HelpOutlineOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-                <Item
-                  title="Bar Chart"
-                  to="/bar"
-                  icon={<BarChartOutlinedIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-                <Item
-                  title="Tree View"
-                  to="/tree"
-                  icon={<AccountTreeIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-                <Item
-                  title="Build View"
-                  to="/build"
-                  icon={<AccountTreeIcon />}
-                  selected={selected}
-                  setSelected={setSelected}
-                  isCollapsed={isCollapsed}
-                />
-              </Box>
-            </Menu>
-          </div>
-          <div>
-            {!isCollapsed && (
-              <Box my="25px">
-                <Box display="flex" justifyContent="center" alignItems="center">
-                  <a
-                    href="https://github.com/TobiasM95/WoW-Talent-Tree-Manager"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <img
-                      alt="profile-user"
-                      width="100px"
-                      height="100px"
-                      src={`../../Icon_bw_variant_1.png`}
-                      style={{ cursor: "pointer", borderRadius: "50%" }}
-                    />
-                  </a>
-                </Box>
+    <Sidebar
+      collapsed={isCollapsed}
+      backgroundColor={`${colors.primary[400]}`}
+      rootStyles={{
+        borderColor: `transparent`,
+      }}
+      style={{
+        height: "100vh",
+      }}
+    >
+      <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1 }}>
+          <Menu iconShape="square" menuItemStyles={menuItemStyles}>
+            {/* LOGO AND MENU ICON */}
+            <MenuItem
+              onClick={toggleCollapse}
+              icon={isCollapsed ? <MenuOutlinedIcon /> : undefined}
+              style={{
+                margin: "10px 0 20px 0",
+                color: colors.grey[100],
+              }}
+            >
+              {!isCollapsed && (
                 <Box
-                  textAlign="center"
-                  justifyContent="center"
-                  alignItems="center"
                   display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  ml="15px"
                 >
-                  <Typography
-                    variant="h5"
-                    color={colors.grey[100]}
-                    sx={{ m: "10px 0 0 0" }}
-                  >
-                    Github
+                  <Typography color={colors.grey[100]}>
+                    Talent Tree Manager
                   </Typography>
+                  <IconButton onClick={toggleCollapse}>
+                    <MenuOutlinedIcon />
+                  </IconButton>
                 </Box>
-                <Box
-                  textAlign="center"
-                  justifyContent="center"
-                  alignItems="center"
-                  display="flex"
-                >
-                  <iframe
-                    src="https://ghbtns.com/github-btn.html?user=TobiasM95&repo=WoW-Talent-Tree-Manager&type=star&count=true&size=small"
-                    frameBorder="0"
-                    width="78"
-                    height="30"
-                    title="TTM"
-                  ></iframe>
-                </Box>
-              </Box>
-            )}
-            {isCollapsed && (
-              <Box mb="25px">
-                <Box display="flex" justifyContent="center" alignItems="center">
-                  <a
-                    href="https://github.com/TobiasM95/WoW-Talent-Tree-Manager"
-                    target="_blank"
-                    rel="noreferrer"
+              )}
+            </MenuItem>
+            <Box>
+              <Item
+                title="Popular"
+                to="/"
+                icon={<AssessmentOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+              <Item
+                title="Configurator"
+                to="/configurator"
+                icon={<AccountTreeIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+
+              {loginState === true && (
+                <Box>
+                  <Typography
+                    variant="h6"
+                    color={colors.grey[300]}
+                    sx={{ m: "15px 0 5px 20px" }}
                   >
-                    <img
-                      alt="profile-user"
-                      width="25px"
-                      height="25px"
-                      src={`../../Icon_bw_variant_1.png`}
-                      style={{ cursor: "pointer", borderRadius: "50%" }}
-                    />
-                  </a>
+                    Member
+                  </Typography>
+                  <Item
+                    title="Workspace"
+                    to="/workspace"
+                    icon={<FolderOutlinedIcon />}
+                    selected={selected}
+                    setSelected={setSelected}
+                    isCollapsed={isCollapsed}
+                  />
+                  <Item
+                    title="Viewer"
+                    to="/viewer"
+                    icon={<ViewComfyOutlinedIcon />}
+                    selected={selected}
+                    setSelected={setSelected}
+                    isCollapsed={isCollapsed}
+                  />
+                  <Item
+                    title="Editor"
+                    to="/editor"
+                    icon={<EditOutlinedIcon />}
+                    selected={selected}
+                    setSelected={setSelected}
+                    isCollapsed={isCollapsed}
+                  />
+                  <Item
+                    title="Analysis"
+                    to="/analysis"
+                    icon={<QueryStatsOutlinedIcon />}
+                    selected={selected}
+                    setSelected={setSelected}
+                    isCollapsed={isCollapsed}
+                  />
                 </Box>
-              </Box>
-            )}
-          </div>
+              )}
+              <Typography
+                variant="h6"
+                color={colors.grey[300]}
+                sx={{ m: "15px 0 5px 20px" }}
+              >
+                DEBUG
+              </Typography>
+              <Item
+                title="Team"
+                to="/team"
+                icon={<PersonOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+              <Item
+                title="Profile Form"
+                to="/form"
+                icon={<PersonOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+              <Item
+                title="FAQ Page"
+                to="/faq"
+                icon={<HelpOutlineOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+              <Item
+                title="Bar Chart"
+                to="/bar"
+                icon={<BarChartOutlinedIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+              <Item
+                title="Tree View"
+                to="/tree"
+                icon={<AccountTreeIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+              <Item
+                title="Build View"
+                to="/build"
+                icon={<AccountTreeIcon />}
+                selected={selected}
+                setSelected={setSelected}
+                isCollapsed={isCollapsed}
+              />
+            </Box>
+          </Menu>
         </div>
-      </Sidebar>
-    </Box>
+        <div>
+          {!isCollapsed && (
+            <Box my="25px">
+              <Box display="flex" justifyContent="center" alignItems="center">
+                <a
+                  href="https://github.com/TobiasM95/WoW-Talent-Tree-Manager"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    alt="profile-user"
+                    width="100px"
+                    height="100px"
+                    src={`../../Icon_bw_variant_1.png`}
+                    style={{ cursor: "pointer", borderRadius: "50%" }}
+                  />
+                </a>
+              </Box>
+              <Box
+                textAlign="center"
+                justifyContent="center"
+                alignItems="center"
+                display="flex"
+              >
+                <Typography
+                  variant="h5"
+                  color={colors.grey[100]}
+                  sx={{ m: "10px 0 0 0" }}
+                >
+                  Github
+                </Typography>
+              </Box>
+              <Box
+                textAlign="center"
+                justifyContent="center"
+                alignItems="center"
+                display="flex"
+              >
+                <iframe
+                  src="https://ghbtns.com/github-btn.html?user=TobiasM95&repo=WoW-Talent-Tree-Manager&type=star&count=true&size=small"
+                  frameBorder="0"
+                  width="78"
+                  height="30"
+                  title="TTM"
+                ></iframe>
+              </Box>
+            </Box>
+          )}
+          {isCollapsed && (
+            <Box mb="25px">
+              <Box display="flex" justifyContent="center" alignItems="center">
+                <a
+                  href="https://github.com/TobiasM95/WoW-Talent-Tree-Manager"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img
+                    alt="profile-user"
+                    width="25px"
+                    height="25px"
+                    src={`../../Icon_bw_variant_1.png`}
+                    style={{ cursor: "pointer", borderRadius: "50%" }}
+                  />
+                </a>
+              </Box>
+            </Box>
+          )}
+        </div>
+      </div>
+    </Sidebar>
   );
 };
 

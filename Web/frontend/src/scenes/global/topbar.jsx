@@ -24,7 +24,7 @@ const Topbar = () => {
   };
 
   return (
-    <Box display="flex" justifyContent="space-between" p={2}>
+    <Box display="flex" justifyContent="space-between" p={2} height="7dvh">
       {/* SEARCHBAR*/}
       <Box
         display="flex"

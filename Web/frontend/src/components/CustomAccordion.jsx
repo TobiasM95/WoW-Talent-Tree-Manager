@@ -6,7 +6,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 const CustomAccordion = ({ summary, content, theme, colors }) => {
   return (
-    <Accordion>
+    <Accordion sx={{ border: 1, borderColor: colors.primary[900] }}>
       <AccordionSummary
         expandIcon={<ExpandMoreIcon />}
         sx={{ backgroundColor: colors.primary[400] }}
