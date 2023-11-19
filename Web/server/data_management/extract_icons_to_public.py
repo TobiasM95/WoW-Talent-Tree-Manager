@@ -7,6 +7,7 @@ SOURCE_DIR_PATH: str = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "..",
     "..",
+    "..",
     "GUI",
     "resources",
     "updatertarget",
@@ -14,6 +15,7 @@ SOURCE_DIR_PATH: str = os.path.join(
 
 DESTINATION_DIR_PATH: str = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
+    "..",
     "..",
     "frontend",
     "public",

@@ -14,6 +14,7 @@ import json
 def main() -> str:
     db_path: str = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
+        "..",
         "database",
         "data.sqlite",
     )
@@ -28,6 +29,7 @@ def main() -> str:
 def load_presets() -> list[str]:
     path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
+        "..",
         "..",
         "..",
         "Engine",
