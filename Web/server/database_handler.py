@@ -108,6 +108,33 @@ class Build:
         self.description: str = description
 
 
+class PresetBuild:
+    def __init__(
+        self,
+        content_id: str,
+        encounter_id: int,
+        tree_id: str,
+        loadout_id: Union[str, None],
+        name: str,
+        level_cap: int,
+        use_level_cap: bool,
+        assigned_skills: Union[str, list[dict[int, int]]],
+        description: str,
+    ):
+        self.content_id: str = content_id
+        self.encounter_id: int = encounter_id
+        self.tree_id: str = tree_id
+        self.loadout_id: Union[str, None] = loadout_id
+        self.name: str = name
+        self.level_cap: int = level_cap
+        self.use_level_cap: bool = use_level_cap
+        if type(assigned_skills) == str:
+            self.assigned_skills = assigned_skills
+        else:
+            self.assigned_skills: str = json.dumps(assigned_skills)
+        self.description: str = description
+
+
 class Talent:
     def __init__(
         self,
@@ -228,6 +255,8 @@ class DBHandler:
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, ImportID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, ImportID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS TopBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS OutlierBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Talents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTalents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Likes (UserID TEXT, ContentID TEXT, Timestamp TEXT)"))
@@ -647,6 +676,74 @@ class DBHandler:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
+    def create_preset_build(
+        self, build: PresetBuild, table_name: Literal["TopBuilds", "OutlierBuilds"]
+    ) -> None:
+        q = Query.into(table_name).insert(
+            build.content_id,
+            build.encounter_id,
+            build.tree_id,
+            build.loadout_id,
+            build.name,
+            build.level_cap,
+            build.use_level_cap,
+            build.assigned_skills,
+            build.description,
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def delete_preset_build(
+        self, content_id: str, table_name: Literal["TopBuilds", "OutlierBuilds"]
+    ) -> None:
+        table: Table = Table(table_name)
+        q = Query.from_(table).where(table.ContentID == content_id).delete()
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
+    def get_preset_build(
+        self, content_id: str, table_name: Literal["TopBuilds", "OutlierBuilds"]
+    ) -> Union[PresetBuild, None]:
+        table: Table = Table(table_name)
+        q = (
+            Query.from_(table)
+            .select(
+                "ContentID",
+                "EncounterID",
+                "TreeID",
+                "LoadoutID",
+                "Name",
+                "LevelCap",
+                "UseLevelCap",
+                "AssignedSkills",
+                "Description",
+            )
+            .where((table.ContentID == content_id))
+        )
+        with self.engine.connect() as conn:
+            res = conn.execute(text(q.get_sql())).first()
+        return None if res is None else PresetBuild(*res)
+
+    def update_build(
+        self, build: PresetBuild, table_name: Literal["TopBuilds", "OutlierBuilds"]
+    ) -> None:
+        table: Table = Table(table_name)
+        q = (
+            Query.update(table)
+            .set(table.Name, build.name)
+            .set(table.EncounterID, build.encounter_id)
+            .set(table.LevelCap, build.level_cap)
+            .set(table.UseLevelCap, build.use_level_cap)
+            .set(table.AssignedSkills, build.assigned_skills)
+            .set(table.Description, build.description)
+            .where(table.ContentID == build.content_id)
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql()))
+            conn.commit()
+
     def create_talent(self, talent: Talent, custom: bool) -> None:
         table: Table = Table("Talents" if custom else "PresetTalents")
         q = Query.into(table).insert(*vars(talent).values())
@@ -943,4 +1040,4 @@ if __name__ == "__main__":
     )
     engine = create_engine(f"sqlite+pysqlite:///{db_path}", echo=True)
     db_handler: DBHandler = DBHandler(engine)
-    db_handler.initialize_databases(reset=True)
+    db_handler.initialize_databases(reset=False)

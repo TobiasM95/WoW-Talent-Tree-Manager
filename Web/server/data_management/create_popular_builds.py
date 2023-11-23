@@ -1,14 +1,15 @@
 import os
 import json
+import uuid
 from dotenv import load_dotenv
 import requests
 from requests_oauth2client import OAuth2Client, OAuth2ClientCredentialsAuth
 from pypika import Query, Table
 from components.create_app import db_handler
+from database_handler import PresetBuild
 import pandas as pd
 import numpy as np
 
-# TODO: store top builds and outlier builds in sql database
 # TODO: multithread
 
 
@@ -16,7 +17,7 @@ def main():
     load_dotenv()
     oauth2client, oauth2token, oauth2auth, session = init_oauth2_session()
     top_builds, outlier_builds = get_top_and_outlier_builds(session)
-    print(top_builds)
+    save_top_and_outlier_builds(top_builds, outlier_builds)
     return
 
 
@@ -41,6 +42,17 @@ def get_top_and_outlier_builds(session):
     top_builds = {}
     outlier_builds = {}
     talent_id_to_node_id_dict = get_talent_id_to_node_id_dict()
+
+    table = Table("PresetTalents")
+    talent_query = Query.from_(table).select("ContentID", "NodeID", "OrderID")
+    talent_data = db_handler.execute_query(talent_query, expects_results=True)
+    df_talent_data = pd.DataFrame(
+        data=talent_data, columns=["ContentID", "NodeID", "OrderID"]
+    )
+    node_id_order_id_dict = {
+        row.NodeID: row.OrderID for _, row in df_talent_data.iterrows()
+    }
+
     for encounter_id, encounter_name in zip(encounter_ids, encounter_names):
         top_builds[encounter_id] = {"encounter_name": encounter_name}
         outlier_builds[encounter_id] = {"encounter_name": encounter_name}
@@ -57,7 +69,13 @@ def get_top_and_outlier_builds(session):
                 outlier_builds[encounter_id][class_name] = {}
             print(encounter_id, class_name, spec_name)
             top_build, outlier_build = get_top_and_outlier_build(
-                session, encounter_id, class_name, spec_name, talent_id_to_node_id_dict
+                session,
+                encounter_id,
+                class_name,
+                spec_name,
+                talent_id_to_node_id_dict,
+                df_talent_data,
+                node_id_order_id_dict,
             )
             top_builds[encounter_id][class_name][spec_name] = top_build
             outlier_builds[encounter_id][class_name][spec_name] = outlier_build
@@ -65,25 +83,31 @@ def get_top_and_outlier_builds(session):
 
 
 def get_top_and_outlier_build(
-    session, encounter_id, class_name, spec_name, talent_id_to_node_id_dict
+    session,
+    encounter_id,
+    class_name,
+    spec_name,
+    talent_id_to_node_id_dict,
+    df_talent_data,
+    node_id_order_id_dict,
 ):
     top_100_node_ids = get_top_100_node_ids(
         session, encounter_id, class_name, spec_name, talent_id_to_node_id_dict
     )
     df_class_talents, df_spec_talents = get_empty_talent_dfs(
-        class_name, spec_name, len(top_100_node_ids)
+        class_name, spec_name, len(top_100_node_ids), df_talent_data
     )
     df_class_talents, df_spec_talents = fill_dfs(
         df_class_talents, df_spec_talents, top_100_node_ids
     )
     top_build = [
         {
-            str(node_id): points
+            str(node_id_order_id_dict[node_id]): points
             for node_id, points in df_class_talents.iloc[0, :].items()
             if points > 0
         },
         {
-            str(node_id): points
+            str(node_id_order_id_dict[node_id]): points
             for node_id, points in df_spec_talents.iloc[0, :].items()
             if points > 0
         },
@@ -95,12 +119,12 @@ def get_top_and_outlier_build(
     )
     outlier_build = [
         {
-            str(node_id): points
+            str(node_id_order_id_dict[node_id]): points
             for node_id, points in df_class_talents.iloc[outlier_index, :].items()
             if points > 0
         },
         {
-            str(node_id): points
+            str(node_id_order_id_dict[node_id]): points
             for node_id, points in df_spec_talents.iloc[outlier_index, :].items()
             if points > 0
         },
@@ -164,7 +188,7 @@ def get_talent_id_to_node_id_dict():
     return talent_id_to_node_id_dict
 
 
-def get_empty_talent_dfs(class_name, spec_name, num_rows):
+def get_empty_talent_dfs(class_name, spec_name, num_rows, df_talent_data):
     table = Table("PresetTrees")
     tree_query = (
         Query.from_(table)
@@ -180,11 +204,6 @@ def get_empty_talent_dfs(class_name, spec_name, num_rows):
     df_spec_talent_content_ids = pd.DataFrame(
         data=spec_talent_content_ids, columns=["ContentID"]
     )
-
-    table = Table("PresetTalents")
-    talent_query = Query.from_(table).select("ContentID", "NodeID")
-    talent_data = db_handler.execute_query(talent_query, expects_results=True)
-    df_talent_data = pd.DataFrame(data=talent_data, columns=["ContentID", "NodeID"])
 
     df_class_talent_content_ids = df_class_talent_content_ids.merge(
         df_talent_data, on="ContentID", how="left"
@@ -228,6 +247,66 @@ def get_class_spec_combinations():
         if raw_combo[0] != "New custom Tree"
     ]
     return sorted(class_spec_combinations, key=lambda x: (x[0], x[1]))
+
+
+def save_top_and_outlier_builds(top_builds, outlier_builds):
+    for encounter_id, classes_dict in top_builds.items():
+        for class_name, spec_dict in classes_dict.items():
+            if class_name == "encounter_name":
+                continue
+            for spec_name, assigned_points in spec_dict.items():
+                tree_table = Table("PresetTrees")
+                tree_id_query = (
+                    Query.from_(tree_table)
+                    .select("ContentID")
+                    .where(
+                        tree_table.Name
+                        == f"{spec_name.capitalize()} {class_name.capitalize()}"
+                    )
+                )
+                res = db_handler.execute_query(tree_id_query, True)
+                tree_id = res[0][0]
+                preset_build = PresetBuild(
+                    str(uuid.uuid4()),
+                    encounter_id,
+                    tree_id,
+                    None,
+                    f"{classes_dict['encounter_name']} top {spec_name.capitalize()} {class_name.capitalize()} build",
+                    70,
+                    True,
+                    json.dumps(assigned_points),
+                    f"This is the top performing build for the encounter \"{classes_dict['encounter_name']}\" and the {spec_name.capitalize()} {class_name.capitalize()}",
+                )
+                db_handler.create_preset_build(preset_build, "TopBuilds")
+
+    for encounter_id, classes_dict in outlier_builds.items():
+        for class_name, spec_dict in classes_dict.items():
+            if class_name == "encounter_name":
+                continue
+            for spec_name, assigned_points in spec_dict.items():
+                tree_table = Table("PresetTrees")
+                tree_id_query = (
+                    Query.from_(tree_table)
+                    .select("ContentID")
+                    .where(
+                        tree_table.Name
+                        == f"{spec_name.capitalize()} {class_name.capitalize()}"
+                    )
+                )
+                res = db_handler.execute_query(tree_id_query, True)
+                tree_id = res[0][0]
+                preset_build = PresetBuild(
+                    str(uuid.uuid4()),
+                    encounter_id,
+                    tree_id,
+                    None,
+                    f"{classes_dict['encounter_name']} outlier {spec_name.capitalize()} {class_name.capitalize()} build",
+                    70,
+                    True,
+                    json.dumps(assigned_points),
+                    f"This is the outlier build for the encounter \"{classes_dict['encounter_name']}\" and the {spec_name.capitalize()} {class_name.capitalize()}",
+                )
+                db_handler.create_preset_build(preset_build, "OutlierBuilds")
 
 
 if __name__ == "__main__":
