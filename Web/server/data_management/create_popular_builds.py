@@ -3,6 +3,7 @@ import json
 import uuid
 from dotenv import load_dotenv
 import requests
+import concurrent.futures
 from requests_oauth2client import OAuth2Client, OAuth2ClientCredentialsAuth
 from pypika import Query, Table
 from components.create_app import db_handler
@@ -10,15 +11,12 @@ from database_handler import PresetBuild
 import pandas as pd
 import numpy as np
 
-# TODO: multithread
-
 
 def main():
     load_dotenv()
     oauth2client, oauth2token, oauth2auth, session = init_oauth2_session()
     top_builds, outlier_builds = get_top_and_outlier_builds(session)
     save_top_and_outlier_builds(top_builds, outlier_builds)
-    return
 
 
 def init_oauth2_session():
@@ -53,32 +51,52 @@ def get_top_and_outlier_builds(session):
         row.NodeID: row.OrderID for _, row in df_talent_data.iterrows()
     }
 
-    for encounter_id, encounter_name in zip(encounter_ids, encounter_names):
-        top_builds[encounter_id] = {"encounter_name": encounter_name}
-        outlier_builds[encounter_id] = {"encounter_name": encounter_name}
-        for class_name, spec_name in class_spec_combinations:
-            if class_name == "Deathknight":
-                class_name = "DeathKnight"
-            elif class_name == "Demonhunter":
-                class_name = "DemonHunter"
+    with concurrent.futures.ThreadPoolExecutor(max_workers=11) as executor:
+        build_futures = {}
+        for encounter_id, encounter_name in zip(encounter_ids, encounter_names):
+            top_builds[encounter_id] = {"encounter_name": encounter_name}
+            outlier_builds[encounter_id] = {"encounter_name": encounter_name}
+            for class_name, spec_name in class_spec_combinations:
+                if class_name == "Deathknight":
+                    class_name = "DeathKnight"
+                elif class_name == "Demonhunter":
+                    class_name = "DemonHunter"
+                elif spec_name == "Beastmastery":
+                    spec_name = "BeastMastery"
 
-            if class_name not in top_builds[encounter_id]:
-                top_builds[encounter_id][class_name] = {}
+                if class_name not in top_builds[encounter_id]:
+                    top_builds[encounter_id][class_name] = {}
 
-            if class_name not in outlier_builds[encounter_id]:
-                outlier_builds[encounter_id][class_name] = {}
-            print(encounter_id, class_name, spec_name)
-            top_build, outlier_build = get_top_and_outlier_build(
-                session,
-                encounter_id,
-                class_name,
-                spec_name,
-                talent_id_to_node_id_dict,
-                df_talent_data,
-                node_id_order_id_dict,
-            )
-            top_builds[encounter_id][class_name][spec_name] = top_build
-            outlier_builds[encounter_id][class_name][spec_name] = outlier_build
+                if class_name not in outlier_builds[encounter_id]:
+                    outlier_builds[encounter_id][class_name] = {}
+                build_futures[
+                    executor.submit(
+                        get_top_and_outlier_build,
+                        session,
+                        encounter_id,
+                        class_name,
+                        spec_name,
+                        talent_id_to_node_id_dict,
+                        df_talent_data,
+                        node_id_order_id_dict,
+                    )
+                ] = [encounter_id, class_name, spec_name]
+
+        for future in concurrent.futures.as_completed(build_futures):
+            encounter_id, class_name, spec_name = build_futures[future]
+            try:
+                top_build, outlier_build = future.result()
+                top_builds[encounter_id][class_name][spec_name] = top_build
+                outlier_builds[encounter_id][class_name][spec_name] = outlier_build
+                print(encounter_id, class_name, spec_name, "successful")
+            except Exception as e:
+                print(
+                    encounter_id,
+                    class_name,
+                    spec_name,
+                    "generated an exception",
+                    str(e),
+                )
     return top_builds, outlier_builds
 
 
@@ -158,10 +176,11 @@ query {{
         player_rankings = ranking_json["data"]["worldData"]["encounter"][
             "characterRankings"
         ]["rankings"]
-    except:
+    except Exception as e:
         # fmt: off
-        from IPython import embed; embed(); input("Enter to continue...")
+        # from IPython import embed; embed(); input("Enter to continue...")
         # fmt: on
+        raise e
     top_100_node_ids = []
     for player_ranking in player_rankings:
         top_100_node_ids.append(
@@ -231,7 +250,7 @@ def fill_dfs(df_class_talents, df_spec_talents, top_100_node_ids):
                 df_spec_talents.loc[i, node_id] = points
             else:
                 # fmt: off
-                from IPython import embed; embed(); input("Enter to continue...")
+                # from IPython import embed; embed(); input("Enter to continue...")
                 # fmt: on
                 raise Exception(f"Node id {node_id} does not exist")
     return df_class_talents, df_spec_talents
@@ -250,6 +269,8 @@ def get_class_spec_combinations():
 
 
 def save_top_and_outlier_builds(top_builds, outlier_builds):
+    db_handler.execute_query(Query.from_("OutlierBuilds").delete())
+    db_handler.execute_query(Query.from_("TopBuilds").delete())
     for encounter_id, classes_dict in top_builds.items():
         for class_name, spec_dict in classes_dict.items():
             if class_name == "encounter_name":
