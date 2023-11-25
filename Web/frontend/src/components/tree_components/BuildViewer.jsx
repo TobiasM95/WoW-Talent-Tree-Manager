@@ -207,6 +207,9 @@ const BuildViewer = ({ treeData, assignedSkills, isClassTree }) => {
         snapToGrid
         fitView
         nodesDraggable={false}
+        zoomOnScroll={false}
+        panOnScroll={false}
+        preventScrolling={false}
       >
         <Controls
           showInteractive={false}

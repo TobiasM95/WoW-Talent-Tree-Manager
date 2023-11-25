@@ -358,8 +358,24 @@ const Viewer = () => {
                   <Typography variant="h3">{data.msg.build.name}</Typography>
                   <Typography>
                     Assigned skillpoints (class / spec):{" "}
-                    {Object.keys(data.msg.build.assignedSkills[0]).length} /{" "}
-                    {Object.keys(data.msg.build.assignedSkills[1]).length}
+                    {Object.values(data.msg.build.assignedSkills[0]).reduce(
+                      (accumulator, currentValue) => {
+                        return accumulator + currentValue;
+                      },
+                      0
+                    ) -
+                      Object.values(data.msg.tree.classTalents).reduce(
+                        (acc, obj) =>
+                          obj.pre_filled === 1 ? acc + obj.max_points : acc,
+                        0
+                      )}{" "}
+                    /{" "}
+                    {Object.values(data.msg.build.assignedSkills[1]).reduce(
+                      (accumulator, currentValue) => {
+                        return accumulator + currentValue;
+                      },
+                      0
+                    )}
                   </Typography>
                   <Typography>
                     Required level: {data.msg.build.levelCap}
