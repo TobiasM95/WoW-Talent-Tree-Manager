@@ -12,7 +12,7 @@ import pandas as pd
 import numpy as np
 
 
-def main():
+def create_popular_builds():
     load_dotenv()
     oauth2client, oauth2token, oauth2auth, session = init_oauth2_session()
     top_builds, outlier_builds = get_top_and_outlier_builds(session)
@@ -53,9 +53,7 @@ def get_top_and_outlier_builds(session):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=11) as executor:
         build_futures = {}
-        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names))[
-            :2
-        ]:
+        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names)):
             top_builds[encounter_id] = {"encounter_name": encounter_name}
             outlier_builds[encounter_id] = {"encounter_name": encounter_name}
             for class_name, spec_name in class_spec_combinations:
@@ -337,4 +335,4 @@ def save_top_and_outlier_builds(top_builds, outlier_builds):
 
 
 if __name__ == "__main__":
-    main()
+    create_popular_builds()

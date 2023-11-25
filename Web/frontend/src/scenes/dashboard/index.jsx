@@ -13,6 +13,7 @@ const Dashboard = () => {
   const colors = tokens(theme.palette.mode);
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
+  const [buildData, setBuildData] = useState(null);
 
   const { isPending, isLoading, isFetching, error, data, refetch } = useQuery({
     queryKey: ["dashboardTopOutlierBuildQuery"],
@@ -23,10 +24,18 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
+    setBuildData(null);
+  }, [selectedClass]);
+
+  useEffect(() => {
     if (selectedClass && selectedSpec) {
       refetch();
     }
   }, [selectedSpec]);
+
+  useEffect(() => {
+    setBuildData(data);
+  }, [data]);
 
   return (
     <Box m="20px">
@@ -77,27 +86,48 @@ const Dashboard = () => {
               const dimmed = selectedClass && selectedClass !== name;
               const highlighted = selectedClass && selectedClass === name;
               return (
-                <Button
-                  key={`classButton${name}`}
-                  sx={{
-                    minWidth: "16px",
-                    maxWidth: "64px",
-                    backgroundColor: highlighted ? "#ffffff33" : "none",
-                    my: "5px",
-                  }}
-                  onClick={() => {
-                    setSelectedClass(name);
-                    setSelectedSpec(null);
+                <Tooltip
+                  title={name.charAt(0).toUpperCase() + name.slice(1)}
+                  key={`classButton${name}tooltip`}
+                  slotProps={{
+                    tooltip: {
+                      sx: {
+                        bgcolor:
+                          theme.palette.mode === "dark"
+                            ? `${colors.primary[500]}`
+                            : "#fff",
+                        "& .MuiTooltip-arrow": {
+                          color: "common.black",
+                        },
+                        border: `1px solid ${colors.grey[100]}`,
+                        color: `${colors.grey[100]}`,
+                        fontSize: 14,
+                      },
+                    },
                   }}
                 >
-                  <img
-                    src={`/class_icons/${name}.png`}
-                    style={{
+                  <Button
+                    key={`classButton${name}`}
+                    sx={{
                       minWidth: "16px",
-                      opacity: dimmed ? "0.4" : "1",
+                      maxWidth: "64px",
+                      backgroundColor: highlighted ? "#ffffff33" : "none",
+                      my: "5px",
                     }}
-                  />
-                </Button>
+                    onClick={() => {
+                      setSelectedClass(name);
+                      setSelectedSpec(null);
+                    }}
+                  >
+                    <img
+                      src={`/class_icons/${name}.png`}
+                      style={{
+                        minWidth: "16px",
+                        opacity: dimmed ? "0.4" : "1",
+                      }}
+                    />
+                  </Button>
+                </Tooltip>
               );
             })}
           </Box>
@@ -107,26 +137,47 @@ const Dashboard = () => {
                 const dimmed = selectedSpec && selectedSpec !== name;
                 const highlighted = selectedSpec && selectedSpec === name;
                 return (
-                  <Button
-                    key={`specButton${name}`}
-                    sx={{
-                      minWidth: "16px",
-                      maxWidth: "64px",
-                      backgroundColor: highlighted ? "#ffffff33" : "none",
-                      my: "5px",
-                    }}
-                    onClick={() => {
-                      setSelectedSpec(name);
+                  <Tooltip
+                    title={name.charAt(0).toUpperCase() + name.slice(1)}
+                    key={`specButton${name}tooltip`}
+                    slotProps={{
+                      tooltip: {
+                        sx: {
+                          bgcolor:
+                            theme.palette.mode === "dark"
+                              ? `${colors.primary[500]}`
+                              : "#fff",
+                          "& .MuiTooltip-arrow": {
+                            color: "common.black",
+                          },
+                          border: `1px solid ${colors.grey[100]}`,
+                          color: `${colors.grey[100]}`,
+                          fontSize: 14,
+                        },
+                      },
                     }}
                   >
-                    <img
-                      src={`/spec_icons/${selectedClass}/${name}.png`}
-                      style={{
+                    <Button
+                      key={`specButton${name}`}
+                      sx={{
                         minWidth: "16px",
-                        opacity: dimmed ? "0.4" : "1",
+                        maxWidth: "64px",
+                        backgroundColor: highlighted ? "#ffffff33" : "none",
+                        my: "5px",
                       }}
-                    />
-                  </Button>
+                      onClick={() => {
+                        setSelectedSpec(name);
+                      }}
+                    >
+                      <img
+                        src={`/spec_icons/${selectedClass}/${name}.png`}
+                        style={{
+                          minWidth: "16px",
+                          opacity: dimmed ? "0.4" : "1",
+                        }}
+                      />
+                    </Button>
+                  </Tooltip>
                 );
               })}
             </Box>
@@ -134,10 +185,11 @@ const Dashboard = () => {
           {selectedSpec &&
             error === null &&
             isPending === false &&
-            isFetching === false && (
+            isFetching === false &&
+            buildData && (
               <CustomDataGrid
-                columns={data.msg["buildColumns"]}
-                data={data.msg["buildData"]}
+                columns={buildData.msg["buildColumns"]}
+                data={buildData.msg["buildData"]}
                 rowIDCol={"actions"}
                 height={"60vh"}
               />
