@@ -1,187 +1,121 @@
-import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
+import { useState, useEffect } from "react";
+import { Button, Typography } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import { tokens } from "../../theme";
 import Header from "../../components/Header";
-import { mockTransactions } from "../../data/mockData";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import EmailIcon from "@mui/icons-material/Email";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
-import BarChart from "../../components/BarChart";
-import StatBox from "../../components/StatBox";
+import CustomDataGrid from "../../components/CustomDataGrid";
+import { classes, classSpecs } from "../../data/classData";
+import { buildAPI } from "../../api/buildAPI";
 
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedSpec, setSelectedSpec] = useState(null);
+
+  const { isPending, isLoading, isFetching, error, data, refetch } = useQuery({
+    queryKey: ["dashboardTopOutlierBuildQuery"],
+    queryFn: () => buildAPI.getSpecial(selectedClass, selectedSpec),
+    refetchOnWindowFocus: false,
+    enabled: false,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (selectedClass && selectedSpec) {
+      refetch();
+    }
+  }, [selectedSpec]);
+
   return (
     <Box m="20px">
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
-
-        <Box>
-          <Button
-            sx={{
-              backgroundColor: colors.blueAccent[700],
-              color: colors.grey[100],
-              fontSize: "14px",
-              fontWeight: "bold",
-              padding: "10px 20px",
-            }}
-          >
-            <DownloadOutlinedIcon sx={{ mr: "10px" }} />
-            Download Reports
-          </Button>
-        </Box>
+      <Box display="flex" justifyContent="space-between">
+        <Header title="What's best, what's weird, and what's new today!" />
       </Box>
 
       {/* Grid and charts */}
-      <Box
-        display="grid"
-        gridTemplateColumns="repeat(12, 1fr)"
-        gridAutoRows="140px"
-        gap="20px"
-      >
-        {/* ROW 1*/}
+      <Box display="grid" gridTemplateColumns="repeat(12, 1fr)" gap="20px">
         <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          sx={{ borderRadius: "10px" }}
-        >
-          <StatBox
-            title="12,361"
-            subtitle="Emails sent"
-            progress="0.75"
-            increase="+14%"
-            icon={
-              <EmailIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          sx={{ borderRadius: "10px" }}
-        >
-          <StatBox
-            title="331"
-            subtitle="New clients"
-            progress="0.50"
-            increase="+1%"
-            icon={
-              <PersonAddIcon
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-        <Box gridColumn="span 6"></Box>
-
-        {/* ROW 2 */}
-        <Box
-          gridColumn="span 8"
-          gridRow="span 2"
+          gridColumn="span 6"
           backgroundColor={colors.primary[400]}
           sx={{ borderRadius: "10px" }}
+          border={1}
+          borderColor={colors.blueAccent[700]}
         >
-          <Box
-            mt="25px"
-            p="0 30px"
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.grey[100]}
-              >
-                Revenue Generated
-              </Typography>
-              <Typography
-                variant="h3"
-                fontWeight="bold"
-                color={colors.greenAccent[500]}
-              >
-                $32
-              </Typography>
-            </Box>
-
-            <Box>
-              <IconButton>
-                <DownloadOutlinedIcon
-                  sx={{ fontSize: "26px", color: colors.greenAccent[500] }}
-                />
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Box height="250px" mt="-20px">
-            <BarChart isDashboard={true} />
-          </Box>
-        </Box>
-
-        <Box
-          gridColumn="span 4"
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          overflow="auto"
-          sx={{ borderRadius: "10px" }}
-        >
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-            borderBottom={`4px solid ${colors.primary[500]}`}
-            colors={colors.grey[100]}
-            p="15px"
-          >
-            <Typography color={colors.grey[100]} variant="h5" fontWeight="600">
-              Recent Transactions
-            </Typography>
-          </Box>
-          {mockTransactions.map((transaction, i) => (
-            <Box
-              key={`${transaction.txID}-${i}`}
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-              borderBottom={`4px solid ${colors.primary[500]}`}
-              p="15px"
-            >
-              <Box>
-                <Typography
-                  color={colors.greenAccent[100]}
-                  variant="h5"
-                  fontWeight="600"
+          <Typography variant="h3" textAlign="center" sx={{ my: "5px" }}>
+            Best and weird specs
+          </Typography>
+          <Box display="flex" flexShrink="1" justifyContent="center">
+            {classes.map((name) => {
+              const dimmed = selectedClass && selectedClass !== name;
+              const highlighted = selectedClass && selectedClass === name;
+              return (
+                <Button
+                  key={`classButton${name}`}
+                  sx={{
+                    minWidth: "16px",
+                    maxWidth: "64px",
+                    backgroundColor: highlighted ? "#ffffff33" : "none",
+                    my: "5px",
+                  }}
+                  onClick={() => {
+                    setSelectedClass(name);
+                    setSelectedSpec(null);
+                  }}
                 >
-                  {transaction.txId}
-                </Typography>
-                <Typography
-                  color={colors.grey[100]}
-                  variant="h5"
-                  fontWeight="600"
-                >
-                  {transaction.user}
-                </Typography>
-              </Box>
-              <Box color={colors.grey[100]}>{transaction.date}</Box>
-              <Box
-                backgroundColor={colors.greenAccent[500]}
-                p="5px 10px"
-                borderRadius="4px"
-              >
-                ${transaction.cost}
-              </Box>
+                  <img
+                    src={`/class_icons/${name}.png`}
+                    style={{
+                      minWidth: "16px",
+                      opacity: dimmed ? "0.4" : "1",
+                    }}
+                  />
+                </Button>
+              );
+            })}
+          </Box>
+          {selectedClass && (
+            <Box display="flex" flexShrink="1" justifyContent="center">
+              {classSpecs[selectedClass].map((name) => {
+                const dimmed = selectedSpec && selectedSpec !== name;
+                const highlighted = selectedSpec && selectedSpec === name;
+                return (
+                  <Button
+                    key={`specButton${name}`}
+                    sx={{
+                      minWidth: "16px",
+                      maxWidth: "64px",
+                      backgroundColor: highlighted ? "#ffffff33" : "none",
+                      my: "5px",
+                    }}
+                    onClick={() => {
+                      setSelectedSpec(name);
+                    }}
+                  >
+                    <img
+                      src={`/spec_icons/${selectedClass}/${name}.png`}
+                      style={{
+                        minWidth: "16px",
+                        opacity: dimmed ? "0.4" : "1",
+                      }}
+                    />
+                  </Button>
+                );
+              })}
             </Box>
-          ))}
+          )}
+          {selectedSpec &&
+            error === null &&
+            isPending === false &&
+            isFetching === false && (
+              <CustomDataGrid
+                columns={data.msg["buildColumns"]}
+                data={data.msg["buildData"]}
+                rowIDCol={"actions"}
+                height={"60vh"}
+              />
+            )}
         </Box>
       </Box>
     </Box>

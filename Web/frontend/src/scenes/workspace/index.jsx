@@ -46,6 +46,7 @@ const Workspace = () => {
   const query = useQuery({
     queryKey: ["workspaceQueryWorkspace"],
     queryFn: () => workspaceAPI.get(),
+    refetchOnWindowFocus: false,
   });
 
   const handleTabChange = (event, newCategory) => {

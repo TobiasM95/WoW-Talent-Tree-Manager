@@ -1,7 +1,8 @@
 import { apiURL } from "../data/settings";
 
-const baseUrl = apiURL;
-const buildURL = baseUrl + "/build";
+const baseURL = apiURL;
+const buildURL = baseURL + "/build";
+const specialBuildURL = buildURL + "/special";
 
 function translateStatusToErrorMessage(status) {
   return "There was an error. Please try again.";
@@ -33,6 +34,19 @@ const buildAPI = {
       credentials: "include",
     };
     return fetch(`${buildURL}/${content_id}`, options)
+      .then(checkStatus)
+      .then(parseJSON)
+      .catch((error) => {
+        console.log("log client error " + error);
+        throw new Error("There was a client error during the login process.");
+      });
+  },
+  getSpecial(className, specName) {
+    const options = {
+      method: "GET",
+      credentials: "include",
+    };
+    return fetch(`${specialBuildURL}/${className}/${specName}`, options)
       .then(checkStatus)
       .then(parseJSON)
       .catch((error) => {

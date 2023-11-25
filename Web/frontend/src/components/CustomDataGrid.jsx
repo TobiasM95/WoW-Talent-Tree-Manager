@@ -94,6 +94,69 @@ const CustomDataGrid = ({ columns, data, rowIDCol, height }) => {
           </Box>
         );
       };
+    } else if (Object.hasOwn(item, "convertSecondActions")) {
+      item.renderCell = ({ row }) => {
+        return (
+          <Box display="flex" flexDirection={"row"} justifyContent={"center"}>
+            <Tooltip
+              title="View"
+              placement="left"
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor:
+                      theme.palette.mode === "dark"
+                        ? `${colors.primary[500]}`
+                        : "#fff",
+                    "& .MuiTooltip-arrow": {
+                      color: "common.black",
+                    },
+                    border: `1px solid ${colors.grey[100]}`,
+                    color: `${colors.grey[100]}`,
+                    fontSize: 12,
+                  },
+                },
+              }}
+            >
+              <IconButton
+                onClick={() => {
+                  viewActionButtonPressed(row.secondActions);
+                }}
+              >
+                <RemoveRedEyeOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip
+              title="Edit"
+              placement="right"
+              slotProps={{
+                tooltip: {
+                  sx: {
+                    bgcolor:
+                      theme.palette.mode === "dark"
+                        ? `${colors.primary[500]}`
+                        : "#fff",
+                    "& .MuiTooltip-arrow": {
+                      color: "common.black",
+                    },
+                    border: `1px solid ${colors.grey[100]}`,
+                    color: `${colors.grey[100]}`,
+                    fontSize: 12,
+                  },
+                },
+              }}
+            >
+              <IconButton
+                onClick={() => {
+                  editActionButtonPressed(row.secondActions);
+                }}
+              >
+                <EditOutlinedIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        );
+      };
     }
   });
 

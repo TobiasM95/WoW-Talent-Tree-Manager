@@ -53,7 +53,9 @@ def get_top_and_outlier_builds(session):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=11) as executor:
         build_futures = {}
-        for encounter_id, encounter_name in zip(encounter_ids, encounter_names):
+        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names))[
+            :2
+        ]:
             top_builds[encounter_id] = {"encounter_name": encounter_name}
             outlier_builds[encounter_id] = {"encounter_name": encounter_name}
             for class_name, spec_name in class_spec_combinations:
@@ -293,10 +295,12 @@ def save_top_and_outlier_builds(top_builds, outlier_builds):
                     tree_id,
                     None,
                     f"{classes_dict['encounter_name']} top {spec_name.capitalize()} {class_name.capitalize()} build",
+                    class_name.capitalize(),
+                    spec_name.capitalize(),
                     70,
                     True,
                     json.dumps(assigned_points),
-                    f"This is the top performing build for the encounter \"{classes_dict['encounter_name']}\" and the {spec_name.capitalize()} {class_name.capitalize()}",
+                    f"This is the top performing {spec_name.capitalize()} {class_name.capitalize()} build for the \"{classes_dict['encounter_name']}\" encounter.",
                 )
                 db_handler.create_preset_build(preset_build, "TopBuilds")
 
@@ -322,10 +326,12 @@ def save_top_and_outlier_builds(top_builds, outlier_builds):
                     tree_id,
                     None,
                     f"{classes_dict['encounter_name']} outlier {spec_name.capitalize()} {class_name.capitalize()} build",
+                    class_name.capitalize(),
+                    spec_name.capitalize(),
                     70,
                     True,
                     json.dumps(assigned_points),
-                    f"This is the outlier build for the encounter \"{classes_dict['encounter_name']}\" and the {spec_name.capitalize()} {class_name.capitalize()}",
+                    f"This is the outlier {spec_name.capitalize()} {class_name.capitalize()} build for the \"{classes_dict['encounter_name']}\" encounter.",
                 )
                 db_handler.create_preset_build(preset_build, "OutlierBuilds")
 
