@@ -3,6 +3,7 @@ import { Button, Typography, Tooltip } from "@mui/material";
 import { Box, useTheme } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { tokens } from "../../theme";
+import { useAuth } from "../../components/AuthProvider";
 import Header from "../../components/Header";
 import CustomDataGrid from "../../components/CustomDataGrid";
 import { classes, classSpecs } from "../../data/classData";
@@ -11,6 +12,7 @@ import { buildAPI } from "../../api/buildAPI";
 const Dashboard = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const { loginState } = useAuth();
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
   const [buildData, setBuildData] = useState(null);
@@ -28,7 +30,7 @@ const Dashboard = () => {
   }, [selectedClass]);
 
   useEffect(() => {
-    if (selectedClass && selectedSpec) {
+    if (loginState && selectedClass && selectedSpec) {
       refetch();
     }
   }, [selectedSpec]);
@@ -183,6 +185,7 @@ const Dashboard = () => {
             </Box>
           )}
           {selectedSpec &&
+            loginState === true &&
             error === null &&
             isPending === false &&
             isFetching === false &&
@@ -194,6 +197,11 @@ const Dashboard = () => {
                 height={"60vh"}
               />
             )}
+          {selectedSpec && loginState !== true && (
+            <Typography variant="h3" textAlign="center" sx={{ mb: "5px" }}>
+              Please log in to see the builds
+            </Typography>
+          )}
         </Box>
       </Box>
     </Box>
