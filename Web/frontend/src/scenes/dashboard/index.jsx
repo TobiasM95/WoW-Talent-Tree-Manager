@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button, Typography } from "@mui/material";
+import { Button, Typography, Tooltip } from "@mui/material";
 import { Box, useTheme } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { tokens } from "../../theme";
@@ -43,9 +43,35 @@ const Dashboard = () => {
           border={1}
           borderColor={colors.blueAccent[700]}
         >
-          <Typography variant="h3" textAlign="center" sx={{ my: "5px" }}>
-            Best and weird specs
-          </Typography>
+          <Tooltip
+            title={
+              <div style={{ whiteSpace: "pre-line" }}>
+                {
+                  "Best build is the rank 1 build on Warcraftlogs.com on Mythic difficulty.\nWeird build is the build in the top 100 that differs the most from all the other top 100 builds.\nBest build and weird build can be the same if all players run the exact same build or the weird build is rank 1"
+                }
+              </div>
+            }
+            slotProps={{
+              tooltip: {
+                sx: {
+                  bgcolor:
+                    theme.palette.mode === "dark"
+                      ? `${colors.primary[500]}`
+                      : "#fff",
+                  "& .MuiTooltip-arrow": {
+                    color: "common.black",
+                  },
+                  border: `1px solid ${colors.grey[100]}`,
+                  color: `${colors.grey[100]}`,
+                  fontSize: 14,
+                },
+              },
+            }}
+          >
+            <Typography variant="h3" textAlign="center" sx={{ my: "5px" }}>
+              Best and "weird" specs (?)
+            </Typography>
+          </Tooltip>
           <Box display="flex" flexShrink="1" justifyContent="center">
             {classes.map((name) => {
               const dimmed = selectedClass && selectedClass !== name;
