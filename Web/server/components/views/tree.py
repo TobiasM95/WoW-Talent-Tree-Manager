@@ -1,4 +1,5 @@
 from components.create_app import app, db_handler
+import os
 import json
 from typing import Union
 from database_handler import Workspace, Tree, Loadout, Build, Talent
@@ -67,6 +68,59 @@ def build(content_id: str) -> Response:
         return jsonify(content_id), 200
 
 
+@app.route("/build/special/<string:class_name>/<string:spec_name>", methods=["GET"])
+@jwt_required()
+def special_builds(class_name: str, spec_name: str) -> Response:
+    return (
+        jsonify(
+            {
+                "success": True,
+                "msg": get_special_builds_content_ids(class_name, spec_name),
+            }
+        ),
+        200,
+    )
+
+
+def get_special_builds_content_ids(class_name: str, spec_name: str) -> dict:
+    encounter_ids = json.loads(os.environ["WCL_ENCOUNTER_IDS"])
+    id_to_index = {id_value: index for index, id_value in enumerate(encounter_ids)}
+    encounter_names = json.loads(os.environ["WCL_ENCOUNTER_NAMES"])
+    encounter_dict = {x[0]: x[1] for x in zip(encounter_ids, encounter_names)}
+    (
+        top_build_content_ids,
+        outlier_build_content_ids,
+    ) = db_handler.get_preset_builds_content_ids(
+        class_name.capitalize(), spec_name.capitalize()
+    )
+    top_build_content_ids = sorted(
+        top_build_content_ids, key=lambda x: id_to_index[x[0]]
+    )
+    outlier_build_content_ids = sorted(
+        outlier_build_content_ids, key=lambda x: id_to_index[x[0]]
+    )
+    column_definitions: list[dict] = [
+        {"field": "encounter", "headerName": "Encounter", "flex": 1},
+        {"field": "actions", "headerName": "Best build", "convertActions": True},
+        {
+            "field": "secondActions",
+            "headerName": "Weird build",
+            "convertSecondActions": True,
+        },
+    ]
+    special_build_data: list[dict] = [
+        {
+            "encounter": encounter_dict[top_info[0]],
+            "actions": top_info[1],
+            "secondActions": outlier_info[1],
+        }
+        for top_info, outlier_info in zip(
+            top_build_content_ids, outlier_build_content_ids
+        )
+    ]
+    return {"buildColumns": column_definitions, "buildData": special_build_data}
+
+
 def get_tree_and_talent_descriptions(content_id: str) -> dict:
     is_imported, tree = find_root_tree(content_id)
     if tree is None:
@@ -81,6 +135,7 @@ def find_root_tree(content_id: str) -> tuple[Union[bool, None], Union[Tree, None
         return None, None
     while tree.name is None:
         is_imported = True
+        print(tree, tree.content_id, tree.name, tree.import_id)
         tree = db_handler.get_tree(tree.import_id, custom=None)
         if tree.import_id is None and tree.name is None:
             raise Exception(
@@ -198,13 +253,13 @@ def find_root_build(
     content_id: str,
 ) -> tuple[Union[bool, None], Union[Build, None], Union[str, None]]:
     is_build_imported: bool = False
-    build: Union[Build, None] = db_handler.get_build(content_id)
+    build: Union[Build, None] = db_handler.get_build(content_id, custom=None)
     if build is None:
         return None, None, None, None
     leaf_loadout_id: Union[str, None] = build.loadout_id
     while build.name is None:
         is_build_imported = True
-        build: Build = db_handler.get_build(build.import_id)
+        build: Build = db_handler.get_build(build.import_id, custom=None)
         if build.import_id is None and build.name is None:
             raise Exception(
                 f"Import ID and name None at the same time {build.content_id}"

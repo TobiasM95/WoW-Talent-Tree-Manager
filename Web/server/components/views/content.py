@@ -24,6 +24,7 @@ def content(content_id: str) -> Response:
     content_type: Union[str, None] = db_handler.validate_content_access(
         current_user.user_id, content_id
     )
+    print(content_type)
     if content_type is None:
         return (
             jsonify(

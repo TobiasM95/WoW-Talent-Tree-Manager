@@ -116,6 +116,8 @@ class PresetBuild:
         tree_id: str,
         loadout_id: Union[str, None],
         name: str,
+        class_name: str,
+        spec_name: str,
         level_cap: int,
         use_level_cap: bool,
         assigned_skills: Union[str, list[dict[int, int]]],
@@ -126,6 +128,8 @@ class PresetBuild:
         self.tree_id: str = tree_id
         self.loadout_id: Union[str, None] = loadout_id
         self.name: str = name
+        self.class_name: str = (class_name,)
+        self.spec_name: str = (spec_name,)
         self.level_cap: int = level_cap
         self.use_level_cap: bool = use_level_cap
         if type(assigned_skills) == str:
@@ -255,8 +259,8 @@ class DBHandler:
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, ImportID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, ImportID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS TopBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS OutlierBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS TopBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, ClassName TEXT, SpecName TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS OutlierBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, ClassName TEXT, SpecName TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Talents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTalents (ContentID TEXT, OrderID INTEGER, NodeID INTEGER, TalentType TEXT, Name TEXT, NameSwitch TEXT, Description TEXT, DescriptionSwitch TEXT, Row INTEGER, Column INTEGER, MaxPoints INTEGER, RequiredPoints INTEGER, PreFilled INTEGER, ParentIDs TEXT, ChildIDs TEXT, IconName TEXT, IconNameSwitch TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Likes (UserID TEXT, ContentID TEXT, Timestamp TEXT)"))
@@ -432,7 +436,22 @@ class DBHandler:
         )
         with self.engine.connect() as conn:
             res = conn.execute(text(q.get_sql())).first()
-        return res[0] if res is not None else None
+        if res is not None:
+            return res[0]
+        for content_type, table_name in zip(
+            ["TREE", "BUILD", "BUILD"], ["PresetTrees", "TopBuilds", "OutlierBuilds"]
+        ):
+            table: Table = Table(table_name)
+            q = (
+                Query.from_(table)
+                .select("ContentID")
+                .where((table.ContentID == content_id))
+            )
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).first()
+            if res is not None:
+                return content_type
+        return None
 
     def create_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
@@ -555,6 +574,19 @@ class DBHandler:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
+    def update_preset_trees(self, trees: list[Tree]) -> None:
+        table: Table = Table("PresetTrees")
+        with self.engine.connect() as conn:
+            for tree in trees:
+                q = (
+                    Query.update(table)
+                    .set(table.ClassTalents, tree.class_talents)
+                    .set(table.SpecTalents, tree.spec_talents)
+                    .where(table.Name == tree.name)
+                )
+                conn.execute(text(q.get_sql()))
+            conn.commit()
+
     def create_loadout(self, loadout: Loadout) -> None:
         q = Query.into("Loadouts").insert(
             loadout.content_id,
@@ -640,26 +672,82 @@ class DBHandler:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
-    def get_build(self, content_id: str) -> Union[Build, None]:
-        table: Table = Table("Builds")
-        q = (
-            Query.from_(table)
-            .select(
-                "ContentID",
-                "ImportID",
-                "TreeID",
-                "LoadoutID",
-                "Name",
-                "LevelCap",
-                "UseLevelCap",
-                "AssignedSkills",
-                "Description",
+    def get_build(
+        self, content_id: str, custom: Union[bool, None] = None
+    ) -> Union[Build, None]:
+        res = None
+        auto_custom = True
+        if custom == True or custom is None:
+            table: Table = Table("Builds")
+            q = (
+                Query.from_(table)
+                .select(
+                    "ContentID",
+                    "ImportID",
+                    "TreeID",
+                    "LoadoutID",
+                    "Name",
+                    "LevelCap",
+                    "UseLevelCap",
+                    "AssignedSkills",
+                    "Description",
+                )
+                .where((table.ContentID == content_id))
             )
-            .where((table.ContentID == content_id))
-        )
-        with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
-        return None if res is None else Build(*res)
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).first()
+        if custom == False or (custom is None and res is None):
+            table: Table = Table("TopBuilds")
+            auto_custom = False
+            q = (
+                Query.from_(table)
+                .select(
+                    "ContentID",
+                    "EncounterID",
+                    "TreeID",
+                    "LoadoutID",
+                    "Name",
+                    "ClassName",
+                    "SpecName",
+                    "LevelCap",
+                    "UseLevelCap",
+                    "AssignedSkills",
+                    "Description",
+                )
+                .where((table.ContentID == content_id))
+            )
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).first()
+        if (custom == False or custom is None) and res is None:
+            table: Table = Table("TopBuilds")
+            auto_custom = False
+            q = (
+                Query.from_(table)
+                .select(
+                    "ContentID",
+                    "EncounterID",
+                    "TreeID",
+                    "LoadoutID",
+                    "Name",
+                    "ClassName",
+                    "SpecName",
+                    "LevelCap",
+                    "UseLevelCap",
+                    "AssignedSkills",
+                    "Description",
+                )
+                .where((table.ContentID == content_id))
+            )
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).first()
+
+        if res is None:
+            return None
+        else:
+            if custom or auto_custom:
+                return Build(*res)
+            else:
+                return PresetBuild(*res)
 
     def update_build(self, build: Build) -> None:
         table: Table = Table("Builds")
@@ -685,6 +773,8 @@ class DBHandler:
             build.tree_id,
             build.loadout_id,
             build.name,
+            build.class_name,
+            build.spec_name,
             build.level_cap,
             build.use_level_cap,
             build.assigned_skills,
@@ -715,6 +805,8 @@ class DBHandler:
                 "TreeID",
                 "LoadoutID",
                 "Name",
+                "ClassName",
+                "SpecName",
                 "LevelCap",
                 "UseLevelCap",
                 "AssignedSkills",
@@ -726,6 +818,22 @@ class DBHandler:
             res = conn.execute(text(q.get_sql())).first()
         return None if res is None else PresetBuild(*res)
 
+    def get_preset_builds_content_ids(
+        self, class_name: str, spec_name: str
+    ) -> tuple[list[int, str], list[int, str]]:
+        builds_content_ids: dict[str, str] = {}
+        for table_name in ["TopBuilds", "OutlierBuilds"]:
+            table: Table = Table(table_name)
+            q = (
+                Query.from_(table)
+                .select("EncounterID", "ContentID")
+                .where((table.ClassName == class_name) & (table.SpecName == spec_name))
+            )
+            with self.engine.connect() as conn:
+                res = conn.execute(text(q.get_sql())).all()
+            builds_content_ids[table_name] = res
+        return builds_content_ids["TopBuilds"], builds_content_ids["OutlierBuilds"]
+
     def update_build(
         self, build: PresetBuild, table_name: Literal["TopBuilds", "OutlierBuilds"]
     ) -> None:
@@ -733,6 +841,8 @@ class DBHandler:
         q = (
             Query.update(table)
             .set(table.Name, build.name)
+            .set(table.ClassName, build.class_name)
+            .set(table.SpecName, build.spec_name)
             .set(table.EncounterID, build.encounter_id)
             .set(table.LevelCap, build.level_cap)
             .set(table.UseLevelCap, build.use_level_cap)
