@@ -255,7 +255,7 @@ def find_root_build(
     is_build_imported: bool = False
     build: Union[Build, None] = db_handler.get_build(content_id, custom=None)
     if build is None:
-        return None, None, None, None
+        return None, None, None
     leaf_loadout_id: Union[str, None] = build.loadout_id
     while build.name is None:
         is_build_imported = True

@@ -180,6 +180,9 @@ const TreeViewer = ({ treeData }) => {
         snapToGrid
         fitView
         nodesDraggable={false}
+        zoomOnScroll={false}
+        panOnScroll={false}
+        preventScrolling={false}
       >
         <Controls
           showInteractive={false}

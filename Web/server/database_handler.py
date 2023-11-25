@@ -719,7 +719,7 @@ class DBHandler:
             with self.engine.connect() as conn:
                 res = conn.execute(text(q.get_sql())).first()
         if (custom == False or custom is None) and res is None:
-            table: Table = Table("TopBuilds")
+            table: Table = Table("OutlierBuilds")
             auto_custom = False
             q = (
                 Query.from_(table)
