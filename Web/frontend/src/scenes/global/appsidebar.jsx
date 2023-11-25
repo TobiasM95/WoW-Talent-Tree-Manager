@@ -197,61 +197,6 @@ const AppSidebar = () => {
                   />
                 </Box>
               )}
-              <Typography
-                variant="h6"
-                color={colors.grey[300]}
-                sx={{ m: "15px 0 5px 20px" }}
-              >
-                DEBUG
-              </Typography>
-              <Item
-                title="Team"
-                to="/team"
-                icon={<PersonOutlinedIcon />}
-                selected={selected}
-                setSelected={setSelected}
-                isCollapsed={isCollapsed}
-              />
-              <Item
-                title="Profile Form"
-                to="/form"
-                icon={<PersonOutlinedIcon />}
-                selected={selected}
-                setSelected={setSelected}
-                isCollapsed={isCollapsed}
-              />
-              <Item
-                title="FAQ Page"
-                to="/faq"
-                icon={<HelpOutlineOutlinedIcon />}
-                selected={selected}
-                setSelected={setSelected}
-                isCollapsed={isCollapsed}
-              />
-              <Item
-                title="Bar Chart"
-                to="/bar"
-                icon={<BarChartOutlinedIcon />}
-                selected={selected}
-                setSelected={setSelected}
-                isCollapsed={isCollapsed}
-              />
-              <Item
-                title="Tree View"
-                to="/tree"
-                icon={<AccountTreeIcon />}
-                selected={selected}
-                setSelected={setSelected}
-                isCollapsed={isCollapsed}
-              />
-              <Item
-                title="Build View"
-                to="/build"
-                icon={<AccountTreeIcon />}
-                selected={selected}
-                setSelected={setSelected}
-                isCollapsed={isCollapsed}
-              />
             </Box>
           </Menu>
         </div>
@@ -305,7 +250,12 @@ const AppSidebar = () => {
           )}
           {isCollapsed && (
             <Box mb="25px">
-              <Box display="flex" justifyContent="center" alignItems="center">
+              <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+              >
                 <a
                   href="https://github.com/TobiasM95/WoW-Talent-Tree-Manager"
                   target="_blank"

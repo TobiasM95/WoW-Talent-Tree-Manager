@@ -7,13 +7,9 @@ import Topbar from "../global/topbar";
 import Dashboard from "../dashboard";
 import Workspace from "../workspace";
 import Viewer from "../viewer";
+import Editor from "../editor";
+import Analysis from "../analysis";
 import AppSidebar from "../global/appsidebar";
-import Team from "../team";
-import Form from "../form";
-import FAQ from "../faq";
-import Bar from "../bar";
-import Tree from "../tree";
-import Build from "../build";
 import Login from "../login";
 import Activation from "../activation";
 
@@ -82,7 +78,7 @@ const AppDisplay = () => {
             path="/editor"
             element={
               <ProtectedRoute>
-                <></>
+                <Editor></Editor>
               </ProtectedRoute>
             }
           />
@@ -90,16 +86,10 @@ const AppDisplay = () => {
             path="/analysis"
             element={
               <ProtectedRoute>
-                <></>
+                <Analysis></Analysis>
               </ProtectedRoute>
             }
           />
-          <Route path="/team" element={<Team />} />
-          <Route path="/form" element={<Form />} />
-          <Route path="/faq" element={<FAQ />} />
-          <Route path="/bar" element={<Bar />} />
-          <Route path="/tree" element={<Tree />} />
-          <Route path="/build" element={<Build />} />
           <Route path="/login" element={<Login />} />
           <Route path="/activation/:activationID?" element={<Activation />} />
         </Routes>
