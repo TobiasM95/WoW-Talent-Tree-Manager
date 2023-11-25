@@ -3,27 +3,27 @@ from tqdm import tqdm
 from PIL import Image
 import numpy as np
 
-SOURCE_DIR_PATH: str = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..",
-    "..",
-    "..",
-    "GUI",
-    "resources",
-    "updatertarget",
-)
 
-DESTINATION_DIR_PATH: str = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "..",
-    "..",
-    "frontend",
-    "public",
-    "preset_icons",
-)
+def extract_icons() -> None:
+    SOURCE_DIR_PATH: str = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "..",
+        "..",
+        "GUI",
+        "resources",
+        "updatertarget",
+    )
 
+    DESTINATION_DIR_PATH: str = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "..",
+        "frontend",
+        "public",
+        "preset_icons",
+    )
 
-def main() -> None:
     with open(os.path.join(SOURCE_DIR_PATH, "icons_packed_meta.txt"), "r") as meta_file:
         meta_data: list[str] = [l.strip() for l in meta_file.readlines()]
     image_width: int = int(meta_data[0])
@@ -43,4 +43,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    extract_icons()

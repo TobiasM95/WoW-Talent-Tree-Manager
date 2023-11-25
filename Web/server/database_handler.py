@@ -70,6 +70,32 @@ class Tree:
             self.spec_talents: str = json.dumps(spec_talents)
 
 
+class PresetTree:
+    def __init__(
+        self,
+        content_id: str,
+        class_name: str,
+        spec_name: str,
+        name: str,
+        description: str,
+        class_talents: Union[str, list[str]],
+        spec_talents: Union[str, list[str]],
+    ):
+        self.content_id: str = content_id
+        self.class_name: str = class_name
+        self.spec_name: str = spec_name
+        self.name: str = name
+        self.description: str = description
+        if type(class_talents) == str:
+            self.class_talents = class_talents
+        else:
+            self.class_talents: str = json.dumps(class_talents)
+        if type(spec_talents) == str:
+            self.spec_talents = spec_talents
+        else:
+            self.spec_talents: str = json.dumps(spec_talents)
+
+
 class Loadout:
     def __init__(
         self, content_id: str, import_id: str, tree_id: str, name: str, description: str
@@ -256,7 +282,7 @@ class DBHandler:
             conn.execute(text("CREATE TABLE IF NOT EXISTS Activations (AltUserID TEXT, ActivationID TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Workspaces (UserID TEXT, ContentType TEXT, ContentID TEXT, Public INTEGER DEFAULT 0)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Trees (ContentID TEXT, ImportID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
+            conn.execute(text("CREATE TABLE IF NOT EXISTS PresetTrees (ContentID TEXT, ClassName TEXT, SpecName TEXT, Name TEXT, Description TEXT, ClassTalents TEXT, SpecTalents TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Loadouts (ContentID TEXT, ImportID TEXT, TreeID TEXT, Name TEXT, Description TEXT)"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS Builds (ContentID TEXT, ImportID TEXT, TreeID TEXT, LoadoutID TEXT, Name TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
             conn.execute(text("CREATE TABLE IF NOT EXISTS TopBuilds (ContentID TEXT, EncounterID INTEGER, TreeID TEXT, LoadoutID TEXT, Name TEXT, ClassName TEXT, SpecName TEXT, LevelCap INTEGER, UseLevelCap INTEGER, AssignedSkills TEXT, Description TEXT DEFAULT \"\")"))
@@ -476,7 +502,9 @@ class DBHandler:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
-    def create_trees(self, trees: list[Tree], custom: bool = True) -> None:
+    def create_trees(
+        self, trees: list[Union[Tree, PresetTree]], custom: bool = True
+    ) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
         with self.engine.connect() as conn:
             for tree in trees:
@@ -492,6 +520,8 @@ class DBHandler:
                 else:
                     q = Query.into(table).insert(
                         tree.content_id,
+                        tree.class_name,
+                        tree.spec_name,
                         tree.name,
                         tree.description,
                         tree.class_talents,
@@ -574,7 +604,7 @@ class DBHandler:
             conn.execute(text(q.get_sql()))
             conn.commit()
 
-    def update_preset_trees(self, trees: list[Tree]) -> None:
+    def update_preset_trees(self, trees: list[PresetTree]) -> None:
         table: Table = Table("PresetTrees")
         with self.engine.connect() as conn:
             for tree in trees:

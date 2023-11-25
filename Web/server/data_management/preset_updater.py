@@ -5,24 +5,15 @@
 import os
 import uuid
 from typing import Union
-from sqlalchemy import create_engine
-from database_handler import DBHandler, Tree, Talent
-from pypika import Table, Query, Parameter
+from database_handler import DBHandler, PresetTree, Talent
+from pypika import Query
 import json
+from components.create_app import db_handler
 
 
-def main() -> str:
-    db_path: str = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "..",
-        "database",
-        "data.sqlite",
-    )
-    engine = create_engine(f"sqlite+pysqlite:///{db_path}", echo=False)
-    db_handler: DBHandler = DBHandler(engine)
-
+def update_presets() -> str:
     presets: list[str] = load_presets()
-    presets_converted: tuple[list[Tree], list[Talent]] = convert_presets(presets)
+    presets_converted: tuple[list[PresetTree], list[Talent]] = convert_presets(presets)
     update_db(db_handler, presets_converted)
 
 
@@ -42,8 +33,8 @@ def load_presets() -> list[str]:
     return presets
 
 
-def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
-    trees: list[Tree] = []
+def convert_presets(presets: list[str]) -> tuple[list[PresetTree], list[Talent]]:
+    trees: list[PresetTree] = []
     talents: list[Talent] = []
 
     combinations: list[list[str]] = []
@@ -53,9 +44,10 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
         if desc == "custom":
             tree_parts: list[str] = preset.split(";")
             meta_information: list[str] = tree_parts[0].split(":")
-            tree: Tree = Tree(
+            tree: PresetTree = PresetTree(
                 str(uuid.uuid4()),
-                None,
+                "No class",
+                "No spec",
                 restore_string(meta_information[3]),
                 ". ".join(restore_string(meta_information[4]).split(".")[:2]),
                 [],
@@ -79,9 +71,10 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
         spec_talents: list[str] = []
 
         # Class tree part
+        meta_information: list[str] = []
         for is_spec_tree, tree_str in enumerate([class_tree_str, spec_tree_str]):
             tree_parts: list[str] = tree_str.split(";")
-            meta_information: list[str] = tree_parts[0].split(":")
+            meta_information = tree_parts[0].split(":")
             tree_talents: list[str] = tree_parts[1:]
             for tree_talent_str in tree_talents:
                 if ":" not in tree_talent_str or len(tree_talent_str) < 10:
@@ -132,9 +125,12 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
                 else:
                     spec_talents.append(tree_talent.content_id)
 
-        tree: Tree = Tree(
+        class_name = meta_information[1].split("_")[0].capitalize()
+        spec_name = meta_information[1].split("_")[-1].capitalize()
+        tree: PresetTree = PresetTree(
             str(uuid.uuid4()),
-            None,
+            class_name,
+            spec_name,
             restore_string(meta_information[3]),
             restore_string(meta_information[4]).split(".")[0] + ".",
             class_talents=class_talents,
@@ -146,11 +142,15 @@ def convert_presets(presets: list[str]) -> tuple[list[Tree], list[Talent]]:
 
 
 def update_db(
-    db_handler: DBHandler, presets_converted: tuple[list[Tree], list[Talent]]
+    db_handler: DBHandler,
+    presets_converted: tuple[list[PresetTree], list[Talent]],
+    recreate_trees: bool = False,
 ) -> None:
-    db_handler.execute_query(Query.from_("PresetTrees").delete())
     db_handler.execute_query(Query.from_("PresetTalents").delete())
     db_handler.create_talents(presets_converted[1], custom=False)
+    if recreate_trees:
+        db_handler.execute_query(Query.from_("PresetTrees").delete())
+        db_handler.create_trees(presets_converted[0], False)
     db_handler.update_preset_trees(presets_converted[0])
 
 
@@ -175,4 +175,4 @@ def restore_string(orig: Union[str, None]) -> str:
 
 
 if __name__ == "__main__":
-    main()
+    update_presets()
