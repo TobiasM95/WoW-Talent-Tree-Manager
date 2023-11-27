@@ -141,20 +141,65 @@ const Viewer = () => {
   }
   return (
     <Box m="20px" height="88dvh" overflow="auto">
-      <Tabs
-        value={category}
-        onChange={handleTabChange}
-        centered
-        sx={{ mb: "20px" }}
-      >
-        <Tab label="Tree" value="TREE" />
-        {data.msg.contentType !== "TREE" && (
-          <Tab label="Loadout" value="LOADOUT" />
-        )}
-        {data.msg.contentType === "BUILD" && (
-          <Tab label="Build" value="BUILD" />
-        )}
-      </Tabs>
+      <Box display="flex" justifyContent="space-between">
+        <Box display="flex">
+          <Button
+            sx={{
+              borderColor: colors.grey[100],
+              color: colors.grey[100],
+              height: "50%",
+              mx: "10px",
+            }}
+            variant="outlined"
+            onClick={() => {
+              navigate("/viewer");
+            }}
+          >
+            <Typography>{"<"} Back to menu</Typography>
+          </Button>
+          <Button
+            sx={{
+              borderColor: colors.greenAccent[500],
+              color: colors.greenAccent[500],
+              height: "50%",
+            }}
+            variant="outlined"
+            //onClick={buttonLogout}
+          >
+            <Typography>Import to Workspace</Typography>
+          </Button>
+        </Box>
+        <Tabs
+          value={category}
+          onChange={handleTabChange}
+          centered
+          sx={{ mb: "20px" }}
+        >
+          <Tab label="Tree" value="TREE" />
+          {data.msg.contentType !== "TREE" && (
+            <Tab label="Loadout" value="LOADOUT" />
+          )}
+          {data.msg.contentType === "BUILD" && (
+            <Tab label="Build" value="BUILD" />
+          )}
+        </Tabs>
+        <Box display="flex" visibility="hidden">
+          <Button
+            sx={{
+              mx: "10px",
+            }}
+            variant="outlined"
+          >
+            <Typography>{"<"} Back to menu</Typography>
+          </Button>
+          <Button
+            //variant outlined is necessary
+            variant="outlined"
+          >
+            <Typography>Import to Workspace</Typography>
+          </Button>
+        </Box>
+      </Box>
       {category === "TREE" && (
         <Fragment>
           <Box

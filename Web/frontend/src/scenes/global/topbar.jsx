@@ -1,6 +1,6 @@
 import { Box, Button, IconButton, Typography, useTheme } from "@mui/material";
-import { useContext } from "react";
-import { NavLink } from "react-router-dom";
+import { useContext, useState, useEffect, useRef } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { ColorModeContext, tokens } from "../../theme";
 import { useAuth } from "../../components/AuthProvider";
 import { InputBase } from "@mui/material";
@@ -18,6 +18,18 @@ const Topbar = () => {
 
   const { loginState, setLogout } = useAuth();
 
+  const navigate = useNavigate();
+  const searchIDRef = useRef();
+  const [searchID, setSearchID] = useState("");
+  const handleSearchChange = (event) => {
+    setSearchID(event.target.value);
+  };
+  const handleSearchSubmit = () => {
+    navigate(`/viewer/${searchID}`);
+    setSearchID("");
+    searchIDRef.current.value = "";
+  };
+
   const buttonLogout = async () => {
     const error_information = await setLogout();
     console.log("logout status", error_information);
@@ -26,16 +38,25 @@ const Topbar = () => {
   return (
     <Box display="flex" justifyContent="space-between" p={2} height="7dvh">
       {/* SEARCHBAR*/}
-      <Box
-        display="flex"
-        backgroundColor={colors.primary[400]}
-        borderRadius="10px"
-      >
-        <InputBase sx={{ ml: 2, flex: 1 }} placeholder="Search" />
-        <IconButton type="button" sx={{ p: 1 }}>
-          <SearchIcon />
-        </IconButton>
-      </Box>
+      {loginState === true && (
+        <Box
+          display="flex"
+          backgroundColor={colors.primary[400]}
+          borderRadius="10px"
+        >
+          <InputBase
+            sx={{ ml: 2, flex: 1 }}
+            placeholder="Search"
+            onChange={handleSearchChange}
+            inputRef={searchIDRef}
+          />
+          <IconButton type="button" sx={{ p: 1 }} onClick={handleSearchSubmit}>
+            <SearchIcon />
+          </IconButton>
+        </Box>
+      )}
+      <Box></Box>
+
       {/* ICONS */}
       <Box display="flex">
         {loginState === true && (
