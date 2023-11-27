@@ -5,6 +5,7 @@ import { Box, CircularProgress, Typography, Stack } from "@mui/material";
 import ProtectedRoute from "../../components/ProtectedRoute";
 import Topbar from "../global/topbar";
 import Dashboard from "../dashboard";
+import Configurator from "../configurator";
 import Workspace from "../workspace";
 import Viewer from "../viewer";
 import Editor from "../editor";
@@ -57,7 +58,7 @@ const AppDisplay = () => {
         <Topbar />
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/configurator" element={<></>} />
+          <Route path="/configurator" element={<Configurator />} />
           <Route
             path="/workspace"
             element={
