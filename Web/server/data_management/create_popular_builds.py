@@ -53,7 +53,9 @@ def get_top_and_outlier_builds(session):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=11) as executor:
         build_futures = {}
-        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names)):
+        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names))[
+            :1
+        ]:
             top_builds[encounter_id] = {"encounter_name": encounter_name}
             outlier_builds[encounter_id] = {"encounter_name": encounter_name}
             for class_name, spec_name in class_spec_combinations:
@@ -185,7 +187,11 @@ query {{
     for player_ranking in player_rankings:
         top_100_node_ids.append(
             {
-                talent_id_to_node_id_dict[talent["talentID"]]: talent["points"]
+                # see comment in get_talent_id_to_node_id_dict() function for info
+                # about the final indices 0 and 1
+                talent_id_to_node_id_dict[talent["talentID"]][0]: (
+                    talent["points"] + talent_id_to_node_id_dict[talent["talentID"]][1]
+                )
                 for talent in player_ranking["talents"]
             }
         )
@@ -197,13 +203,18 @@ def get_talent_id_to_node_id_dict():
         "https://www.raidbots.com/static/data/live/talents.json"
     ).json()
     talent_id_to_node_id_dict = {}
+    # use enumerate to get the index value of the "entries" field
+    # active and passive talents have only one entry and i is 0
+    # switch talents have 2 entries and the second switch talent get's i = 1
+    # we add this later to the points spent to assign 2 if the second switch talent
+    # is takent and 0 otherwise and don't change active and passive counts at all
     for class_spec_info in tree_info_json:
         for class_node in class_spec_info["classNodes"]:
-            for entry in class_node["entries"]:
-                talent_id_to_node_id_dict[entry["id"]] = class_node["id"]
+            for i, entry in enumerate(class_node["entries"]):
+                talent_id_to_node_id_dict[entry["id"]] = [class_node["id"], i]
         for spec_node in class_spec_info["specNodes"]:
-            for entry in spec_node["entries"]:
-                talent_id_to_node_id_dict[entry["id"]] = spec_node["id"]
+            for i, entry in enumerate(spec_node["entries"]):
+                talent_id_to_node_id_dict[entry["id"]] = [spec_node["id"], i]
     return talent_id_to_node_id_dict
 
 
