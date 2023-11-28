@@ -82,6 +82,33 @@ def special_builds(class_name: str, spec_name: str) -> Response:
     )
 
 
+@app.route("/tree/preset/<string:class_name>/<string:spec_name>")
+@jwt_required()
+def get_preset_tree_content_id(class_name: str, spec_name: str) -> Response:
+    content_id: Union[str, None] = db_handler.get_preset_tree_content_id(
+        class_name.capitalize(), spec_name.capitalize()
+    )
+    if content_id is None:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "msg": f"No preset tree content id for {class_name} {spec_name} found",
+                }
+            ),
+            200,
+        )
+    return (
+        jsonify(
+            {
+                "success": True,
+                "msg": content_id,
+            }
+        ),
+        200,
+    )
+
+
 def get_special_builds_content_ids(class_name: str, spec_name: str) -> dict:
     encounter_ids = json.loads(os.environ["WCL_ENCOUNTER_IDS"])
     id_to_index = {id_value: index for index, id_value in enumerate(encounter_ids)}

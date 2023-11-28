@@ -10,24 +10,29 @@ import {
   Tabs,
   Tab,
   CircularProgress,
+  Tooltip,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
-import { useRef, useState, Fragment } from "react";
+import { useRef, useState, Fragment, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { tokens } from "../../theme";
 import CustomAccordion from "../../components/CustomAccordion";
 import BuildViewer from "../../components/tree_components/BuildViewer";
 import TreeViewer from "../../components/tree_components/TreeViewer";
 import { contentAPI } from "../../api/contentAPI";
+import { treeAPI } from "../../api/treeAPI";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckIcon from "@mui/icons-material/Check";
 import ClearIcon from "@mui/icons-material/Clear";
+import { classes, classSpecs } from "../../data/classData";
 import MarkdownTextBox from "../../components/MarkdownTextBox";
 import CustomDataGrid from "../../components/CustomDataGrid";
 
 const Viewer = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedSpec, setSelectedSpec] = useState(null);
   const { contentID } = useParams();
   const contentIDInputRef = useRef("");
   const navigate = useNavigate();
@@ -37,7 +42,12 @@ const Viewer = () => {
     setCategory(newCategory);
   };
 
-  const { isPending, isLoading, isFetching, error, data } = useQuery({
+  const {
+    isPending: viewerContentIsPending,
+    isFetching: viewerContentIsFetching,
+    error: viewerContentError,
+    data: viewerContentData,
+  } = useQuery({
     queryKey: ["viewerQueryContent" + contentID],
     queryFn: () =>
       contentAPI.get(contentID).then((response) => {
@@ -46,6 +56,34 @@ const Viewer = () => {
       }),
     refetchOnWindowFocus: false,
   });
+
+  const {
+    isPending: presetTreeIDIsPending,
+    isLoading: presetTreeIDIsLoading,
+    isFetching: presetTreeIDIsFetching,
+    error: presetTreeIDError,
+    data: presetTreeIDData,
+    refetch: presetTreeIDRefetch,
+  } = useQuery({
+    queryKey: ["presetTreeContentIDQuery"],
+    queryFn: () =>
+      treeAPI
+        .getPresetTreeContentID(selectedClass, selectedSpec)
+        .then((response) => {
+          if (response.success === true) {
+            navigate(`/viewer/${response.msg}`);
+          }
+          return {};
+        }),
+    refetchOnWindowFocus: false,
+    enabled: false,
+    retry: false,
+  });
+  useEffect(() => {
+    if (selectedClass && selectedSpec) {
+      presetTreeIDRefetch();
+    }
+  }, [selectedSpec]);
 
   if (!contentID) {
     return (
@@ -113,11 +151,113 @@ const Viewer = () => {
             ),
           }}
         />
+        <Divider style={{ width: "10%" }}>or</Divider>
+        <Box display="flex" flexShrink="1" justifyContent="center">
+          {classes.map((name) => {
+            const dimmed = selectedClass && selectedClass !== name;
+            const highlighted = selectedClass && selectedClass === name;
+            return (
+              <Tooltip
+                title={name.charAt(0).toUpperCase() + name.slice(1)}
+                key={`classButton${name}tooltip`}
+                slotProps={{
+                  tooltip: {
+                    sx: {
+                      bgcolor:
+                        theme.palette.mode === "dark"
+                          ? `${colors.primary[500]}`
+                          : "#fff",
+                      "& .MuiTooltip-arrow": {
+                        color: "common.black",
+                      },
+                      border: `1px solid ${colors.grey[100]}`,
+                      color: `${colors.grey[100]}`,
+                      fontSize: 14,
+                    },
+                  },
+                }}
+              >
+                <Button
+                  key={`classButton${name}`}
+                  sx={{
+                    minWidth: "16px",
+                    maxWidth: "64px",
+                    backgroundColor: highlighted ? "#ffffff33" : "none",
+                    my: "5px",
+                  }}
+                  onClick={() => {
+                    setSelectedClass(name);
+                    setSelectedSpec(null);
+                  }}
+                >
+                  <img
+                    src={`/class_icons/${name}.png`}
+                    style={{
+                      minWidth: "16px",
+                      opacity: dimmed ? "0.4" : "1",
+                    }}
+                  />
+                </Button>
+              </Tooltip>
+            );
+          })}
+        </Box>
+        {selectedClass && (
+          <Box display="flex" flexShrink="1" justifyContent="center">
+            {classSpecs[selectedClass].map((name) => {
+              const dimmed = selectedSpec && selectedSpec !== name;
+              const highlighted = selectedSpec && selectedSpec === name;
+              return (
+                <Tooltip
+                  title={name.charAt(0).toUpperCase() + name.slice(1)}
+                  key={`specButton${name}tooltip`}
+                  slotProps={{
+                    tooltip: {
+                      sx: {
+                        bgcolor:
+                          theme.palette.mode === "dark"
+                            ? `${colors.primary[500]}`
+                            : "#fff",
+                        "& .MuiTooltip-arrow": {
+                          color: "common.black",
+                        },
+                        border: `1px solid ${colors.grey[100]}`,
+                        color: `${colors.grey[100]}`,
+                        fontSize: 14,
+                      },
+                    },
+                  }}
+                >
+                  <Button
+                    key={`specButton${name}`}
+                    sx={{
+                      minWidth: "16px",
+                      maxWidth: "64px",
+                      backgroundColor: highlighted ? "#ffffff33" : "none",
+                      my: "5px",
+                    }}
+                    onClick={() => {
+                      setSelectedSpec(name);
+                    }}
+                  >
+                    <img
+                      src={`/spec_icons/${selectedClass}/${name}.png`}
+                      style={{
+                        minWidth: "16px",
+                        opacity: dimmed ? "0.4" : "1",
+                      }}
+                    />
+                  </Button>
+                </Tooltip>
+              );
+            })}
+          </Box>
+        )}
       </Box>
     );
   }
 
-  if (isPending || isFetching) {
+  if (viewerContentIsPending || viewerContentIsFetching) {
     return (
       <Box
         height="75vh"
@@ -130,11 +270,12 @@ const Viewer = () => {
       </Box>
     );
   }
-  if (error || !data.success) {
+  if (viewerContentError || !viewerContentData.success) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center">
         <Typography color={colors.redAccent[400]}>
-          There was an error fetching your content. Please try again later.
+          There was an viewerContentError fetching your content. Please try
+          again later.
         </Typography>
       </Box>
     );
@@ -176,10 +317,10 @@ const Viewer = () => {
           sx={{ mb: "20px" }}
         >
           <Tab label="Tree" value="TREE" />
-          {data.msg.contentType !== "TREE" && (
+          {viewerContentData.msg.contentType !== "TREE" && (
             <Tab label="Loadout" value="LOADOUT" />
           )}
-          {data.msg.contentType === "BUILD" && (
+          {viewerContentData.msg.contentType === "BUILD" && (
             <Tab label="Build" value="BUILD" />
           )}
         </Tabs>
@@ -221,7 +362,7 @@ const Viewer = () => {
               border={1}
               borderColor={colors.blueAccent[700]}
             >
-              <TreeViewer treeData={data.msg.tree.classTalents} />
+              <TreeViewer treeData={viewerContentData.msg.tree.classTalents} />
             </Box>
             <Box
               gridColumn="span 6"
@@ -234,7 +375,7 @@ const Viewer = () => {
               border={1}
               borderColor={colors.blueAccent[700]}
             >
-              <TreeViewer treeData={data.msg.tree.specTalents} />
+              <TreeViewer treeData={viewerContentData.msg.tree.specTalents} />
             </Box>
           </Box>
           <Box mt="10px">
@@ -242,19 +383,29 @@ const Viewer = () => {
               summary={"Tree details  (click to expand)"}
               content={
                 <Fragment>
-                  <Typography variant="h3">{data.msg.tree.name}</Typography>
+                  <Typography variant="h3">
+                    {viewerContentData.msg.tree.name}
+                  </Typography>
                   <Typography>
                     Number of talents (class / spec):{" "}
-                    {Object.keys(data.msg.tree.classTalents).length} /{" "}
-                    {Object.keys(data.msg.tree.specTalents).length}
+                    {
+                      Object.keys(viewerContentData.msg.tree.classTalents)
+                        .length
+                    }{" "}
+                    /{" "}
+                    {Object.keys(viewerContentData.msg.tree.specTalents).length}
                   </Typography>
                   <Box display="flex" flexDirection="row">
                     <Typography>Imported:</Typography>
-                    {data.msg.tree.isImported ? <CheckIcon /> : <ClearIcon />}
+                    {viewerContentData.msg.tree.isImported ? (
+                      <CheckIcon />
+                    ) : (
+                      <ClearIcon />
+                    )}
                   </Box>
                   <Typography>Description:</Typography>
                   <MarkdownTextBox
-                    text={data.msg.tree.description}
+                    text={viewerContentData.msg.tree.description}
                     defaultText="No description set"
                   />
                 </Fragment>
@@ -273,7 +424,7 @@ const Viewer = () => {
             gap="20px"
             height="80vh"
           >
-            {data.msg.loadout ? (
+            {viewerContentData.msg.loadout ? (
               <Fragment>
                 <Box
                   gridColumn="span 8"
@@ -289,17 +440,19 @@ const Viewer = () => {
                   overflow="auto"
                   height="80vh"
                 >
-                  <Typography variant="h3">{data.msg.loadout.name}</Typography>
+                  <Typography variant="h3">
+                    {viewerContentData.msg.loadout.name}
+                  </Typography>
                   <Typography>
-                    Tree name: {data.msg.loadout.treeName}
+                    Tree name: {viewerContentData.msg.loadout.treeName}
                   </Typography>
                   <Typography>
                     Number of builds in this loadout:{" "}
-                    {Object.keys(data.msg.loadout.builds).length}
+                    {Object.keys(viewerContentData.msg.loadout.builds).length}
                   </Typography>
                   <Box display="flex" flexDirection="row">
                     <Typography>Imported:</Typography>
-                    {data.msg.loadout.isImported ? (
+                    {viewerContentData.msg.loadout.isImported ? (
                       <CheckIcon />
                     ) : (
                       <ClearIcon />
@@ -308,7 +461,7 @@ const Viewer = () => {
                   <Typography>Description:</Typography>
                   <Box width="100%">
                     <MarkdownTextBox
-                      text={data.msg.loadout.description}
+                      text={viewerContentData.msg.loadout.description}
                       defaultText="No description set"
                     />
                   </Box>
@@ -326,8 +479,8 @@ const Viewer = () => {
                     Builds in this Loadout:
                   </Typography>
                   <CustomDataGrid
-                    columns={data.msg.loadout.builds.columns}
-                    data={data.msg.loadout.builds.rows}
+                    columns={viewerContentData.msg.loadout.builds.columns}
+                    data={viewerContentData.msg.loadout.builds.rows}
                     rowIDCol={"actions"}
                     height={"72vh"}
                   />
@@ -371,8 +524,8 @@ const Viewer = () => {
               borderColor={colors.blueAccent[700]}
             >
               <BuildViewer
-                treeData={data.msg.tree.classTalents}
-                assignedSkills={data.msg.build.assignedSkills}
+                treeData={viewerContentData.msg.tree.classTalents}
+                assignedSkills={viewerContentData.msg.build.assignedSkills}
                 isClassTree={true}
               />
             </Box>
@@ -389,8 +542,8 @@ const Viewer = () => {
               height="70vh"
             >
               <BuildViewer
-                treeData={data.msg.tree.specTalents}
-                assignedSkills={data.msg.build.assignedSkills}
+                treeData={viewerContentData.msg.tree.specTalents}
+                assignedSkills={viewerContentData.msg.build.assignedSkills}
                 isClassTree={false}
               />
             </Box>
@@ -400,42 +553,50 @@ const Viewer = () => {
               summary={"Build details  (click to expand)"}
               content={
                 <Fragment>
-                  <Typography variant="h3">{data.msg.build.name}</Typography>
+                  <Typography variant="h3">
+                    {viewerContentData.msg.build.name}
+                  </Typography>
                   <Typography>
                     Assigned skillpoints (class / spec):{" "}
-                    {Object.values(data.msg.build.assignedSkills[0]).reduce(
-                      (accumulator, currentValue) => {
-                        return accumulator + currentValue;
-                      },
-                      0
-                    ) -
-                      Object.values(data.msg.tree.classTalents).reduce(
+                    {Object.values(
+                      viewerContentData.msg.build.assignedSkills[0]
+                    ).reduce((accumulator, currentValue) => {
+                      return accumulator + currentValue;
+                    }, 0) -
+                      Object.values(
+                        viewerContentData.msg.tree.classTalents
+                      ).reduce(
                         (acc, obj) =>
                           obj.pre_filled === 1 ? acc + obj.max_points : acc,
                         0
                       )}{" "}
                     /{" "}
-                    {Object.values(data.msg.build.assignedSkills[1]).reduce(
-                      (accumulator, currentValue) => {
-                        return accumulator + currentValue;
-                      },
-                      0
-                    )}
+                    {Object.values(
+                      viewerContentData.msg.build.assignedSkills[1]
+                    ).reduce((accumulator, currentValue) => {
+                      return accumulator + currentValue;
+                    }, 0)}
                   </Typography>
                   <Typography>
-                    Required level: {data.msg.build.levelCap}
+                    Required level: {viewerContentData.msg.build.levelCap}
                   </Typography>
                   <Typography>
-                    Loadout name: {data.msg.build.loadoutName}
+                    Loadout name: {viewerContentData.msg.build.loadoutName}
                   </Typography>
-                  <Typography>Tree name: {data.msg.build.treeName}</Typography>
+                  <Typography>
+                    Tree name: {viewerContentData.msg.build.treeName}
+                  </Typography>
                   <Box display="flex" flexDirection="row">
                     <Typography>Imported:</Typography>
-                    {data.msg.build.isImported ? <CheckIcon /> : <ClearIcon />}
+                    {viewerContentData.msg.build.isImported ? (
+                      <CheckIcon />
+                    ) : (
+                      <ClearIcon />
+                    )}
                   </Box>
                   <Typography>Description:</Typography>
                   <MarkdownTextBox
-                    text={data.msg.build.description}
+                    text={viewerContentData.msg.build.description}
                     defaultText="No description set"
                   />
                 </Fragment>

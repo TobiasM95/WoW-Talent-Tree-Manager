@@ -579,6 +579,21 @@ class DBHandler:
             else:
                 return Tree(res[0], None, res[1], res[2], res[3], res[4])
 
+    def get_preset_tree_content_id(
+        self, class_name: str, spec_name: str
+    ) -> Union[str, None]:
+        table: Table = Table("PresetTrees")
+        q = (
+            Query.from_(table)
+            .select("ContentID")
+            .where((table.ClassName == class_name) & (table.SpecName == spec_name))
+        )
+        with self.engine.connect() as conn:
+            res = conn.execute(text(q.get_sql())).first()
+        if res is None:
+            return None
+        return res[0]
+
     def update_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
         if custom:
