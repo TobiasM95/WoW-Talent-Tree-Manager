@@ -33,6 +33,7 @@ const Viewer = () => {
   const colors = tokens(theme.palette.mode);
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedSpec, setSelectedSpec] = useState(null);
+  const [assignedPoints, setAssignedPoints] = useState([0, 0]);
   const { contentID } = useParams();
   const contentIDInputRef = useRef("");
   const navigate = useNavigate();
@@ -40,6 +41,33 @@ const Viewer = () => {
   const [category, setCategory] = useState("TREE");
   const handleTabChange = (event, newCategory) => {
     setCategory(newCategory);
+  };
+
+  const validateAndCountAssignedPoints = async (originalData) => {
+    let validatedContentData = originalData;
+    setAssignedPoints([100, 100]);
+    // todo: validate assigned points and count afterwards
+    // {
+    //   Object.values(viewerContentData.msg.build.assignedSkills[0]).reduce(
+    //     (accumulator, currentValue) => {
+    //       return accumulator + currentValue;
+    //     },
+    //     0
+    //   ) -
+    //     Object.values(viewerContentData.msg.tree.classTalents).reduce(
+    //       (acc, obj) => (obj.pre_filled === 1 ? acc + obj.max_points : acc),
+    //       0
+    //     );
+    // }
+    // {
+    //   Object.values(viewerContentData.msg.build.assignedSkills[1]).reduce(
+    //     (accumulator, currentValue) => {
+    //       return accumulator + currentValue;
+    //     },
+    //     0
+    //   );
+    // }
+    return validatedContentData;
   };
 
   const {
@@ -50,10 +78,15 @@ const Viewer = () => {
   } = useQuery({
     queryKey: ["viewerQueryContent" + contentID],
     queryFn: () =>
-      contentAPI.get(contentID).then((response) => {
-        setCategory(response.msg.contentType);
-        return response;
-      }),
+      contentAPI
+        .get(contentID)
+        .then((response) => {
+          return validateAndCountAssignedPoints(response);
+        })
+        .then((response) => {
+          setCategory(response.msg.contentType);
+          return response;
+        }),
     refetchOnWindowFocus: false,
   });
 
@@ -550,25 +583,8 @@ const Viewer = () => {
                     {viewerContentData.msg.build.name}
                   </Typography>
                   <Typography>
-                    Assigned skillpoints (class / spec):{" "}
-                    {Object.values(
-                      viewerContentData.msg.build.assignedSkills[0]
-                    ).reduce((accumulator, currentValue) => {
-                      return accumulator + currentValue;
-                    }, 0) -
-                      Object.values(
-                        viewerContentData.msg.tree.classTalents
-                      ).reduce(
-                        (acc, obj) =>
-                          obj.pre_filled === 1 ? acc + obj.max_points : acc,
-                        0
-                      )}{" "}
-                    /{" "}
-                    {Object.values(
-                      viewerContentData.msg.build.assignedSkills[1]
-                    ).reduce((accumulator, currentValue) => {
-                      return accumulator + currentValue;
-                    }, 0)}
+                    Assigned skillpoints (class / spec): {assignedPoints[0]}{" "}
+                    {assignedPoints[1]}
                   </Typography>
                   <Typography>
                     Required level: {viewerContentData.msg.build.levelCap}
