@@ -57,14 +57,7 @@ const Viewer = () => {
     refetchOnWindowFocus: false,
   });
 
-  const {
-    isPending: presetTreeIDIsPending,
-    isLoading: presetTreeIDIsLoading,
-    isFetching: presetTreeIDIsFetching,
-    error: presetTreeIDError,
-    data: presetTreeIDData,
-    refetch: presetTreeIDRefetch,
-  } = useQuery({
+  const { refetch: presetTreeIDRefetch } = useQuery({
     queryKey: ["presetTreeContentIDQuery"],
     queryFn: () =>
       treeAPI

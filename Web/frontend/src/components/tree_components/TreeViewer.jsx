@@ -48,6 +48,7 @@ const TreeObjectToFlowNode = (treeObject, colors) => {
       descriptionSwitch: treeObject.description_switch,
       iconName: treeObject.icon_name,
       iconNameSwitch: treeObject.icon_name_switch,
+      points: 0,
       maxPoints: treeObject.max_points,
       name: treeObject.name,
       nameSwitch: treeObject.name_switch,
