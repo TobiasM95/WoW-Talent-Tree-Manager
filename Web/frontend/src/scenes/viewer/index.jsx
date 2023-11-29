@@ -44,6 +44,9 @@ const Viewer = () => {
   };
 
   const validateAndCountAssignedPoints = async (originalData) => {
+    if (originalData.msg.contentType !== "BUILD") {
+      return originalData;
+    }
     let validatedContentData = structuredClone(originalData);
     let validAssignedPoints = [0, 0];
 
@@ -72,7 +75,7 @@ const Viewer = () => {
           deleteSkills.push(key);
         }
       }
-      for (let key in deleteSkills) {
+      for (const key of deleteSkills) {
         delete assignedSkills[key];
       }
     }
@@ -485,7 +488,10 @@ const Viewer = () => {
                   </Typography>
                   <Typography>
                     Number of builds in this loadout:{" "}
-                    {Object.keys(viewerContentData.msg.loadout.builds).length}
+                    {
+                      Object.keys(viewerContentData.msg.loadout.builds.rows)
+                        .length
+                    }
                   </Typography>
                   <Box display="flex" flexDirection="row">
                     <Typography>Imported:</Typography>
