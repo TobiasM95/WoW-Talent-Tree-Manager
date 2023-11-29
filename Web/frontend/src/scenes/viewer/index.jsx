@@ -44,29 +44,40 @@ const Viewer = () => {
   };
 
   const validateAndCountAssignedPoints = async (originalData) => {
-    let validatedContentData = originalData;
-    setAssignedPoints([100, 100]);
-    // todo: validate assigned points and count afterwards
-    // {
-    //   Object.values(viewerContentData.msg.build.assignedSkills[0]).reduce(
-    //     (accumulator, currentValue) => {
-    //       return accumulator + currentValue;
-    //     },
-    //     0
-    //   ) -
-    //     Object.values(viewerContentData.msg.tree.classTalents).reduce(
-    //       (acc, obj) => (obj.pre_filled === 1 ? acc + obj.max_points : acc),
-    //       0
-    //     );
-    // }
-    // {
-    //   Object.values(viewerContentData.msg.build.assignedSkills[1]).reduce(
-    //     (accumulator, currentValue) => {
-    //       return accumulator + currentValue;
-    //     },
-    //     0
-    //   );
-    // }
+    let validatedContentData = structuredClone(originalData);
+    let validAssignedPoints = [0, 0];
+
+    for (let i = 0; i < 2; i++) {
+      let assignedSkills = validatedContentData.msg.build.assignedSkills[i];
+      let talents =
+        i === 0
+          ? validatedContentData.msg.tree.classTalents
+          : validatedContentData.msg.tree.specTalents;
+      let deleteSkills = [];
+      for (let key in assignedSkills) {
+        if (
+          assignedSkills.hasOwnProperty(key) &&
+          talents.hasOwnProperty(key) &&
+          talents[key].pre_filled == 0
+        ) {
+          if (assignedSkills[key] < 0) {
+            deleteSkills.push(key);
+          } else if (assignedSkills[key] > talents[key].max_points) {
+            assignedSkills[key] = talents[key].max_points;
+            validAssignedPoints[i] += talents[key].max_points;
+          } else {
+            validAssignedPoints[i] += assignedSkills[key];
+          }
+        } else if (!talents.hasOwnProperty(key)) {
+          deleteSkills.push(key);
+        }
+      }
+      for (let key in deleteSkills) {
+        delete assignedSkills[key];
+      }
+    }
+    setAssignedPoints(validAssignedPoints);
+
     return validatedContentData;
   };
 
