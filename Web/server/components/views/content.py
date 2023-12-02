@@ -3,6 +3,7 @@
 # loadut + tree for a loadout content id and build + loadout + tree for a
 # build content id
 
+import uuid
 from components.create_app import app, db_handler
 from typing import Union
 from database_handler import Workspace, Tree, Loadout, Build
@@ -21,10 +22,9 @@ from .tree import (
 @app.route("/content/<string:content_id>", methods=["GET"])
 @jwt_required()
 def content(content_id: str) -> Response:
-    content_type: Union[str, None] = db_handler.validate_content_access(
+    content_type, in_user_workspace, is_public = db_handler.validate_content_access(
         current_user.user_id, content_id
     )
-    print(content_type)
     if content_type is None:
         return (
             jsonify(
@@ -33,24 +33,58 @@ def content(content_id: str) -> Response:
             200,
         )
     if content_type == "TREE":
-        return get_tree_content(content_id)
+        msg: dict = get_tree_content(content_id)
     elif content_type == "LOADOUT":
-        return get_loadout_content(content_id, current_user.user_id)
+        msg: dict = get_loadout_content(content_id, current_user.user_id)
     elif content_type == "BUILD":
-        return get_build_content(content_id, current_user.user_id)
+        msg: dict = get_build_content(content_id, current_user.user_id)
+    else:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "msg": f"Content type {content_type} for content id {content_id} is not supported",
+                }
+            ),
+            200,
+        )
 
-    return (
-        jsonify(
-            {
-                "success": False,
-                "msg": f"Content type {content_type} for content id {content_id} is not supported",
-            }
-        ),
-        200,
+    msg["in_user_workspace"] = in_user_workspace
+    return jsonify({"success": True, "msg": msg})
+
+
+@app.route("/content/copyimport/<string:content_id>", methods=["POST"])
+@jwt_required()
+def copy_import(content_id: str) -> Response:
+    content_type, in_user_workspace, is_public = db_handler.validate_content_access(
+        current_user.user_id, content_id
     )
+    if content_type is None:
+        return (
+            jsonify(
+                {"success": False, "msg": "User does not have access to this content"}
+            ),
+            200,
+        )
+
+    new_content_id = str(uuid.uuid4())
+
+    if content_type == "TREE":
+        copy_import_tree(content_id, new_content_id, in_user_workspace)
+    elif content_type == "LOADOUT":
+        copy_import_loadout(content_id, new_content_id, in_user_workspace)
+    elif content_type == "BUILD":
+        copy_import_build(content_id, new_content_id, in_user_workspace)
+
+    workspace: Workspace = Workspace(
+        [[current_user.user_id, content_type, new_content_id, is_public]]
+    )
+    db_handler.create_workspace(workspace)
+
+    return jsonify({"success": True, "msg": {"contentID": new_content_id}})
 
 
-def get_build_content(content_id: str, user_id: str) -> Response:
+def get_build_content(content_id: str, user_id: str) -> dict:
     is_build_imported, root_build, leaf_loadout_id = find_root_build(content_id)
     is_loadout_imported, root_loadout = find_root_loadout(leaf_loadout_id)
     is_tree_imported, root_tree = find_root_tree(root_build.tree_id)
@@ -81,10 +115,10 @@ def get_build_content(content_id: str, user_id: str) -> Response:
         )
     else:
         res["loadout"] = None
-    return jsonify({"success": True, "msg": res})
+    return res
 
 
-def get_loadout_content(content_id: str, user_id: str) -> Response:
+def get_loadout_content(content_id: str, user_id: str) -> dict:
     is_loadout_imported, root_loadout = find_root_loadout(content_id)
     is_tree_imported, root_tree = find_root_tree(root_loadout.tree_id)
     res: dict = {"contentType": "LOADOUT"}
@@ -104,11 +138,39 @@ def get_loadout_content(content_id: str, user_id: str) -> Response:
     res["loadout"] = format_loadout_information(
         is_loadout_imported, root_loadout, loadout_builds, res["tree"], False
     )
-    return jsonify({"success": True, "msg": res})
+    return res
 
 
-def get_tree_content(content_id: str) -> Response:
+def get_tree_content(content_id: str) -> dict:
     is_imported, tree = find_root_tree(content_id)
     res: dict = {"contentType": "TREE"}
     res["tree"] = format_tree_and_talent_description(is_imported, tree)
-    return jsonify({"success": True, "msg": res})
+    return res
+
+
+def copy_import_tree(content_id: str, new_content_id: str, make_copy: bool) -> None:
+    if make_copy:
+        tree: Tree = db_handler.get_tree(content_id, True)
+        tree.content_id = new_content_id
+        db_handler.create_tree(tree, True)
+    else:  # make import
+        db_handler.import_tree(new_content_id, content_id)
+
+
+def copy_import_loadout(content_id: str, new_content_id: str, make_copy: bool) -> None:
+    if make_copy:
+        loadout: Loadout = db_handler.get_loadout(content_id)
+        loadout.content_id = new_content_id
+        db_handler.create_loadout(loadout)
+    else:  # make import
+        db_handler.import_loadout(new_content_id, content_id)
+
+
+def copy_import_build(content_id: str, new_content_id: str, make_copy: bool) -> None:
+    if make_copy:
+        build: Build = db_handler.get_build(content_id, True)
+        build.content_id = new_content_id
+        build.loadout_id = None
+        db_handler.create_build(build)
+    else:  # make import
+        db_handler.import_build(new_content_id, content_id)

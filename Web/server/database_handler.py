@@ -63,11 +63,17 @@ class Tree:
         if type(class_talents) == str:
             self.class_talents = class_talents
         else:
-            self.class_talents: str = json.dumps(class_talents)
+            if class_talents is None:
+                self.class_talents = None
+            else:
+                self.class_talents: str = json.dumps(class_talents)
         if type(spec_talents) == str:
             self.spec_talents = spec_talents
         else:
-            self.spec_talents: str = json.dumps(spec_talents)
+            if spec_talents is None:
+                self.spec_talents = None
+            else:
+                self.spec_talents: str = json.dumps(spec_talents)
 
 
 class PresetTree:
@@ -89,11 +95,17 @@ class PresetTree:
         if type(class_talents) == str:
             self.class_talents = class_talents
         else:
-            self.class_talents: str = json.dumps(class_talents)
+            if class_talents is None:
+                self.class_talents = None
+            else:
+                self.class_talents: str = json.dumps(class_talents)
         if type(spec_talents) == str:
             self.spec_talents = spec_talents
         else:
-            self.spec_talents: str = json.dumps(spec_talents)
+            if spec_talents is None:
+                self.spec_talents = None
+            else:
+                self.spec_talents: str = json.dumps(spec_talents)
 
 
 class Loadout:
@@ -130,7 +142,10 @@ class Build:
         if type(assigned_skills) == str:
             self.assigned_skills = assigned_skills
         else:
-            self.assigned_skills: str = json.dumps(assigned_skills)
+            if assigned_skills is None:
+                self.assigned_skills = None
+            else:
+                self.assigned_skills: str = json.dumps(assigned_skills)
         self.description: str = description
 
 
@@ -161,7 +176,10 @@ class PresetBuild:
         if type(assigned_skills) == str:
             self.assigned_skills = assigned_skills
         else:
-            self.assigned_skills: str = json.dumps(assigned_skills)
+            if assigned_skills is None:
+                self.assigned_skills = None
+            else:
+                self.assigned_skills: str = json.dumps(assigned_skills)
         self.description: str = description
 
 
@@ -304,7 +322,7 @@ class DBHandler:
         self, query: Query, expects_results: bool = False
     ) -> Sequence[Row[Any]]:
         with self.engine.connect() as conn:
-            res = conn.execute(text(query.get_sql()))
+            res = conn.execute(text(query.get_sql().replace(":", "\:")))
             conn.commit()
         if expects_results:
             return res.all()
@@ -321,7 +339,7 @@ class DBHandler:
             login.last_login_timestamp,
             login.is_activated,
         )
-        q: TextClause = text(q.get_sql())
+        q: TextClause = text(q.get_sql().replace(":", "\:"))
         with self.engine.connect() as conn:
             conn.execute(
                 q, parameters=dict(pwhash=login.password_hash, salt=login.salt)
@@ -332,7 +350,7 @@ class DBHandler:
         table: Table = Table("Logins")
         q = Query.from_(table).where(table.UserID == user_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_login(
@@ -377,7 +395,7 @@ class DBHandler:
                 .where((table.Email == user_name_email))
             )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         return None if res is None else Login(*res)
 
     def add_login_variant_to_user(self) -> None:
@@ -392,7 +410,7 @@ class DBHandler:
             .where(table.AltUserID == alt_user_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_activation(self, activation: Activation) -> None:
@@ -400,14 +418,14 @@ class DBHandler:
             activation.alt_user_id, activation.activation_id
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_activation(self, alt_user_id: str) -> None:
         table: Table = Table("Activations")
         q = Query.from_(table).where(table.AltUserID == alt_user_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_activation(self, activation_id: str) -> Union[Activation, None]:
@@ -418,21 +436,21 @@ class DBHandler:
             .where((table.ActivationID == activation_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         return None if res is None else Activation(*res)
 
     def create_workspace(self, workspace: Workspace) -> None:
         with self.engine.connect() as conn:
             for item in workspace.items:
                 q = Query.into("Workspaces").insert(*item)
-                conn.execute(text(q.get_sql()))
+                conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_workspace(self, user_id: str) -> None:
         table: Table = Table("Workspaces")
         q = Query.from_(table).where(table.UserID == user_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_workspace(self, user_id: str) -> Union[Workspace, None]:
@@ -443,27 +461,35 @@ class DBHandler:
             .where((table.UserID == user_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).all()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).all()
         return Workspace(items=res)
 
     # this is used in other views to check if a user has access to a content_id
     # in case a logged in user does manual api calls
     def validate_content_access(
         self, user_id: str, content_id: str
-    ) -> Union[str, None]:
+    ) -> tuple[Union[str, None], Union[bool, None], Union[bool, None]]:
         table: Table = Table("Workspaces")
         q = (
             Query.from_(table)
-            .select("ContentType")
-            .where(
-                ((table.UserID == user_id) | (table.Public == 1))
-                & (table.ContentID == content_id)
-            )
+            .select("ContentType", "Public")
+            .where((table.UserID == user_id) & (table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         if res is not None:
-            return res[0]
+            return res[0], True, res[1] == 1
+
+        q = (
+            Query.from_(table)
+            .select("ContentType")
+            .where((table.Public == 1) & (table.ContentID == content_id))
+        )
+        with self.engine.connect() as conn:
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
+        if res is not None:
+            return res[0], False, True
+
         for content_type, table_name in zip(
             ["TREE", "BUILD", "BUILD"], ["PresetTrees", "TopBuilds", "OutlierBuilds"]
         ):
@@ -474,10 +500,10 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).first()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
             if res is not None:
-                return content_type
-        return None
+                return content_type, False, True
+        return None, None
 
     def create_tree(self, tree: Tree, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
@@ -499,7 +525,7 @@ class DBHandler:
                 tree.spec_talents,
             )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_trees(
@@ -528,14 +554,28 @@ class DBHandler:
                         tree.spec_talents,
                     )
 
-                conn.execute(text(q.get_sql()))
+                conn.execute(text(q.get_sql().replace(":", "\:")))
+            conn.commit()
+
+    def import_tree(self, content_id: str, import_id: str) -> None:
+        table: Table = Table("Trees")
+        q = Query.into(table).insert(
+            content_id,
+            import_id,
+            None,
+            None,
+            None,
+            None,
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_tree(self, content_id: str, custom: bool = True) -> None:
         table: Table = Table("Trees" if custom else "PresetTrees")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_tree(
@@ -558,7 +598,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).first()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         if custom == False or (custom is None and res is None):
             table: Table = Table("PresetTrees")
             auto_custom = False
@@ -570,7 +610,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).first()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         if res is None:
             return None
         else:
@@ -589,7 +629,7 @@ class DBHandler:
             .where((table.ClassName == class_name) & (table.SpecName == spec_name))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         if res is None:
             return None
         return res[0]
@@ -616,7 +656,7 @@ class DBHandler:
                 .where(table.ContentID == tree.content_id)
             )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def update_preset_trees(self, trees: list[PresetTree]) -> None:
@@ -629,7 +669,7 @@ class DBHandler:
                     .set(table.SpecTalents, tree.spec_talents)
                     .where(table.Name == tree.name)
                 )
-                conn.execute(text(q.get_sql()))
+                conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_loadout(self, loadout: Loadout) -> None:
@@ -641,14 +681,26 @@ class DBHandler:
             loadout.description,
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
+            conn.commit()
+
+    def import_loadout(self, content_id: str, import_id: str) -> None:
+        q = Query.into("Loadouts").insert(
+            content_id,
+            import_id,
+            None,
+            None,
+            None,
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_loadout(self, content_id: str) -> None:
         table: Table = Table("Loadouts")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_loadout(self, content_id: str) -> Union[Loadout, None]:
@@ -659,7 +711,7 @@ class DBHandler:
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         return None if res is None else Loadout(*res)
 
     def get_loadout_builds(self, user_id: str, content_id: str) -> list[str]:
@@ -679,7 +731,9 @@ class DBHandler:
             )
         )
         with self.engine.connect() as conn:
-            build_content_ids = conn.execute(text(build_query.get_sql())).all()
+            build_content_ids = conn.execute(
+                text(build_query.get_sql().replace(":", "\:"))
+            ).all()
         return [bcid[0] for bcid in build_content_ids]
 
     def update_loadout(self, loadout: Loadout) -> None:
@@ -691,7 +745,7 @@ class DBHandler:
             .where(table.ContentID == loadout.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_build(self, build: Build) -> None:
@@ -707,19 +761,35 @@ class DBHandler:
             build.description,
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
+            conn.commit()
+
+    def import_build(self, content_id: str, import_id: str) -> None:
+        q = Query.into("Builds").insert(
+            content_id,
+            import_id,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_build(self, content_id: str) -> None:
         table: Table = Table("Builds")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_build(
         self, content_id: str, custom: Union[bool, None] = None
-    ) -> Union[Build, None]:
+    ) -> Union[Build, PresetBuild, None]:
         res = None
         auto_custom = True
         if custom == True or custom is None:
@@ -740,7 +810,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).first()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         if custom == False or (custom is None and res is None):
             table: Table = Table("TopBuilds")
             auto_custom = False
@@ -762,7 +832,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).first()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         if (custom == False or custom is None) and res is None:
             table: Table = Table("OutlierBuilds")
             auto_custom = False
@@ -784,7 +854,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).first()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
 
         if res is None:
             return None
@@ -806,7 +876,7 @@ class DBHandler:
             .where(table.ContentID == build.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_preset_build(
@@ -826,7 +896,7 @@ class DBHandler:
             build.description,
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_preset_build(
@@ -835,7 +905,7 @@ class DBHandler:
         table: Table = Table(table_name)
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_preset_build(
@@ -860,7 +930,7 @@ class DBHandler:
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         return None if res is None else PresetBuild(*res)
 
     def get_preset_builds_content_ids(
@@ -875,7 +945,7 @@ class DBHandler:
                 .where((table.ClassName == class_name) & (table.SpecName == spec_name))
             )
             with self.engine.connect() as conn:
-                res = conn.execute(text(q.get_sql())).all()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).all()
             builds_content_ids[table_name] = res
         return builds_content_ids["TopBuilds"], builds_content_ids["OutlierBuilds"]
 
@@ -896,14 +966,14 @@ class DBHandler:
             .where(table.ContentID == build.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_talent(self, talent: Talent, custom: bool) -> None:
         table: Table = Table("Talents" if custom else "PresetTalents")
         q = Query.into(table).insert(*vars(talent).values())
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_talents(self, talents: list[Talent], custom: bool) -> None:
@@ -911,14 +981,14 @@ class DBHandler:
         with self.engine.connect() as conn:
             for talent in talents:
                 q = Query.into(table).insert(*vars(talent).values())
-                conn.execute(text(q.get_sql()))
+                conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_talent(self, content_id: str, custom: bool) -> None:
         table: Table = Table("Talents" if custom else "PresetTalents")
         q = Query.from_(table).where(table.ContentID == content_id).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_talent(self, content_id: str, custom: bool) -> Union[Talent, None]:
@@ -947,7 +1017,7 @@ class DBHandler:
             .where((table.ContentID == content_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         return None if res is None else Talent(*res)
 
     def get_talents(
@@ -981,7 +1051,7 @@ class DBHandler:
                     .select(*talent_columns)
                     .where(table.ContentID.isin(content_ids))
                 )
-                res = conn.execute(text(q.get_sql())).all()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).all()
                 talent_list += res
             if custom == False or len(talent_list) < len(content_ids):
                 table: Table = Table("PresetTalents")
@@ -990,7 +1060,7 @@ class DBHandler:
                     .select(*talent_columns)
                     .where(table.ContentID.isin(content_ids))
                 )
-                res = conn.execute(text(q.get_sql())).all()
+                res = conn.execute(text(q.get_sql().replace(":", "\:"))).all()
                 talent_list += res
         return [Talent(*x) for x in talent_list]
 
@@ -1017,13 +1087,13 @@ class DBHandler:
             .where(table.ContentID == talent.content_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_like(self, like: Like) -> None:
         q = Query.into("Likes").insert(like.user_id, like.content_id, like.timestamp)
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_like(self, user_id: str, content_id: str) -> None:
@@ -1034,7 +1104,7 @@ class DBHandler:
             .delete()
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_likes(
@@ -1062,7 +1132,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql()))
+            res = conn.execute(text(q.get_sql().replace(":", "\:")))
             likes: list(Like) = []
             for row in res.all():
                 likes.append(Like(*row))
@@ -1079,14 +1149,14 @@ class DBHandler:
             comment.was_edited,
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def delete_comment(self, comment_id: str) -> None:
         table: Table = Table("Comments")
         q = Query.from_(table).where((table.CommentID == comment_id)).delete()
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def get_comment(self, comment_id: str) -> Union[Comment, None]:
@@ -1105,7 +1175,7 @@ class DBHandler:
             .where((table.CommentID == comment_id))
         )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql())).first()
+            res = conn.execute(text(q.get_sql().replace(":", "\:"))).first()
         return None if res is None else Comment(*res)
 
     def get_comments(
@@ -1157,7 +1227,7 @@ class DBHandler:
                 .where((table.ContentID == content_id))
             )
         with self.engine.connect() as conn:
-            res = conn.execute(text(q.get_sql()))
+            res = conn.execute(text(q.get_sql().replace(":", "\:")))
             comments: list(Comment) = []
             for row in res.all():
                 comments.append(Like(*row))
@@ -1173,7 +1243,7 @@ class DBHandler:
             .where(table.comment_id == comment.comment_id)
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
     def create_feedback(self, feedback: Feedback) -> None:
@@ -1181,7 +1251,7 @@ class DBHandler:
             feedback.feedback_id, feedback.user_id, feedback.message
         )
         with self.engine.connect() as conn:
-            conn.execute(text(q.get_sql()))
+            conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
 
