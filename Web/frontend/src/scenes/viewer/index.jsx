@@ -125,6 +125,38 @@ const Viewer = () => {
     }
   }, [selectedSpec]);
 
+  const {
+    isPending: copyImportIsPending,
+    isFetching: copyImportIsFetching,
+    error: copyImportError,
+    data: copyImportData,
+    refetch: copyImportRefetch,
+  } = useQuery({
+    queryKey: ["viewerCopyImport" + contentID],
+    queryFn: () =>
+      contentAPI.copyImport(contentID).then((response) => {
+        if (response.success === true) {
+          navigate("/viewer/" + response.msg.contentID);
+        } else {
+          setCopyImportFailed(true);
+        }
+        return response;
+      }),
+    refetchOnWindowFocus: false,
+    enabled: false,
+    retry: false,
+  });
+  const [copyImportFailed, setCopyImportFailed] = useState(false);
+  useEffect(() => {
+    if (copyImportError === true) {
+      setCopyImportFailed(true);
+    }
+  }, [copyImportError]);
+  const handleCopyImport = () => {
+    setCopyImportFailed(false);
+    copyImportRefetch();
+  };
+
   if (!contentID) {
     return (
       <Box
@@ -338,17 +370,40 @@ const Viewer = () => {
           >
             <Typography>{"<"} Back to menu</Typography>
           </Button>
-          <Button
-            sx={{
-              borderColor: colors.greenAccent[500],
-              color: colors.greenAccent[500],
-              height: "50%",
-            }}
-            variant="outlined"
-            //onClick={buttonLogout}
-          >
-            <Typography>Import to Workspace</Typography>
-          </Button>
+          {console.log(
+            copyImportIsPending,
+            copyImportIsFetching,
+            copyImportError,
+            copyImportData
+          )}
+          {copyImportIsFetching && <CircularProgress />}
+          {!copyImportIsFetching && viewerContentData.msg.in_user_workspace && (
+            <Button
+              sx={{
+                borderColor: colors.blueAccent[400],
+                color: colors.blueAccent[400],
+                height: "50%",
+              }}
+              variant="outlined"
+              onClick={handleCopyImport}
+            >
+              <Typography>Copy in workspace</Typography>
+            </Button>
+          )}
+          {!copyImportIsFetching &&
+            !viewerContentData.msg.in_user_workspace && (
+              <Button
+                sx={{
+                  borderColor: colors.greenAccent[500],
+                  color: colors.greenAccent[500],
+                  height: "50%",
+                }}
+                variant="outlined"
+                onClick={handleCopyImport}
+              >
+                <Typography>Import to workspace</Typography>
+              </Button>
+            )}
         </Box>
         <Tabs
           value={category}
@@ -365,6 +420,7 @@ const Viewer = () => {
           )}
         </Tabs>
         <Box display="flex" visibility="hidden">
+          {copyImportIsFetching && <CircularProgress />}
           <Button
             sx={{
               mx: "10px",
@@ -373,12 +429,23 @@ const Viewer = () => {
           >
             <Typography>{"<"} Back to menu</Typography>
           </Button>
-          <Button
-            //variant outlined is necessary
-            variant="outlined"
-          >
-            <Typography>Import to Workspace</Typography>
-          </Button>
+          {!copyImportIsFetching && viewerContentData.msg.in_user_workspace && (
+            <Button
+              //variant outlined is necessary
+              variant="outlined"
+            >
+              <Typography>Copy in workspace</Typography>
+            </Button>
+          )}
+          {!copyImportIsFetching &&
+            !viewerContentData.msg.in_user_workspace && (
+              <Button
+                //variant outlined is necessary
+                variant="outlined"
+              >
+                <Typography>Import to Workspace</Typography>
+              </Button>
+            )}
         </Box>
       </Box>
       {category === "TREE" && (

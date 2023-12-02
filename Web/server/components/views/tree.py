@@ -2,7 +2,7 @@ from components.create_app import app, db_handler
 import os
 import json
 from typing import Union
-from database_handler import Workspace, Tree, Loadout, Build, Talent
+from database_handler import Tree, Loadout, Build, PresetBuild, Talent
 from flask import jsonify, Response, request
 from flask_jwt_extended import jwt_required, current_user
 
@@ -10,7 +10,10 @@ from flask_jwt_extended import jwt_required, current_user
 @app.route("/tree/<string:content_id>", methods=["GET", "POST"])
 @jwt_required()
 def tree(content_id: str) -> Response:
-    if not db_handler.validate_content_access(current_user.user_id, content_id):
+    content_type, _, _ = db_handler.validate_content_access(
+        current_user.user_id, content_id
+    )
+    if content_type is None:
         return (
             jsonify(
                 {"success": False, "msg": "User does not have access to this content"}
@@ -31,7 +34,10 @@ def tree(content_id: str) -> Response:
 @app.route("/loadout/<string:content_id>", methods=["GET", "POST"])
 @jwt_required()
 def loadout(content_id: str) -> Response:
-    if not db_handler.validate_content_access(current_user.user_id, content_id):
+    content_type, _, _ = db_handler.validate_content_access(
+        current_user.user_id, content_id
+    )
+    if content_type is None:
         return (
             jsonify(
                 {"success": False, "msg": "User does not have access to this content"}
@@ -55,7 +61,10 @@ def loadout(content_id: str) -> Response:
 @app.route("/build/<string:content_id>", methods=["GET", "POST"])
 @jwt_required()
 def build(content_id: str) -> Response:
-    if not db_handler.validate_content_access(current_user.user_id, content_id):
+    content_type, _, _ = db_handler.validate_content_access(
+        current_user.user_id, content_id
+    )
+    if content_type is None:
         return (
             jsonify(
                 {"success": False, "msg": "User does not have access to this content"}
@@ -287,7 +296,11 @@ def find_root_build(
     while build.name is None:
         is_build_imported = True
         build: Build = db_handler.get_build(build.import_id, custom=None)
-        if build.import_id is None and build.name is None:
+        if (
+            type(build) != PresetBuild
+            and build.import_id is None
+            and build.name is None
+        ):
             raise Exception(
                 f"Import ID and name None at the same time {build.content_id}"
             )

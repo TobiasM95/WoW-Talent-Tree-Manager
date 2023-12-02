@@ -53,9 +53,7 @@ def get_top_and_outlier_builds(session):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=11) as executor:
         build_futures = {}
-        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names))[
-            :1
-        ]:
+        for encounter_id, encounter_name in list(zip(encounter_ids, encounter_names)):
             top_builds[encounter_id] = {"encounter_name": encounter_name}
             outlier_builds[encounter_id] = {"encounter_name": encounter_name}
             for class_name, spec_name in class_spec_combinations:

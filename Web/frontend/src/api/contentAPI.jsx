@@ -7,6 +7,12 @@ build content id
 
 import { apiURL } from "../data/settings";
 
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";").shift();
+}
+
 const baseUrl = apiURL;
 const contentURL = baseUrl + "/content";
 
@@ -43,6 +49,23 @@ const contentAPI = {
       credentials: "include",
     };
     return fetch(`${contentURL}/${contentID}`, options)
+      .then(checkStatus)
+      .then(parseJSON)
+      .catch((error) => {
+        console.log("log client error " + error);
+        throw new Error("There was a client error during the login process.");
+      });
+  },
+  copyImport(contentID) {
+    const options = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-TOKEN": getCookie("csrf_access_token"),
+      },
+      credentials: "include",
+    };
+    return fetch(`${contentURL}/copyimport/${contentID}`, options)
       .then(checkStatus)
       .then(parseJSON)
       .catch((error) => {
