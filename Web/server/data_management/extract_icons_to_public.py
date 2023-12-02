@@ -24,6 +24,15 @@ def extract_icons() -> None:
         "preset_icons",
     )
 
+    SERVER_DIR_PATH: str = os.path.join(
+        "/",
+        "var",
+        "www",
+        "ttm",
+        "build",
+        "preset_icons",
+    )
+
     with open(os.path.join(SOURCE_DIR_PATH, "icons_packed_meta.txt"), "r") as meta_file:
         meta_data: list[str] = [l.strip() for l in meta_file.readlines()]
     image_width: int = int(meta_data[0])
@@ -40,6 +49,8 @@ def extract_icons() -> None:
             im_arr[i, :, :].reshape((image_height, image_width, 4))
         )
         icon.save(os.path.join(DESTINATION_DIR_PATH, image_name), format="png")
+        if os.path.isdir(SERVER_DIR_PATH):
+            icon.save(os.path.join(SERVER_DIR_PATH, image_name), format="png")
 
 
 if __name__ == "__main__":
