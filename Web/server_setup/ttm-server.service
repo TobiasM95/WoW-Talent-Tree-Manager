@@ -1,0 +1,11 @@
+[Unit]
+Description=Backend server of the WoW talent tree manager
+After=network.target
+
+[Service]
+WorkingDirectory=/home/tobi/projects/WoW-Talent-Tree-Manager/Web/server/
+ExecStart=/home/tobi/.virtualenvs/ttm/bin/flask --app server run
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
