@@ -101,6 +101,7 @@ const Viewer = () => {
     isFetching: viewerContentIsFetching,
     error: viewerContentError,
     data: viewerContentData,
+    refetch: viewerContentRefetch,
   } = useQuery({
     queryKey: ["viewerQueryContent" + contentID],
     queryFn: () =>
@@ -114,7 +115,13 @@ const Viewer = () => {
           return response;
         }),
     refetchOnWindowFocus: false,
+    enabled: false,
   });
+  useEffect(() => {
+    if (contentID) {
+      viewerContentRefetch();
+    }
+  }, [contentID]);
 
   const { refetch: presetTreeIDRefetch } = useQuery({
     queryKey: ["presetTreeContentIDQuery"],
