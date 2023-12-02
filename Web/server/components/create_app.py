@@ -29,18 +29,7 @@ app.config["JWT_COOKIE_SAMESITE"] = "Lax"
 
 CORS(
     app,
-    resources={
-        r"/*": {
-            "origins": [
-                "http://localhost:3000",
-                "http://127.0.0.1:3000",
-                "http://localhost:3000/*",
-                "http://127.0.0.1:3000/*",
-                "https://chat-charlie.de",
-                "https://chat-charlie.de/*",
-            ]
-        }
-    },
+    resources={r"/*": {"origins": "*"}},
     supports_credentials=True,
 )
 
