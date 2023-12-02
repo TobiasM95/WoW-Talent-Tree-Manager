@@ -65,9 +65,19 @@ const Viewer = () => {
         ) {
           if (assignedSkills[key] < 0) {
             deleteSkills.push(key);
-          } else if (assignedSkills[key] > talents[key].max_points) {
+          } else if (
+            assignedSkills[key] > talents[key].max_points &&
+            talents[key].talent_type !== "SWITCH"
+          ) {
+            console.log("limit points for", talents[key], assignedSkills[key]);
             assignedSkills[key] = talents[key].max_points;
             validAssignedPoints[i] += talents[key].max_points;
+          } else if (
+            assignedSkills[key] > 2 &&
+            talents[key].talent_type === "SWITCH"
+          ) {
+            assignedSkills[key] = 2;
+            validAssignedPoints[i] += 1;
           } else {
             validAssignedPoints[i] += assignedSkills[key];
           }
@@ -370,12 +380,6 @@ const Viewer = () => {
           >
             <Typography>{"<"} Back to menu</Typography>
           </Button>
-          {console.log(
-            copyImportIsPending,
-            copyImportIsFetching,
-            copyImportError,
-            copyImportData
-          )}
           {copyImportIsFetching && <CircularProgress />}
           {!copyImportIsFetching && viewerContentData.msg.in_user_workspace && (
             <Button
