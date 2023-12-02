@@ -24,11 +24,12 @@ def update_data():
 
 
 def data_files_were_updated():
-    hash_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hash.txt")
+    hash_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "data_management", "hash.txt"
+    )
 
     presets_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "..",
         "..",
         "..",
         "Engine",
@@ -39,7 +40,6 @@ def data_files_were_updated():
 
     icon_meta_path: str = os.path.join(
         os.path.dirname(os.path.abspath(__file__)),
-        "..",
         "..",
         "..",
         "GUI",
