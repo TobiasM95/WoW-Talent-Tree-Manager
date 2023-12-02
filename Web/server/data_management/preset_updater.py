@@ -151,7 +151,8 @@ def update_db(
     if recreate_trees:
         db_handler.execute_query(Query.from_("PresetTrees").delete())
         db_handler.create_trees(presets_converted[0], False)
-    db_handler.update_preset_trees(presets_converted[0])
+    else:
+        db_handler.update_preset_trees(presets_converted[0])
 
 
 def restore_talent_description(description: Union[str, None], talent_type: str):

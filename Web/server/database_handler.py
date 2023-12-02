@@ -899,6 +899,28 @@ class DBHandler:
             conn.execute(text(q.get_sql().replace(":", "\:")))
             conn.commit()
 
+    def update_preset_build(
+        self, build: PresetBuild, table_name: Literal["TopBuilds", "OutlierBuilds"]
+    ) -> None:
+        table: Table = Table(table_name)
+        q = (
+            Query.update(table)
+            .set(table.TreeID, build.tree_id)
+            .set(table.Name, build.name)
+            .set(table.LevelCap, build.level_cap)
+            .set(table.UseLevelCap, build.use_level_cap)
+            .set(table.AssignedSkills, build.assigned_skills)
+            .set(table.Description, build.description)
+            .where(
+                (table.EncounterID == build.encounter_id)
+                & (table.ClassName == build.class_name)
+                & (table.SpecName == build.spec_name)
+            )
+        )
+        with self.engine.connect() as conn:
+            conn.execute(text(q.get_sql().replace(":", "\:")))
+            conn.commit()
+
     def delete_preset_build(
         self, content_id: str, table_name: Literal["TopBuilds", "OutlierBuilds"]
     ) -> None:
