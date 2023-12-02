@@ -44,6 +44,7 @@ const TreeObjectToFlowNode = (treeObject, colors) => {
     data: {
       id: treeObject.order_id,
       size: treeViewerSettings.nodeSize,
+      talentType: treeObject.talent_type,
       description: treeObject.description,
       descriptionSwitch: treeObject.description_switch,
       iconName: treeObject.icon_name,
