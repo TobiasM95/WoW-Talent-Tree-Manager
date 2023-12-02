@@ -11,6 +11,8 @@ import {
   Tab,
   CircularProgress,
   Tooltip,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import { useRef, useState, Fragment, useEffect } from "react";
@@ -61,7 +63,7 @@ const Viewer = () => {
         if (
           assignedSkills.hasOwnProperty(key) &&
           talents.hasOwnProperty(key) &&
-          talents[key].pre_filled == 0
+          talents[key].pre_filled === 0
         ) {
           if (assignedSkills[key] < 0) {
             deleteSkills.push(key);
@@ -133,13 +135,12 @@ const Viewer = () => {
     if (selectedClass && selectedSpec) {
       presetTreeIDRefetch();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSpec]);
 
   const {
-    isPending: copyImportIsPending,
     isFetching: copyImportIsFetching,
     error: copyImportError,
-    data: copyImportData,
     refetch: copyImportRefetch,
   } = useQuery({
     queryKey: ["viewerCopyImport" + contentID],
@@ -165,6 +166,9 @@ const Viewer = () => {
   const handleCopyImport = () => {
     setCopyImportFailed(false);
     copyImportRefetch();
+  };
+  const onErrorAlertClose = () => {
+    setCopyImportFailed(false);
   };
 
   if (!contentID) {
@@ -278,6 +282,7 @@ const Viewer = () => {
                       minWidth: "16px",
                       opacity: dimmed ? "0.4" : "1",
                     }}
+                    alt={`Class icon ${name}`}
                   />
                 </Button>
               </Tooltip>
@@ -328,6 +333,7 @@ const Viewer = () => {
                         minWidth: "16px",
                         opacity: dimmed ? "0.4" : "1",
                       }}
+                      alt={`Spec icon for class ${selectedClass} and spec ${name}`}
                     />
                   </Button>
                 </Tooltip>
@@ -364,6 +370,22 @@ const Viewer = () => {
   }
   return (
     <Box m="20px" height="88dvh" overflow="auto">
+      <Snackbar
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        autoHideDuration={4000}
+        open={copyImportFailed}
+        onClose={onErrorAlertClose}
+      >
+        <Alert
+          onClose={onErrorAlertClose}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          <Typography>
+            There was an error while importing/copying the content
+          </Typography>
+        </Alert>
+      </Snackbar>
       <Box display="flex" justifyContent="space-between">
         <Box display="flex">
           <Button

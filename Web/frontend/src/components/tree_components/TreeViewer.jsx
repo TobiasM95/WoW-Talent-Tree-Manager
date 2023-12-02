@@ -109,18 +109,20 @@ const TreeViewer = ({ treeData }) => {
 
   useEffect(() => {
     setDragReady(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     var newNodes = [];
     var newEdges = [];
-    for (const [order_id, rawNode] of Object.entries(treeData)) {
+    for (const rawNode of Object.values(treeData)) {
       newNodes.push(TreeObjectToFlowNode(rawNode, colors));
       newEdges.push(...TreeObjectToFlowEdges(rawNode, treeData, colors));
     }
     insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
     setEdges(newEdges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [treeData]);
 
   const onConnect = useCallback(
