@@ -277,7 +277,78 @@ def get_class_spec_combinations():
     return sorted(class_spec_combinations, key=lambda x: (x[0], x[1]))
 
 
-def save_top_and_outlier_builds(top_builds, outlier_builds):
+def save_top_and_outlier_builds(top_builds, outlier_builds, recreate=False):
+    if recreate:
+        recreate_top_and_outlier_builds(top_builds, outlier_builds)
+    else:
+        update_top_and_outlier_builds(top_builds, outlier_builds)
+
+
+def update_top_and_outlier_builds(top_builds, outlier_builds):
+    for encounter_id, classes_dict in top_builds.items():
+        for class_name, spec_dict in classes_dict.items():
+            if class_name == "encounter_name":
+                continue
+            for spec_name, assigned_points in spec_dict.items():
+                tree_table = Table("PresetTrees")
+                tree_id_query = (
+                    Query.from_(tree_table)
+                    .select("ContentID")
+                    .where(
+                        tree_table.Name
+                        == f"{spec_name.capitalize()} {class_name.capitalize()}"
+                    )
+                )
+                res = db_handler.execute_query(tree_id_query, True)
+                tree_id = res[0][0]
+                preset_build = PresetBuild(
+                    str(uuid.uuid4()),
+                    encounter_id,
+                    tree_id,
+                    None,
+                    f"{classes_dict['encounter_name']} top {spec_name.capitalize()} {class_name.capitalize()} build",
+                    class_name.capitalize(),
+                    spec_name.capitalize(),
+                    70,
+                    True,
+                    json.dumps(assigned_points),
+                    f"This is the top performing {spec_name.capitalize()} {class_name.capitalize()} build for the \"{classes_dict['encounter_name']}\" encounter.",
+                )
+                db_handler.update_preset_build(preset_build, "TopBuilds")
+
+    for encounter_id, classes_dict in outlier_builds.items():
+        for class_name, spec_dict in classes_dict.items():
+            if class_name == "encounter_name":
+                continue
+            for spec_name, assigned_points in spec_dict.items():
+                tree_table = Table("PresetTrees")
+                tree_id_query = (
+                    Query.from_(tree_table)
+                    .select("ContentID")
+                    .where(
+                        tree_table.Name
+                        == f"{spec_name.capitalize()} {class_name.capitalize()}"
+                    )
+                )
+                res = db_handler.execute_query(tree_id_query, True)
+                tree_id = res[0][0]
+                preset_build = PresetBuild(
+                    str(uuid.uuid4()),
+                    encounter_id,
+                    tree_id,
+                    None,
+                    f"{classes_dict['encounter_name']} outlier {spec_name.capitalize()} {class_name.capitalize()} build",
+                    class_name.capitalize(),
+                    spec_name.capitalize(),
+                    70,
+                    True,
+                    json.dumps(assigned_points),
+                    f"This is the outlier {spec_name.capitalize()} {class_name.capitalize()} build for the \"{classes_dict['encounter_name']}\" encounter.",
+                )
+                db_handler.update_preset_build(preset_build, "OutlierBuilds")
+
+
+def recreate_top_and_outlier_builds(top_builds, outlier_builds):
     db_handler.execute_query(Query.from_("OutlierBuilds").delete())
     db_handler.execute_query(Query.from_("TopBuilds").delete())
     for encounter_id, classes_dict in top_builds.items():
