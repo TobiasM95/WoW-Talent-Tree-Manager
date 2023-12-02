@@ -75,7 +75,7 @@ const Viewer = () => {
             assignedSkills[key] = talents[key].max_points;
             validAssignedPoints[i] += talents[key].max_points;
           } else if (
-            assignedSkills[key] > 2 &&
+            assignedSkills[key] >= 2 &&
             talents[key].talent_type === "SWITCH"
           ) {
             assignedSkills[key] = 2;
@@ -404,6 +404,7 @@ const Viewer = () => {
             }}
             variant="outlined"
             onClick={() => {
+              setSelectedClass(null);
               navigate("/viewer");
             }}
           >
