@@ -339,7 +339,7 @@ class DBHandler:
             login.last_login_timestamp,
             login.is_activated,
         )
-        q: TextClause = text(q.get_sql().replace(":", "\:"))
+        q: TextClause = text(q.get_sql())
         with self.engine.connect() as conn:
             conn.execute(
                 q, parameters=dict(pwhash=login.password_hash, salt=login.salt)
