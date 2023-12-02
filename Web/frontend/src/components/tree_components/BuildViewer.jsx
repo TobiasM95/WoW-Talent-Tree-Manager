@@ -149,13 +149,14 @@ const BuildViewer = ({ treeData, assignedSkills, isClassTree }) => {
 
   useEffect(() => {
     setDragReady(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!assignedSkills) return;
     var newNodes = [];
     var newEdges = [];
-    for (const [order_id, rawNode] of Object.entries(treeData)) {
+    for (const rawNode of Object.values(treeData)) {
       newNodes.push(
         TreeObjectToFlowNode(rawNode, assignedSkills[1 - isClassTree], colors)
       );
@@ -171,6 +172,7 @@ const BuildViewer = ({ treeData, assignedSkills, isClassTree }) => {
     insertDividerLines(newNodes, newEdges, colors);
     setNodes(newNodes);
     setEdges(newEdges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [treeData, assignedSkills]);
 
   const onConnect = useCallback(
