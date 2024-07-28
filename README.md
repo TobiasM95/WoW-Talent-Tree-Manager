@@ -1,3 +1,8 @@
+# DISCONTINUED: IMPORTANT NOTE
+As of the newest changes in WoW TWW, which broke the tree update scripts, this tool is officially discontinued.
+As I do not have the time to maintain this anymore, it's unlikely that it will be updated in the future.
+If anyone wants to continue building it, feel free to do so. The native C++ client is very fleshed out, the skeleton for a web app does exist.
+
 ![TTM Banner](/GUI/resources/TTM_Banner.png?raw=true "TTM Banner")
 
 
