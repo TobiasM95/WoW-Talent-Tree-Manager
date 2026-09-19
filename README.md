@@ -71,15 +71,14 @@ committed a 16 MB packed icon atlas 76 times, which had grown `.git` to **1.4 GB
 What was removed is *generated data*, regenerable by the preset scripts. Nothing authored was
 lost. Commit SHAs changed, so an old clone cannot fast-forward; re-clone instead.
 
-> **Careful: do not `git fetch` until the remote is rewritten.**
-> `origin` still holds the old 1.4 GB history. Because the rewritten commits have different
-> SHAs, a fetch re-downloads all of it into `refs/remotes/origin/*` and puts `.git` straight
-> back to 1.4 GB. If that happens: `git remote remove origin`, then
-> `git reflog expire --expire=now --all && git gc --prune=now`, then re-add the remote.
->
-> Publishing the rewritten history means a force-push, which rewrites 21 release tags and
-> breaks every existing clone. That is a deliberate decision, not a routine one — the local
-> history is complete and backed up, so there is no hurry.
+The rewrite has been published, so a fresh clone is ~10 MB. All 19 GitHub releases and their
+attached `.zip` assets are unaffected — releases are keyed by tag name, and assets live in
+separate blob storage, so the download links above still work.
+
+> **If you have a clone from before September 2026**, it cannot fast-forward: every commit SHA
+> changed. Re-clone rather than pull. Links to specific old commit SHAs no longer resolve, and
+> the auto-generated "Source code" archives on old releases no longer contain the icon atlas
+> (the prebuilt release `.zip` assets still do).
 
 ## Credits
 
