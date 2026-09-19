@@ -373,3 +373,39 @@ GUI/resources/icons/*/*.png
 # private files
 GUI/src/*Internal.h
 /GUI/resources/Logo.xcf
+
+###############################################################################
+# Web revival (2026-)
+###############################################################################
+
+# Never commit generated icon atlases again -- 76 CI commits of a 16 MB PNG
+# grew .git to 1.4 GB. Icons are generated data; regenerate or fetch them.
+**/icons_packed.png
+**/icons_packed_*.png
+
+# Build artifacts / debug symbols
+*.pdb
+build/
+cmake-build-*/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Ingest working data (large upstream payloads)
+services/ingest/.cache/
+data/generated/
