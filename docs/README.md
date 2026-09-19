@@ -74,9 +74,11 @@ where the code assumes 39. The level cap is 90, where the engine defaults to 70.
 currently express at all.
 
 **The number that shapes the product.** An exhaustive 30-point spec-tree solve takes **7.5 minutes
-and writes 9.5 GB**; at 20 points it is 0.12 s and 1.35 MB. The engine stores every combination in
-order to count them, so adding a count-only mode is the highest-value change available — it makes
-the headline question ("how many valid builds?") cheap for any tree.
+and writes 9.5 GB**; at 20 points it is 0.12 s and 1.35 MB. The engine stored every combination
+purely in order to count them. Adding a count-only mode (now implemented) returns the identical
+count — 305,286,987 — in **42 s and zero bytes**, 10.8x faster, so the headline question ("how many
+valid builds?") is cheap for any tree. Listing them all remains the expensive operation, and the
+product should treat the two very differently.
 
 **Where to start.** Phase 0 spikes: build the engine on Linux, transform one spec end to end, and
 settle how pre-satisfied prerequisites and level-gated ranks reach a per-tree solver. Then the data

@@ -58,14 +58,26 @@ very different costs:
   the more common question.
 - *"List them."* — needs storage proportional to the answer, which is the 9.5 GB problem.
 
-A **count-only mode** (increment, do not store) would make the headline question answerable for
-any tree at any point budget in bounded memory, at roughly the same CPU cost. The recursive
-`visitTalent*` functions already thread a `runningCount` through; suppressing the
-`combinations.push_back` is a small, contained change.
+A **count-only mode** (increment, do not store) makes the headline question answerable for any
+tree at any point budget in bounded memory. The recursive `visitTalent*` functions already thread
+a `runningCount` through; suppressing the `combinations.push_back` is a small, contained change.
 
-This is the single highest-value engine improvement available and it belongs in Phase 2, not in
-"later improvements". It converts the flagship feature from unshippable to cheap for the common
-case.
+**Implemented and measured** (`--count-only`). The same 30-point solve:
+
+| | Full enumeration | `--count-only` |
+|---|---:|---:|
+| Combinations | 305,286,987 | **305,286,987** (identical) |
+| Solve time | 452.9 s | **42.0 s** |
+| Bytes written | 9.5 GB | **0** |
+
+**10.8× faster, not merely smaller** — an earlier draft of this document predicted "roughly the
+same CPU cost", which was wrong. Storing 305 million results costs far more than counting them:
+growing a ~2.4 GB vector, the attendant allocation and memory-bandwidth pressure, and 9.5 GB of
+serialisation and I/O all disappear. The enumeration itself was never the expensive part.
+
+So the flagship question — *"how many valid builds does my spec have?"* — is answerable for a
+full 30-point tree in well under a minute, in constant memory, for every spec. That converts it
+from unshippable to routine.
 
 ### 4. Result caching is worth far more than assumed
 
