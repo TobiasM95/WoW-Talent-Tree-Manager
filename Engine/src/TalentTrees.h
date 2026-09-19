@@ -9,6 +9,9 @@
 #include <memory>
 #include <algorithm>
 #include <vector>
+// FLT_MAX / INT_MAX: MSVC pulls these in transitively, GCC and Clang do not.
+#include <cfloat>
+#include <climits>
 
 #include "TTMEnginePresets.h"
 

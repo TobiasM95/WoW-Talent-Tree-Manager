@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <istream>
+#include <cstdint>
 
 namespace Engine {
     template<class T>
@@ -11,6 +13,23 @@ namespace Engine {
 
     //skillset index is an unsigned 64 bit integer for now
     using SIND = std::uint64_t;
+
+    /*
+    Reads one record from a TTM data file (presets.txt, node_id_orders.txt, saved
+    trees) and strips a trailing carriage return.
+
+    These files ship with CRLF line endings (.gitattributes sets "* text=auto").
+    On Windows, ifstream text mode folds CRLF to LF and std::getline is enough; on
+    Linux it does not, so a stray '\r' survives on the last field of every record
+    and silently fails format validation. Always read data lines through this.
+    */
+    inline std::istream& getDataLine(std::istream& stream, std::string& line) {
+        std::getline(stream, line);
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        return stream;
+    }
 }
 
 namespace Presets {//ENGINE PRESETS

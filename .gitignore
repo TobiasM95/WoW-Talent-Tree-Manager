@@ -385,7 +385,7 @@ GUI/src/*Internal.h
 
 # Build artifacts / debug symbols
 *.pdb
-build/
+build*/
 cmake-build-*/
 
 # Python
@@ -409,3 +409,6 @@ dist/
 # Ingest working data (large upstream payloads)
 services/ingest/.cache/
 data/generated/
+
+# Engine writes this to the CWD (relative path) when preset loading fails
+error_log.txt

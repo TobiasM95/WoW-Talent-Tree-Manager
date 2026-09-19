@@ -24,7 +24,14 @@
 #include <fstream>
 #include <chrono>
 #include <algorithm>
+#include <cstdlib>
+#include <string>
+
+#ifdef _WIN32
 #include <Windows.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace Engine {
     /*
@@ -1061,10 +1068,59 @@ namespace Engine {
         return skillset;
     }
 
-    void setSafetyGuard(TreeDAGInfo& treeDAGInfo) {
+    /*
+    Returns the memory budget the solver may use for storing combinations, in bytes.
+
+    TTM_MEM_BUDGET_BYTES overrides the detected value. Prefer it in containers: the
+    host's physical memory is the wrong number when a cgroup limit applies, and a
+    solver that sizes itself off the host will be OOM-killed rather than capped.
+    */
+    static unsigned long long getTotalPhysicalMemory() {
+        if (const char* budget = std::getenv("TTM_MEM_BUDGET_BYTES")) {
+            try {
+                unsigned long long parsed = std::stoull(budget);
+                if (parsed > 0) {
+                    return parsed;
+                }
+            }
+            catch (const std::exception&) {
+                //fall through to platform detection on unparseable input
+            }
+        }
+
+#ifdef _WIN32
         MEMORYSTATUSEX status;
         status.dwLength = sizeof(status);
         GlobalMemoryStatusEx(&status);
-        treeDAGInfo.safetyGuard = static_cast<size_t>((status.ullTotalPhys - RESERVED_MEMORY_LIMIT) * 0.5 * 0.125);
+        return status.ullTotalPhys;
+#else
+        long pages = sysconf(_SC_PHYS_PAGES);
+        long pageSize = sysconf(_SC_PAGESIZE);
+        if (pages > 0 && pageSize > 0) {
+            return static_cast<unsigned long long>(pages) * static_cast<unsigned long long>(pageSize);
+        }
+        //Conservative fallback if sysconf is unavailable: assume 8 GiB.
+        return 8ULL * 1024ULL * 1024ULL * 1024ULL;
+#endif
+    }
+
+    void setSafetyGuard(TreeDAGInfo& treeDAGInfo) {
+        /* The guard is compared as `runningCount >= safetyGuard`, so it must stay
+         * strictly positive or the solver returns nothing at all. Each stored
+         * combination is one SIND (8 bytes), so this floor costs ~8 MiB. */
+        constexpr size_t MINIMUM_SAFETY_GUARD = 1000000;
+
+        unsigned long long totalPhys = getTotalPhysicalMemory();
+        /* Guard against unsigned underflow when the budget is at or below the
+         * reserve. The original code subtracted unconditionally, which wrapped
+         * around to an enormous value -- i.e. effectively no guard at all. That is
+         * reachable on any container limited to 4 GiB or less. */
+        if (totalPhys <= RESERVED_MEMORY_LIMIT) {
+            treeDAGInfo.safetyGuard = MINIMUM_SAFETY_GUARD;
+            return;
+        }
+
+        size_t computed = static_cast<size_t>((totalPhys - RESERVED_MEMORY_LIMIT) * 0.5 * 0.125);
+        treeDAGInfo.safetyGuard = computed < MINIMUM_SAFETY_GUARD ? MINIMUM_SAFETY_GUARD : computed;
     }
 }

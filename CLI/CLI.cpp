@@ -23,7 +23,10 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <ppl.h>
+#include <thread>
+#include <vector>
+#include <atomic>
+#include <algorithm>
 
 int main(int argc, char** argv)
 {
@@ -122,7 +125,7 @@ namespace CLI {
             std::ifstream structureFile(settings.structureFilePath);
             std::string line;
 
-            while (std::getline(structureFile, line)) {
+            while (Engine::getDataLine(structureFile, line)) {
                 if (selectedStructures.size() > 0 
                     && std::find(selectedStructures.begin(), selectedStructures.end(), currentStructureIndex) == selectedStructures.end()) {
                     currentStructureIndex++;
@@ -230,7 +233,7 @@ namespace CLI {
                     std::string line;
                     int treeIndex = 0;
 
-                    while (std::getline(structureFile, line)) {
+                    while (Engine::getDataLine(structureFile, line)) {
                         if (treeIndex >= allRunDetails.size()) {
                             break;
                         }
@@ -263,23 +266,84 @@ namespace CLI {
                 }
             }
         }
+
+        /* Every run is solved through countConfigurationsFiltered, which dereferences
+         * the filter unconditionally. Without this, running the CLI with no --filter
+         * left RunDetails::filter as an empty shared_ptr and segfaulted immediately
+         * (TreeSolver.cpp, `for (auto& indexFilterPair : filter->assignedSkillPoints)`).
+         *
+         * An all-zero skillset is the no-constraint filter: zero means "no requirement"
+         * for a talent, the same fallback already used above when a supplied filter's
+         * field count does not match the tree. */
+        for (RunDetails& run : allRunDetails) {
+            if (run.filter) {
+                continue;
+            }
+            Engine::TalentSkillset emptyFilter;
+            for (auto& indexTalentPair : run.tree.orderedTalents) {
+                emptyFilter.assignedSkillPoints[indexTalentPair.first] = 0;
+            }
+            run.filter = std::make_shared<Engine::TalentSkillset>(emptyFilter);
+        }
+
         return allRunDetails;
+    }
+
+    /*
+    Solves one run in place. Each run owns its own tree, filter and DAG info, so runs
+    are independent and need no synchronisation beyond claiming an index.
+    */
+    static void solveSingleRun(RunDetails& run) {
+        bool dummyProgress = true;
+        Engine::clearTree(run.tree);
+        Engine::countConfigurationsFiltered(
+            run.tree,
+            run.filter,
+            run.targetTalentCount,
+            run.treeDAGInfo,
+            dummyProgress,
+            run.safetyGuardTriggered
+        );
     }
 
     void startThreadedCombinationCount(std::vector<RunDetails>& allRunDetails, CLSettings& settings) {
         if (settings.solveParallel) {
-            Concurrency::parallel_for(size_t(0), allRunDetails.size(), [&](size_t i) {
-                bool dummyProgress = true;
-                Engine::clearTree(allRunDetails[i].tree);
-                Engine::countConfigurationsFiltered(
-                    allRunDetails[i].tree,
-                    allRunDetails[i].filter,
-                    allRunDetails[i].targetTalentCount,
-                    allRunDetails[i].treeDAGInfo,
-                    dummyProgress,
-                    allRunDetails[i].safetyGuardTriggered
-                );
-                });
+            /* Portable replacement for Concurrency::parallel_for (MSVC-only PPL).
+             * Workers pull indices off a shared atomic counter, which keeps threads
+             * busy when runs differ wildly in cost -- as talent-tree solves do. */
+            const size_t runCount = allRunDetails.size();
+            unsigned int hardwareThreads = std::thread::hardware_concurrency();
+            if (hardwareThreads == 0) {
+                hardwareThreads = 1;
+            }
+            const size_t threadCount = std::min(static_cast<size_t>(hardwareThreads), runCount);
+
+            if (threadCount <= 1) {
+                for (size_t i = 0; i < runCount; i++) {
+                    solveSingleRun(allRunDetails[i]);
+                }
+            }
+            else {
+                std::atomic<size_t> nextIndex{ 0 };
+                std::vector<std::thread> workers;
+                workers.reserve(threadCount);
+
+                for (size_t t = 0; t < threadCount; t++) {
+                    workers.emplace_back([&allRunDetails, &nextIndex, runCount]() {
+                        for (;;) {
+                            size_t i = nextIndex.fetch_add(1);
+                            if (i >= runCount) {
+                                return;
+                            }
+                            solveSingleRun(allRunDetails[i]);
+                        }
+                        });
+                }
+
+                for (std::thread& worker : workers) {
+                    worker.join();
+                }
+            }
         }
         else {
             for (size_t i = 0; i < allRunDetails.size(); i++) {

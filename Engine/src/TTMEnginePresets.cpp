@@ -20,11 +20,16 @@
 
 #include "TTMEnginePresets.h"
 
+#ifdef _WIN32
 #include <windows.h>
 #include <shlobj.h>
+#else
+#include <cstdlib>
+#endif
 
 #include <fstream>
 #include <stdexcept>
+#include <system_error>
 
 namespace Presets {
 
@@ -296,6 +301,22 @@ namespace Presets {
 	}
 
 	std::filesystem::path getAppPath() {
+		/* TTM_DATA_DIR overrides the platform default. This is how the headless
+		 * worker is pointed at its resources inside a container, where there is no
+		 * user profile to speak of. */
+		if (const char* dataDirOverride = std::getenv("TTM_DATA_DIR")) {
+			if (dataDirOverride[0] != '\0') {
+				std::filesystem::path appPath = std::filesystem::path(dataDirOverride);
+				if (!std::filesystem::is_directory(appPath)) {
+					std::filesystem::create_directories(appPath);
+				}
+				return appPath;
+			}
+		}
+
+		std::filesystem::path appPath;
+
+#ifdef _WIN32
 		std::filesystem::path path;
 		PWSTR path_tmp;
 
@@ -312,19 +333,35 @@ namespace Presets {
 		/* Error check */
 		if (get_folder_path_ret != S_OK) {
 			CoTaskMemFree(path_tmp);
-			throw std::system_error::exception("Could not open/find Roaming App Data path!");
+			throw std::runtime_error("Could not open/find Roaming App Data path!");
 		}
 
 		/* Convert the Windows path type to a C++ path */
 		path = path_tmp;
-		std::filesystem::path appPath = path / "WoWTalentTreeManager";
+		appPath = path / "WoWTalentTreeManager";
 
 		/* Free memory :) */
 		CoTaskMemFree(path_tmp);
+#else
+		/* XDG base directory spec, falling back to $HOME. */
+		const char* xdgDataHome = std::getenv("XDG_DATA_HOME");
+		if (xdgDataHome && xdgDataHome[0] != '\0') {
+			appPath = std::filesystem::path(xdgDataHome) / "WoWTalentTreeManager";
+		}
+		else {
+			const char* home = std::getenv("HOME");
+			if (!home || home[0] == '\0') {
+				throw std::runtime_error(
+					"Could not determine a data directory: neither TTM_DATA_DIR, "
+					"XDG_DATA_HOME nor HOME is set.");
+			}
+			appPath = std::filesystem::path(home) / ".local" / "share" / "WoWTalentTreeManager";
+		}
+#endif
 
 		//create app folder if it doesn't exist
 		if (!std::filesystem::is_directory(appPath)) {
-			std::filesystem::create_directory(appPath);
+			std::filesystem::create_directories(appPath);
 		}
 
 		return appPath;
@@ -342,7 +379,7 @@ namespace Presets {
 			{
 				while (!treeFile.eof())
 				{
-					std::getline(treeFile, line);
+					Engine::getDataLine(treeFile, line);
 					size_t pos1 = line.find(':') + 1;
 					std::string presetName = line.substr(pos1, line.substr(pos1).find(':'));
 					if (presetName.length() <= 0) {
@@ -424,7 +461,7 @@ namespace Presets {
 			{
 				while (!treeFile.eof())
 				{
-					std::getline(treeFile, line);
+					Engine::getDataLine(treeFile, line);
 					if (line.substr(0, line.find(':')) == presetName) {
 						foundPresetName = true;
 						break;
@@ -457,7 +494,7 @@ namespace Presets {
 			{
 				while (!treeFile.eof())
 				{
-					std::getline(treeFile, line);
+					Engine::getDataLine(treeFile, line);
 					size_t p1 = line.find(':');
 					size_t p2 = line.find(':', p1 + 1);
 					size_t p3 = line.find(':', p2 + 1);

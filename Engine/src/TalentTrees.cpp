@@ -25,9 +25,8 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <sstream> 
+#include <sstream>
 #include <fstream>
-#include "Windows.h"
 #include <chrono>
 #include <thread>
 
