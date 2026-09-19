@@ -39,6 +39,31 @@ The product must therefore treat the solver as **constrained by default**:
 - Treat an unconstrained 30-point solve as a deliberate, rate-limited, authenticated operation —
   if it is offered at all.
 
+### 1b. Counts above 2^31 are real, and the counter used to overflow
+
+`shaman_class_elemental` has **37,296,642,700** valid builds at its best budget, and nine class
+trees exceed `INT_MAX` somewhere in their budget range. `runningCount` was a 32-bit `int`.
+
+The failure mode was silent truncation rather than a visibly wrong number: the counter wrapped to
+`INT_MIN`, and because the guard compared it against a `size_t`, the negative value promoted to a
+huge unsigned and tripped the guard. Observed at 24 points:
+
+```
+Tree 0: 18446744071562067968 combinations (INCOMPLETE: safety guard triggered)
+            ^ 2^64 - 2^31, i.e. INT_MIN reinterpreted as unsigned
+```
+
+After widening the counters to `size_t`, the same solve returns the correct value, verified
+against the frontier DP's independent prediction:
+
+```
+Tree 0: 3325013320 combinations in 281.318 s      (DP predicted 3,325,013,320 in 0.2 s)
+```
+
+That is a useful datapoint in itself: two independent implementations agreeing on a count above
+2^31, one of which never enumerated a single solution. This case is now a permanent regression
+sentinel in `tests/golden_counts.py`.
+
 ### 2. The default safety guard is far too permissive for a server
 
 `TreeDAGInfo::safetyGuard` defaults to 500,000,000 combinations
