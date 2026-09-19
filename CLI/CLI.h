@@ -16,6 +16,7 @@ namespace CLI {
 		std::string outputFilePath;
 		int targetTalentCount = 1;
 		bool solveParallel = false;
+		bool countOnly = false;
 	};
 
 	struct RunDetails {
@@ -27,6 +28,7 @@ namespace CLI {
 		bool safetyGuardTriggered = false;
 		std::vector<int> bitToIndexVec;
 		std::vector<std::vector<int>> assignedSwitchIndices;
+		bool countOnly = false;
 	};
 
 	CLSettings processCommandLine(int argc, char** argv);

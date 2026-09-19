@@ -12,11 +12,11 @@ no filter (exhaustive enumeration):
 
 | Talent points | Wall time | Combinations | Output file |
 |---:|---:|---:|---:|
-| 10 | 0.04 s | 224 | 2.4 KB |
-| 15 | 0.05 s | 17,542 | 279 KB |
-| 20 | 0.12 s | 71,031 | 1.35 MB |
-| 25 | **30.6 s** | 25,299,312 | **689 MB** |
-| 30 | **452.9 s** (7.5 min) | **305,286,988** | **9.5 GB** |
+| 10 | 0.04 s | 223 | 2.4 KB |
+| 15 | 0.05 s | 17,541 | 279 KB |
+| 20 | 0.12 s | 71,030 | 1.35 MB |
+| 25 | **30.6 s** | 25,299,311 | **689 MB** |
+| 30 | **452.9 s** (7.5 min) | **305,286,987** | **9.5 GB** |
 
 A realistic query — *"show me every valid build in my spec tree"*, i.e. the full 30-point cap —
 takes **7.5 minutes and writes a 9.5 GB file**. Growth is roughly an order of magnitude per 5

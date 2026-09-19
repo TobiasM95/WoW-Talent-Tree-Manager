@@ -29,6 +29,18 @@ namespace Engine {
         double elapsedTime = 0.0;
         bool safetyGuardTriggered = false;
         size_t safetyGuard = 500000000;
+
+        /*
+        Count without storing. Enumeration cost is unchanged but memory becomes O(1)
+        instead of O(results), which is the difference between answering "how many
+        valid builds exist?" and materialising them.
+
+        Measured: an exhaustive 30 point solve of a real spec tree yields ~305 million
+        combinations and a 9.5 GB result. Counting needs only the counter.
+        When set, resultCount is still filled but allCombinations stays empty.
+        */
+        bool countOnly = false;
+        size_t resultCount = 0;
     };
 
     struct TreeDAGInfoLegacy {

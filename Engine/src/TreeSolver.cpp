@@ -208,6 +208,14 @@ namespace Engine {
         TreeDAGInfo sortedTreeDAG = createSortedMinimalDAG(*processedTree);
         setSafetyGuard(sortedTreeDAG);
         sortedTreeDAG.processedTree = processedTree;
+        /* The DAG is rebuilt here rather than taken from the caller, so carry over
+         * the settings a caller is allowed to choose. Keeps the existing signature. */
+        if (treeDAGInfo) {
+            sortedTreeDAG.countOnly = treeDAGInfo->countOnly;
+            if (treeDAGInfo->safetyGuard > 0) {
+                sortedTreeDAG.safetyGuard = treeDAGInfo->safetyGuard;
+            }
+        }
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
         std::vector<SIND> combinations;
@@ -329,6 +337,7 @@ namespace Engine {
         vec2d<SIND> allCombinationsVector;
         allCombinationsVector.push_back(combinations);
         sortedTreeDAG.allCombinations = allCombinationsVector;
+        sortedTreeDAG.resultCount = static_cast<size_t>(runningCount);
         sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
         inProgress = false;
 
@@ -370,6 +379,15 @@ namespace Engine {
         iterate through all nodes in vector possible nodes to visit but only visit nodes whose index > current index
         if finished perform bit shift on uint64 to get unique tree index and put it in configuration set
         */
+        /* This path previously had no safety guard at all: runningCount was never
+         * incremented and safetyGuardTriggered never set, so the guard computed by
+         * setSafetyGuard was simply ignored and enumeration ran until memory ran out.
+         * That matters because this is the path the CLI -- and the server-side worker
+         * built on it -- actually uses. */
+        if (runningCount >= sortedTreeDAG.safetyGuard || safetyGuardTriggered) {
+            safetyGuardTriggered = true;
+            return;
+        }
         //do combination housekeeping
         setTalent(visitedTalents, talentIndexReqPair.first);
         talentPointsSpent += 1;
@@ -377,7 +395,10 @@ namespace Engine {
         currentMultiplier *= sortedTreeDAG.minimalTreeDAG[talentIndexReqPair.first][0];
         //check if path is complete
         if (talentPointsLeft == 0 && checkSkillsetFilter(visitedTalents, includeFilter, excludeFilter, orFilter, oneFilter)) {
-            combinations.push_back(visitedTalents);
+            runningCount++;
+            if (!sortedTreeDAG.countOnly) {
+                combinations.push_back(visitedTalents);
+            }
             return;
         }
         //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but

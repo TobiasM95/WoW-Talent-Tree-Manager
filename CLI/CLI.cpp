@@ -75,6 +75,9 @@ namespace CLI {
             if (component == "--parallel" || component == "--concurrent") {
                 settings.solveParallel = true;
             }
+            if (component == "--count-only") {
+                settings.countOnly = true;
+            }
         }
 
         return settings;
@@ -276,6 +279,7 @@ namespace CLI {
          * for a talent, the same fallback already used above when a supplied filter's
          * field count does not match the tree. */
         for (RunDetails& run : allRunDetails) {
+            run.countOnly = settings.countOnly;
             if (run.filter) {
                 continue;
             }
@@ -296,6 +300,12 @@ namespace CLI {
     static void solveSingleRun(RunDetails& run) {
         bool dummyProgress = true;
         Engine::clearTree(run.tree);
+        /* countConfigurationsFiltered rebuilds the DAG internally but carries over
+         * caller-chosen settings, so this is how --count-only reaches the solver. */
+        if (!run.treeDAGInfo) {
+            run.treeDAGInfo = std::make_shared<Engine::TreeDAGInfo>();
+        }
+        run.treeDAGInfo->countOnly = run.countOnly;
         Engine::countConfigurationsFiltered(
             run.tree,
             run.filter,
@@ -435,7 +445,19 @@ namespace CLI {
     }
 
     void outputCombinations(std::vector<RunDetails>& allRunDetails, CLSettings& settings) {
-        if (!settings.generateOutput) {
+        /* The count is the answer most callers actually want, so always report it.
+         * In count-only mode no combinations were stored, so there is nothing to write. */
+        for (size_t i = 0; i < allRunDetails.size(); i++) {
+            RunDetails& details = allRunDetails[i];
+            std::cout << "Tree " << i << ": " << details.treeDAGInfo->resultCount
+                << " combinations in " << details.treeDAGInfo->elapsedTime << " s";
+            if (details.treeDAGInfo->safetyGuardTriggered) {
+                std::cout << " (INCOMPLETE: safety guard triggered)";
+            }
+            std::cout << "\n";
+        }
+
+        if (settings.countOnly || !settings.generateOutput) {
             return;
         }
         std::ofstream outFile{ settings.outputFilePath };
