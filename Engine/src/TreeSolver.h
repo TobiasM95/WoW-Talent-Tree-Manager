@@ -41,6 +41,17 @@ namespace Engine {
         */
         bool countOnly = false;
         size_t resultCount = 0;
+
+        /*
+        Caller-chosen cap on stored/counted results. 0 means "not set", in which case
+        setSafetyGuard derives one from available memory.
+
+        This is deliberately separate from safetyGuard: that field is default-
+        constructed to 500,000,000, so it cannot distinguish "the caller wants this
+        limit" from "nobody touched it", and treating it as an override silently
+        clamped every solve to the struct default.
+        */
+        size_t safetyGuardOverride = 0;
     };
 
     struct TreeDAGInfoLegacy {

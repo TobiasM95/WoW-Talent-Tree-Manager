@@ -78,6 +78,9 @@ namespace CLI {
             if (component == "--count-only") {
                 settings.countOnly = true;
             }
+            if (component == "--max-results" && argc >= i + 1) {
+                settings.maxResults = static_cast<size_t>(std::stoull(std::string{ argv[i + 1] }));
+            }
         }
 
         return settings;
@@ -280,6 +283,7 @@ namespace CLI {
          * field count does not match the tree. */
         for (RunDetails& run : allRunDetails) {
             run.countOnly = settings.countOnly;
+            run.maxResults = settings.maxResults;
             if (run.filter) {
                 continue;
             }
@@ -306,6 +310,7 @@ namespace CLI {
             run.treeDAGInfo = std::make_shared<Engine::TreeDAGInfo>();
         }
         run.treeDAGInfo->countOnly = run.countOnly;
+        run.treeDAGInfo->safetyGuardOverride = run.maxResults;
         Engine::countConfigurationsFiltered(
             run.tree,
             run.filter,
@@ -357,16 +362,7 @@ namespace CLI {
         }
         else {
             for (size_t i = 0; i < allRunDetails.size(); i++) {
-                bool dummyProgress = true;
-                Engine::clearTree(allRunDetails[i].tree);
-                Engine::countConfigurationsFiltered(
-                    allRunDetails[i].tree,
-                    allRunDetails[i].filter,
-                    allRunDetails[i].targetTalentCount,
-                    allRunDetails[i].treeDAGInfo,
-                    dummyProgress,
-                    allRunDetails[i].safetyGuardTriggered
-                );
+                solveSingleRun(allRunDetails[i]);
             }
         }
 

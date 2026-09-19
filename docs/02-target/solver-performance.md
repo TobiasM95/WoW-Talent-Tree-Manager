@@ -62,22 +62,34 @@ A **count-only mode** (increment, do not store) makes the headline question answ
 tree at any point budget in bounded memory. The recursive `visitTalent*` functions already thread
 a `runningCount` through; suppressing the `combinations.push_back` is a small, contained change.
 
-**Implemented and measured** (`--count-only`). The same 30-point solve:
+**Implemented and measured** (`--count-only`). Like-for-like, same tree, same budget, neither
+writing an output file:
 
-| | Full enumeration | `--count-only` |
+| druid_restoration, 25 points | Full enumeration | `--count-only` |
 |---|---:|---:|
-| Combinations | 305,286,987 | **305,286,987** (identical) |
-| Solve time | 452.9 s | **42.0 s** |
-| Bytes written | 9.5 GB | **0** |
+| Count | 25,299,311 | **25,299,311** (identical) |
+| Peak RSS | 1,583 MB | **9 MB** |
+| Solve time | 2.09 s | 1.96 s |
 
-**10.8× faster, not merely smaller** — an earlier draft of this document predicted "roughly the
-same CPU cost", which was wrong. Storing 305 million results costs far more than counting them:
-growing a ~2.4 GB vector, the attendant allocation and memory-bandwidth pressure, and 9.5 GB of
-serialisation and I/O all disappear. The enumeration itself was never the expensive part.
+**The win is memory, roughly 176×, not speed.** Enumeration cost is unchanged — the recursion
+still walks every solution — so counting is only ~6% faster.
 
-So the flagship question — *"how many valid builds does my spec have?"* — is answerable for a
-full 30-point tree in well under a minute, in constant memory, for every spec. That converts it
-from unshippable to routine.
+Two earlier numbers in this document were wrong and are corrected here:
+
+- A first draft predicted "roughly the same CPU cost". That was **right**. A second draft
+  "corrected" it to 10.8× faster, which was **wrong**: that comparison was count-only *without*
+  an output file against full enumeration *with* a 9.5 GB file write. The speedup was the absent
+  disk I/O, not the absent storage.
+- The 452.9 s / 42.0 s pair measures "writes 9.5 GB" vs "writes nothing". It says nothing about
+  count-only, because the flag was not reaching the solver at the time (a CLI dispatch bug: only
+  the `--parallel` branch propagated it, and the measurements used the default branch).
+
+What count-only actually buys is the ability to answer the question **at all**. Full enumeration
+of a 30-point spec tree needs ~2.4 GB of results plus copies; `shaman_class_elemental` at 24
+points needs ~26 GB and was OOM-killed twice before the dispatch bug was fixed. In constant
+memory those become routine.
+
+For *speed*, enumeration is the wrong tool entirely — see below.
 
 ### 3b. Counting should not use the enumerator at all
 

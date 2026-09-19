@@ -1,9 +1,19 @@
-import subprocess, sys, re
+import subprocess, sys, re, os
 sys.path.insert(0, sys.argv[1])
 from frontier_dp import parse_tree, build_expanded_graph, topo_sort, count_frontier_dp
 
-PRESETS='Engine/resources/presets.txt'
-EXE='./build-msvc/Release/ttm-solver.exe'
+PRESETS=os.path.join('Engine','resources','presets.txt')
+# exe path: argv[2], else first of the usual build locations.
+# os.path.normpath matters on Windows: CreateProcess rejects a relative path
+# written with forward slashes.
+def _find_exe():
+    if len(sys.argv)>2: return os.path.normpath(sys.argv[2])
+    for c in (os.path.join('build','ttm-solver'),
+              os.path.join('build','ttm-solver.exe'),
+              os.path.join('build-msvc','Release','ttm-solver.exe')):
+        if os.path.exists(c): return os.path.normpath(c)
+    sys.exit('ttm-solver not found; pass its path as the second argument')
+EXE=_find_exe()
 names=[l.split(':')[1] for l in open(PRESETS,encoding='utf-8').read().split('\n') if l.strip()]
 
 # pick a spread: class trees and spec trees across several classes

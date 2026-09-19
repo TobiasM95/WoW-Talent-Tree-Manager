@@ -212,8 +212,8 @@ namespace Engine {
          * the settings a caller is allowed to choose. Keeps the existing signature. */
         if (treeDAGInfo) {
             sortedTreeDAG.countOnly = treeDAGInfo->countOnly;
-            if (treeDAGInfo->safetyGuard > 0) {
-                sortedTreeDAG.safetyGuard = treeDAGInfo->safetyGuard;
+            if (treeDAGInfo->safetyGuardOverride > 0) {
+                sortedTreeDAG.safetyGuard = treeDAGInfo->safetyGuardOverride;
             }
         }
         if (sortedTreeDAG.sortedTalents.size() > 64)

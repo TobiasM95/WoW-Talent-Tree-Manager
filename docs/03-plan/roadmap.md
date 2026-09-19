@@ -58,12 +58,15 @@ malformed upstream payload fails the run loudly instead of writing bad data.
 - CMake build retained alongside the `.vcxproj` files, so the native app still builds.
 - Replace `<Windows.h>` dependencies: `--mem-budget` argument instead of `GlobalMemoryStatusEx`;
   drop `SHGetKnownFolderPath`/`%APPDATA%` entirely; `std::thread` instead of PPL.
-- **Add a count-only solve mode.** Measured: a 30-point exhaustive solve takes 7.5 minutes and
-  writes 9.5 GB, because the engine stores every combination in order to count them. Counting
-  needs only a counter. This converts the flagship question ("how many valid builds?") from
-  unshippable to cheap, and is a small contained change — the `visitTalent*` recursion already
-  threads `runningCount`. See [`../02-target/solver-performance.md`](../02-target/solver-performance.md).
-  Highest-value engine change available; do it before building product surface on top.
+- **Count-only solve mode — done**, but it buys memory (~176x, 1,583 MB to 9 MB), not speed.
+  Enumeration still walks every solution. It makes large counts *possible*; it does not make them
+  fast.
+- **Counting should not go through the enumerator at all.** A frontier DP counts the same sets in
+  time polynomial in tree size: 3.7 s for all 78 presets at every budget, versus 42 s for the
+  engine to count one budget of one tree, with counts verified identical on 11 trees. Prototyped
+  in [`../../tools/frontier-dp/`](../../tools/frontier-dp/README.md). Productionising it means
+  counting is answered inline in the API in milliseconds, precomputable at ingest, with no queue
+  or worker involved. Extend it for hero talents and `tiered` level-gated ranks first.
 - Add what the worker contract needs: NDJSON streaming output (incrementally flushed), a progress
   file driven by the existing `runningCount`, meaningful exit codes, and the **wall-clock
   `--time-budget` that does not exist today**.

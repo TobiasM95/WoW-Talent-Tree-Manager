@@ -75,10 +75,11 @@ currently express at all.
 
 **The number that shapes the product.** An exhaustive 30-point spec-tree solve takes **7.5 minutes
 and writes 9.5 GB**; at 20 points it is 0.12 s and 1.35 MB. The engine stored every combination
-purely in order to count them. Adding a count-only mode (now implemented) returns the identical
-count — 305,286,987 — in **42 s and zero bytes**, 10.8x faster, so the headline question ("how many
-valid builds?") is cheap for any tree. Listing them all remains the expensive operation, and the
-product should treat the two very differently.
+purely in order to count them. A count-only mode (now implemented) drops peak memory ~176x
+(1,583 MB to 9 MB) at the same speed, which makes large counts possible at all. For speed,
+enumeration is the wrong tool: a frontier DP counts the same sets in **3.7 s for all 78 presets at
+every budget**, versus 42 s for the engine to count one budget of one tree. Listing builds remains
+the expensive operation, and the product should treat counting and listing very differently.
 
 **Where to start.** Phase 0 spikes: build the engine on Linux, transform one spec end to end, and
 settle how pre-satisfied prerequisites and level-gated ranks reach a per-tree solver. Then the data

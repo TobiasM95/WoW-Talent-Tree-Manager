@@ -1,0 +1,57 @@
+name: engine
+
+on:
+  push:
+    paths:
+      - 'Engine/**'
+      - 'CLI/**'
+      - 'CMakeLists.txt'
+      - 'tests/**'
+      - 'tools/frontier-dp/**'
+      - '.github/workflows/engine-tests.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  golden-counts:
+    name: build + golden counts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: build
+        run: cmake --build build -j "$(nproc)"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Exact combination counts for real presets. Each was confirmed twice:
+      # by the C++ enumerator and by the independent frontier DP.
+      - name: golden counts
+        run: python tests/golden_counts.py build/ttm-solver --quick
+
+      # The DP is a second, independent implementation. If the two ever disagree,
+      # one of them has a bug -- which is the point of keeping both.
+      - name: frontier DP agrees with the engine
+        run: python tools/frontier-dp/validate.py tools/frontier-dp
+
+  slow-counts:
+    name: golden counts (including >2^31)
+    runs-on: ubuntu-latest
+    # The overflow case enumerates 3.3 billion solutions (~8 min), so keep it off
+    # the every-push path.
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build -j "$(nproc)"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: golden counts, full set
+        timeout-minutes: 45
+        run: python tests/golden_counts.py build/ttm-solver

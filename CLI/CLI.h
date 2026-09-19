@@ -17,6 +17,7 @@ namespace CLI {
 		int targetTalentCount = 1;
 		bool solveParallel = false;
 		bool countOnly = false;
+		size_t maxResults = 0;   // 0 = derive from memory
 	};
 
 	struct RunDetails {
@@ -29,6 +30,7 @@ namespace CLI {
 		std::vector<int> bitToIndexVec;
 		std::vector<std::vector<int>> assignedSwitchIndices;
 		bool countOnly = false;
+		size_t maxResults = 0;
 	};
 
 	CLSettings processCommandLine(int argc, char** argv);
