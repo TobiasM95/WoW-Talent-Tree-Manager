@@ -28,6 +28,7 @@ It separates what the analysis settled from what still needs a decision.
 
 | Document | Covers |
 |---|---|
+| [`solver-performance.md`](02-target/solver-performance.md) | **Measured (2026-09-19).** The solver's real cost curve, and why counting and enumerating must be separated before the solver is exposed on a server |
 | [`raidbots-live-schema.md`](02-target/raidbots-live-schema.md) | **Verified against live data (2026-09-19).** The upstream talent schema as it actually is today, including hero talents, the new `tiered`/level-gated mechanic, cross-tree prerequisites, and data-quality traps |
 | [`data-model.md`](02-target/data-model.md) | Proposed JSON schemas for trees, builds and loadouts; the identifier-stability rule; interop-format keep/replace decisions; Postgres mapping |
 | [`architecture.md`](02-target/architecture.md) | Container topology, the Postgres-based queue, the engine worker protocol, frontend approach, ingestion requirements, auth, and what is deliberately excluded |
@@ -71,6 +72,11 @@ pipeline, and simc only for spell/effect cross-checks.
 where the code assumes 39. The level cap is 90, where the engine defaults to 70. And there is a new
 `tiered` node type whose maximum ranks depend on *character level* — a mechanic the engine cannot
 currently express at all.
+
+**The number that shapes the product.** An exhaustive 30-point spec-tree solve takes **7.5 minutes
+and writes 9.5 GB**; at 20 points it is 0.12 s and 1.35 MB. The engine stores every combination in
+order to count them, so adding a count-only mode is the highest-value change available — it makes
+the headline question ("how many valid builds?") cheap for any tree.
 
 **Where to start.** Phase 0 spikes: build the engine on Linux, transform one spec end to end, and
 settle how pre-satisfied prerequisites and level-gated ranks reach a per-tree solver. Then the data

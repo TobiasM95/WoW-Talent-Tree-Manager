@@ -126,12 +126,23 @@ Currently GPL-3. Fine for a hosted service (GPL, unlike AGPL, does not compel re
 modifications), but worth a deliberate choice: keeping GPL-3, relicensing, or splitting licences
 between engine and web app. Only the copyright holder can decide.
 
-### Q8. Hosting and cost envelope
+### Q8. Hosting and cost envelope — now quantified, and it is the key product question
 
-Solve jobs are CPU- and memory-hungry, and enumeration caps interact directly with hosting
-budget. The `--max-results` / `--mem-budget` / `--time-budget` defaults are effectively a product
-decision about how generous a free solve is. Needs a target: single VPS, or something that
-scales workers?
+Measured ([`../02-target/solver-performance.md`](../02-target/solver-performance.md)): an
+exhaustive 30-point spec-tree solve takes **7.5 minutes and writes 9.5 GB**. At 20 points it is
+0.12 s and 1.35 MB. Five talent points separate a trivial query from a 4,000× more expensive one.
+
+So this is no longer just a hosting question, it is a product-shape decision:
+
+- Which solves are free and interactive (suggest: ≤20 points, or any solve with filters)?
+- Which require an account and rate limiting?
+- Is a full unconstrained enumeration offered at all, or only its *count* plus a bounded top-N
+  page?
+
+The recommended answer is the count/enumerate split described in the performance doc: answer
+"how many builds?" cheaply for everyone, and treat "list them all" as a constrained, rate-limited
+operation. Needs a decision before the solver UI is designed, because it determines what the UI
+can promise.
 
 ### Q9. Is Sim Analysis worth reviving at all?
 

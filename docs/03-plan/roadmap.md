@@ -11,7 +11,7 @@ Small, throwaway, answer-a-question-only work. Nothing here ships.
 
 | # | Spike | Question it answers | Done when |
 |---|---|---|---|
-| S1 | Build the engine + CLI on Linux via CMake in Docker | Is the port as cheap as the analysis says? | `ttm-solver` solves a `presets.txt` preset in a container and matches the Windows build's output |
+| S1 | ~~Build the engine + CLI on Linux via CMake in Docker~~ | ~~Is the port as cheap as the analysis says?~~ | **DONE** — byte-for-byte identical output (same sha256) from gcc 12 and MSVC v143 on `druid_restoration`. See the commit and [`../02-target/solver-performance.md`](../02-target/solver-performance.md). |
 | S2 | Transform one spec into the target tree JSON, hero sub-trees included | Does the transformation hold up end to end? | A complete JSON tree for one spec, hero sub-trees included, validated against the game |
 | S3 | Cross-tree prerequisites + tiered nodes | How do we feed pre-satisfied prerequisites and level-gated ranks to a per-tree solver? (Q5, Q10) | A worker contract that handles both, with the 64-bit budget confirmed at max level |
 | S4 | Blizzard hash round-trip | Can we import/export live in-game strings with the current codec? | An in-game export string imports correctly and re-exports byte-identically |
@@ -58,9 +58,20 @@ malformed upstream payload fails the run loudly instead of writing bad data.
 - CMake build retained alongside the `.vcxproj` files, so the native app still builds.
 - Replace `<Windows.h>` dependencies: `--mem-budget` argument instead of `GlobalMemoryStatusEx`;
   drop `SHGetKnownFolderPath`/`%APPDATA%` entirely; `std::thread` instead of PPL.
+- **Add a count-only solve mode.** Measured: a 30-point exhaustive solve takes 7.5 minutes and
+  writes 9.5 GB, because the engine stores every combination in order to count them. Counting
+  needs only a counter. This converts the flagship question ("how many valid builds?") from
+  unshippable to cheap, and is a small contained change — the `visitTalent*` recursion already
+  threads `runningCount`. See [`../02-target/solver-performance.md`](../02-target/solver-performance.md).
+  Highest-value engine change available; do it before building product surface on top.
 - Add what the worker contract needs: NDJSON streaming output (incrementally flushed), a progress
   file driven by the existing `runningCount`, meaningful exit codes, and the **wall-clock
   `--time-budget` that does not exist today**.
+- Lower the default safety guard. At 500,000,000 it did not trip on a solve that produced 305
+  million combinations and a 9.5 GB file, so it protected nothing. Derive it from the output
+  budget we are willing to serve, per job.
+- Emit resolved, nodeId-keyed rows. The current format is raw decimal `SIND` integers whose
+  meaning depends on a separate header line, so no row is self-describing.
 - `solve_jobs` queue in Postgres with `FOR UPDATE SKIP LOCKED`, lease-based crash recovery, and
   `request_hash` dedup/caching.
 - Worker container with hard CPU/memory limits.
