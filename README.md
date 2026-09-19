@@ -71,6 +71,16 @@ committed a 16 MB packed icon atlas 76 times, which had grown `.git` to **1.4 GB
 What was removed is *generated data*, regenerable by the preset scripts. Nothing authored was
 lost. Commit SHAs changed, so an old clone cannot fast-forward; re-clone instead.
 
+> **Careful: do not `git fetch` until the remote is rewritten.**
+> `origin` still holds the old 1.4 GB history. Because the rewritten commits have different
+> SHAs, a fetch re-downloads all of it into `refs/remotes/origin/*` and puts `.git` straight
+> back to 1.4 GB. If that happens: `git remote remove origin`, then
+> `git reflog expire --expire=now --all && git gc --prune=now`, then re-add the remote.
+>
+> Publishing the rewritten history means a force-push, which rewrites 21 release tags and
+> breaks every existing clone. That is a deliberate decision, not a routine one — the local
+> history is complete and backed up, so there is no hurry.
+
 ## Credits
 
 Developed by [Tobias Mielich](https://github.com/TobiasM95).
