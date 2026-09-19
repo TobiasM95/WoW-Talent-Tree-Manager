@@ -87,7 +87,7 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<SIND>& combinations,
-        int& runningCount,
+        size_t& runningCount,
         bool& safetyGuardTriggered,
         SIND& includeFilter,
         SIND& excludeFilter,
@@ -104,7 +104,7 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<SIND>& combinations,
-        int& runningCount,
+        size_t& runningCount,
         bool& safetyGuardTriggered
     );
     void visitTalentParallel(
@@ -117,8 +117,8 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         vec2d<SIND>& combinations,
-        std::vector<int>& allCombinations,
-        int& runningCount,
+        std::vector<size_t>& allCombinations,
+        size_t& runningCount,
         bool& safetyGuardTriggered
     );
     void visitTalentParallelLegacy(
@@ -131,8 +131,8 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfoLegacy& sortedTreeDAG,
         vec2d<std::pair<SIND, int>>& combinations,
-        std::vector<int>& allCombinations,
-        int& runningCount,
+        std::vector<size_t>& allCombinations,
+        size_t& runningCount,
         bool& safetyGuardTriggered
     );
     inline void setTalent(SIND& talent, int index);

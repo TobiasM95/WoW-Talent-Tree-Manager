@@ -75,7 +75,7 @@ namespace Engine {
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         //this is used for safeguarding solving process for trees that are too big
-        int runningCount = 0;
+        size_t runningCount = 0;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
@@ -128,7 +128,7 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<SIND>& combinations,
-        int& runningCount,
+        size_t& runningCount,
         bool& safetyGuardTriggered
     ) {
         /*
@@ -307,7 +307,7 @@ namespace Engine {
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         //this is used for safeguarding solving process for trees that are too big
-        int runningCount = 0;
+        size_t runningCount = 0;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             if (sortedTreeDAG.sortedTalents[possibleTalents[i].first]->pointsRequired == 0)
@@ -337,7 +337,7 @@ namespace Engine {
         vec2d<SIND> allCombinationsVector;
         allCombinationsVector.push_back(combinations);
         sortedTreeDAG.allCombinations = allCombinationsVector;
-        sortedTreeDAG.resultCount = static_cast<size_t>(runningCount);
+        sortedTreeDAG.resultCount = runningCount;
         sortedTreeDAG.elapsedTime = ms_double.count() / 1000.0;
         inProgress = false;
 
@@ -366,7 +366,7 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         std::vector<SIND>& combinations,
-        int& runningCount,
+        size_t& runningCount,
         bool& safetyGuardTriggered,
         SIND& includeFilter,
         SIND& excludeFilter,
@@ -468,7 +468,7 @@ namespace Engine {
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
         vec2d<SIND> combinations;
         combinations.resize(talentPoints);
-        std::vector<int> allCombinations;
+        std::vector<size_t> allCombinations;
         allCombinations.resize(talentPoints, 0);
 
         //iterate through all possible combinations in order:
@@ -483,7 +483,7 @@ namespace Engine {
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         //this is used for safeguarding solving process for trees that are too big
-        int runningCount = 0;
+        size_t runningCount = 0;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
             //if (possibleTalents[i].second == 0)
@@ -522,8 +522,8 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfo& sortedTreeDAG,
         vec2d<SIND>& combinations,
-        std::vector<int>& allCombinations,
-        int& runningCount,
+        std::vector<size_t>& allCombinations,
+        size_t& runningCount,
         bool& safetyGuardTriggered
     ) {
         if (runningCount >= sortedTreeDAG.safetyGuard || safetyGuardTriggered) {
@@ -585,7 +585,7 @@ namespace Engine {
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
         vec2d<std::pair<SIND, int>> combinations;
         combinations.resize(talentPoints);
-        std::vector<int> allCombinations;
+        std::vector<size_t> allCombinations;
         allCombinations.resize(talentPoints, 0);
 
         //iterate through all possible combinations in order:
@@ -601,7 +601,7 @@ namespace Engine {
         }
         auto t1 = std::chrono::high_resolution_clock::now();
         //this is used for safeguarding solving process for trees that are too big
-        int runningCount = 0;
+        size_t runningCount = 0;
         bool safetyGuardTriggered = false;
         for (int i = 0; i < possibleTalents.size(); i++) {
             //only start with root nodes that have points required == 0, prevents from starting at root nodes that might come later in the tree (e.g. druid wild charge)
@@ -632,8 +632,8 @@ namespace Engine {
         std::vector<std::pair<int, int>> possibleTalents,
         const TreeDAGInfoLegacy& sortedTreeDAG,
         vec2d<std::pair< SIND, int>>& combinations,
-        std::vector<int>& allCombinations,
-        int& runningCount,
+        std::vector<size_t>& allCombinations,
+        size_t& runningCount,
         bool& safetyGuardTriggered
     ) {
         if (runningCount >= 500000000) {

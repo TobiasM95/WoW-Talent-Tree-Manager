@@ -79,6 +79,38 @@ So the flagship question — *"how many valid builds does my spec have?"* — is
 full 30-point tree in well under a minute, in constant memory, for every spec. That converts it
 from unshippable to routine.
 
+### 3b. Counting should not use the enumerator at all
+
+Count-only removes the storage cost, but the *work* is still proportional to the number of
+solutions. That is inherent to enumeration and cannot be optimised away.
+
+It is also unnecessary. A **frontier dynamic program** counts the same sets in time polynomial in
+the size of the tree, independent of how many builds exist. Prototyped and verified in
+[`../../tools/frontier-dp/`](../../tools/frontier-dp/README.md):
+
+| | Engine (`--count-only`) | Frontier DP |
+|---|---:|---:|
+| `druid_restoration`, 30 points | 42.0 s | — |
+| `druid_restoration`, all budgets 1–30 | 30 separate runs | **0.10 s** |
+| all 78 presets, all budgets | — | **3.7 s** |
+
+Counts are identical to the engine on every tree tested (11 trees, 6 classes, class and spec
+trees, plus 223 / 17,541 / 71,030 / 305,286,987 on `druid_restoration`). Peak DP state count
+across every tree in the game: 8,859.
+
+The decisive example: `shaman_class_elemental` has **37,296,642,700** valid builds at its best
+budget, computed in 0.2 s. The enumerator would need ~86 minutes merely to count that, and
+hundreds of gigabytes to store it. This is a complexity-class difference, not a constant factor.
+
+**Architectural consequence.** Counting and enumerating become separate paths:
+
+- *Counting* is a DP, answered inline in the API in milliseconds — no queue, no worker, no cache,
+  and precomputable at ingest into one table.
+- *Enumerating* stays the C++ engine behind the job queue, for listing builds matching filters,
+  which is what it is genuinely good at.
+- Per-talent marginals ("appears in 34% of valid builds") fall out of a forward-backward pass over
+  the same DP, without listing a single build.
+
 ### 4. Result caching is worth far more than assumed
 
 [`architecture.md`](architecture.md) proposes `request_hash` dedup as "the single highest-value
