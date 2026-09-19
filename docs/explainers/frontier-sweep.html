@@ -1,0 +1,1400 @@
+<title>Talent Tree Frontier Sweep</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:      #F1F4F3;
+    --surface:     #FFFFFF;
+    --surface-2:   #E7ECEA;
+    --ink:         #0F1518;
+    --ink-soft:    #4A565B;
+    --ink-faint:   #8A979C;
+    --line:        #D2DBD8;
+    --line-strong: #B3BFBB;
+
+    --taken:       #1F7A6B;
+    --taken-soft:  #DCEBE7;
+    --gate:        #B4661E;
+    --gate-soft:   #F7E7D6;
+    --live:        #5C6B78;
+    --live-soft:   #E1E7EB;
+
+    --shadow: 0 1px 2px rgba(15,21,24,.06), 0 8px 24px -12px rgba(15,21,24,.18);
+
+    --f-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0E1416;
+      --surface:     #161E21;
+      --surface-2:   #1E282C;
+      --ink:         #E8EEEC;
+      --ink-soft:    #A3B1B0;
+      --ink-faint:   #6C7B7C;
+      --line:        #2A363A;
+      --line-strong: #3B4A4F;
+
+      --taken:       #4FC0A8;
+      --taken-soft:  #14312C;
+      --gate:        #E0913F;
+      --gate-soft:   #38260F;
+      --live:        #93A7B3;
+      --live-soft:   #1D272C;
+
+      --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0E1416;
+    --surface:     #161E21;
+    --surface-2:   #1E282C;
+    --ink:         #E8EEEC;
+    --ink-soft:    #A3B1B0;
+    --ink-faint:   #6C7B7C;
+    --line:        #2A363A;
+    --line-strong: #3B4A4F;
+
+    --taken:       #4FC0A8;
+    --taken-soft:  #14312C;
+    --gate:        #E0913F;
+    --gate-soft:   #38260F;
+    --live:        #93A7B3;
+    --live-soft:   #1D272C;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 40px 64px;
+  }
+
+  /* ---------- masthead ---------- */
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--f-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-size: clamp(30px, 5.2vw, 46px);
+    line-height: 1.08;
+    letter-spacing: -.015em;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    max-width: 63ch;
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .standfirst em { font-family: var(--f-display); font-style: italic; color: var(--ink); }
+
+  /* ---------- primer: counting in groups ---------- */
+  .primer { margin-top: 36px; display: grid; gap: 14px; }
+  .primer h2 {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 25px;
+    letter-spacing: -.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .primer p { margin: 0; max-width: 68ch; }
+  .primer-lede { font-size: 16.5px; color: var(--ink-soft); }
+  .primer-lede + p { }
+  .pm {
+    font-family: var(--f-mono);
+    font-size: 13.5px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+    padding: 1px 6px;
+    white-space: nowrap;
+  }
+  .gridfig { margin: 4px 0 0; display: grid; gap: 12px; }
+  .gridwrap { overflow-x: auto; }
+  table.pascal {
+    border-collapse: collapse;
+    font-family: var(--f-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+  }
+  table.pascal td {
+    border: 1px solid var(--line);
+    width: 54px;
+    height: 40px;
+    text-align: center;
+    padding: 0;
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+  table.pascal td.edge { color: var(--ink-faint); }
+  table.pascal td.corner-start { color: var(--ink); font-weight: 600; }
+  table.pascal td.corner-end {
+    color: #fff;
+    background: var(--taken);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) table.pascal td.corner-end { color: #08201C; }
+  }
+  :root[data-theme="dark"] table.pascal td.corner-end { color: #08201C; }
+  .gridfig figcaption {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    max-width: 68ch;
+    line-height: 1.55;
+  }
+  .gridfig figcaption b { color: var(--ink); font-weight: 600; }
+  .gridfig figcaption em { font-family: var(--f-display); font-style: italic; color: var(--ink); }
+
+  /* ---------- the key idea ---------- */
+  .keyidea {
+    margin-top: 34px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--taken);
+    background: var(--surface);
+    border-radius: 3px;
+    padding: 20px 22px;
+    display: grid;
+    gap: 10px;
+  }
+  .keyidea h2 {
+    font-family: var(--f-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+  .keyidea p { margin: 0; max-width: 72ch; }
+  .statekey {
+    font-family: var(--f-mono);
+    font-size: 14.5px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 11px 14px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .statekey b { color: var(--taken); font-weight: 600; }
+
+  /* ---------- controls ---------- */
+  .controls {
+    margin-top: 34px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+  }
+  button, select {
+    font-family: var(--f-body);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    padding: 7px 13px;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled), select:hover { border-color: var(--taken); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.primary {
+    background: var(--taken);
+    border-color: var(--taken);
+    color: #fff;
+  }
+  :root[data-theme="dark"] button.primary,
+  .darkfix { color: #08201C; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) button.primary { color: #08201C; }
+  }
+  button:focus-visible, select:focus-visible {
+    outline: 2px solid var(--taken);
+    outline-offset: 2px;
+  }
+  .spacer { flex: 1 1 auto; }
+  .stepcount {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- narration ---------- */
+  .narration {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    min-height: 68px;
+    display: grid;
+    gap: 6px;
+  }
+  .narration .n-head {
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .narration .n-body { margin: 0; max-width: 78ch; }
+  .narration b { font-weight: 600; }
+  .tag {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 2px;
+    border: 1px solid var(--line-strong);
+    white-space: nowrap;
+  }
+  .tag.t-take   { color: var(--taken); border-color: var(--taken); background: var(--taken-soft); }
+  .tag.t-gate   { color: var(--gate);  border-color: var(--gate);  background: var(--gate-soft); }
+  .tag.t-forget { color: var(--live);  border-color: var(--live);  background: var(--live-soft); }
+
+  /* ---------- panes ---------- */
+  .panes {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 880px) { .panes { grid-template-columns: minmax(0, 1fr); } }
+
+  .pane {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .pane > header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pane > header h3 {
+    font-family: var(--f-body);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0;
+  }
+  .pane > header .hint {
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+  .pane-body { padding: 16px; }
+
+  svg.tree { display: block; width: 100%; height: auto; max-width: 100%; }
+  svg.tree text { font-family: var(--f-body); }
+  .nlabel { font-size: 11px; fill: var(--ink-soft); }
+  .nreq   { font-family: var(--f-mono); font-size: 9.5px; }
+
+  /* ---------- state table ---------- */
+  .tablescroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th {
+    font-family: var(--f-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+    padding: 0 10px 8px 0;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td {
+    padding: 7px 10px 7px 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  td.num, th.num { text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+  tr.merged td { background: var(--taken-soft); }
+  .chip {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 1px 6px;
+    margin-right: 4px;
+    border-radius: 2px;
+    background: var(--live-soft);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+  }
+  .nothing { color: var(--ink-faint); font-family: var(--f-mono); font-size: 12px; }
+  .mergebadge {
+    font-family: var(--f-mono);
+    font-size: 10.5px;
+    color: var(--taken);
+    border: 1px solid var(--taken);
+    border-radius: 2px;
+    padding: 0 4px;
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  .tfoot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding-top: 12px;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .tfoot b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- legend ---------- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--line);
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { width: 13px; height: 13px; border-radius: 2px; border: 1.5px solid var(--line-strong); flex: none; }
+  .sw.s-take   { background: var(--taken); border-color: var(--taken); }
+  .sw.s-live   { background: var(--live-soft); border-color: var(--live); }
+  .sw.s-gone   { background: var(--surface-2); border-color: var(--line); }
+  .sw.s-gate   { background: var(--gate-soft); border-color: var(--gate); }
+  .sw.s-now    { background: var(--surface); border-color: var(--ink); border-width: 2px; }
+
+  /* ---------- grid-to-tree mapping ---------- */
+  table.maptable {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 520px;
+    font-size: 13.5px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  table.maptable th {
+    font-family: var(--f-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+  }
+  table.maptable td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  table.maptable tr:last-child td { border-bottom: 0; }
+  table.maptable td:first-child { color: var(--ink-soft); width: 38%; }
+  table.maptable code {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  table.maptable b { font-weight: 600; }
+
+  .arrowfig { margin: 6px 0 0; display: grid; gap: 12px; }
+  .arrowfig svg { display: block; width: 100%; height: auto; max-width: 100%; }
+  .arrowfig figcaption {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    max-width: 70ch;
+    line-height: 1.55;
+  }
+  .arrowfig figcaption b { color: var(--ink); font-weight: 600; }
+  .arrowfig figcaption em { font-family: var(--f-display); font-style: italic; color: var(--ink); }
+  .arrowfig figcaption code {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  /* ---------- ledger ---------- */
+  .ledger {
+    margin-top: 6px;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .lrow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "k v" "d v";
+    column-gap: 20px;
+    align-items: center;
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .lrow:last-child { border-bottom: 0; }
+  .lrow .lk { grid-area: k; font-size: 14px; }
+  .lrow .lk code {
+    font-family: var(--f-mono); font-size: 12.5px;
+    background: var(--surface-2); padding: 1px 5px; border-radius: 2px;
+  }
+  .lrow .ld { grid-area: d; font-size: 12.5px; color: var(--ink-faint); }
+  .lrow .lv {
+    grid-area: v;
+    font-family: var(--f-mono);
+    font-size: 20px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .lrow .lv.hero { color: var(--taken); }
+  @media (max-width: 520px) {
+    .lrow { grid-template-columns: minmax(0, 1fr); grid-template-areas: "k" "v" "d"; row-gap: 2px; }
+    .lrow .lv { text-align: left; }
+  }
+
+  /* ---------- results ---------- */
+  .results { margin-top: 40px; }
+  h2.sect {
+    font-family: var(--f-display);
+    font-weight: 600;
+    font-size: 25px;
+    letter-spacing: -.01em;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  .sect-note { color: var(--ink-soft); max-width: 68ch; margin: 0 0 18px; }
+
+  .budgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bcell { background: var(--surface); padding: 12px 14px; display: grid; gap: 3px; }
+  .bcell .bk {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .bcell .bv {
+    font-family: var(--f-mono); font-size: 17px; font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .check {
+    margin-top: 16px;
+    font-family: var(--f-mono);
+    font-size: 13px;
+    padding: 11px 14px;
+    border-radius: 3px;
+    border: 1px solid var(--taken);
+    background: var(--taken-soft);
+    color: var(--ink);
+  }
+  .check b { color: var(--taken); }
+
+  /* ---------- real numbers ---------- */
+  .real {
+    margin-top: 40px;
+    border-top: 2px solid var(--ink);
+    padding-top: 22px;
+  }
+  .realgrid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 18px;
+  }
+  .ritem { display: grid; gap: 4px; }
+  .ritem .rk {
+    font-family: var(--f-mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+  .ritem .rv {
+    font-family: var(--f-mono); font-size: 21px; font-weight: 500;
+    font-variant-numeric: tabular-nums; line-height: 1.2;
+  }
+  .ritem .rd { font-size: 13px; color: var(--ink-soft); }
+  .rv.hero { color: var(--taken); }
+
+  footer.note {
+    margin-top: 40px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-faint);
+    max-width: 74ch;
+  }
+  footer.note code {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .node-shape, .edge { transition: fill .18s ease, stroke .18s ease, opacity .18s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">WoW Talent Tree Manager · solver notes</p>
+  <h1>Counting every build without listing one</h1>
+  <p class="standfirst">
+    One Resto Druid spec tree has 305,286,987 valid builds. Visiting each one takes 42
+    seconds. Counting all of them takes <em>52,421 additions</em> — and not because any
+    build is skipped or estimated. Every single one is counted. They are just counted in
+    groups.
+  </p>
+
+  <!-- ===== the legitimacy of counting in groups, before any mechanism ===== -->
+  <section class="primer">
+    <h2>First: this is not an approximation</h2>
+    <p class="primer-lede">
+      Sum the numbers 1 to 100. You can add a hundred numbers, or you can notice they pair
+      up — 1+100, 2+99, … — and do 50 × 101 = 5,050. The second way skips nothing. Every
+      number is in the answer. It just exploits the fact that the numbers come in
+      interchangeable pairs.
+    </p>
+    <p>
+      Counting talent builds works the same way, and the classic example of the machinery is
+      a grid. <b>How many routes cross this grid, moving only right or down?</b> You could
+      walk each route. Or you could write, at every intersection, the number of routes that
+      reach it — <span class="pm">(the number above) + (the number to the left)</span> — and
+      read the last one.
+    </p>
+
+    <figure class="gridfig">
+      <div class="gridwrap">
+        <table class="pascal" id="pascal" aria-label="Grid with route counts at each intersection"></table>
+      </div>
+      <figcaption>
+        <b>36 numbers written. 252 routes counted.</b> No route was walked, and none was
+        left out — the 252 in the corner is exact. Two routes that arrive at the same
+        intersection are interchangeable from there on, so the grid never needs to know
+        <em>how</em> you arrived, only <em>how many ways</em> did.
+      </figcaption>
+    </figure>
+
+    <p>
+      That last sentence is the whole idea. A talent tree is the same trick with a richer
+      notion of "intersection", and the rest of this page is about what that intersection
+      has to be.
+    </p>
+  </section>
+
+  <!-- ===== the mapping: what plays the part of a cell, and of its neighbours ===== -->
+  <section class="primer">
+    <h2>What plays the part of a cell, and of its two neighbours</h2>
+    <p class="primer-lede">
+      The natural guess is that a talent is a cell and its parents are the neighbours. It is
+      worth saying plainly: <b>neither of those is right.</b> The cells are not talents at
+      all, and the arrows do not run along the tree's edges.
+    </p>
+
+    <div class="tablescroll">
+      <table class="maptable">
+        <thead>
+          <tr><th>In the grid</th><th>In the talent tree</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>a cell <code>(row, col)</code></td>
+            <td>a <b>state</b> — <code>(remembered talents that are taken, points spent)</code></td>
+          </tr>
+          <tr>
+            <td>the number written in the cell</td>
+            <td>how many partial builds are in that state</td>
+          </tr>
+          <tr>
+            <td>which column you are in</td>
+            <td>which talent is being decided right now</td>
+          </tr>
+          <tr>
+            <td>arrives from <b>above</b></td>
+            <td>the build that <b>left this talent out</b></td>
+          </tr>
+          <tr>
+            <td>arrives from <b>the left</b></td>
+            <td>the build that <b>put a point in it</b></td>
+          </tr>
+          <tr>
+            <td>the edge of the grid — no cell above row 0</td>
+            <td>the <b>gate</b> and the <b>parent requirement</b> — they delete the "put a point in it" arrow</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      So points spent is one coordinate of the cell, and the remembered talents are the
+      other. Every state has at most two arrows into it, exactly as in the grid. The tree's
+      own edges decide only <em>whether an arrow is legal</em> — they are the walls, not the
+      routes.
+    </p>
+
+    <figure class="arrowfig">
+      <svg viewBox="0 0 700 258" role="img" aria-label="Two states feeding one state, and one state blocked by the gate">
+        <!-- feeding pair -->
+        <rect x="8" y="18" width="215" height="40" rx="4" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1.4"/>
+        <text x="115" y="43" text-anchor="middle" font-family="var(--f-mono)" font-size="12.5" fill="var(--ink)">B remembered &#183; 2 points</text>
+
+        <rect x="8" y="98" width="215" height="40" rx="4" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1.4"/>
+        <text x="115" y="123" text-anchor="middle" font-family="var(--f-mono)" font-size="12.5" fill="var(--ink)">C remembered &#183; 2 points</text>
+
+        <path d="M223,38 C300,38 340,78 415,78" fill="none" stroke="var(--taken)" stroke-width="1.8"/>
+        <path d="M223,118 C300,118 340,78 415,78" fill="none" stroke="var(--taken)" stroke-width="1.8"/>
+        <path d="M415,72 L429,78 L415,84 Z" fill="var(--taken)"/>
+
+        <text x="300" y="28" text-anchor="middle" font-family="var(--f-mono)" font-size="11" fill="var(--taken)">put a point in D</text>
+        <text x="300" y="142" text-anchor="middle" font-family="var(--f-mono)" font-size="11" fill="var(--taken)">put a point in D</text>
+
+        <rect x="432" y="58" width="240" height="40" rx="4" fill="var(--taken-soft)" stroke="var(--taken)" stroke-width="1.8"/>
+        <text x="552" y="83" text-anchor="middle" font-family="var(--f-mono)" font-size="12.5" fill="var(--ink)">D remembered &#183; 3 points</text>
+        <text x="552" y="116" text-anchor="middle" font-family="var(--f-mono)" font-size="11.5" fill="var(--taken)">2 builds &#8212; the counts are added</text>
+
+        <!-- blocked -->
+        <rect x="8" y="188" width="215" height="40" rx="4" fill="var(--surface-2)" stroke="var(--line-strong)" stroke-width="1.4"/>
+        <text x="115" y="213" text-anchor="middle" font-family="var(--f-mono)" font-size="12.5" fill="var(--ink-soft)">nothing remembered &#183; 0 points</text>
+
+        <path d="M223,208 L330,208" fill="none" stroke="var(--gate)" stroke-width="1.8" stroke-dasharray="5 4"/>
+        <path d="M336,202 L350,216 M350,202 L336,216" stroke="var(--gate)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        <text x="272" y="198" text-anchor="middle" font-family="var(--f-mono)" font-size="11" fill="var(--gate)">put a point in D</text>
+        <text x="366" y="206" font-family="var(--f-mono)" font-size="11.5" fill="var(--gate)">gate needs 2 points, and no</text>
+        <text x="366" y="222" font-family="var(--f-mono)" font-size="11.5" fill="var(--gate)">parent of D is held &#8212; arrow deleted</text>
+      </svg>
+      <figcaption>
+        Deciding <b>D</b> in the simplified tree. Two different builds, <code>{A,B,D}</code>
+        and <code>{A,C,D}</code>, land in the same cell: <code>B</code> and <code>C</code>
+        were just forgotten, so nothing still to be decided can tell those builds apart. From
+        a state holding no parent of <code>D</code> and too few points, the arrow simply does
+        not exist — which is how a point barrier survives the forgetting.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section class="keyidea">
+    <h2>Why the point barriers still work</h2>
+    <p>
+      This is the part that looks impossible: if the sweep forgets the past, how can it
+      know whether enough points were spent to pass a gate? Because points spent is not
+      part of the past — it is part of the state, carried forward at every step:
+    </p>
+    <div class="statekey">state = ( <b>which remembered talents are taken</b> , <b>points spent so far</b> ) &nbsp;→&nbsp; how many builds reach it</div>
+    <p>
+      A gate asks only <em>how many</em> points have been spent, never <em>which</em>
+      talents they went into. So two different selections that agree on both halves of that
+      key are interchangeable for every future decision — and can be added together. That
+      addition is the whole saving.
+    </p>
+  </section>
+
+  <div class="controls">
+    <label class="stepcount" for="treepick">Tree</label>
+    <select id="treepick" aria-label="Example tree"></select>
+    <button id="btn-prev">← Back</button>
+    <button id="btn-next" class="primary">Next step →</button>
+    <button id="btn-auto">Play</button>
+    <button id="btn-reset">Reset</button>
+    <span class="spacer"></span>
+    <span class="stepcount" id="stepcount">step 0</span>
+  </div>
+
+  <div class="narration">
+    <div class="n-head" id="n-head">Start</div>
+    <p class="n-body" id="n-body"></p>
+  </div>
+
+  <div class="panes">
+    <div class="pane">
+      <header>
+        <h3>Talent graph</h3>
+        <span class="hint" id="sweep-hint">sweeping in gate order</span>
+      </header>
+      <div class="pane-body"><svg class="tree" id="tree" role="img" aria-label="Talent graph with the sweep position marked"></svg></div>
+      <div class="legend">
+        <span><i class="sw s-now"></i> being decided now</span>
+        <span><i class="sw s-live"></i> remembered (frontier)</span>
+        <span><i class="sw s-gone"></i> forgotten</span>
+        <span><i class="sw s-gate"></i> gated, needs points</span>
+      </div>
+    </div>
+
+    <div class="pane">
+      <header>
+        <h3>States carried forward</h3>
+        <span class="hint" id="state-hint"></span>
+      </header>
+      <div class="pane-body">
+        <div class="tablescroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Remembered as taken</th>
+                <th class="num">Points</th>
+                <th class="num">Builds</th>
+              </tr>
+            </thead>
+            <tbody id="statebody"></tbody>
+          </table>
+        </div>
+        <div class="tfoot" id="tfoot"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="results">
+    <h2 class="sect">The count, by points spent</h2>
+    <p class="sect-note" id="resnote"></p>
+    <div class="budgets" id="budgets"></div>
+    <div class="check" id="check"></div>
+  </section>
+
+  <section class="primer" style="margin-top:40px">
+    <h2>Where the speed actually comes from</h2>
+    <p class="primer-lede">
+      Read the <b>Builds</b> column above. A row reading <span class="pm">4,000,000</span>
+      means four million distinct builds are sitting in that one row, because they are
+      indistinguishable with respect to every decision still to come.
+    </p>
+    <p>
+      Deciding the next talent for all four million of them is <b>one addition</b>. The
+      enumerator holds those four million as four million separate objects and makes that
+      same decision four million times. That difference, compounded over the whole tree, is
+      the entire speedup — not fewer builds, just fewer decisions per build.
+    </p>
+    <div class="ledger">
+      <div class="lrow">
+        <span class="lk">Builds in <code>druid_restoration</code> at 30 points</span>
+        <span class="lv">305,286,987</span>
+        <span class="ld">every one of them counted, none skipped</span>
+      </div>
+      <div class="lrow">
+        <span class="lk">Additions the sweep performs</span>
+        <span class="lv hero">52,421</span>
+        <span class="ld">one addition per 5,824 builds</span>
+      </div>
+      <div class="lrow">
+        <span class="lk">Rows in the final table</span>
+        <span class="lv">31</span>
+        <span class="ld">the 305,286,987 sits in a single cell of it</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="real">
+    <h2 class="sect">The same sweep on a real spec tree</h2>
+    <p class="sect-note">
+      Measured on <code>druid_restoration</code> — 43 talents, 48 point slots, gates at 8 and
+      20 points. The sweep never carries more than a few thousand states, however many builds
+      exist below it.
+    </p>
+    <div class="realgrid">
+      <div class="ritem">
+        <span class="rk">Valid builds at 30 points</span>
+        <span class="rv hero">305,286,987</span>
+        <span class="rd">Each one a separate visit for the enumerator.</span>
+      </div>
+      <div class="ritem">
+        <span class="rk">Peak states carried</span>
+        <span class="rv">2,427</span>
+        <span class="rd">The most the sweep ever holds at once.</span>
+      </div>
+      <div class="ritem">
+        <span class="rk">Enumerate, then count</span>
+        <span class="rv">42.0 s</span>
+        <span class="rd">One budget, one tree, C++ release build.</span>
+      </div>
+      <div class="ritem">
+        <span class="rk">Sweep, all 78 presets</span>
+        <span class="rv">3.7 s</span>
+        <span class="rd">Every budget of every class and spec tree, in Python.</span>
+      </div>
+    </div>
+  </section>
+
+  <footer class="note">
+    Both implementations agree exactly where they can both be run: 223 / 17,541 / 71,030 /
+    305,286,987 builds on <code>druid_restoration</code> at 10 / 15 / 20 / 30 points, and on
+    11 further trees across 6 classes. The sweep also predicted 3,325,013,320 builds for
+    <code>shaman_class_elemental</code> in 0.2 s — a number the enumerator needed 281 s to
+    confirm, and which used to overflow its 32-bit counter. Enumeration is still the right
+    tool for <em>listing</em> builds that match a filter; it just should not be the one
+    answering “how many”.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     Example trees. Talent names are real Resto Druid talents; the graphs
+     are cut down so the sweep can be followed by hand.
+  ------------------------------------------------------------------ */
+  const TREES = {
+    small: {
+      label: "Simplified — follow by hand",
+      hint: "5 talents, one gate at 2 points",
+      budget: 5,
+      note: "Small enough to check on paper: ten valid builds in total.",
+      nodes: [
+        { id: "A", label: "Rejuvenation",  row: 0, col: 1, req: 0, parents: [] },
+        { id: "B", label: "Lifebloom",     row: 1, col: 0, req: 0, parents: ["A"] },
+        { id: "C", label: "Swiftmend",     row: 1, col: 2, req: 0, parents: ["A"] },
+        { id: "D", label: "Wild Growth",   row: 2, col: 1, req: 2, parents: ["B", "C"] },
+        { id: "E", label: "Efflorescence", row: 3, col: 1, req: 0, parents: ["D"] }
+      ]
+    },
+    wide: {
+      label: "Wider — watch the collapse",
+      hint: "11 talents, gates at 3 and 5 points",
+      budget: 8,
+      note: "Wide enough that builds outrun states: the sweep stays small while the count climbs.",
+      nodes: [
+        { id: "N1",  label: "Nature's Cure",   row: 0, col: 2, req: 0, parents: [] },
+        { id: "N2",  label: "Ironbark",        row: 1, col: 0, req: 0, parents: ["N1"] },
+        { id: "N3",  label: "Renewal",         row: 1, col: 2, req: 0, parents: ["N1"] },
+        { id: "N4",  label: "Wild Charge",     row: 1, col: 4, req: 0, parents: ["N1"] },
+        { id: "N5",  label: "Cenarion Ward",   row: 2, col: 1, req: 3, parents: ["N2", "N3"] },
+        { id: "N6",  label: "Grove Tending",   row: 2, col: 3, req: 3, parents: ["N3", "N4"] },
+        { id: "N7",  label: "Flourish",        row: 3, col: 0, req: 5, parents: ["N5"] },
+        { id: "N8",  label: "Soul of the For.",row: 3, col: 2, req: 5, parents: ["N5", "N6"] },
+        { id: "N9",  label: "Photosynthesis",  row: 3, col: 4, req: 5, parents: ["N6"] },
+        { id: "N10", label: "Tree of Life",    row: 4, col: 1, req: 5, parents: ["N7", "N8"] },
+        { id: "N11", label: "Rampant Growth",  row: 4, col: 3, req: 5, parents: ["N8", "N9"] }
+      ]
+    }
+  };
+
+  /* ---------------- model: children, topological order, frontier life ---------------- */
+  function buildModel(tree) {
+    const nodes = tree.nodes.map(n => Object.assign({}, n, { children: [] }));
+    const byId = new Map(nodes.map(n => [n.id, n]));
+    nodes.forEach(n => n.parents.forEach(p => byId.get(p).children.push(n.id)));
+
+    // Kahn's algorithm with the ready queue ordered by gate, matching the engine.
+    const indeg = new Map(nodes.map(n => [n.id, n.parents.length]));
+    let ready = nodes.filter(n => indeg.get(n.id) === 0);
+    const order = [];
+    while (ready.length) {
+      ready.sort((a, b) => a.req - b.req || a.row - b.row || a.col - b.col);
+      const n = ready.shift();
+      order.push(n);
+      n.children.forEach(cid => {
+        indeg.set(cid, indeg.get(cid) - 1);
+        if (indeg.get(cid) === 0) ready.push(byId.get(cid));
+      });
+    }
+
+    const pos = new Map(order.map((n, i) => [n.id, i]));
+    // A talent's status matters only until its last child has been decided.
+    const lastNeeded = new Map(order.map(n => [
+      n.id,
+      n.children.length ? Math.max.apply(null, n.children.map(c => pos.get(c))) : -1
+    ]));
+
+    return { tree, nodes, byId, order, pos, lastNeeded, budget: tree.budget };
+  }
+
+  /* ---------------- the sweep ---------------- */
+  const keyOf = (live, pts) => live.join(",") + "|" + pts;
+
+  function runSweep(m) {
+    let states = new Map();
+    states.set(keyOf([], 0), { live: [], pts: 0, count: 1 });
+
+    const steps = [{
+      kind: "start",
+      states: snapshot(states),
+      processed: 0
+    }];
+
+    m.order.forEach((node, i) => {
+      const grown = new Map();
+      let blockedByGate = 0, blockedByParent = 0, tookAny = 0;
+
+      states.forEach(s => {
+        // 1. leave this talent out
+        bump(grown, s.live, s.pts, s.count);
+
+        // 2. or put a point in it
+        const gateOpen = s.pts >= node.req;
+        const reachable = node.parents.length === 0 || node.parents.some(p => s.live.indexOf(p) !== -1);
+        if (s.pts < m.budget && reachable && gateOpen) {
+          const live2 = s.live.concat([node.id]).sort();
+          bump(grown, live2, s.pts + 1, s.count);
+          tookAny += s.count;
+        } else if (s.pts < m.budget && reachable && !gateOpen) {
+          blockedByGate += s.count;
+        } else if (s.pts < m.budget && !reachable) {
+          blockedByParent += s.count;
+        }
+      });
+
+      // 3. forget every talent whose last child has now been decided
+      const dropped = [];
+      m.order.forEach((n, j) => {
+        if (j <= i && m.lastNeeded.get(n.id) === i) dropped.push(n.id);
+      });
+
+      const pruned = new Map();
+      const mergedInto = new Map();
+      grown.forEach(s => {
+        const keep = s.live.filter(id => m.lastNeeded.get(id) > i);
+        const k = keyOf(keep, s.pts);
+        mergedInto.set(k, (mergedInto.get(k) || 0) + 1);
+        bump(pruned, keep, s.pts, s.count);
+      });
+
+      states = pruned;
+      steps.push({
+        kind: "node",
+        node: node,
+        processed: i + 1,
+        blockedByGate: blockedByGate,
+        blockedByParent: blockedByParent,
+        tookAny: tookAny,
+        dropped: dropped,
+        merges: mergedInto,
+        states: snapshot(states)
+      });
+    });
+
+    return steps;
+  }
+
+  function bump(map, live, pts, count) {
+    const k = keyOf(live, pts);
+    const cur = map.get(k);
+    if (cur) cur.count += count;
+    else map.set(k, { live: live.slice(), pts: pts, count: count });
+  }
+
+  function snapshot(states) {
+    const out = [];
+    states.forEach((s, k) => out.push({ key: k, live: s.live.slice(), pts: s.pts, count: s.count }));
+    out.sort((a, b) => a.pts - b.pts || a.live.length - b.live.length || a.key.localeCompare(b.key));
+    return out;
+  }
+
+  /* ---------------- brute force, to check the sweep ---------------- */
+  function bruteForce(m) {
+    const byPts = new Map();
+    let total = 0;
+    const n = m.order.length;
+
+    (function rec(i, takenSet, pts) {
+      if (i === n) {
+        if (pts > 0) {
+          total++;
+          byPts.set(pts, (byPts.get(pts) || 0) + 1);
+        }
+        return;
+      }
+      const node = m.order[i];
+      rec(i + 1, takenSet, pts); // skip
+      const reachable = node.parents.length === 0 || node.parents.some(p => takenSet.has(p));
+      if (pts < m.budget && reachable && pts >= node.req) {
+        takenSet.add(node.id);
+        rec(i + 1, takenSet, pts + 1);
+        takenSet.delete(node.id);
+      }
+    })(0, new Set(), 0);
+
+    return { total: total, byPts: byPts };
+  }
+
+  /* ---------------- rendering ---------------- */
+  const els = {
+    pick: document.getElementById("treepick"),
+    prev: document.getElementById("btn-prev"),
+    next: document.getElementById("btn-next"),
+    auto: document.getElementById("btn-auto"),
+    reset: document.getElementById("btn-reset"),
+    stepcount: document.getElementById("stepcount"),
+    nHead: document.getElementById("n-head"),
+    nBody: document.getElementById("n-body"),
+    tree: document.getElementById("tree"),
+    stateBody: document.getElementById("statebody"),
+    tfoot: document.getElementById("tfoot"),
+    stateHint: document.getElementById("state-hint"),
+    sweepHint: document.getElementById("sweep-hint"),
+    budgets: document.getElementById("budgets"),
+    check: document.getElementById("check"),
+    resnote: document.getElementById("resnote")
+  };
+
+  /* ---------------- the grid primer: routes counted, never walked ---------------- */
+  (function drawPascal() {
+    const N = 6; // 6x6 intersections -> C(10,5) = 252 routes
+    const g = [];
+    for (let r = 0; r < N; r++) {
+      g.push([]);
+      for (let c = 0; c < N; c++) {
+        g[r].push(r === 0 || c === 0 ? 1 : g[r - 1][c] + g[r][c - 1]);
+      }
+    }
+    const t = document.getElementById("pascal");
+    if (!t) return;
+    for (let r = 0; r < N; r++) {
+      const tr = document.createElement("tr");
+      for (let c = 0; c < N; c++) {
+        const td = document.createElement("td");
+        td.textContent = g[r][c].toLocaleString("en-US");
+        if (r === 0 && c === 0) td.className = "corner-start";
+        else if (r === N - 1 && c === N - 1) td.className = "corner-end";
+        else if (r === 0 || c === 0) td.className = "edge";
+        tr.appendChild(td);
+      }
+      t.appendChild(tr);
+    }
+  })();
+
+  let model = null, steps = null, at = 0, timer = null, brute = null;
+
+  Object.keys(TREES).forEach(k => {
+    const o = document.createElement("option");
+    o.value = k;
+    o.textContent = TREES[k].label;
+    els.pick.appendChild(o);
+  });
+
+  function load(key) {
+    model = buildModel(TREES[key]);
+    steps = runSweep(model);
+    brute = bruteForce(model);
+    at = 0;
+    els.sweepHint.textContent = TREES[key].hint;
+    els.resnote.textContent = TREES[key].note;
+    renderResults();
+    render();
+  }
+
+  const NS = "http://www.w3.org/2000/svg";
+  function svgEl(name, attrs) {
+    const e = document.createElementNS(NS, name);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  function render() {
+    const step = steps[at];
+    const processed = step.processed;
+    const liveNow = new Set();
+    step.states.forEach(s => s.live.forEach(id => liveNow.add(id)));
+
+    /* ---- tree ---- */
+    const NW = 116, NH = 74, BOX = 46;
+    const rows = Math.max.apply(null, model.nodes.map(n => n.row)) + 1;
+    const cols = Math.max.apply(null, model.nodes.map(n => n.col)) + 1;
+    const W = cols * NW + 40, H = rows * NH + 44;
+    const svg = els.tree;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+
+    const cx = n => 20 + n.col * NW + NW / 2;
+    const cy = n => 22 + n.row * NH + BOX / 2;
+
+    // edges first
+    model.nodes.forEach(n => {
+      n.parents.forEach(pid => {
+        const p = model.byId.get(pid);
+        const bothDecided = model.pos.get(n.id) < processed;
+        svg.appendChild(svgEl("line", {
+          x1: cx(p), y1: cy(p) + BOX / 2 - 4,
+          x2: cx(n), y2: cy(n) - BOX / 2 + 4,
+          stroke: bothDecided ? "var(--line-strong)" : "var(--line)",
+          "stroke-width": bothDecided ? 1.6 : 1.2,
+          class: "edge"
+        }));
+      });
+    });
+
+    model.nodes.forEach(n => {
+      const p = model.pos.get(n.id);
+      const isNow = step.kind === "node" && step.node.id === n.id;
+      const decided = p < processed;
+      const isLive = decided && liveNow.has(n.id);
+      const gatedShut = !decided && n.req > 0;
+
+      let fill = "var(--surface-2)", stroke = "var(--line)", sw = 1.4, dash = null, op = 1;
+      if (isNow)            { fill = "var(--surface)";   stroke = "var(--ink)";  sw = 2.6; }
+      else if (isLive)      { fill = "var(--live-soft)"; stroke = "var(--live)"; sw = 2; }
+      else if (decided)     { fill = "var(--surface-2)"; stroke = "var(--line)"; sw = 1.2; op = .55; }
+      else if (gatedShut)   { fill = "var(--gate-soft)"; stroke = "var(--gate)"; sw = 1.4; dash = "3 3"; }
+
+      const g = svgEl("g", { opacity: op });
+      const rect = svgEl("rect", {
+        x: cx(n) - BOX / 2, y: cy(n) - BOX / 2, width: BOX, height: BOX,
+        rx: 5, fill: fill, stroke: stroke, "stroke-width": sw, class: "node-shape"
+      });
+      if (dash) rect.setAttribute("stroke-dasharray", dash);
+      g.appendChild(rect);
+
+      const idt = svgEl("text", {
+        x: cx(n), y: cy(n) + 1, "text-anchor": "middle",
+        "font-family": "var(--f-mono)", "font-size": 13, "font-weight": 600,
+        fill: isNow ? "var(--ink)" : (isLive ? "var(--ink)" : "var(--ink-soft)")
+      });
+      idt.textContent = n.id;
+      g.appendChild(idt);
+
+      if (n.req > 0) {
+        const rq = svgEl("text", {
+          x: cx(n), y: cy(n) + 15, "text-anchor": "middle",
+          class: "nreq", fill: "var(--gate)"
+        });
+        rq.textContent = "≥" + n.req;
+        g.appendChild(rq);
+      }
+
+      const lb = svgEl("text", {
+        x: cx(n), y: cy(n) + BOX / 2 + 13, "text-anchor": "middle", class: "nlabel"
+      });
+      lb.textContent = n.label;
+      g.appendChild(lb);
+
+      svg.appendChild(g);
+    });
+
+    /* ---- state table ---- */
+    const body = els.stateBody;
+    while (body.firstChild) body.removeChild(body.firstChild);
+    let sum = 0;
+    step.states.forEach(s => {
+      sum += s.count;
+      const tr = document.createElement("tr");
+      const mergedN = step.merges ? (step.merges.get(s.key) || 1) : 1;
+      if (mergedN > 1) tr.className = "merged";
+
+      const td1 = document.createElement("td");
+      if (s.live.length) {
+        s.live.forEach(id => {
+          const c = document.createElement("span");
+          c.className = "chip";
+          c.textContent = id;
+          td1.appendChild(c);
+        });
+      } else {
+        const none = document.createElement("span");
+        none.className = "nothing";
+        none.textContent = "nothing remembered";
+        td1.appendChild(none);
+      }
+      if (mergedN > 1) {
+        const b = document.createElement("span");
+        b.className = "mergebadge";
+        b.textContent = mergedN + " merged into 1";
+        td1.appendChild(b);
+      }
+      tr.appendChild(td1);
+
+      const td2 = document.createElement("td");
+      td2.className = "num";
+      td2.textContent = s.pts;
+      tr.appendChild(td2);
+
+      const td3 = document.createElement("td");
+      td3.className = "num";
+      td3.textContent = s.count.toLocaleString("en-US");
+      tr.appendChild(td3);
+
+      body.appendChild(tr);
+    });
+
+    els.stateHint.textContent = step.states.length + (step.states.length === 1 ? " state" : " states");
+    els.tfoot.textContent = "";
+    addFoot("states carried", step.states.length);
+    addFoot("partial builds represented", sum.toLocaleString("en-US"));
+
+    /* ---- narration ---- */
+    narrate(step);
+
+    els.stepcount.textContent = "step " + at + " of " + (steps.length - 1);
+    els.prev.disabled = at === 0;
+    els.next.disabled = at === steps.length - 1;
+    if (at === steps.length - 1 && timer) stopAuto();
+  }
+
+  function addFoot(label, value) {
+    const s = document.createElement("span");
+    const b = document.createElement("b");
+    b.textContent = value;
+    s.appendChild(b);
+    s.appendChild(document.createTextNode(" " + label));
+    els.tfoot.appendChild(s);
+  }
+
+  function narrate(step) {
+    if (step.kind === "start") {
+      els.nHead.textContent = "Before the sweep";
+      els.nBody.innerHTML =
+        "One state, holding the empty build: nothing taken, nothing spent. Every talent is still " +
+        "undecided. Press <b>Next step</b> to decide them one at a time, in gate order.";
+      return;
+    }
+    const n = step.node;
+    els.nHead.textContent = "Deciding " + n.id + " · " + n.label;
+
+    const bits = [];
+    bits.push("Every state splits in two: <span class='tag t-take'>leave " + n.id +
+      " out</span> and, where it is allowed, <span class='tag t-take'>put a point in " + n.id + "</span>.");
+
+    if (n.req > 0) {
+      bits.push("<b>" + n.id + " is gated at " + n.req + " points.</b> States below that threshold " +
+        "simply do not get the second option" +
+        (step.blockedByGate ? " — that blocked " + step.blockedByGate.toLocaleString("en-US") +
+          " partial build" + (step.blockedByGate === 1 ? "" : "s") + " here" : "") +
+        ". The gate reads the points column of the key, so nothing about it was ever forgotten.");
+    }
+    if (step.blockedByParent) {
+      bits.push("<span class='tag t-gate'>unreachable</span> " + step.blockedByParent.toLocaleString("en-US") +
+        " state" + (step.blockedByParent === 1 ? "" : "s") + " hold no parent of " + n.id +
+        ", so it cannot be taken from there.");
+    }
+    if (step.dropped.length) {
+      bits.push("<span class='tag t-forget'>forget " + step.dropped.join(", ") + "</span> " +
+        (step.dropped.length === 1 ? "That talent's" : "Those talents'") +
+        " last child has now been decided, so whether " +
+        (step.dropped.length === 1 ? "it was" : "they were") +
+        " taken can no longer change anything ahead. " +
+        (step.dropped.length === 1 ? "It leaves" : "They leave") + " the frontier.");
+    }
+    let mergedRows = 0, mergedFrom = 0;
+    if (step.merges) {
+      step.merges.forEach(v => { if (v > 1) { mergedRows++; mergedFrom += v; } });
+    }
+    if (mergedRows) {
+      bits.push("<b>" + mergedFrom + " states collapsed into " + mergedRows + "</b> (highlighted). " +
+        "They differ only in things now forgotten, so they agree on every decision still to come — " +
+        "their counts are simply added.");
+    }
+    els.nBody.innerHTML = bits.join(" ");
+  }
+
+  function renderResults() {
+    const final = steps[steps.length - 1].states;
+    const byPts = new Map();
+    final.forEach(s => { if (s.pts > 0) byPts.set(s.pts, (byPts.get(s.pts) || 0) + s.count); });
+
+    els.budgets.textContent = "";
+    let total = 0;
+    const keys = Array.from(byPts.keys()).sort((a, b) => a - b);
+    keys.forEach(k => {
+      total += byPts.get(k);
+      const cell = document.createElement("div");
+      cell.className = "bcell";
+      const bk = document.createElement("span");
+      bk.className = "bk";
+      bk.textContent = k + (k === 1 ? " point" : " points");
+      const bv = document.createElement("span");
+      bv.className = "bv";
+      bv.textContent = byPts.get(k).toLocaleString("en-US");
+      cell.appendChild(bk); cell.appendChild(bv);
+      els.budgets.appendChild(cell);
+    });
+
+    const cell = document.createElement("div");
+    cell.className = "bcell";
+    const bk = document.createElement("span");
+    bk.className = "bk";
+    bk.textContent = "all budgets";
+    const bv = document.createElement("span");
+    bv.className = "bv";
+    bv.style.color = "var(--taken)";
+    bv.textContent = total.toLocaleString("en-US");
+    cell.appendChild(bk); cell.appendChild(bv);
+    els.budgets.appendChild(cell);
+
+    const agree = total === brute.total;
+    els.check.innerHTML = agree
+      ? "<b>checked</b> — brute force enumerates " + brute.total.toLocaleString("en-US") +
+        " builds one by one; the sweep counts " + total.toLocaleString("en-US") +
+        " without generating any. The two agree, computed live on this page."
+      : "<b>mismatch</b> — sweep " + total + " vs brute force " + brute.total;
+    els.check.style.borderColor = agree ? "var(--taken)" : "var(--gate)";
+    els.check.style.background = agree ? "var(--taken-soft)" : "var(--gate-soft)";
+  }
+
+  /* ---------------- controls ---------------- */
+  function startAuto() {
+    if (timer) return;
+    els.auto.textContent = "Pause";
+    timer = setInterval(() => {
+      if (at < steps.length - 1) { at++; render(); } else stopAuto();
+    }, 1400);
+  }
+  function stopAuto() {
+    if (timer) clearInterval(timer);
+    timer = null;
+    els.auto.textContent = "Play";
+  }
+
+  els.next.addEventListener("click", () => { stopAuto(); if (at < steps.length - 1) { at++; render(); } });
+  els.prev.addEventListener("click", () => { stopAuto(); if (at > 0) { at--; render(); } });
+  els.reset.addEventListener("click", () => { stopAuto(); at = 0; render(); });
+  els.auto.addEventListener("click", () => { timer ? stopAuto() : startAuto(); });
+  els.pick.addEventListener("change", e => { stopAuto(); load(e.target.value); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight") { stopAuto(); if (at < steps.length - 1) { at++; render(); } }
+    if (e.key === "ArrowLeft")  { stopAuto(); if (at > 0) { at--; render(); } }
+  });
+
+  load("small");
+})();
+</script>

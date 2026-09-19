@@ -28,6 +28,7 @@ It separates what the analysis settled from what still needs a decision.
 
 | Document | Covers |
 |---|---|
+| [`explainers/frontier-sweep.html`](explainers/frontier-sweep.html) | **Interactive.** Step-by-step walkthrough of the frontier sweep: why counting in groups is exact, what plays the part of a grid cell and its neighbours, and how point barriers survive the forgetting. Computes the DP and a brute-force check live in the page |
 | [`solver-performance.md`](02-target/solver-performance.md) | **Measured (2026-09-19).** The solver's real cost curve, and why counting and enumerating must be separated before the solver is exposed on a server |
 | [`raidbots-live-schema.md`](02-target/raidbots-live-schema.md) | **Verified against live data (2026-09-19).** The upstream talent schema as it actually is today, including hero talents, the new `tiered`/level-gated mechanic, cross-tree prerequisites, and data-quality traps |
 | [`data-model.md`](02-target/data-model.md) | Proposed JSON schemas for trees, builds and loadouts; the identifier-stability rule; interop-format keep/replace decisions; Postgres mapping |

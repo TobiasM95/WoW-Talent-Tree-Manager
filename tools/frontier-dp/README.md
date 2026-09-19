@@ -36,7 +36,16 @@ gigabytes to store. It is a different complexity class, not a constant-factor wi
 
 ## How it works
 
-Process nodes in the engine's topological order (Kahn's, ready queue sorted by `pointsRequired`).
+There is an interactive explainer at
+[`../../docs/explainers/frontier-sweep.html`](../../docs/explainers/frontier-sweep.html) —
+open it in a browser. It steps through the sweep one talent at a time on a small tree, shows
+states merging as they happen, and computes both the DP and a brute-force enumeration live so
+the two can be seen to agree. Start there if the description below doesn't land; the short
+version is that counting in groups is the same trick as counting grid routes with Pascal's
+triangle, and the page makes that correspondence explicit.
+
+The mechanics: process nodes in the engine's topological order (Kahn's, ready queue sorted by
+`pointsRequired`).
 At any point, the future only needs to know:
 
 1. **points spent so far** — for `pointsRequired` gates and the budget, and
