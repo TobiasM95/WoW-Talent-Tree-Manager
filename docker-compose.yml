@@ -1,0 +1,84 @@
+# TTM local stack.
+#
+# Deliberately few services. Postgres carries the data, the queue and the cache, so there
+# is no Redis, no broker and no separate cache to operate -- see
+# docs/02-target/architecture.md.
+#
+#   docker compose up -d postgres
+#   docker compose run --rm migrate
+#   docker compose run --rm ingest --descriptions
+#   docker compose run --rm loader
+#
+# The solver image builds the C++ engine; it is invoked per job by the worker rather than
+# run as a long-lived service.
+
+name: ttm
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ttm}
+      POSTGRES_USER: ${POSTGRES_USER:-ttm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ttm_dev_only}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Without this, migrate races the first-boot initdb and fails on a cold volume.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ttm} -d ${POSTGRES_DB:-ttm}"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ttm:ttm_dev_only@postgres:5432/ttm}
+    volumes:
+      - ./services:/app/services
+    command: ["python", "services/db/migrate.py"]
+
+  # Fetches upstream talent data and writes tree JSON. Pass --descriptions to also
+  # resolve tooltip text (a separate stage, so an outage there does not block trees).
+  ingest:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    volumes:
+      - ./services:/app/services
+      - ./data:/app/data
+    entrypoint: ["python", "services/ingest/ingest.py", "--out", "data/generated",
+                 "--cache-dir", "data/cache", "--description-cache", "data/descriptions.json"]
+
+  # Loads tree JSON into Postgres and precomputes build counts.
+  loader:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ttm:ttm_dev_only@postgres:5432/ttm}
+    volumes:
+      - ./services:/app/services
+      - ./tools:/app/tools
+      - ./data:/app/data
+    entrypoint: ["python", "services/db/load_trees.py"]
+
+  # The C++ solver, built once and exec'd per job. Not a service.
+  solver:
+    build:
+      context: .
+      dockerfile: docker/engine.Dockerfile
+    profiles: ["build-only"]
+
+volumes:
+  pgdata:

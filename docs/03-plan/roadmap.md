@@ -36,15 +36,19 @@ a headline feature.
 
 Build the pipeline before the product, because everything downstream is shaped by the tree JSON.
 
-- Postgres schema: `trees` (revisioned), `builds`, `loadouts`, plus constraints and real FKs.
+- ~~Postgres schema: `trees` (revisioned), `builds`, `loadouts`, plus constraints and real FKs~~
+  **DONE** ([`../../services/db/README.md`](../../services/db/README.md)). Revisioned trees,
+  nodeId-keyed builds pinning a revision, precomputed `tree_counts`, and the
+  `FOR UPDATE SKIP LOCKED` job queue with dedup. Loaded via a promote-on-success loader; a
+  partial load leaves `current_trees` serving the previous revision. Smoke test asserts the
+  constraints actually reject bad data.
 - ~~Ingest: fetch → validate → transform → write a new revision → promote only on success~~
   **DONE** ([`../../services/ingest/`](../../services/ingest/README.md)). Fatal on unknown node
   or entry types, missing fields, broken graphs or duplicate keys; warns on class/spec roster
   drift rather than hardcoding it. Output is staged and swapped in only after validation, so a
   bad run leaves the previous revision intact. A daily CI job runs it against live data so an
   upstream shape change surfaces the day it happens.
-- Still to do here: a Postgres schema to load these trees into, `last_successful_ingest_at`
-  tracking and alerting, and the icon pipeline.
+- Still to do here: alerting on a stale `ingest_runs.promoted_at`, and the icon pipeline.
 - Primary source: Raidbots `talents.json`; fallback: wago.tools raw DB2 CSVs (`TraitNode`,
   `TraitEdge`, `TraitCond`, `TraitSubTree`). Write the transform against an internal
   source-agnostic intermediate so switching is a swap, not a rewrite. Do **not** use simc as the
