@@ -33,6 +33,7 @@ It separates what the analysis settled from what still needs a decision.
 | [`raidbots-live-schema.md`](02-target/raidbots-live-schema.md) | **Verified against live data (2026-09-19).** The upstream talent schema as it actually is today, including hero talents, the new `tiered`/level-gated mechanic, cross-tree prerequisites, and data-quality traps |
 | [`data-model.md`](02-target/data-model.md) | Proposed JSON schemas for trees, builds and loadouts; the identifier-stability rule; interop-format keep/replace decisions; Postgres mapping |
 | [`architecture.md`](02-target/architecture.md) | Container topology, the Postgres-based queue, the engine worker protocol, frontend approach, ingestion requirements, auth, and what is deliberately excluded |
+| [`ui-direction.md`](02-target/ui-direction.md) | The interface should feel like it belongs to a fantasy game: what to draw from in WoW's own visual language, and which default web looks are explicitly rejected |
 | [`talent-data-sources.md`](02-target/talent-data-sources.md) | Comparison of SimC, the Blizzard Game Data API, and community sources; retail vs. classic; why simc is the wrong primary source and what to use instead |
 
 ### 03 — Plan

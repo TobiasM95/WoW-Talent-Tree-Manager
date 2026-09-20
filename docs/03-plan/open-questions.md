@@ -81,11 +81,33 @@ ways — by reading simc's extraction source, and by fetching live data
 - **Blizzard's Game Data API** is best used as a validator and for character import, not as the
   canonical feed (OAuth overhead, unverified rate limits).
 
-Still open: **descriptions.** Raidbots carries `spellId`, `icon` and names but *not* tooltip text,
-which is why the legacy pipeline scraped Wowhead HTML (`<div class="q">`) — unversioned, and it
-degraded silently to "Description not available". Descriptions are required product content, so
-this needs a real answer. Candidate approaches: Blizzard's spell endpoints, wago.tools spell
-description tables, or rendering from spell data. Needs a decision.
+**Descriptions — answered, verified 2026-09-20.** Raidbots carries `spellId`, `definitionId`,
+`icon` and names but no tooltip text. The legacy pipeline scraped Wowhead's internal tooltip JSON:
+
+    https://nether.wowhead.com/tooltip/spell/{spellId}?def={definitionId}&rank={n}&dataEnv=1
+
+**That endpoint still works.** Tested live: HTTP 200, and the description sits in the response's
+`tooltip` field inside `<div class="q">`, fully rendered with numbers resolved. Per-rank text
+works as the legacy code used it — Cosmic Rapidity reads "13% more frequently" at rank 1 and
+"25%" at rank 2. Descriptions never broke; the tree *structure* did.
+
+So this is not an unsolved problem, it is a fragile solved one. What must change is the failure
+behaviour: the legacy pipeline degraded silently to "Description not available", which is
+indistinguishable from success. See [`../../services/ingest/README.md`](../../services/ingest/README.md).
+
+**simc is a last resort, not a drop-in.** It ships `engine/dbc/generated/spelltext_data.inc`
+(3.8 MB, 29,296 entries), but as raw `Spell.Description_lang` templates:
+
+    "Stab the target, causing ${$s2*$<mult>} Physical damage. Damage increased by $s4%
+     when you are behind your target$?s319949[, and critical strikes apply...][]"
+
+Rendering `$s1`, `$?spell[a][b]`, `$lsingular:plural;` and cross-spell references into display
+text means building an expression evaluator over spell effect data — essentially reimplementing
+what Wowhead does. Viable as an independent cross-check or if Wowhead disappears; not a swap.
+
+Unverified alternative worth checking if needed: Blizzard's official
+`/data/wow/spell/{id}` returns a description, but whether it carries talent rank and definition
+context is untested.
 
 ### Q5. Cross-tree prerequisites — **answered: yes, they exist**
 

@@ -412,3 +412,5 @@ data/generated/
 
 # Engine writes this to the CWD (relative path) when preset loading fails
 error_log.txt
+data/descriptions.json
+data/descriptions.json.tmp

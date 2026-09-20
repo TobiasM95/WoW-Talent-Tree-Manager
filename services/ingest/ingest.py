@@ -25,6 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ttm_ingest import source as source_mod
 from ttm_ingest import transform as transform_mod
 from ttm_ingest import validate as validate_mod
+from ttm_ingest import descriptions as desc_mod
 
 
 def human(n: int) -> str:
@@ -39,6 +40,14 @@ def main() -> int:
     parser.add_argument("--revision", type=int, help="revision number (default: derived)")
     parser.add_argument("--dry-run", action="store_true", help="validate but write nothing")
     parser.add_argument("--quiet", action="store_true", help="only report problems")
+    parser.add_argument("--descriptions", action="store_true",
+                        help="also fetch talent descriptions (separate stage, cached)")
+    parser.add_argument("--description-cache", default="data/descriptions.json",
+                        help="description cache path")
+    parser.add_argument("--min-coverage", type=float, default=0.95,
+                        help="fail if resolved description ratio falls below this")
+    parser.add_argument("--limit-descriptions", type=int,
+                        help="only resolve the first N keys (for smoke tests)")
     args = parser.parse_args()
 
     def say(*a):
@@ -108,6 +117,42 @@ def main() -> int:
             if count:
                 say(f"  {key:26} {count}")
 
+    # ---- descriptions: a separate stage on purpose ----------------------------
+    # Tree structure does not depend on tooltip text, so an outage here degrades text
+    # rather than blocking a tree update.
+    description_report = None
+    if args.descriptions:
+        say()
+        keys = desc_mod.required_keys(trees)
+        cache = desc_mod.DescriptionCache(args.description_cache)
+        if args.limit_descriptions:
+            keys = keys[: args.limit_descriptions]
+        say(f"descriptions: {human(len(keys))} (spellId, definitionId, rank) keys needed")
+
+        def progress(done, total, cov):
+            if not args.quiet:
+                print(f"  {done}/{total}  fetched {cov.fetched}  cached {cov.from_cache}  "
+                      f"missing {len(cov.missing)}", flush=True)
+
+        coverage = desc_mod.fetch_descriptions(keys, cache=cache, progress=progress)
+        cache.save()
+        filled = desc_mod.apply_descriptions(trees, cache)
+        description_report = coverage.summary()
+        description_report["entriesFilled"] = filled
+        say(f"  resolved {human(coverage.resolved)}/{human(coverage.requested)} "
+            f"({coverage.ratio:.1%}), {human(coverage.fetched)} fetched, "
+            f"{human(coverage.from_cache)} from cache, {human(filled)} entries filled")
+        for err in coverage.errors[:5]:
+            print(f"WARNING: description miss {err}", file=sys.stderr)
+        if coverage.ratio < args.min_coverage:
+            print(
+                f"FATAL: description coverage {coverage.ratio:.1%} is below "
+                f"{args.min_coverage:.1%}. The tooltip source may have changed shape -- "
+                "the legacy pipeline silently substituted placeholder text here.",
+                file=sys.stderr,
+            )
+            return 1
+
     if args.dry_run:
         say()
         say("dry run: nothing written")
@@ -139,6 +184,7 @@ def main() -> int:
                 "classes": len({t["classId"] for t in trees}),
             },
             "anomalies": observed,
+            "descriptions": description_report,
             "anomalyDetail": {
                 "degenerateNodes": anomalies.degenerate_nodes,
                 "crossTreeEdges": anomalies.cross_tree_edges[:100],

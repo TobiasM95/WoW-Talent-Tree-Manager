@@ -67,9 +67,8 @@ normalised to `null`. Treating `0` as a node id invents an edge.
 
 ## Known gaps
 
-- **Descriptions are empty.** The payload carries `spellId`, `icon` and names but no
-  tooltip text; the legacy pipeline scraped Wowhead HTML for it. `ranks: []` on every
-  entry is a placeholder, not an oversight — open question Q4.
+- **Descriptions come from a second stage** (`--descriptions`), because Raidbots carries
+  no tooltip text. Without that flag every entry keeps `ranks: []`.
 - **`pointCap` is `null`.** The game's real per-tree point cap is not in the payload, and
   guessing would be fabrication. `maxPointsInTree` (the sum of max ranks) is emitted
   instead as a derived fact.
@@ -78,6 +77,45 @@ normalised to `null`. Treating `0` as a node id invents an edge.
   tree — open question Q10.
 - **No icons yet.** Individual files behind a cache, not the 16 MB packed atlas that grew
   `.git` to 1.4 GB.
+
+## Descriptions
+
+Raidbots has spell ids, icons and names but no tooltip text, so descriptions are fetched
+separately from Wowhead's internal tooltip endpoint — the same source the original pipeline
+used, verified still working on 2026-09-20:
+
+```
+https://nether.wowhead.com/tooltip/spell/{spellId}?def={definitionId}&rank={n}&dataEnv=1
+```
+
+```bash
+python services/ingest/ingest.py --descriptions --out data/generated
+```
+
+3,552 unique `(spellId, definitionId, rank)` keys cover every tree. `definitionId` matters
+because a talent's text differs from the base spell's, and `rank` matters because the
+numbers change per rank — Cosmic Rapidity reads "13% more frequently" at rank 1 and "25%"
+at rank 2.
+
+Three deliberate differences from the original:
+
+- **A separate stage.** Tree structure does not depend on tooltip text, so an outage here
+  degrades text instead of blocking a tree update.
+- **Cached** by that key tuple in `data/descriptions.json`. Text changes only when the game
+  does, so re-runs cost only genuinely new entries.
+- **A miss is loud.** The legacy pipeline substituted the string "Description not
+  available" per talent, which is indistinguishable from success in aggregate. Here
+  coverage is measured and `--min-coverage` (default 0.95) fails the run below it. An entry
+  with no text keeps `ranks: []`, because an empty list is honest where placeholder prose
+  masquerades as content.
+
+The fragile part is the `<div class="q">` marker in the returned HTML, which is
+unversioned. That is exactly why coverage is a hard gate rather than a log line.
+
+If the endpoint ever disappears, simc ships the same text in
+`engine/dbc/generated/spelltext_data.inc` — but as raw `Spell.Description_lang`
+templates (`$s1`, `$?spell[a][b]`, `$lsingular:plural;`), so using it means writing an
+expression evaluator over spell effect data. A last resort, not a swap.
 
 ## Adding a source
 
