@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 
 from ttm_ingest import transform as T
 from ttm_ingest import validate as V
+from ttm_ingest import ttm_format as FMT
 from ttm_ingest.source import Payload
 
 SOURCE = {"provider": "test", "origin": "test", "fetchedAt": "now", "digest": "x", "revision": 1}
@@ -174,6 +175,63 @@ def t_rank_levels_preserved():
 
 
 # --------------------------------------------------------------------------
+# engine format bridge
+# --------------------------------------------------------------------------
+
+def t_name_sanitized_to_engine_alphabet():
+    """validateTalentStringFormat silently rejects a whole tree over one stray char.
+    Live names include "Stampede!" and "Ride or Die!", which cost four hero trees."""
+    assert FMT.sanitize_name("Stampede!") == "Stampede_"
+    assert FMT.sanitize_name("Ride or Die!") == "Ride or Die_"
+    allowed = FMT.sanitize_name("Wild Charge (Bear)/Cat's Grace-2")
+    assert allowed == "Wild Charge (Bear)/Cat's Grace-2", allowed
+    # a comma inside one name would read as a second choice alternative
+    assert "," not in FMT.sanitize_name("a,b")
+    # colons are escaped by clean() into an allowed marker, not dropped
+    assert FMT.sanitize_name("Transcendence: Linked Spirits").startswith("Transcendence__cl__")
+
+
+def t_structure_line_field_shape():
+    trees, _ = T.transform(payload([spec()]), source=SOURCE)
+    line = FMT.tree_to_structure_line(trees[0])
+    records = [r for r in line.split(";") if r]
+    assert len(records[0].split(":")) == 8, "header must have 8 fields"
+    for record in records[1:]:
+        count = len(record.split(":"))
+        assert count == 12, f"talent record has {count} fields, engine accepts 12 or 13"
+
+
+def t_tiered_ranks_resolved_against_level_cap():
+    # transformed shape (maxPoints), not the upstream shape (maxRanks): this runs after
+    # the transform, on a tree JSON node
+    node_with_levels = {
+        "maxPoints": 4,
+        "rankLevels": [
+            {"level": 81, "maxRanks": 1},
+            {"level": 84, "maxRanks": 3},
+            {"level": 90, "maxRanks": 4},
+        ],
+    }
+    assert FMT._resolve_max_points(node_with_levels, 90) == 4
+    assert FMT._resolve_max_points(node_with_levels, 84) == 3
+    assert FMT._resolve_max_points(node_with_levels, 81) == 1
+    # below the first threshold the engine cannot say "zero ranks"; clamp to one
+    assert FMT._resolve_max_points(node_with_levels, 70) == 1
+    # no cap given: the declared maximum
+    assert FMT._resolve_max_points(node_with_levels, None) == 4
+
+
+def t_choice_node_needs_two_alternatives():
+    s = spec(classNodes=[node(1, kind="choice"), node(2, y=100, prev=[1])])
+    trees, _ = T.transform(payload([s]), source=SOURCE)
+    try:
+        FMT.tree_to_structure_line(trees[0])
+    except FMT.ConversionError:
+        return
+    raise AssertionError("a choice node with one entry must not be emitted as SWITCH")
+
+
+# --------------------------------------------------------------------------
 # validation
 # --------------------------------------------------------------------------
 
@@ -294,6 +352,15 @@ def main() -> int:
         ("edges outside the tree are dropped", t_edges_outside_the_tree_are_dropped),
         ("tree ids are deterministic", t_ids_are_deterministic),
         ("rankLevels preserved", t_rank_levels_preserved),
+    ]:
+        check(name, fn)
+
+    print("\nengine format bridge:")
+    for name, fn in [
+        ("names sanitized to the engine's alphabet", t_name_sanitized_to_engine_alphabet),
+        ("structure line has the right field shape", t_structure_line_field_shape),
+        ("tiered ranks resolved against level cap", t_tiered_ranks_resolved_against_level_cap),
+        ("choice node needs two alternatives", t_choice_node_needs_two_alternatives),
     ]:
         check(name, fn)
 

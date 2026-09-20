@@ -53,3 +53,29 @@ jobs:
               urlopen('https://www.raidbots.com/static/data/live/talents.json', timeout=120).read())
           PY
           python services/ingest/tests/test_ingest.py talents.json
+
+  crosscheck:
+    name: DP and engine agree on ingested trees
+    runs-on: ubuntu-latest
+    # Builds the solver, ingests live data, and compares two independent
+    # implementations over every tree. Network-dependent, so not on every push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r services/ingest/requirements.txt
+
+      - name: build the solver
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j "$(nproc)"
+
+      - name: ingest live data
+        run: python services/ingest/ingest.py --out data/generated
+
+      # The DP counts without enumerating; the engine counts by enumerating. Both read
+      # the same tree JSON, so any disagreement means one of them is wrong.
+      - name: cross-check every tree
+        run: python tools/frontier-dp/crosscheck_json.py data/generated/trees build/ttm-solver 6 10 14

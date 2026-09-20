@@ -121,8 +121,22 @@ namespace CLI {
         std::map<size_t, RunDetails> allRunDetailsMap;
         std::vector<RunDetails> allRunDetails;
         std::vector<size_t> selectedStructures;
+        /* Omitting --structure-indices is meant to select every tree in the file (see
+         * the "selectedStructures.size() > 0" branches below), but splitString on an
+         * empty string yields one empty token and std::stoi threw on it, so the process
+         * terminated with no output at all. Skip empty tokens, and reject junk with a
+         * message instead of an uncaught exception. */
         for (auto& indexStr : Engine::splitString(settings.rawStructureIndices, ",")) {
-            selectedStructures.push_back(static_cast<size_t>(std::stoi(indexStr)));
+            if (indexStr.empty()) {
+                continue;
+            }
+            try {
+                selectedStructures.push_back(static_cast<size_t>(std::stoi(indexStr)));
+            }
+            catch (const std::exception&) {
+                std::cout << "Structure index \"" << indexStr << "\" is not a number. Abort.\n";
+                return {};
+            }
         }
 
         // first parse trees to get tree information and run count

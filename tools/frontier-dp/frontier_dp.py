@@ -199,3 +199,51 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+# ---------------------------------------------------------------------------
+# Reading the ingest's tree JSON (services/ingest), as opposed to the legacy
+# presets.txt. Returns the same node dict shape as parse_tree, so the DP and the
+# validation harness work unchanged on current-patch data.
+# ---------------------------------------------------------------------------
+
+def _resolve_max_points(node, level_cap):
+    """Tiered nodes' max ranks depend on character level; resolve against a cap.
+
+    Must match services/ingest/ttm_ingest/ttm_format._resolve_max_points, or the DP
+    and the engine are counting different trees.
+    """
+    declared = node.get('maxPoints') or 1
+    rank_levels = node.get('rankLevels')
+    if not rank_levels or level_cap is None:
+        return declared
+    allowed = 0
+    for step in rank_levels:
+        if level_cap >= step['level']:
+            allowed = max(allowed, step['maxRanks'])
+    return max(1, min(declared, allowed)) if allowed else 1
+
+
+def load_tree_json(path, level_cap=None):
+    """Load an ingested tree as (header, nodes) matching parse_tree's shape."""
+    import json
+    tree = json.load(open(path, encoding='utf-8'))
+    ids = {n['nodeId'] for n in tree['nodes']}
+    nodes = {}
+    for n in tree['nodes']:
+        nodes[n['nodeId']] = {
+            'index': n['nodeId'],
+            'name': n.get('name') or '',
+            'type': 2 if n.get('kind') == 'choice' else 1,
+            'row': n['row'],
+            'col': n['col'],
+            'maxPoints': _resolve_max_points(n, level_cap),
+            'req': n['pointsRequired'],
+            'preFilled': bool(n['preFilled']),
+            # keep only in-tree edges, as the ingest already does
+            'parents': [p for p in n['parents'] if p in ids],
+            'children': [c for c in n['children'] if c in ids],
+        }
+    header = [tree.get('schemaVersion'), tree.get('key'), tree.get('kind'),
+              tree.get('name'), '', '', len(nodes), 0]
+    return header, nodes
