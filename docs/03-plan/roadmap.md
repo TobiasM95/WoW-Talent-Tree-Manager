@@ -61,6 +61,11 @@ malformed upstream payload fails the run loudly instead of writing bad data.
 - **Count-only solve mode — done**, but it buys memory (~176x, 1,583 MB to 9 MB), not speed.
   Enumeration still walks every solution. It makes large counts *possible*; it does not make them
   fast.
+- **Must-have pruning — done.** `visitTalentFiltered` pruned only on must-not-have; must-have was
+  tested once per completed path, so "I want these three talents" paid for a full enumeration and
+  discarded almost all of it. Two bitmask tests fix it (a passed-over required talent is
+  unreachable; each owed talent costs a point). Filtered search is now output-sensitive: 33.5x on
+  a realistic filter at 30 points, 1.1 s instead of 37.9 s.
 - **Counting should not go through the enumerator at all.** A frontier DP counts the same sets in
   time polynomial in tree size: 3.7 s for all 78 presets at every budget, versus 42 s for the
   engine to count one budget of one tree, with counts verified identical on 11 trees. Prototyped
@@ -85,6 +90,19 @@ Exit criteria: a solve submitted over HTTP returns streamed, paginated results; 
 second request is served from cache without recomputation; a deliberately oversized or
 pathological job is capped cleanly rather than taking down a container.
 
+### Still to do in this phase
+
+- **Allocation in the hot path.** `possibleTalents` is passed by value, so every recursion node
+  copies a vector. This is a constant-factor win on its own and the precondition for any useful
+  threading — malloc contention is the likely reason earlier parallel attempts showed no gain.
+- **Then parallelism**, if still wanted: sequential descent to a shallow depth cut produces
+  thousands of independent subproblems for a work-stealing pool. Partitioning by the
+  lowest-index selected talent gives a provably disjoint cover, so threads never overlap and
+  output needs no merge. Note the functions named `countConfigurationsParallel` are *not*
+  parallel, and the PPL usage parallelised across trees, not within one — which is very likely
+  why earlier attempts never sped up a single-tree solve.
+- **Confirm the filter language against choice-node sides** (open question Q11).
+
 ## Phase 3 — Core product (Loadout Editor + Solver)
 
 The first genuinely user-facing phase.
@@ -94,8 +112,11 @@ The first genuinely user-facing phase.
   toggling, gating and prerequisite validation, level cap, point-budget display.
 - Hero sub-tree selection.
 - Loadout management: multiple named builds per tree.
-- Solver UI: constraint painting (must-have / must-not-have / one-of), point-total filter,
-  asynchronous job submission with progress, paginated results, transfer results into a loadout.
+- Solver UI built around the count-first flow: constraint painting (must-have / must-not-have /
+  at-least-one / exactly-one) with a **live exact count** updating as constraints are painted,
+  per-talent marginals ("requiring this drops you to 1,204"), a pre-flight gate refusing filters
+  too broad to sim, then job submission with a real progress bar, results, and transfer into a
+  loadout.
 - Import/export: Blizzard hash, SimC string, and `ttm1.` share codes.
 - Anonymous use works end to end; share-by-URL works without an account.
 
@@ -114,7 +135,9 @@ a link — without signing in.
 Only now, once the foundation holds:
 
 - Tree Editor (custom/homebrew trees) — the native app's authoring surface.
-- Sim Analysis rebuilt on SimC's JSON report (open question Q9).
+- Sim Analysis rebuilt on SimC's JSON report (open question Q9): export the filtered build set as
+  profilesets, import results back, rank builds, and show per-talent statistics over that set.
+  Feasible precisely because the filter bounds the set to something simmable.
 - Classic support (open question Q3).
 - Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.
 - Engine improvements, which are far easier once it is under test in CI with a stable contract.

@@ -53,8 +53,42 @@ CASES = [
 
 COUNT_RE = re.compile(r'Tree 0: (\d+) combinations')
 
+# Filtered counts. The filter is positional: one value per talent in the preset,
+# 0 = unconstrained, >0 = must have that many points, -1 = must not have any.
+# These lock in the must-have pruning added to visitTalentFiltered -- pruning must
+# change only the runtime, never the result.
+#
+# (preset index, name, points, [(talent position, value)], expected count, slow?)
+FILTER_CASES = [
+    (2, 'druid_restoration', 20, [(5, 1)],                              40_931, False),
+    (2, 'druid_restoration', 20, [(5, 1), (12, 1), (18, 1)],            14_222, False),
+    (2, 'druid_restoration', 20, [(5, 1), (12, 1), (18, 1),
+                                  (7, -1), (9, -1)],                     2_329, False),
+    (2, 'druid_restoration', 25, [(5, 1), (12, 1), (18, 1)],         4_209_348, False),
+    (2, 'druid_restoration', 25, [(5, 1), (12, 1), (18, 1),
+                                  (7, -1), (9, -1)],                   746_260, False),
+    (2, 'druid_restoration', 30, [(5, 1), (12, 1), (18, 1),
+                                  (7, -1), (9, -1)],                 9_464_517, False),
+]
 
-def run_case(exe, idx, points, expected):
+# Talent positions used for the complement property below.
+COMPLEMENT_POSITIONS = [0, 5, 12, 20, 30]
+
+
+def talent_count(preset_index):
+    """Number of talents in a preset, read from its header."""
+    line = open(PRESETS, encoding='utf-8').read().split('\n')[preset_index]
+    return int(line.split(';')[0].split(':')[6])
+
+
+def build_filter(preset_index, pairs):
+    values = ['0'] * talent_count(preset_index)
+    for pos, val in pairs:
+        values[pos] = str(val)
+    return ':'.join(values)
+
+
+def run_case(exe, idx, points, expected, filter_str=None):
     args = [exe,
             '--structure-file-path', PRESETS,
             '--structure-indices', str(idx),
@@ -62,6 +96,8 @@ def run_case(exe, idx, points, expected):
             '--count-only',
             # above any expected count, so the guard never truncates a golden case
             '--max-results', '10000000000']
+    if filter_str:
+        args += ['--filter', filter_str]
     t0 = time.time()
     proc = subprocess.run(args, capture_output=True, text=True, timeout=3600)
     dt = time.time() - t0
@@ -75,6 +111,9 @@ def run_case(exe, idx, points, expected):
     if not m:
         return False, f'no count in output: {out.strip()[:120]!r}', dt
     actual = int(m.group(1))
+    if expected is None:
+        # caller only wants the number (used by the complement property below)
+        return True, f'{actual:,}', dt
     if actual != expected:
         return False, f'got {actual:,}, expected {expected:,}', dt
     return True, f'{actual:,}', dt
@@ -104,18 +143,60 @@ def main():
     print()
 
     failures = 0
+    total = 0
     for idx, name, points, expected, slow in cases:
         ok, detail, dt = run_case(exe, idx, points, expected)
         status = 'ok  ' if ok else 'FAIL'
         print(f'  [{status}] {name:28} @{points:2d}  {detail:>18}  ({dt:.1f}s)')
+        total += 1
         if not ok:
             failures += 1
 
+    # ---- filtered counts: pruning must change runtime, never results ----
+    fcases = [c for c in FILTER_CASES if not (quick and c[5])]
+    if fcases:
+        print()
+        print('  filtered:')
+        for idx, name, points, pairs, expected, slow in fcases:
+            fstr = build_filter(idx, pairs)
+            ok, detail, dt = run_case(exe, idx, points, expected, fstr)
+            status = 'ok  ' if ok else 'FAIL'
+            shape = ','.join(f'{p}{"+" if v > 0 else "-"}' for p, v in pairs)
+            print(f'  [{status}] {name:18} @{points:2d} [{shape:<22}] {detail:>14}  ({dt:.1f}s)')
+            total += 1
+            if not ok:
+                failures += 1
+
+    # ---- property: every build either has talent X or does not ----
+    # must-have(X) + must-not-have(X) == unfiltered, for any X. This catches an
+    # over-aggressive prune without needing a known-good baseline binary.
+    print()
+    print('  complement property (must-have + must-not-have == unfiltered):')
+    base_ok, base_detail, _ = run_case(exe, 2, 20, None)
+    base = int(base_detail.replace(',', '')) if base_detail.replace(',', '').isdigit() else None
+    for pos in COMPLEMENT_POSITIONS:
+        inc_ok, inc_d, _ = run_case(exe, 2, 20, None, build_filter(2, [(pos, 1)]))
+        exc_ok, exc_d, _ = run_case(exe, 2, 20, None, build_filter(2, [(pos, -1)]))
+        try:
+            inc = int(inc_d.replace(',', ''))
+            exc = int(exc_d.replace(',', ''))
+        except ValueError:
+            print(f'  [FAIL] talent {pos}: could not read counts')
+            failures += 1
+            total += 1
+            continue
+        ok = base is not None and inc + exc == base
+        total += 1
+        if not ok:
+            failures += 1
+        print(f'  [{"ok  " if ok else "FAIL"}] talent {pos:>2}: '
+              f'{inc:>10,} + {exc:>10,} = {inc + exc:>10,}  (expected {base:,})')
+
     print()
     if failures:
-        print(f'{failures} of {len(cases)} FAILED')
+        print(f'{failures} of {total} FAILED')
         return 1
-    print(f'all {len(cases)} passed')
+    print(f'all {total} passed')
     return 0
 
 

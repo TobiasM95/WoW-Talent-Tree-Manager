@@ -34,6 +34,20 @@
 #endif
 
 namespace Engine {
+
+    /*
+    Portable population count. Deliberately not __builtin_popcountll / __popcnt64:
+    this has to build under both MSVC and gcc, and the hardware instruction needs a
+    CPUID check under MSVC. The search is dominated by other work, so the handful of
+    extra ops here does not register.
+    */
+    inline int popcount64(SIND x) {
+        x = x - ((x >> 1) & 0x5555555555555555ULL);
+        x = (x & 0x3333333333333333ULL) + ((x >> 2) & 0x3333333333333333ULL);
+        x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0FULL;
+        return static_cast<int>((x * 0x0101010101010101ULL) >> 56);
+    }
+
     /*
     Counts configurations of a tree with given amount of talent points by topologically sorting the tree and iterating through valid paths (i.e.
     paths with monotonically increasing talent indices). See Wikipedia DAGs (which Wow Talent Trees are) and Topological Sorting.
@@ -400,6 +414,38 @@ namespace Engine {
                 combinations.push_back(visitedTalents);
             }
             return;
+        }
+        //no points left and the filter did not match above: nothing further can be taken
+        if (talentPointsLeft == 0) {
+            return;
+        }
+        /*
+        Must-have pruning.
+
+        Previously only excludeFilter pruned during the search; includeFilter was
+        tested once per completed path, in checkSkillsetFilter. So "I want these three
+        talents" cost a full unfiltered enumeration and then discarded almost all of
+        it -- the most common query got no speedup at all.
+
+        Two facts make it prunable. Paths visit strictly increasing positions, so a
+        required talent whose position has already been passed can never be taken
+        later. And each remaining required talent costs at least one point.
+        */
+        const SIND missingRequired = includeFilter & ~visitedTalents;
+        if (missingRequired != 0) {
+            // positions 0..current, i.e. everything this path can no longer reach
+            const int here = talentIndexReqPair.first;
+            const SIND passedMask = here >= 63
+                ? ~static_cast<SIND>(0)
+                : ((static_cast<SIND>(1) << (here + 1)) - 1);
+            if ((missingRequired & passedMask) != 0) {
+                //a required talent was passed over and is now unreachable
+                return;
+            }
+            if (popcount64(missingRequired) > talentPointsLeft) {
+                //more required talents still owed than points remaining to pay for them
+                return;
+            }
         }
         //check if path can be finished (due to sorting and early stopping some paths are ignored even though in practice you could complete them but
         //sorting guarantees that these paths were visited earlier already)

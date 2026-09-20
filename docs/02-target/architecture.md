@@ -53,6 +53,61 @@ and the ingest pipeline — and the ingest logic already exists in Python
 (`tree_presets_generator.py`). FastAPI with async endpoints and asyncpg is more than sufficient.
 Revisit only if profiling shows the web tier is actually the constraint.
 
+## 1b. The product model: count, then filter, then sim
+
+This is the shape of the whole service, and it decides most of what follows.
+
+The native client enumerated every build into RAM, then let the user filter that set down
+to something simmable. A web service cannot hold 305 million builds per user, but it does not
+need to — **the filter is the selection mechanism, not a sampling step.** The user's
+constraints are the point, and they want every build satisfying them.
+
+So the flow inverts into three stages:
+
+1. **Count** — the frontier DP answers "how many builds match these constraints?" in
+   milliseconds, inline in the API. No queue, no worker.
+2. **Filtered enumeration** — the C++ engine produces the matching builds, with the result
+   size *already known* from stage 1.
+3. **Sim** — export as SimC profilesets, run, import results, rank, show per-talent statistics.
+
+What each stage buys:
+
+- Stage 1 is a **pre-flight gate**. A filter matching 40 million builds is rejected before a
+  worker is spawned ("too many to sim, tighten it"). Every job that reaches the queue has a
+  known, bounded size — which removes most of the defensive machinery the earlier design
+  needed.
+- Because the count is known in advance, the job gets a **real progress bar** with a true
+  denominator and an honest ETA, rather than an open-ended spinner.
+- Stage 2 is now genuinely cheap for realistic filters. See below.
+
+Explicitly **not** the model: sampling random builds. A user who constrains to 5,000 builds
+wants those 5,000, not a sample of a larger space.
+
+### Filtered search is now output-sensitive
+
+Must-have pruning was added to `visitTalentFiltered` (it previously pruned only on
+must-not-have, testing must-have once per completed path — so the most common query,
+"I want these talents", got no speedup at all and paid for a full enumeration).
+
+Measured on `druid_restoration`, engine-reported solve time:
+
+| Query at 30 points | Builds | Solve | vs unfiltered |
+|---|---:|---:|---:|
+| unfiltered | 305,286,987 | 37.9 s | — |
+| must-have ×3 | 56,877,903 | 7.1 s | 5.3× |
+| must-have ×3 + must-not ×2 | 9,464,517 | 1.1 s | 33.5× |
+
+Cost now tracks the size of the answer rather than the size of the search space, which is
+what makes stage 2 interactive. Two bitmask tests do it: a required talent whose position has
+been passed can never be taken (paths visit strictly increasing positions), and each still-owed
+required talent costs at least one point.
+
+### Storage
+
+Results are bounded by stage 1, so they are small enough to store normally — no 9.5 GB files,
+no object storage, no result streaming protocol. The queue remains worthwhile because a
+filtered solve can still take seconds, but it no longer has to defend against unbounded output.
+
 ## 2. The queue: Postgres, not a broker
 
 `SELECT ... FOR UPDATE SKIP LOCKED` is the whole mechanism. It has been the correct answer for

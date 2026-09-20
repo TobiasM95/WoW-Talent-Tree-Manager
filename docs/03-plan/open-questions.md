@@ -126,7 +126,33 @@ Currently GPL-3. Fine for a hosted service (GPL, unlike AGPL, does not compel re
 modifications), but worth a deliberate choice: keeping GPL-3, relicensing, or splitting licences
 between engine and web app. Only the copyright holder can decide.
 
-### Q8. Hosting and cost envelope — now quantified, and it is the key product question
+### Q8. Hosting and cost envelope — **answered**: count-gate, then filtered enumeration
+
+Resolved in discussion. The service is **count → filtered enumeration → sim**, described in
+[`../02-target/architecture.md`](../02-target/architecture.md).
+
+The DP count is a pre-flight gate: it is free, so every job is sized before dispatch and a
+filter matching 40 million builds is refused up front. Filtered enumeration then produces the
+actual builds, and with must-have pruning added it is output-sensitive — 1.1 s for a realistic
+filter at full budget, against 37.9 s unfiltered.
+
+Unconstrained enumeration is therefore not a product feature; it is what the gate exists to
+refuse. Sampling is *not* the model either: the user's filter is the selection mechanism, and
+they want every build matching it.
+
+Remaining sub-question, much smaller: where exactly to set the "too many to sim" threshold.
+That is a hosting-budget decision, informed by how many builds a user can realistically sim
+(SimC profilesets put it in the low thousands).
+
+### Q11. Does the filter language need choice-node sides?
+
+The DP and the engine both count *sets*; switch/choice multiplicity is resolved separately via
+`switchTalentChoices`. So a constraint meaning "must take the left side of this choice node" is
+not expressible at set level today.
+
+Needs a check of what the GUI's filter painting can actually express. If it can name a side,
+the counting model needs a per-choice-node component and the engine's filter masks need to
+distinguish them.
 
 Measured ([`../02-target/solver-performance.md`](../02-target/solver-performance.md)): an
 exhaustive 30-point spec-tree solve takes **7.5 minutes and writes 9.5 GB**. At 20 points it is
