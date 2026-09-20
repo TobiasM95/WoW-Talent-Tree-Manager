@@ -81,6 +81,9 @@ namespace CLI {
             if (component == "--max-results" && argc >= i + 1) {
                 settings.maxResults = static_cast<size_t>(std::stoull(std::string{ argv[i + 1] }));
             }
+            if (component == "--time-budget-ms" && argc >= i + 1) {
+                settings.timeBudgetMs = static_cast<size_t>(std::stoull(std::string{ argv[i + 1] }));
+            }
         }
 
         return settings;
@@ -298,6 +301,7 @@ namespace CLI {
         for (RunDetails& run : allRunDetails) {
             run.countOnly = settings.countOnly;
             run.maxResults = settings.maxResults;
+            run.timeBudgetMs = settings.timeBudgetMs;
             if (run.filter) {
                 continue;
             }
@@ -325,6 +329,7 @@ namespace CLI {
         }
         run.treeDAGInfo->countOnly = run.countOnly;
         run.treeDAGInfo->safetyGuardOverride = run.maxResults;
+        run.treeDAGInfo->timeBudgetMs = run.timeBudgetMs;
         Engine::countConfigurationsFiltered(
             run.tree,
             run.filter,
@@ -463,6 +468,9 @@ namespace CLI {
                 << " combinations in " << details.treeDAGInfo->elapsedTime << " s";
             if (details.treeDAGInfo->safetyGuardTriggered) {
                 std::cout << " (INCOMPLETE: safety guard triggered)";
+            }
+            else if (details.treeDAGInfo->timedOut) {
+                std::cout << " (INCOMPLETE: time budget exceeded)";
             }
             std::cout << "\n";
         }

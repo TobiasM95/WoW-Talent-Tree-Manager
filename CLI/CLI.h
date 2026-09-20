@@ -18,6 +18,7 @@ namespace CLI {
 		bool solveParallel = false;
 		bool countOnly = false;
 		size_t maxResults = 0;   // 0 = derive from memory
+		size_t timeBudgetMs = 0; // 0 = unlimited
 	};
 
 	struct RunDetails {
@@ -31,6 +32,7 @@ namespace CLI {
 		std::vector<std::vector<int>> assignedSwitchIndices;
 		bool countOnly = false;
 		size_t maxResults = 0;
+		size_t timeBudgetMs = 0;
 	};
 
 	CLSettings processCommandLine(int argc, char** argv);

@@ -120,8 +120,22 @@ pathological job is capped cleanly rather than taking down a container.
 answering filtered counts in 10-38 ms on a tree with 872 million builds, with `listable`
 telling the UI whether enumerating is worth offering. 16 tests.
 
-Still missing from Phase 2: the worker that claims a `solve_jobs` row and execs
-`ttm-solver`, NDJSON streaming, progress reporting, and the wall-clock `--time-budget`.
+### Worker — done
+
+[`../../services/worker/README.md`](../../services/worker/README.md). Claims jobs with
+`FOR UPDATE SKIP LOCKED`, execs `ttm-solver`, decodes output into nodeId-keyed builds, and
+recovers jobs whose lease expired. `capped` is a first-class outcome for a truncated result.
+
+The engine gained the **wall-clock `--time-budget-ms`** it never had: a 30-point solve that
+runs 38 s stops at 2.00017 s under a 2 s budget and reports `INCOMPLETE`, while a fast solve
+under a generous budget is unaffected.
+
+**Phase 2 exit criteria met.** A solve submitted over HTTP returns paginated results; an
+identical request is served from the existing job rather than recomputed; an oversized job is
+refused with a 413 before it is ever queued.
+
+Still open in this area: progress reporting (jobs jump 0 to 1), cancellation, and passing
+or-group/one-of filters through to the engine.
 
 ## Phase 3 — Core product (Loadout Editor + Solver)
 

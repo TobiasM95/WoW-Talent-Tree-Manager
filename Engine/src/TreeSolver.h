@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <memory>
+#include <chrono>
 
 #include "TTMEnginePresets.h"
 #include "TalentTrees.h"
@@ -52,6 +53,44 @@ namespace Engine {
         clamped every solve to the struct default.
         */
         size_t safetyGuardOverride = 0;
+
+        /*
+        Wall-clock budget in milliseconds; 0 means unlimited.
+
+        The engine had a combination-count guard and a memory guard but no time guard at
+        all, so nothing stopped a solve from running arbitrarily long. On a shared server
+        that is the difference between a slow request and a wedged worker: five talent
+        points separate a 0.12 s solve from a 452 s one.
+        */
+        size_t timeBudgetMs = 0;
+        bool timedOut = false;
+    };
+
+    /*
+    Tracks a solve's wall-clock deadline. Checking the clock at every node would cost more
+    than the node's work, so the check is sampled -- accurate to a few milliseconds, which
+    is all a budget in seconds needs.
+    */
+    struct SolveDeadline {
+        std::chrono::steady_clock::time_point deadline{};
+        bool unlimited = true;
+        unsigned int tick = 0;
+        bool expired = false;
+
+        static constexpr unsigned int CHECK_INTERVAL = 8192;
+
+        bool exceeded() {
+            if (unlimited || expired) {
+                return expired;
+            }
+            if ((++tick % CHECK_INTERVAL) != 0) {
+                return false;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+                expired = true;
+            }
+            return expired;
+        }
     };
 
     struct TreeDAGInfoLegacy {
@@ -103,7 +142,8 @@ namespace Engine {
         SIND& includeFilter,
         SIND& excludeFilter,
         SIND& orFilter,
-        std::vector<std::pair<SIND, SIND>>& oneFilter
+        std::vector<std::pair<SIND, SIND>>& oneFilter,
+        SolveDeadline& deadline
     );
     void visitTalentSingle(
         std::pair<int, int> talentIndexReqPair,

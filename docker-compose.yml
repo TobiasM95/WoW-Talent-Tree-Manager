@@ -93,7 +93,25 @@ services:
               "--reload", "--reload-dir", "/app/services/api",
               "--reload-exclude", "*test*"]
 
-  # The C++ solver, built once and exec'd per job. Not a service.
+  # Claims solve jobs and execs the C++ engine. Scale with --scale worker=N; the queue
+  # uses SKIP LOCKED so workers need no coordination.
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ttm:ttm_dev_only@postgres:5432/ttm}
+    volumes:
+      - ./services:/app/services
+      - ./tools:/app/tools
+    # A pathological job must not be able to take the host with it.
+    cpus: ${WORKER_CPUS:-2}
+    mem_limit: ${WORKER_MEMORY:-2g}
+
+  # The C++ solver on its own, for builds and one-off runs. Not a service.
   solver:
     build:
       context: .

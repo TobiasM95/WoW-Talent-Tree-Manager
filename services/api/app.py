@@ -16,6 +16,7 @@ Anonymous by design: nothing here needs an account. Identity is additive and com
 from __future__ import annotations
 
 import functools
+import json
 import os
 import sys
 import time
@@ -154,6 +155,42 @@ class CountRequest(BaseModel):
         return v
 
 
+class SolveRequest(CountRequest):
+    maxResults: int = Field(default=LISTING_LIMIT, ge=1, le=LISTING_LIMIT)
+    timeBudgetMs: int = Field(default=120_000, ge=1_000, le=600_000)
+
+
+class JobResponse(BaseModel):
+    id: str
+    state: str
+    treeKey: str
+    points: int
+    expectedCount: int | None
+    resultCount: int | None
+    progress: float
+    error: str | None
+    createdAt: str
+    finishedAt: str | None
+
+
+class SolveRequest(CountRequest):
+    maxResults: int = Field(default=LISTING_LIMIT, ge=1, le=LISTING_LIMIT)
+    timeBudgetMs: int = Field(default=120_000, ge=1_000, le=600_000)
+
+
+class JobResponse(BaseModel):
+    id: str
+    state: str
+    treeKey: str
+    points: int
+    expectedCount: int | None
+    resultCount: int | None
+    progress: float
+    error: str | None
+    createdAt: str
+    finishedAt: str | None
+
+
 class CountResponse(BaseModel):
     treeKey: str
     points: int
@@ -273,6 +310,300 @@ def get_tree(tree_key: str) -> dict[str, Any]:
     return rows[0]["definition"]
 
 
+def _validate(req: "CountRequest", graph: dict) -> None:
+    unknown = (set(req.mustHave) | set(req.mustNotHave)) - graph["node_ids"]
+    unknown |= {int(k) for k in req.choiceSides} - graph["node_ids"]
+    if unknown:
+        raise HTTPException(400, f"node id(s) {sorted(unknown)[:5]} are not in {req.treeKey!r}")
+    contradictory = set(req.mustHave) & set(req.mustNotHave)
+    if contradictory:
+        raise HTTPException(
+            400, f"node id(s) {sorted(contradictory)} are both required and excluded")
+    if req.points > graph["slots"]:
+        raise HTTPException(
+            400,
+            f"{req.treeKey!r} has only {graph['slots']} point slots at level cap "
+            f"{req.levelCap}; {req.points} points cannot be spent in it")
+
+
+def _count_for(req: "CountRequest", graph: dict):
+    """Shared by the gate and by job submission, so the number a user is shown is exactly
+    the number the job is created against."""
+    filtered = bool(req.mustHave or req.mustNotHave or req.choiceSides)
+    if not filtered:
+        rows = query(
+            """
+            SELECT c.set_count, c.build_count
+            FROM tree_counts c
+            JOIN current_trees t ON t.id = c.tree_id AND t.revision = c.tree_revision
+            WHERE t.key = %s AND c.points = %s AND c.level_cap = %s
+            """,
+            (req.treeKey, req.points, req.levelCap),
+        )
+        if rows:
+            return int(rows[0]["set_count"]), int(rows[0]["build_count"]), "precomputed"
+
+    from frontier_dp import count_frontier_dp
+    sides = {int(k): v for k, v in req.choiceSides.items()}
+    common = dict(require=set(req.mustHave), exclude=set(req.mustNotHave),
+                  choice_sides=sides)
+    set_totals, _ = count_frontier_dp(
+        graph["meta"], graph["par"], graph["chi"], graph["order"], req.points, **common)
+    build_totals, _ = count_frontier_dp(
+        graph["meta"], graph["par"], graph["chi"], graph["order"], req.points,
+        weight_choices=True, **common)
+    return set_totals.get(req.points, 0), build_totals.get(req.points, 0), "computed"
+
+
+def _job_row(row: dict, tree_key: str) -> "JobResponse":
+    return JobResponse(
+        id=str(row["id"]), state=row["state"], treeKey=tree_key,
+        points=int(row["request"]["points"]),
+        expectedCount=int(row["expected_count"]) if row["expected_count"] is not None else None,
+        resultCount=int(row["result_count"]) if row["result_count"] is not None else None,
+        progress=float(row["progress"]), error=row["error"],
+        createdAt=row["created_at"].isoformat(),
+        finishedAt=row["finished_at"].isoformat() if row["finished_at"] else None,
+    )
+
+
+@app.post("/solve", response_model=JobResponse, status_code=202)
+def submit_solve(req: SolveRequest) -> "JobResponse":
+    """Queue a filtered enumeration -- but only if the pre-flight count says it is worth it.
+
+    The gate runs here, not in the worker: a job is never created for a result set too
+    large to serve, so the queue never has to defend against unbounded output.
+    """
+    import hashlib
+
+    graph = _dp_graph(req.treeKey, req.levelCap)
+    _validate(req, graph)
+    sets, builds, _ = _count_for(req, graph)
+
+    if sets == 0:
+        raise HTTPException(400, "no builds match these constraints")
+    if sets > req.maxResults:
+        raise HTTPException(
+            413,
+            f"{sets:,} matching selections ({builds:,} builds) exceeds the limit of "
+            f"{req.maxResults:,}. Add constraints or lower the point budget.")
+
+    payload = {
+        "points": req.points, "levelCap": req.levelCap,
+        "mustHave": sorted(req.mustHave), "mustNotHave": sorted(req.mustNotHave),
+        "choiceSides": {str(k): v for k, v in sorted(req.choiceSides.items())},
+        "maxResults": req.maxResults, "timeBudgetMs": req.timeBudgetMs,
+    }
+    # Dedup and cache are the same mechanism. The hash covers the exact tree revision, so
+    # a new ingest revision correctly yields a different job rather than a stale hit.
+    digest = hashlib.sha256(
+        f"{graph['tree_id']}:{graph['revision']}:"
+        f"{json.dumps(payload, sort_keys=True)}".encode()).digest()
+
+    from psycopg.rows import dict_row
+    with pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT * FROM solve_jobs WHERE request_hash = %s "
+                "AND state IN ('queued','running','done')", (digest,))
+            existing = cur.fetchone()
+            if existing:
+                return _job_row(existing, req.treeKey)
+            cur.execute(
+                """
+                INSERT INTO solve_jobs (tree_id, tree_revision, request, request_hash,
+                                        expected_count)
+                VALUES (%s, %s, %s, %s, %s) RETURNING *
+                """,
+                (graph["tree_id"], graph["revision"], json.dumps(payload), digest, sets))
+            row = cur.fetchone()
+            conn.commit()
+    return _job_row(row, req.treeKey)
+
+
+@app.get("/solve/{job_id}", response_model=JobResponse)
+def get_job(job_id: str) -> "JobResponse":
+    from psycopg.rows import dict_row
+    with pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT j.*, t.key AS tree_key
+                FROM solve_jobs j JOIN trees t
+                  ON t.id = j.tree_id AND t.revision = j.tree_revision
+                WHERE j.id = %s
+                """, (job_id,))
+            row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, f"no job {job_id}")
+    return _job_row(row, row["tree_key"])
+
+
+@app.get("/solve/{job_id}/results")
+def get_job_results(job_id: str, offset: int = 0, limit: int = Query(100, ge=1, le=1000)):
+    """A page of matching builds, each keyed by Blizzard nodeId."""
+    rows = query("SELECT state, result_count FROM solve_jobs WHERE id = %s", (job_id,))
+    if not rows:
+        raise HTTPException(404, f"no job {job_id}")
+    if rows[0]["state"] not in ("done", "capped"):
+        raise HTTPException(409, f"job is {rows[0]['state']}, results are not ready")
+    results = query(
+        "SELECT ordinal, points FROM solve_results WHERE job_id = %s "
+        "ORDER BY ordinal OFFSET %s LIMIT %s", (job_id, offset, limit))
+    return {
+        "jobId": job_id, "state": rows[0]["state"],
+        "total": int(rows[0]["result_count"] or 0), "offset": offset,
+        "builds": [r["points"] for r in results],
+    }
+
+
+def _validate(req: "CountRequest", graph: dict) -> None:
+    unknown = (set(req.mustHave) | set(req.mustNotHave)) - graph["node_ids"]
+    unknown |= {int(k) for k in req.choiceSides} - graph["node_ids"]
+    if unknown:
+        raise HTTPException(400, f"node id(s) {sorted(unknown)[:5]} are not in {req.treeKey!r}")
+    contradictory = set(req.mustHave) & set(req.mustNotHave)
+    if contradictory:
+        raise HTTPException(
+            400, f"node id(s) {sorted(contradictory)} are both required and excluded")
+    if req.points > graph["slots"]:
+        raise HTTPException(
+            400,
+            f"{req.treeKey!r} has only {graph['slots']} point slots at level cap "
+            f"{req.levelCap}; {req.points} points cannot be spent in it")
+
+
+def _count_for(req: "CountRequest", graph: dict):
+    """Shared by the gate and by job submission, so the number a user is shown is exactly
+    the number the job is created against."""
+    filtered = bool(req.mustHave or req.mustNotHave or req.choiceSides)
+    if not filtered:
+        rows = query(
+            """
+            SELECT c.set_count, c.build_count
+            FROM tree_counts c
+            JOIN current_trees t ON t.id = c.tree_id AND t.revision = c.tree_revision
+            WHERE t.key = %s AND c.points = %s AND c.level_cap = %s
+            """,
+            (req.treeKey, req.points, req.levelCap),
+        )
+        if rows:
+            return int(rows[0]["set_count"]), int(rows[0]["build_count"]), "precomputed"
+
+    from frontier_dp import count_frontier_dp
+    sides = {int(k): v for k, v in req.choiceSides.items()}
+    common = dict(require=set(req.mustHave), exclude=set(req.mustNotHave),
+                  choice_sides=sides)
+    set_totals, _ = count_frontier_dp(
+        graph["meta"], graph["par"], graph["chi"], graph["order"], req.points, **common)
+    build_totals, _ = count_frontier_dp(
+        graph["meta"], graph["par"], graph["chi"], graph["order"], req.points,
+        weight_choices=True, **common)
+    return set_totals.get(req.points, 0), build_totals.get(req.points, 0), "computed"
+
+
+def _job_row(row: dict, tree_key: str) -> "JobResponse":
+    return JobResponse(
+        id=str(row["id"]), state=row["state"], treeKey=tree_key,
+        points=int(row["request"]["points"]),
+        expectedCount=int(row["expected_count"]) if row["expected_count"] is not None else None,
+        resultCount=int(row["result_count"]) if row["result_count"] is not None else None,
+        progress=float(row["progress"]), error=row["error"],
+        createdAt=row["created_at"].isoformat(),
+        finishedAt=row["finished_at"].isoformat() if row["finished_at"] else None,
+    )
+
+
+@app.post("/solve", response_model=JobResponse, status_code=202)
+def submit_solve(req: SolveRequest) -> "JobResponse":
+    """Queue a filtered enumeration -- but only if the pre-flight count says it is worth it.
+
+    The gate runs here, not in the worker: a job is never created for a result set too
+    large to serve, so the queue never has to defend against unbounded output.
+    """
+    import hashlib
+
+    graph = _dp_graph(req.treeKey, req.levelCap)
+    _validate(req, graph)
+    sets, builds, _ = _count_for(req, graph)
+
+    if sets == 0:
+        raise HTTPException(400, "no builds match these constraints")
+    if sets > req.maxResults:
+        raise HTTPException(
+            413,
+            f"{sets:,} matching selections ({builds:,} builds) exceeds the limit of "
+            f"{req.maxResults:,}. Add constraints or lower the point budget.")
+
+    payload = {
+        "points": req.points, "levelCap": req.levelCap,
+        "mustHave": sorted(req.mustHave), "mustNotHave": sorted(req.mustNotHave),
+        "choiceSides": {str(k): v for k, v in sorted(req.choiceSides.items())},
+        "maxResults": req.maxResults, "timeBudgetMs": req.timeBudgetMs,
+    }
+    # Dedup and cache are the same mechanism. The hash covers the exact tree revision, so
+    # a new ingest revision correctly yields a different job rather than a stale hit.
+    digest = hashlib.sha256(
+        f"{graph['tree_id']}:{graph['revision']}:"
+        f"{json.dumps(payload, sort_keys=True)}".encode()).digest()
+
+    from psycopg.rows import dict_row
+    with pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                "SELECT * FROM solve_jobs WHERE request_hash = %s "
+                "AND state IN ('queued','running','done')", (digest,))
+            existing = cur.fetchone()
+            if existing:
+                return _job_row(existing, req.treeKey)
+            cur.execute(
+                """
+                INSERT INTO solve_jobs (tree_id, tree_revision, request, request_hash,
+                                        expected_count)
+                VALUES (%s, %s, %s, %s, %s) RETURNING *
+                """,
+                (graph["tree_id"], graph["revision"], json.dumps(payload), digest, sets))
+            row = cur.fetchone()
+            conn.commit()
+    return _job_row(row, req.treeKey)
+
+
+@app.get("/solve/{job_id}", response_model=JobResponse)
+def get_job(job_id: str) -> "JobResponse":
+    from psycopg.rows import dict_row
+    with pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                SELECT j.*, t.key AS tree_key
+                FROM solve_jobs j JOIN trees t
+                  ON t.id = j.tree_id AND t.revision = j.tree_revision
+                WHERE j.id = %s
+                """, (job_id,))
+            row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, f"no job {job_id}")
+    return _job_row(row, row["tree_key"])
+
+
+@app.get("/solve/{job_id}/results")
+def get_job_results(job_id: str, offset: int = 0, limit: int = Query(100, ge=1, le=1000)):
+    """A page of matching builds, each keyed by Blizzard nodeId."""
+    rows = query("SELECT state, result_count FROM solve_jobs WHERE id = %s", (job_id,))
+    if not rows:
+        raise HTTPException(404, f"no job {job_id}")
+    if rows[0]["state"] not in ("done", "capped"):
+        raise HTTPException(409, f"job is {rows[0]['state']}, results are not ready")
+    results = query(
+        "SELECT ordinal, points FROM solve_results WHERE job_id = %s "
+        "ORDER BY ordinal OFFSET %s LIMIT %s", (job_id, offset, limit))
+    return {
+        "jobId": job_id, "state": rows[0]["state"],
+        "total": int(rows[0]["result_count"] or 0), "offset": offset,
+        "builds": [r["points"] for r in results],
+    }
+
+
 @app.post("/counts", response_model=CountResponse)
 def count_builds(req: CountRequest) -> CountResponse:
     """The pre-flight gate: how many builds match these constraints?
@@ -283,58 +614,9 @@ def count_builds(req: CountRequest) -> CountResponse:
     """
     started = time.perf_counter()
     graph = _dp_graph(req.treeKey, req.levelCap)
-
-    unknown = (set(req.mustHave) | set(req.mustNotHave)) - graph["node_ids"]
-    unknown |= {int(k) for k in req.choiceSides} - graph["node_ids"]
-    if unknown:
-        raise HTTPException(
-            400,
-            f"node id(s) {sorted(unknown)[:5]} are not in {req.treeKey!r}",
-        )
-    contradictory = set(req.mustHave) & set(req.mustNotHave)
-    if contradictory:
-        raise HTTPException(
-            400, f"node id(s) {sorted(contradictory)} are both required and excluded"
-        )
-
-    if req.points > graph["slots"]:
-        raise HTTPException(
-            400,
-            f"{req.treeKey!r} has only {graph['slots']} point slots at level cap "
-            f"{req.levelCap}; {req.points} points cannot be spent in it",
-        )
-
+    _validate(req, graph)
     filtered = bool(req.mustHave or req.mustNotHave or req.choiceSides)
-
-    if not filtered:
-        # Precomputed: a primary-key read rather than a computation.
-        rows = query(
-            """
-            SELECT c.set_count, c.build_count
-            FROM tree_counts c
-            JOIN current_trees t ON t.id = c.tree_id AND t.revision = c.tree_revision
-            WHERE t.key = %s AND c.points = %s AND c.level_cap = %s
-            """,
-            (req.treeKey, req.points, req.levelCap),
-        )
-        sets = int(rows[0]["set_count"]) if rows else 0
-        builds = int(rows[0]["build_count"]) if rows else 0
-        source: Literal["precomputed", "computed"] = "precomputed"
-    else:
-        from frontier_dp import count_frontier_dp
-        sides = {int(k): v for k, v in req.choiceSides.items()}
-        common = dict(require=set(req.mustHave), exclude=set(req.mustNotHave),
-                      choice_sides=sides)
-        set_totals, _ = count_frontier_dp(
-            graph["meta"], graph["par"], graph["chi"], graph["order"], req.points, **common
-        )
-        build_totals, _ = count_frontier_dp(
-            graph["meta"], graph["par"], graph["chi"], graph["order"], req.points,
-            weight_choices=True, **common
-        )
-        sets = set_totals.get(req.points, 0)
-        builds = build_totals.get(req.points, 0)
-        source = "computed"
+    sets, builds, source = _count_for(req, graph)
 
     return CountResponse(
         treeKey=req.treeKey, points=req.points, levelCap=req.levelCap,

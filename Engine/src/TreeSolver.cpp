@@ -229,6 +229,14 @@ namespace Engine {
             if (treeDAGInfo->safetyGuardOverride > 0) {
                 sortedTreeDAG.safetyGuard = treeDAGInfo->safetyGuardOverride;
             }
+            sortedTreeDAG.timeBudgetMs = treeDAGInfo->timeBudgetMs;
+        }
+
+        SolveDeadline deadline;
+        if (sortedTreeDAG.timeBudgetMs > 0) {
+            deadline.unlimited = false;
+            deadline.deadline = std::chrono::steady_clock::now()
+                + std::chrono::milliseconds(sortedTreeDAG.timeBudgetMs);
         }
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
@@ -340,12 +348,15 @@ namespace Engine {
                     includeFilter,
                     excludeFilter,
                     orFilter,
-                    oneFilter
+                    oneFilter,
+                    deadline
                 );
         }
         if (safetyGuardTriggered) {
             sortedTreeDAG.safetyGuardTriggered = true;
         }
+        //a result truncated by the clock must be distinguishable from a complete one
+        sortedTreeDAG.timedOut = deadline.expired;
         auto t2 = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> ms_double = t2 - t1;
         vec2d<SIND> allCombinationsVector;
@@ -385,7 +396,8 @@ namespace Engine {
         SIND& includeFilter,
         SIND& excludeFilter,
         SIND& orFilter,
-        std::vector<std::pair<SIND, SIND>>& oneFilter
+        std::vector<std::pair<SIND, SIND>>& oneFilter,
+        SolveDeadline& deadline
     ) {
         /*
         for each node visited add child nodes(in DAG array) to the vector of possible nodesand reduce talent points left
@@ -400,6 +412,10 @@ namespace Engine {
          * built on it -- actually uses. */
         if (runningCount >= sortedTreeDAG.safetyGuard || safetyGuardTriggered) {
             safetyGuardTriggered = true;
+            return;
+        }
+        //stop cleanly when the wall-clock budget is spent, rather than running unbounded
+        if (deadline.exceeded()) {
             return;
         }
         //do combination housekeeping
@@ -481,7 +497,8 @@ namespace Engine {
                     includeFilter,
                     excludeFilter,
                     orFilter,
-                    oneFilter);
+                    oneFilter,
+                    deadline);
             }
         }
     }

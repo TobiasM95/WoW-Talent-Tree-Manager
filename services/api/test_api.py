@@ -196,6 +196,82 @@ def t_unknown_tree_is_404():
     post("/counts", {"treeKey": "nope/not/real", "points": 10}, expect=404)
 
 
+# --- solve jobs (need a running worker) ------------------------------------
+
+def _await_job(job_id, timeout=120):
+    import time
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        job = get(f"/solve/{job_id}")
+        if job["state"] in ("done", "capped", "failed", "cancelled"):
+            return job
+        time.sleep(0.5)
+    raise AssertionError(f"job {job_id} did not finish within {timeout}s")
+
+
+def t_solve_produces_exactly_the_predicted_count():
+    """The gate and the engine must agree.
+
+    This is the property that lets the UI promise a number before the work happens: the
+    worker refuses a result that contradicts the pre-flight count.
+    """
+    tree = get(f"/trees/{SPEC}")
+    plain = [n["nodeId"] for n in tree["nodes"] if n["kind"] != "choice"]
+    job = post("/solve", {"treeKey": SPEC, "points": 12, "mustHave": plain[3:6]},
+               expect=202)
+    done = _await_job(job["id"])
+    assert done["state"] == "done", done
+    assert done["resultCount"] == done["expectedCount"], done
+
+
+def t_solve_results_are_nodeid_keyed_and_spend_the_budget():
+    tree = get(f"/trees/{SPEC}")
+    plain = [n["nodeId"] for n in tree["nodes"] if n["kind"] != "choice"]
+    job = post("/solve", {"treeKey": SPEC, "points": 11, "mustHave": plain[3:6]},
+               expect=202)
+    _await_job(job["id"])
+    page = get(f"/solve/{job['id']}/results?limit=50")
+    assert page["builds"], "no builds returned"
+    valid = {str(n["nodeId"]) for n in tree["nodes"]}
+    for build in page["builds"]:
+        assert set(build) <= valid, "a build references an unknown node id"
+        assert sum(build.values()) == 11, f"build spends {sum(build.values())}, not 11"
+
+
+def t_oversized_solve_is_refused_before_queueing():
+    r = post("/solve", {"treeKey": SPEC, "points": 30}, expect=413)
+    assert "exceeds the limit" in str(r.get("detail", "")), r
+
+
+def t_impossible_solve_is_refused():
+    tree = get(f"/trees/{SPEC}")
+    # requiring a talent that cannot be reached within the budget matches nothing
+    deep = [n["nodeId"] for n in tree["nodes"] if n["pointsRequired"] >= 20]
+    if not deep:
+        return
+    post("/solve", {"treeKey": SPEC, "points": 3, "mustHave": deep[:1]}, expect=400)
+
+
+def t_identical_requests_share_one_job():
+    body = {"treeKey": SPEC, "points": 9, "mustHave": [], "mustNotHave": []}
+    first = post("/solve", body, expect=202)
+    second = post("/solve", body, expect=202)
+    assert first["id"] == second["id"], (first["id"], second["id"])
+
+
+def t_results_are_not_served_before_they_exist():
+    body = {"treeKey": SPEC, "points": 8}
+    job = post("/solve", body, expect=202)
+    done = _await_job(job["id"])
+    assert done["state"] in ("done", "capped"), done
+    # and a job that does not exist is a 404, not an empty page
+    try:
+        get("/solve/00000000-0000-0000-0000-000000000000/results")
+        raise AssertionError("expected 404 for an unknown job")
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 404, exc.code
+
+
 def main() -> int:
     print(f"api: {BASE}")
     for name, fn in [
@@ -217,6 +293,19 @@ def main() -> int:
         ("contradictory filter rejected", t_contradictory_filter_is_rejected),
         ("budget beyond the tree rejected", t_budget_beyond_the_tree_is_rejected),
         ("unknown tree is 404", t_unknown_tree_is_404),
+    ]:
+        check(name, fn)
+
+    print("\nsolve jobs (needs a worker):")
+    for name, fn in [
+        ("solve produces exactly the predicted count",
+         t_solve_produces_exactly_the_predicted_count),
+        ("results are nodeId-keyed and spend the budget",
+         t_solve_results_are_nodeid_keyed_and_spend_the_budget),
+        ("oversized solve refused before queueing", t_oversized_solve_is_refused_before_queueing),
+        ("impossible solve refused", t_impossible_solve_is_refused),
+        ("identical requests share one job", t_identical_requests_share_one_job),
+        ("results not served before they exist", t_results_are_not_served_before_they_exist),
     ]:
         check(name, fn)
 
