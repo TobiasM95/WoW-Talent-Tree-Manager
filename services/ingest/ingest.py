@@ -26,6 +26,7 @@ from ttm_ingest import source as source_mod
 from ttm_ingest import transform as transform_mod
 from ttm_ingest import validate as validate_mod
 from ttm_ingest import descriptions as desc_mod
+from ttm_ingest import point_caps as caps_mod
 
 
 def human(n: int) -> str:
@@ -48,6 +49,11 @@ def main() -> int:
                         help="fail if resolved description ratio falls below this")
     parser.add_argument("--limit-descriptions", type=int,
                         help="only resolve the first N keys (for smoke tests)")
+    parser.add_argument("--point-caps", action="store_true",
+                        help="derive per-tree point caps from DB2 (level-based grants)")
+    parser.add_argument("--level-cap", type=int, default=90,
+                        help="character level the point caps are derived for")
+    parser.add_argument("--db2-build", help="pin a DB2 build instead of the live one")
     args = parser.parse_args()
 
     def say(*a):
@@ -117,6 +123,31 @@ def main() -> int:
             if count:
                 say(f"  {key:26} {count}")
 
+    # ---- point caps: derived, not guessed --------------------------------------
+    # The budget is level-based and the grant table lives in DB2, not in the raidbots
+    # payload. Without this pointCap stays null and the UI cannot say "3 points left".
+    caps_report = None
+    if args.point_caps:
+        say()
+        try:
+            tree_ids = {t["traitTreeId"] for t in trees if t.get("traitTreeId")}
+            caps = caps_mod.derive_caps(args.level_cap, trait_tree_ids=tree_ids,
+                                        build=args.db2_build, cache_dir=args.cache_dir)
+            cap_warnings = caps_mod.apply_caps(trees, caps)
+        except caps_mod.PointCapError as exc:
+            print(f"FATAL: point caps rejected: {exc}", file=sys.stderr)
+            return 1
+        except Exception as exc:  # noqa: BLE001 - a source outage should not be cryptic
+            print(f"FATAL: could not derive point caps: {type(exc).__name__}: {exc}",
+                  file=sys.stderr)
+            return 1
+        caps_report = {"levelCap": args.level_cap, **caps}
+        say(f"point caps at level {args.level_cap}: "
+            + ", ".join(f"{k} {v}" for k, v in sorted(caps.items())))
+        for w in cap_warnings:
+            print(f"WARNING: {w}", file=sys.stderr)
+        tree_warnings.extend(cap_warnings)
+
     # ---- descriptions: a separate stage on purpose ----------------------------
     # Tree structure does not depend on tooltip text, so an outage here degrades text
     # rather than blocking a tree update.
@@ -185,6 +216,7 @@ def main() -> int:
             },
             "anomalies": observed,
             "descriptions": description_report,
+            "pointCaps": caps_report,
             "anomalyDetail": {
                 "degenerateNodes": anomalies.degenerate_nodes,
                 "crossTreeEdges": anomalies.cross_tree_edges[:100],

@@ -166,6 +166,34 @@ Remaining sub-question, much smaller: where exactly to set the "too many to sim"
 That is a hosting-budget decision, informed by how many builds a user can realistically sim
 (SimC profilesets put it in the low thousands).
 
+### Q12. Point caps — **answered: derived, not guessed**
+
+`pointCap` was null because the raidbots payload carries no point budget. It is level-based,
+as expected, and the grant table lives in DB2 rather than in that payload:
+
+    TraitTreeXTraitCurrency   trait tree -> its currencies, ordered by _Index
+    TraitCurrencySource       currency   -> amount granted at a player level
+    TraitCurrency             currency   -> type (2 = trait points)
+
+Summing grants at or below a level cap gives the cap. Consistent for every class at build
+12.1.0.69875:
+
+| `_Index` | currency | @80 | @90 | |
+|---|---|---:|---:|---|
+| 1 | 2801 | 31 | **34** | class tree |
+| 2 | 2800 | 30 | **34** | spec tree |
+| 3+ | 2986+ | 10 | **13** | hero sub-trees |
+
+Two independent checks confirm it, both enforced at ingest: a cap must exceed the tree's
+highest gate (class gates reach 23, spec 20, against caps of 34), and a hero tree's 14 max
+points minus its one free entry node is exactly 13.
+
+Scoping matters: DB2 holds trait trees for professions and dragonriding too, whose `_Index 1`
+currencies carry unrelated amounts. The derivation is restricted to the `traitTreeId`s the
+payload actually describes. The first attempt was not, and the validation refused to guess
+rather than picking a plausible number from `[1, 3, 4, 5, 15, 31, 34, 40]` — which is what
+that check exists for.
+
 ### Q11. Choice-node sides — **answered: yes, and they are cheap**
 
 Decided: side constraints are in scope. Implemented in the DP and tested.

@@ -77,11 +77,14 @@ def main() -> int:
     revision = manifest["revision"]
     source = manifest["source"]
     descriptions = manifest.get("descriptions") or {}
+    point_caps = manifest.get("pointCaps") or {}
 
     trees = [json.load(open(p, encoding="utf-8")) for p in tree_paths]
     print(f"revision  {revision}")
     print(f"trees     {len(trees)}")
     print(f"digest    {source['digest'][:16]}...")
+    if point_caps:
+        print("caps      " + ", ".join(f"{k} {v}" for k, v in sorted(point_caps.items())))
 
     # ---- counts, before touching the database ------------------------------
     # Computed first so a DP failure aborts before anything is inserted.
@@ -112,15 +115,27 @@ def main() -> int:
 
     with psycopg.connect(args.database_url) as conn:
         with conn.cursor() as cur:
-            # Re-running the same revision replaces it wholesale, so a load is idempotent.
-            # promoted_at stays NULL until every insert below has succeeded.
-            cur.execute("DELETE FROM ingest_runs WHERE revision = %s", (revision,))
+            # Re-running the same revision updates it in place rather than deleting it.
+            # Deleting would cascade into trees, which solve_jobs references -- a reload
+            # must never destroy a user's job. promoted_at is cleared here and set again
+            # only once every statement below has succeeded.
             cur.execute(
                 """
                 INSERT INTO ingest_runs (
                     revision, source_provider, source_origin, source_digest, fetched_at,
                     tree_count, node_count, anomalies, description_coverage, warnings
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (revision) DO UPDATE SET
+                    source_provider = EXCLUDED.source_provider,
+                    source_origin   = EXCLUDED.source_origin,
+                    source_digest   = EXCLUDED.source_digest,
+                    fetched_at      = EXCLUDED.fetched_at,
+                    tree_count      = EXCLUDED.tree_count,
+                    node_count      = EXCLUDED.node_count,
+                    anomalies       = EXCLUDED.anomalies,
+                    description_coverage = EXCLUDED.description_coverage,
+                    warnings        = EXCLUDED.warnings,
+                    promoted_at     = NULL
                 """,
                 (
                     revision, source["provider"], source["origin"], source["digest"],
@@ -139,6 +154,15 @@ def main() -> int:
                     class_name, spec_name, sub_tree_id, name, definition,
                     point_cap, max_points_in_tree, node_count
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id, revision) DO UPDATE SET
+                    key = EXCLUDED.key, kind = EXCLUDED.kind, game = EXCLUDED.game,
+                    gating = EXCLUDED.gating, class_id = EXCLUDED.class_id,
+                    spec_id = EXCLUDED.spec_id, class_name = EXCLUDED.class_name,
+                    spec_name = EXCLUDED.spec_name, sub_tree_id = EXCLUDED.sub_tree_id,
+                    name = EXCLUDED.name, definition = EXCLUDED.definition,
+                    point_cap = EXCLUDED.point_cap,
+                    max_points_in_tree = EXCLUDED.max_points_in_tree,
+                    node_count = EXCLUDED.node_count
                 """,
                 [
                     (
@@ -153,6 +177,8 @@ def main() -> int:
             print(f"inserted  {len(trees)} trees")
 
             if counts:
+                # Counts are derived and nothing references them, so replacing is safe.
+                cur.execute("DELETE FROM tree_counts WHERE tree_revision = %s", (revision,))
                 by_key = {t["key"]: t["id"] for t in trees}
                 cur.executemany(
                     """
