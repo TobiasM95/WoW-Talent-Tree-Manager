@@ -406,11 +406,11 @@ dist/
 .env.*
 !.env.example
 
-# Ingest working data (large upstream payloads)
+# Everything under data/ is generated: ingested trees, the previous revision kept
+# alongside for rollback, cached upstream payloads and the description cache. None of it
+# belongs in git -- committing generated data is what grew .git to 1.4 GB.
 services/ingest/.cache/
-data/generated/
+data/
 
 # Engine writes this to the CWD (relative path) when preset loading fails
 error_log.txt
-data/descriptions.json
-data/descriptions.json.tmp
