@@ -1,0 +1,55 @@
+name: ingest
+
+on:
+  push:
+    paths:
+      - 'services/ingest/**'
+      - '.github/workflows/ingest-tests.yml'
+  pull_request:
+  schedule:
+    # Daily against live data. The point is not to publish anything -- it is to find
+    # out that upstream changed shape on the day it happens, rather than months later.
+    # The legacy pipeline broke at the TWW pre-patch and nobody noticed until the tool
+    # was already dead.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: transform + validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Synthetic payloads only: no network, so this can never be flaky.
+      - name: tests
+        run: python services/ingest/tests/test_ingest.py
+
+  live:
+    name: live payload still ingests
+    runs-on: ubuntu-latest
+    # Network-dependent, so kept off the every-push path.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r services/ingest/requirements.txt
+
+      # Fails on an unknown node or entry type, a missing field, a broken graph, or a
+      # payload that is not what we expect. A warning about the class or spec count
+      # means Blizzard changed the roster and the expectation needs updating.
+      - name: ingest live data
+        run: python services/ingest/ingest.py --dry-run
+
+      - name: tests against the live payload
+        run: |
+          python - <<'PY'
+          from urllib.request import urlopen
+          open('talents.json','wb').write(
+              urlopen('https://www.raidbots.com/static/data/live/talents.json', timeout=120).read())
+          PY
+          python services/ingest/tests/test_ingest.py talents.json

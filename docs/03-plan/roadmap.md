@@ -12,7 +12,7 @@ Small, throwaway, answer-a-question-only work. Nothing here ships.
 | # | Spike | Question it answers | Done when |
 |---|---|---|---|
 | S1 | ~~Build the engine + CLI on Linux via CMake in Docker~~ | ~~Is the port as cheap as the analysis says?~~ | **DONE** — byte-for-byte identical output (same sha256) from gcc 12 and MSVC v143 on `druid_restoration`. See the commit and [`../02-target/solver-performance.md`](../02-target/solver-performance.md). |
-| S2 | Transform one spec into the target tree JSON, hero sub-trees included | Does the transformation hold up end to end? | A complete JSON tree for one spec, hero sub-trees included, validated against the game |
+| S2 | ~~Transform one spec into the target tree JSON, hero sub-trees included~~ | ~~Does the transformation hold up end to end?~~ | **DONE, and generalised past one spec** — all 40 specs transform into 160 trees (40 class, 40 spec, 80 hero), 4,567 nodes, with validation and tests. See [`../../services/ingest/`](../../services/ingest/README.md). |
 | S3 | Cross-tree prerequisites + tiered nodes | How do we feed pre-satisfied prerequisites and level-gated ranks to a per-tree solver? (Q5, Q10) | A worker contract that handles both, with the 64-bit budget confirmed at max level |
 | S4 | Blizzard hash round-trip | Can we import/export live in-game strings with the current codec? | An in-game export string imports correctly and re-exports byte-identically |
 
@@ -37,8 +37,14 @@ a headline feature.
 Build the pipeline before the product, because everything downstream is shaped by the tree JSON.
 
 - Postgres schema: `trees` (revisioned), `builds`, `loadouts`, plus constraints and real FKs.
-- Ingest container: fetch → **validate against schema** → transform → write a new tree revision →
-  promote only on success. Alert loudly on failure; track `last_successful_ingest_at`.
+- ~~Ingest: fetch → validate → transform → write a new revision → promote only on success~~
+  **DONE** ([`../../services/ingest/`](../../services/ingest/README.md)). Fatal on unknown node
+  or entry types, missing fields, broken graphs or duplicate keys; warns on class/spec roster
+  drift rather than hardcoding it. Output is staged and swapped in only after validation, so a
+  bad run leaves the previous revision intact. A daily CI job runs it against live data so an
+  upstream shape change surfaces the day it happens.
+- Still to do here: a Postgres schema to load these trees into, `last_successful_ingest_at`
+  tracking and alerting, and the icon pipeline.
 - Primary source: Raidbots `talents.json`; fallback: wago.tools raw DB2 CSVs (`TraitNode`,
   `TraitEdge`, `TraitCond`, `TraitSubTree`). Write the transform against an internal
   source-agnostic intermediate so switching is a swap, not a rewrite. Do **not** use simc as the
