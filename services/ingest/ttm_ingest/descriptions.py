@@ -37,10 +37,21 @@ TOOLTIP_URL = (
     "?def={definition_id}&rank={rank}&dataEnv=1"
 )
 
-# The description sits in the tooltip HTML's last <div class="q"> block. Kept tolerant:
-# this marker is unversioned and could change without notice, which is precisely why
-# coverage is measured rather than assumed.
-_DESC_RE = re.compile(r'<div class="q">(.*?)</div>', re.S)
+# The description sits in the tooltip HTML's last q-classed block. Usually a <div>, but
+# some talents use a <span> instead and carry a modifier description rather than prose --
+# e.g. Shaman "Surging Totem" (455630) reads "Modifies Damage/Healing Done +100%".
+# Matching only <div> left exactly one talent unresolved out of 3,552; the legacy pipeline
+# split on '<div class="q">' too and would have shown it as "Description not available".
+#
+# Known limitation: the non-greedy match stops at the first closing tag, so a q-block
+# containing a nested block of the same tag is truncated. That affects the Surging Totem
+# case above, whose linked spell name is lost ("...+100%:" with nothing after). Accepting
+# it rather than pulling in an HTML parser for one talent; recorded so it is not mistaken
+# for correct output.
+#
+# This marker is unversioned and can change without notice, which is why coverage is
+# measured and gated rather than assumed.
+_DESC_RE = re.compile(r'<(div|span) class="q">(.*?)</\1>', re.S)
 _COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
 _TAG_RE = re.compile(r"<[^>]+>")
 _COLOR_RE = re.compile(r"\|c[0-9A-Fa-f]{8}|\|r", re.I)
@@ -86,7 +97,8 @@ def extract_description(tooltip_html: str) -> str | None:
     if not blocks:
         return None
     # The last q-block is the spell body; earlier ones can be flavour or requirements.
-    text = blocks[-1]
+    # findall yields (tag, body) pairs because the pattern captures the tag to match it.
+    text = blocks[-1][1]
     text = _COMMENT_RE.sub("", text)
     text = text.replace("<br />", "\n").replace("<br>", "\n")
     text = _TAG_RE.sub("", text)

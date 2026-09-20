@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(HERE))
 from ttm_ingest import transform as T
 from ttm_ingest import validate as V
 from ttm_ingest import ttm_format as FMT
+from ttm_ingest import descriptions as DESC
 from ttm_ingest.source import Payload
 
 SOURCE = {"provider": "test", "origin": "test", "fetchedAt": "now", "digest": "x", "revision": 1}
@@ -232,6 +233,51 @@ def t_choice_node_needs_two_alternatives():
 
 
 # --------------------------------------------------------------------------
+# descriptions
+# --------------------------------------------------------------------------
+
+def t_description_extracted_from_div():
+    html = ('<table><tr><td><div class="q0">Talent</div></td></tr></table>'
+            '<table><tr><td><div class="q">Deals damage.<!--cooldown:1:2 sec--></div></td></tr></table>')
+    assert DESC.extract_description(html) == "Deals damage."
+
+
+def t_description_extracted_from_span():
+    """Some talents use <span class="q">, e.g. Shaman Surging Totem (455630). Matching
+    only <div> left exactly one talent unresolved out of 3,552."""
+    html = '<table><tr><td><span class="q">Modifies Damage Done +100%</span></td></tr></table>'
+    assert DESC.extract_description(html) == "Modifies Damage Done +100%"
+
+
+def t_missing_description_is_none_not_placeholder():
+    """An absent marker must be countable, not silently become content. The legacy
+    pipeline substituted "Description not available", indistinguishable from success."""
+    assert DESC.extract_description('<table><tr><td>no q block</td></tr></table>') is None
+    assert DESC.extract_description("") is None
+
+
+def t_description_strips_markup_and_colour_codes():
+    html = '<div class="q">Deals |cFFFFFFFF500|r damage.<br />Then more.</div>'
+    out = DESC.extract_description(html)
+    assert "|c" not in out and "<br" not in out, out
+    assert "500" in out and "Then more." in out
+
+
+def t_required_keys_cover_every_rank_and_alternative():
+    tree = {"nodes": [
+        {"maxPoints": 3, "entries": [{"spellId": 1, "definitionId": 9}]},
+        {"maxPoints": 1, "entries": [{"spellId": 2, "definitionId": 8},
+                                     {"spellId": 3, "definitionId": 7}]},
+    ]}
+    keys = DESC.required_keys([tree])
+    # a 3-rank talent needs all three ranks, because the numbers change per rank
+    assert (1, 9, 1) in keys and (1, 9, 2) in keys and (1, 9, 3) in keys
+    # each choice alternative needs rank 1
+    assert (2, 8, 1) in keys and (3, 7, 1) in keys
+    assert len(keys) == 5, keys
+
+
+# --------------------------------------------------------------------------
 # validation
 # --------------------------------------------------------------------------
 
@@ -361,6 +407,17 @@ def main() -> int:
         ("structure line has the right field shape", t_structure_line_field_shape),
         ("tiered ranks resolved against level cap", t_tiered_ranks_resolved_against_level_cap),
         ("choice node needs two alternatives", t_choice_node_needs_two_alternatives),
+    ]:
+        check(name, fn)
+
+    print("\ndescriptions:")
+    for name, fn in [
+        ("extracted from div", t_description_extracted_from_div),
+        ("extracted from span", t_description_extracted_from_span),
+        ("a miss is None, never a placeholder", t_missing_description_is_none_not_placeholder),
+        ("markup and colour codes stripped", t_description_strips_markup_and_colour_codes),
+        ("required keys cover every rank and alternative",
+         t_required_keys_cover_every_rank_and_alternative),
     ]:
         check(name, fn)
 
