@@ -11,7 +11,8 @@ WORKDIR /app
 
 COPY services/ingest/requirements.txt /tmp/ingest-requirements.txt
 COPY services/db/requirements.txt /tmp/db-requirements.txt
-RUN pip install --no-cache-dir -r /tmp/ingest-requirements.txt -r /tmp/db-requirements.txt
+COPY services/api/requirements.txt /tmp/api-requirements.txt
+RUN pip install --no-cache-dir         -r /tmp/ingest-requirements.txt         -r /tmp/db-requirements.txt         -r /tmp/api-requirements.txt
 
 # Source is bind-mounted in compose so edits do not need a rebuild; copied here too so
 # the image is runnable on its own.

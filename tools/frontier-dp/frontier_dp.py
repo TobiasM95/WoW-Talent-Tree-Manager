@@ -131,7 +131,8 @@ def topo_sort(meta, par, chi):
 
 
 def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
-                      weight_choices=False, choice_sides=None):
+                      weight_choices=False, choice_sides=None,
+                      require=None, exclude=None):
     """
     Returns dict {k: count of valid selections of size exactly k} for k in 0..max_points.
 
@@ -150,8 +151,20 @@ def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
     A side constraint is purely local -- both alternatives open the same children, so
     fixing a side changes only that node's multiplier and whether it may be taken. It
     needs no extra DP state, which makes side filters as cheap as must-have/must-not-have.
+
+    `require` and `exclude` are sets of original node ids that must, or must not, be taken.
+    Both are per-node conditions, so like side constraints they only remove transitions --
+    no extra state, and a constrained count is *cheaper* than an unconstrained one. This is
+    the opposite of the engine, where must-have was historically tested only once per
+    completed path.
+
+    Note these are node-level: requiring a multi-rank talent means requiring at least its
+    first rank. Requiring an exact rank count is a caller-level composition (require rank
+    k, exclude rank k+1).
     """
     choice_sides = choice_sides or {}
+    require = set(require or ())
+    exclude = set(exclude or ())
     pos = {n: i for i, n in enumerate(order)}
     # a node's taken-status is needed until its last child has been processed
     last_needed = {n: max([pos[c] for c in chi[n]], default=-1) for n in meta}
@@ -164,18 +177,27 @@ def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
         req = meta[n]['req']
         parents = par[n]
         is_choice = meta[n].get('type') == 2
-        side = choice_sides.get(meta[n].get('orig', n), "either") if is_choice else "either"
+        orig = meta[n].get('orig', n)
+        side = choice_sides.get(orig, "either") if is_choice else "either"
         # An unconstrained choice node doubles the builds it appears in; a side-pinned one
         # contributes exactly one.
         multiplier = 2 if (weight_choices and is_choice and side == "either") else 1
+        # A required talent must be taken; the first expanded rank carries the requirement,
+        # since later ranks can only be reached through it.
+        rank = meta[n].get('rank', 0)
+        must_take = orig in require and rank == 0
+        must_skip = orig in exclude
+        if must_take and must_skip:
+            # Contradictory filters admit nothing; say so rather than silently favouring one.
+            return {}, 1
         nxt = defaultdict(int)
         for (live, pts), cnt in states.items():
-            # option 1: skip n
-            if side != "a" and side != "b":
-                # a node pinned to a specific side must be taken
+            # option 1: skip n -- unless it is required, or pinned to a side
+            if not must_take and side != "a" and side != "b":
                 nxt[(live, pts)] += cnt
             # option 2: take n
-            if pts < max_points and pts >= req and side != "none":
+            if (pts < max_points and pts >= req
+                    and side != "none" and not must_skip):
                 if not parents or any(p in live for p in parents):
                     nxt[(live | {n}, pts + 1)] += cnt * multiplier
         # prune: forget nodes no longer needed by any unprocessed child

@@ -113,6 +113,16 @@ pathological job is capped cleanly rather than taking down a container.
   why earlier attempts never sped up a single-tree solve.
 - **Confirm the filter language against choice-node sides** (open question Q11).
 
+### API — count endpoint done
+
+[`../../services/api/README.md`](../../services/api/README.md). `/health` (with data age),
+`/trees`, `/trees/{key}`, `/trees/{key}/counts`, and `POST /counts` — the pre-flight gate,
+answering filtered counts in 10-38 ms on a tree with 872 million builds, with `listable`
+telling the UI whether enumerating is worth offering. 16 tests.
+
+Still missing from Phase 2: the worker that claims a `solve_jobs` row and execs
+`ttm-solver`, NDJSON streaming, progress reporting, and the wall-clock `--time-budget`.
+
 ## Phase 3 — Core product (Loadout Editor + Solver)
 
 The first genuinely user-facing phase.
