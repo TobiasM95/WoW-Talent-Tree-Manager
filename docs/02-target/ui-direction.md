@@ -60,18 +60,49 @@ Distinctive is not the same as unusable. The tree canvas is a dense working surf
 - Tooltips carry real content (per-rank descriptions, spell data) and are read constantly.
   They need to be *readable* first and decorative second.
 
-## A note on legal and visual sourcing
+## Vibe, not imitation — and no licensing exposure
 
-Do not lift Blizzard's UI assets — textures, frames, fonts — into the project. Build an
-original look *informed by* that language. Talent icons are a separate matter: they are
-game data the tool must display, sourced through the ingest, the same way every other
-community tool does it.
+The goal is the *feeling* of a fantasy game interface, reached with entirely original
+material. Explicitly:
+
+- **No Blizzard assets.** No lifted textures, frames, borders, cursors or UI art, and no
+  attempt to recreate them closely enough to be mistaken for them.
+- **No Blizzard typefaces.** Friz Quadrata and its successors are not licensable here, and
+  a deliberate look-alike is the same problem wearing a different hat.
+- **Nothing implying endorsement.** No Blizzard logos or wordmarks, and the tool says
+  plainly that it is a fan project.
+- **Talent icons are different**, and fine: they are game data the tool exists to display,
+  fetched through the ingest, as every community tool does. Everything *around* them is
+  ours.
+
+So: draw on the genre, not the game. Carved stone, worked metal, arcane light and inked
+parchment are the vocabulary of fantasy interfaces generally, not Blizzard's property. The
+test is whether a stranger would call it "a fantasy app" rather than "a WoW screenshot".
+
+## Both themes, and both properly
+
+Dark and light are both required — not a dark design with the colours inverted.
+
+The atmosphere has to survive the switch, which means designing two coherent worlds rather
+than one plus a fallback:
+
+- **Dark**: the obvious register. Deep grounds, luminous accents, state read as light
+  emitted.
+- **Light**: not "dark with a white background". The natural analogue is inked parchment
+  and daylight on stone — warm ground, dark ink, accents that read as pigment and leaf
+  rather than glow. State is read as saturation and weight instead of emission.
+
+Both need the same contrast discipline over texture, and the accent must work on both
+grounds — shift it toward analogous or drop saturation rather than swapping hue between
+themes. Implementation follows the token pattern in the artifact design rules: a complete
+palette on bare `:root`, redefined under `prefers-color-scheme: dark` and again under an
+explicit `[data-theme]` stamp, so an un-stamped system-preference visitor gets a correct
+theme too.
 
 ## Open
 
-- Whether to commit to a single dark world, or support a light theme too. A committed
-  single look is legitimate for a page with this much atmosphere, but it needs to be a
-  decision rather than an omission.
-- Type. WoW's own faces (Friz Quadrata and successors) are not licensable here, so this
-  needs a pairing that reads as fantasy without being a knock-off, and that stays
-  readable at 12px in a tooltip.
+- Type. Needs a pairing that reads as fantasy without imitating any game's faces, and that
+  stays readable at 12px in a tooltip. Likely a characterful display face used sparingly
+  for headings and tree/class names, with a plain, highly legible face doing all the work
+  in tooltips and data. Worth auditing licences at selection time, since "free" and
+  "licensed for a web product" are not the same thing.
