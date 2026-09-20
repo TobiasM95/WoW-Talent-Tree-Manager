@@ -166,15 +166,41 @@ Remaining sub-question, much smaller: where exactly to set the "too many to sim"
 That is a hosting-budget decision, informed by how many builds a user can realistically sim
 (SimC profilesets put it in the low thousands).
 
-### Q11. Does the filter language need choice-node sides?
+### Q11. Choice-node sides — **answered: yes, and they are cheap**
 
-The DP and the engine both count *sets*; switch/choice multiplicity is resolved separately via
-`switchTalentChoices`. So a constraint meaning "must take the left side of this choice node" is
-not expressible at set level today.
+Decided: side constraints are in scope. Implemented in the DP and tested.
 
-Needs a check of what the GUI's filter painting can actually express. If it can name a side,
-the counting model needs a per-choice-node component and the engine's filter masks need to
-distinguish them.
+Investigating it surfaced something more important, though. **Every count reported before
+this was a count of *sets*, not builds.** `currentMultiplier` (x2 per choice node) is
+computed in the engine's filtered path but only *consumed* in its parallel path, so the
+filtered path — everything measured so far — counts selections with choice-node sides left
+unresolved. A set containing k choice nodes is 2^k distinct builds:
+
+    builds = sum over sets of 2^(choice nodes in the set)
+
+The gap is large. Balance Druid's spec tree at 30 points is 16,944,262 sets but
+**872,539,659 builds** (51x). The largest in the game is a Paladin class tree at 35 points:
+176,507,128,248 sets, **6,983,602,108,005 builds**. Both numbers are now stored
+(`tree_counts.set_count` and `.build_count`) because they answer different questions — sets
+are how many rows the enumerator produces, builds are what a person means.
+
+Verified against the engine's own enumeration by summing `2^(switch indices)` over its
+output: sets and builds both agree exactly at 6/8/10/12/14 points.
+
+**The architectural result: side filters need no engine change at all.** Both alternatives
+of a choice node open the same children, so the side is independent of tree structure.
+Therefore:
+
+- In the **DP**, a side constraint only alters that node's multiplier and whether it may be
+  skipped — no extra state, so it is as cheap as must-have/must-not-have.
+- In the **engine**, nothing changes. It enumerates sets and reports which choice nodes each
+  contains; the side filter is applied when expanding a set into builds. "Must have side A"
+  means require the node (a set-level must-have the engine already supports) and emit only
+  side A. "Must not have side A" means emit only side B when the node is present.
+
+Validated by the partition property, the analogue of the must-have complement check:
+`side_a + side_b + excluded == unconstrained`, for every choice node, on synthetic and real
+trees.
 
 Measured ([`../02-target/solver-performance.md`](../02-target/solver-performance.md)): an
 exhaustive 30-point spec-tree solve takes **7.5 minutes and writes 9.5 GB**. At 20 points it is

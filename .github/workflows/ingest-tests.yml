@@ -24,8 +24,12 @@ jobs:
         with:
           python-version: '3.12'
       # Synthetic payloads only: no network, so this can never be flaky.
-      - name: tests
+      - name: ingest tests
         run: python services/ingest/tests/test_ingest.py
+
+      # Counting modes and choice-side constraints. Synthetic trees, no network.
+      - name: counting tests
+        run: python tools/frontier-dp/test_counting.py
 
   live:
     name: live payload still ingests

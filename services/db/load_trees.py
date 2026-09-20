@@ -9,10 +9,16 @@ Two jobs in one pass:
    fails partway is never promoted, so `current_trees` keeps serving the previous one --
    the same staged-then-swapped discipline the ingest uses on disk.
 
-2. Precompute, for every tree and every point budget, how many valid builds exist. The
-   frontier DP does this in milliseconds and the answer is fixed for a tree revision, so
-   computing it here is what turns the count into a free pre-flight gate at request time
-   instead of a job. See docs/02-target/architecture.md.
+2. Precompute, for every tree and every point budget, both counts:
+
+   - `set_count`  -- distinct selections, choice-node sides unresolved. One row of
+     enumerator output per set.
+   - `build_count` -- distinct builds, sides resolved: sum over sets of 2^(choice nodes).
+     The user-facing number.
+
+   The frontier DP does both in milliseconds and the answers are fixed for a tree
+   revision, so computing them here is what turns the count into a free pre-flight gate at
+   request time instead of a job. See docs/02-target/architecture.md.
 
 Counts are stored as numeric, not bigint: nine class trees exceed 2^31 (shaman_class_
 elemental reaches 37,296,642,700), which is exactly what overflowed the engine's 32-bit
@@ -79,7 +85,7 @@ def main() -> int:
 
     # ---- counts, before touching the database ------------------------------
     # Computed first so a DP failure aborts before anything is inserted.
-    counts: dict[str, dict[int, int]] = {}
+    counts: dict[str, dict[int, tuple[int, int]]] = {}
     if not args.skip_counts:
         load_tree_json, build_graph, topo, count_dp = load_dp()
         print(f"counting  (level cap {args.level_cap})")
@@ -87,10 +93,15 @@ def main() -> int:
             _, nodes = load_tree_json(path, level_cap=args.level_cap)
             meta, par, chi = build_graph(nodes)
             order = topo(meta, par, chi)
-            totals, _ = count_dp(meta, par, chi, order, len(meta))
-            counts[tree["key"]] = {p: c for p, c in totals.items() if p > 0 and c > 0}
+            sets, _ = count_dp(meta, par, chi, order, len(meta))
+            builds, _ = count_dp(meta, par, chi, order, len(meta), weight_choices=True)
+            counts[tree["key"]] = {
+                p: (sets[p], builds.get(p, 0))
+                for p in sets
+                if p > 0 and sets[p] > 0
+            }
         rows = sum(len(v) for v in counts.values())
-        biggest = max((max(v.values()) for v in counts.values() if v), default=0)
+        biggest = max((max(b for _, b in v.values()) for v in counts.values() if v), default=0)
         print(f"          {rows:,} count rows, largest {biggest:,} builds")
 
     if args.dry_run:
@@ -145,13 +156,15 @@ def main() -> int:
                 by_key = {t["key"]: t["id"] for t in trees}
                 cur.executemany(
                     """
-                    INSERT INTO tree_counts (tree_id, tree_revision, points, build_count, level_cap)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO tree_counts
+                        (tree_id, tree_revision, points, set_count, build_count, level_cap)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     """,
                     [
-                        (by_key[key], revision, points, str(count), args.level_cap)
+                        (by_key[key], revision, points, str(set_n), str(build_n),
+                         args.level_cap)
                         for key, totals in counts.items()
-                        for points, count in sorted(totals.items())
+                        for points, (set_n, build_n) in sorted(totals.items())
                     ],
                 )
                 print(f"inserted  {sum(len(v) for v in counts.values()):,} count rows")

@@ -102,6 +102,24 @@ what makes stage 2 interactive. Two bitmask tests do it: a required talent whose
 been passed can never be taken (paths visit strictly increasing positions), and each still-owed
 required talent costs at least one point.
 
+### Sets versus builds
+
+Two different numbers, and conflating them understates the answer by up to ~50x:
+
+- **Sets** — distinct selections with choice-node sides unresolved. This is what the engine's
+  filtered path enumerates, so it is how many result rows a listing job produces.
+- **Builds** — sides resolved: `sum over sets of 2^(choice nodes in the set)`. This is what a
+  person means by "how many builds", and what the pre-flight gate should show.
+
+Balance Druid at 30 points: 16,944,262 sets, 872,539,659 builds. A Paladin class tree at 35
+points: 176,507,128,248 sets, 6,983,602,108,005 builds. Both are precomputed per tree
+revision and stored in `tree_counts`.
+
+Choice-side filters ("must take the left alternative") cost nothing structurally, because
+both alternatives open the same children: in the DP a side constraint only changes that
+node's multiplier, and the engine needs no change at all — the side is applied when
+expanding a set into builds. See open question Q11.
+
 ### Storage
 
 Results are bounded by stage 1, so they are small enough to store normally — no 9.5 GB files,

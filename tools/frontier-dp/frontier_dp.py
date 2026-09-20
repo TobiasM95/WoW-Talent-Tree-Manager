@@ -130,13 +130,28 @@ def topo_sort(meta, par, chi):
     return order
 
 
-def count_frontier_dp(meta, par, chi, order, max_points, verbose=False):
+def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
+                      weight_choices=False, choice_sides=None):
     """
-    Returns dict {k: number of valid selections of size exactly k} for k in 0..max_points.
+    Returns dict {k: count of valid selections of size exactly k} for k in 0..max_points.
 
-    State = (frozenset of taken nodes that are still needed by unprocessed children,
-             points spent).
+    State = (frozenset of taken nodes still needed by unprocessed children, points spent).
+
+    Two counting modes, and the difference is not cosmetic:
+
+    - weight_choices=False (default) counts SETS. A choice node contributes one slot and
+      its side is left unresolved. This is what the engine's filtered path counts.
+    - weight_choices=True counts BUILDS. Taking a choice node multiplies by 2, because
+      picking the left or right alternative yields two distinct builds. This is what the
+      engine's `currentMultiplier` accumulates in its parallel path, and it is what a user
+      means by "how many builds".
+
+    `choice_sides` constrains individual choice nodes: {node_key: "either"|"a"|"b"|"none"}.
+    A side constraint is purely local -- both alternatives open the same children, so
+    fixing a side changes only that node's multiplier and whether it may be taken. It
+    needs no extra DP state, which makes side filters as cheap as must-have/must-not-have.
     """
+    choice_sides = choice_sides or {}
     pos = {n: i for i, n in enumerate(order)}
     # a node's taken-status is needed until its last child has been processed
     last_needed = {n: max([pos[c] for c in chi[n]], default=-1) for n in meta}
@@ -148,14 +163,21 @@ def count_frontier_dp(meta, par, chi, order, max_points, verbose=False):
     for i, n in enumerate(order):
         req = meta[n]['req']
         parents = par[n]
+        is_choice = meta[n].get('type') == 2
+        side = choice_sides.get(meta[n].get('orig', n), "either") if is_choice else "either"
+        # An unconstrained choice node doubles the builds it appears in; a side-pinned one
+        # contributes exactly one.
+        multiplier = 2 if (weight_choices and is_choice and side == "either") else 1
         nxt = defaultdict(int)
         for (live, pts), cnt in states.items():
             # option 1: skip n
-            nxt[(live, pts)] += cnt
+            if side != "a" and side != "b":
+                # a node pinned to a specific side must be taken
+                nxt[(live, pts)] += cnt
             # option 2: take n
-            if pts < max_points and pts >= req:
+            if pts < max_points and pts >= req and side != "none":
                 if not parents or any(p in live for p in parents):
-                    nxt[(live | {n}, pts + 1)] += cnt
+                    nxt[(live | {n}, pts + 1)] += cnt * multiplier
         # prune: forget nodes no longer needed by any unprocessed child
         pruned = defaultdict(int)
         for (live, pts), cnt in nxt.items():
