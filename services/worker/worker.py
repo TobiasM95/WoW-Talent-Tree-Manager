@@ -111,8 +111,20 @@ def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, i
     return builds
 
 
-def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[int]) -> str:
-    """The engine's filter is positional over the tree's node order."""
+def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[int],
+                        at_least_one_of: list[list[int]] | None = None,
+                        exactly_one_of: list[list[int]] | None = None) -> str:
+    """The engine's filter is positional over the tree's node order.
+
+    Sentinel values, per Engine/src/TreeSolver.cpp:
+        >0  this talent must have that many points
+        -1  must have none
+        -2  member of the "at least one of these" group
+        -3  member of the "exactly one of these" group
+
+    Because a talent holds a single value, the engine supports one group of each kind --
+    which is why the API refuses more than one before a job is ever created.
+    """
     order = [n["nodeId"] for n in tree["nodes"]]
     values = ["0"] * len(order)
     index_of = {nid: i for i, nid in enumerate(order)}
@@ -120,6 +132,12 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
         values[index_of[nid]] = "1"
     for nid in must_not_have:
         values[index_of[nid]] = "-1"
+    for group in (at_least_one_of or []):
+        for nid in group:
+            values[index_of[nid]] = "-2"
+    for group in (exactly_one_of or []):
+        for nid in group:
+            values[index_of[nid]] = "-3"
     return ":".join(values)
 
 
@@ -132,6 +150,10 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str) -> tuple[lis
     level_cap = int(request.get("levelCap", 90))
     must_have = [int(x) for x in request.get("mustHave", [])]
     must_not_have = [int(x) for x in request.get("mustNotHave", [])]
+    at_least_one_of = [[int(x) for x in g] for g in request.get("atLeastOneOf", [])]
+    exactly_one_of = [[int(x) for x in g] for g in request.get("exactlyOneOf", [])]
+    at_least_one_of = [[int(x) for x in g] for g in request.get("atLeastOneOf", [])]
+    exactly_one_of = [[int(x) for x in g] for g in request.get("exactlyOneOf", [])]
     time_budget = min(int(request.get("timeBudgetMs", DEFAULT_TIME_BUDGET_MS)),
                       DEFAULT_TIME_BUDGET_MS)
     max_results = min(int(request.get("maxResults", DEFAULT_MAX_RESULTS)),
@@ -151,8 +173,9 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str) -> tuple[lis
         "--max-results", str(max_results),
         "--time-budget-ms", str(time_budget),
     ]
-    if must_have or must_not_have:
-        args += ["--filter", build_filter_string(tree, must_have, must_not_have)]
+    if must_have or must_not_have or at_least_one_of or exactly_one_of:
+        args += ["--filter", build_filter_string(tree, must_have, must_not_have,
+                                                 at_least_one_of, exactly_one_of)]
 
     started = time.monotonic()
     proc = subprocess.run(args, capture_output=True, text=True,

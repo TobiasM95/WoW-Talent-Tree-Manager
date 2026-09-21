@@ -127,6 +127,77 @@ def t_side_constraints_compose():
     assert counts(nodes, 3, weight_choices=True, choice_sides={2: "a", 3: "b"}) == 1
 
 
+# --- group constraints -----------------------------------------------------
+
+def group_counts(nodes, points, **kw):
+    from frontier_dp import count_with_groups
+    meta, par, chi = build_expanded_graph(nodes)
+    order = topo_sort(meta, par, chi)
+    return count_with_groups(meta, par, chi, order, points, **kw)
+
+
+def _fan():
+    """A root with three independent optional children, so the arithmetic is checkable."""
+    return tree([node(1),
+                 node(2, parents=[1], row=1, col=0),
+                 node(3, parents=[1], row=1, col=1),
+                 node(4, parents=[1], row=1, col=2)])
+
+
+def t_at_least_one_of_is_the_complement():
+    """at-least-one(G) + none-of(G) == unconstrained, for any group."""
+    nodes = _fan()
+    for pts in (2, 3):
+        base = group_counts(nodes, pts)
+        at_least = group_counts(nodes, pts, at_least_one_of=[[2, 3]])
+        none = group_counts(nodes, pts, exclude={2, 3})
+        assert at_least + none == base, f"{pts}: {at_least} + {none} != {base}"
+
+
+def t_at_least_one_of_counted_exactly():
+    # 2 points: take the root plus exactly one of {2,3,4} -> 3 builds, of which the two
+    # containing 2 or 3 satisfy the group
+    nodes = _fan()
+    assert group_counts(nodes, 2) == 3
+    assert group_counts(nodes, 2, at_least_one_of=[[2, 3]]) == 2
+
+
+def t_exactly_one_of_counted_exactly():
+    nodes = _fan()
+    # 3 points: root + two of {2,3,4} -> 3 builds. Exactly one of {2,3} holds for the two
+    # builds pairing one of them with 4; the build holding both 2 and 3 does not.
+    assert group_counts(nodes, 3) == 3
+    assert group_counts(nodes, 3, exactly_one_of=[[2, 3]]) == 2
+    assert group_counts(nodes, 3, at_least_one_of=[[2, 3]]) == 3
+
+
+def t_exactly_one_never_exceeds_at_least_one():
+    nodes = _fan()
+    for pts in (2, 3, 4):
+        exactly = group_counts(nodes, pts, exactly_one_of=[[2, 3, 4]])
+        at_least = group_counts(nodes, pts, at_least_one_of=[[2, 3, 4]])
+        assert exactly <= at_least, (pts, exactly, at_least)
+
+
+def t_two_at_least_one_groups_use_inclusion_exclusion():
+    """Overlapping group constraints must not double-subtract."""
+    nodes = _fan()
+    pts = 3
+    both = group_counts(nodes, pts, at_least_one_of=[[2], [3]])
+    # requiring one member of each single-member group is just requiring both
+    direct = group_counts(nodes, pts, require={2, 3})
+    assert both == direct, (both, direct)
+
+
+def t_group_constraints_compose_with_node_constraints():
+    nodes = _fan()
+    pts = 3
+    combined = group_counts(nodes, pts, require={2}, at_least_one_of=[[3, 4]])
+    assert combined == group_counts(nodes, pts, require={2}), combined
+    contradiction = group_counts(nodes, pts, require={2}, exclude={2})
+    assert contradiction == 0, contradiction
+
+
 # --- against real ingested trees, if present -------------------------------
 
 def live_tests(trees_dir):
@@ -191,6 +262,18 @@ def main():
         ("excluding admits only builds without it",
          t_excluding_a_choice_node_admits_only_builds_without_it),
         ("side constraints compose", t_side_constraints_compose),
+    ]:
+        check(name, fn)
+
+    print("\ngroup constraints:")
+    for name, fn in [
+        ("at-least-one is the complement of none-of", t_at_least_one_of_is_the_complement),
+        ("at-least-one counted exactly", t_at_least_one_of_counted_exactly),
+        ("exactly-one counted exactly", t_exactly_one_of_counted_exactly),
+        ("exactly-one never exceeds at-least-one", t_exactly_one_never_exceeds_at_least_one),
+        ("two groups use inclusion-exclusion", t_two_at_least_one_groups_use_inclusion_exclusion),
+        ("groups compose with node constraints",
+         t_group_constraints_compose_with_node_constraints),
     ]:
         check(name, fn)
 

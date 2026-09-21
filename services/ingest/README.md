@@ -69,12 +69,12 @@ normalised to `null`. Treating `0` as a node id invents an edge.
 
 - **Descriptions come from a second stage** (`--descriptions`), because Raidbots carries
   no tooltip text. Without that flag every entry keeps `ranks: []`.
-- **`pointCap` is `null`.** The game's real per-tree point cap is not in the payload, and
-  guessing would be fabrication. `maxPointsInTree` (the sum of max ranks) is emitted
-  instead as a derived fact.
-- **`rankLevels` is carried but not resolved.** Tiered nodes' max ranks depend on
-  character level, which the solver must resolve against a level cap before expanding a
-  tree — open question Q10.
+- **`pointCap` needs `--point-caps`.** It is derived from DB2 (the budget is level-based
+  and raidbots carries no grant table). At level 90: class 34, spec 34, hero 13. Without
+  the flag it stays null.
+- **`rankLevels` is carried, and resolved downstream.** Tiered nodes' max ranks depend on
+  character level; the solver and the DP both resolve them against a level cap before
+  expanding a tree.
 - **No icons yet.** Individual files behind a cache, not the 16 MB packed atlas that grew
   `.git` to 1.4 GB.
 

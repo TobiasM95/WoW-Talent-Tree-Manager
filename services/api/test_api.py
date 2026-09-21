@@ -196,6 +196,72 @@ def t_unknown_tree_is_404():
     post("/counts", {"treeKey": "nope/not/real", "points": 10}, expect=404)
 
 
+# --- group filters ---------------------------------------------------------
+
+def _group(points=14, size=3):
+    tree = get(f"/trees/{SPEC}")
+    return [n["nodeId"] for n in tree["nodes"]
+            if n["kind"] != "choice" and n["pointsRequired"] >= 8][:size]
+
+
+def t_at_least_one_of_is_the_complement():
+    """at-least-one(G) + none-of(G) == unconstrained. Same identity the DP asserts."""
+    group = _group()
+    base = post("/counts", {"treeKey": SPEC, "points": 14})["sets"]
+    at_least = post("/counts", {"treeKey": SPEC, "points": 14,
+                                "atLeastOneOf": [group]})["sets"]
+    none = post("/counts", {"treeKey": SPEC, "points": 14, "mustNotHave": group})["sets"]
+    assert at_least + none == base, f"{at_least} + {none} != {base}"
+
+
+def t_exactly_one_is_narrower_than_at_least_one():
+    group = _group()
+    at_least = post("/counts", {"treeKey": SPEC, "points": 14,
+                                "atLeastOneOf": [group]})["sets"]
+    exactly = post("/counts", {"treeKey": SPEC, "points": 14,
+                               "exactlyOneOf": [group]})["sets"]
+    assert 0 < exactly < at_least, (exactly, at_least)
+
+
+def t_group_request_counts_as_filtered():
+    r = post("/counts", {"treeKey": SPEC, "points": 14, "atLeastOneOf": [_group()]})
+    assert r["filtered"] is True and r["source"] == "computed", r
+
+
+def t_single_node_group_is_rejected():
+    tree = get(f"/trees/{SPEC}")
+    one = tree["nodes"][0]["nodeId"]
+    r = post("/counts", {"treeKey": SPEC, "points": 10, "atLeastOneOf": [[one]]},
+             expect=400)
+    assert "at least two nodes" in str(r.get("detail", "")), r
+
+
+def t_listing_refuses_more_groups_than_the_engine_can_express():
+    """Counting handles many groups; the engine's filter holds one value per talent, so
+    listing supports one group of each kind. Say so rather than dropping constraints."""
+    group = _group(size=4)
+    a, b = group[:2], group[2:]
+    # counting two groups is fine
+    post("/counts", {"treeKey": SPEC, "points": 14, "atLeastOneOf": [a, b]})
+    # listing them is not
+    r = post("/solve", {"treeKey": SPEC, "points": 14, "atLeastOneOf": [a, b]}, expect=400)
+    assert "at most one" in str(r.get("detail", "")), r
+
+
+def t_solved_builds_actually_satisfy_the_group():
+    """The engine's -3 sentinel must mean what the count meant."""
+    group = _group()
+    job = post("/solve", {"treeKey": SPEC, "points": 14, "exactlyOneOf": [group]},
+               expect=202)
+    done = _await_job(job["id"])
+    assert done["state"] == "done", done
+    assert done["resultCount"] == done["expectedCount"], done
+    page = get(f"/solve/{job['id']}/results?limit=200")
+    for build in page["builds"]:
+        present = [g for g in group if str(g) in build]
+        assert len(present) == 1, f"build holds {len(present)} of the group: {present}"
+
+
 # --- solve jobs (need a running worker) ------------------------------------
 
 def _await_job(job_id, timeout=120):
@@ -293,6 +359,20 @@ def main() -> int:
         ("contradictory filter rejected", t_contradictory_filter_is_rejected),
         ("budget beyond the tree rejected", t_budget_beyond_the_tree_is_rejected),
         ("unknown tree is 404", t_unknown_tree_is_404),
+    ]:
+        check(name, fn)
+
+    print("\ngroup filters:")
+    for name, fn in [
+        ("at-least-one is the complement of none-of", t_at_least_one_of_is_the_complement),
+        ("exactly-one is narrower than at-least-one",
+         t_exactly_one_is_narrower_than_at_least_one),
+        ("a group request counts as filtered", t_group_request_counts_as_filtered),
+        ("a one-node group is rejected", t_single_node_group_is_rejected),
+        ("listing refuses more groups than the engine expresses",
+         t_listing_refuses_more_groups_than_the_engine_can_express),
+        ("solved builds actually satisfy the group",
+         t_solved_builds_actually_satisfy_the_group),
     ]:
         check(name, fn)
 

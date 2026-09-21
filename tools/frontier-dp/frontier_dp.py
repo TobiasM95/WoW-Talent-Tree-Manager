@@ -291,3 +291,64 @@ def load_tree_json(path, level_cap=None):
     header = [tree.get('schemaVersion'), tree.get('key'), tree.get('kind'),
               tree.get('name'), '', '', len(nodes), 0]
     return header, nodes
+
+
+def count_with_groups(meta, par, chi, order, max_points, *, weight_choices=False,
+                      choice_sides=None, require=None, exclude=None,
+                      at_least_one_of=None, exactly_one_of=None):
+    """Count under the full filter language, including group constraints.
+
+    `at_least_one_of` and `exactly_one_of` are lists of node-id groups. Neither adds DP
+    state; both are compositions of plain counts:
+
+        at least one of G  =  count(nothing extra) - count(all of G excluded)
+        exactly one of G   =  sum over m in G of count(m required, others excluded)
+
+    The second is only valid because the alternatives are mutually exclusive -- each
+    requires one member and excludes the rest -- so the terms cannot double-count. That
+    matches the engine's -3 group semantics.
+
+    Cost is one DP run per group term, and every term is *more* constrained than the
+    base count, so each is cheaper than an unconstrained run.
+    """
+    require = set(require or ())
+    exclude = set(exclude or ())
+    at_least_one_of = [list(g) for g in (at_least_one_of or []) if g]
+    exactly_one_of = [list(g) for g in (exactly_one_of or []) if g]
+
+    base_kwargs = dict(weight_choices=weight_choices, choice_sides=choice_sides)
+
+    def run(req, exc):
+        totals, _ = count_frontier_dp(meta, par, chi, order, max_points,
+                                      require=req, exclude=exc, **base_kwargs)
+        return totals.get(max_points, 0)
+
+    # Expand each exactly-one group into its disjoint alternatives, then take the product
+    # across groups: choices in different groups are independent.
+    alternatives = [(set(require), set(exclude))]
+    for group in exactly_one_of:
+        expanded = []
+        for req, exc in alternatives:
+            for member in group:
+                others = set(group) - {member}
+                if member in exc or others & req:
+                    continue          # contradicts an existing constraint
+                expanded.append((req | {member}, exc | others))
+        alternatives = expanded
+        if not alternatives:
+            return 0
+
+    # Inclusion-exclusion over the at-least-one groups: subtract the cases where a group
+    # is entirely absent, add back the overlaps, and so on.
+    total = 0
+    for req, exc in alternatives:
+        for mask in range(1 << len(at_least_one_of)):
+            dropped = set()
+            for i, group in enumerate(at_least_one_of):
+                if mask & (1 << i):
+                    dropped |= set(group)
+            if dropped & req:
+                continue              # a required node cannot also be excluded
+            sign = -1 if bin(mask).count("1") % 2 else 1
+            total += sign * run(req, exc | dropped)
+    return total
