@@ -21,6 +21,8 @@ export interface TreeCanvasProps {
   stale?: boolean;
   /** nodeId -> points, for the build currently being inspected. */
   build?: Record<string, number> | null;
+  /** nodeId -> share of the result set, when statistics are being shown. */
+  shares?: Map<number, number> | null;
   onActivate: (node: NodeData, alternate: boolean) => void;
 }
 
@@ -71,6 +73,7 @@ export function TreeCanvas({
   sides,
   stale,
   build,
+  shares,
   onActivate,
 }: TreeCanvasProps) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -220,6 +223,7 @@ export function TreeCanvas({
             side={sides.get(node.nodeId)}
             stale={stale}
             spent={build ? (build[String(node.nodeId)] ?? 0) : undefined}
+            share={shares ? (shares.get(node.nodeId) ?? 0) : undefined}
             onActivate={onActivate}
             onHover={onHover}
           />

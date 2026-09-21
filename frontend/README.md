@@ -66,6 +66,7 @@ game data the tool exists to display; everything around them is ours.
 | `components/JobPanel.tsx` | A running enumeration, per phase. |
 | `components/ResultsBrowser.tsx` | A cursor over the enumerated builds. |
 | `components/ShareButton.tsx` | Copy the current link, with a fallback. |
+| `components/StatsPanel.tsx` | What every matching build shares, and where the choice is. |
 
 ## Things worth knowing before changing this
 
@@ -95,6 +96,12 @@ lit with their point counts, everything else receding — and arrow keys step th
 moving between builds animates the difference. That is the question a person actually has
 after asking for every build matching their constraints. Pages of 100, because "every
 matching build" reaches two million.
+
+**Statistics and a single build cannot share the canvas.** They answer different questions
+— "what do all of these have in common" and "what does this one do" — and drawing both would
+make neither legible. One switch moves between them: turning the heat map on releases the
+selected build, and picking a build turns the heat map off. Without that, stepping into a
+build was a one-way door whose only exit also discarded the constraints.
 
 **The URL is the state, and it uses node ids.** The tree, the budget, every constraint and
 the build being inspected all live in the query string, so a link reproduces the screen

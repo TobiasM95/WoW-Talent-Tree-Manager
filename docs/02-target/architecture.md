@@ -68,7 +68,10 @@ So the flow inverts into three stages:
    milliseconds, inline in the API. No queue, no worker.
 2. **Filtered enumeration** — the C++ engine produces the matching builds, with the result
    size *already known* from stage 1.
-3. **Sim** — export as SimC profilesets, run, import results, rank, show per-talent statistics.
+3. **Read the set** — per-talent statistics over every matching build: which talents the
+   constraints have already decided, and where the choice actually is. Implemented; see
+   [`../../services/api/README.md`](../../services/api/README.md).
+4. **Sim** — export as SimC profilesets, run, import results, rank. Not yet built.
 
 What each stage buys:
 
@@ -81,6 +84,8 @@ What each stage buys:
   because the two phases of a job are not comparable: an unfiltered 25-point Balance Druid solve
   enumerates 1,906,208 sets in 0.11 s and then spends the rest of its wall clock storing them.
 - Stage 2 is now genuinely cheap for realistic filters. See below.
+- Stage 3 is what exhaustive enumeration buys that sampling cannot. "Every one of these
+  34,619 builds takes Eclipse" is a statement about the whole set; a sample cannot make it.
 
 Explicitly **not** the model: sampling random builds. A user who constrains to 5,000 builds
 wants those 5,000, not a sample of a larger space.

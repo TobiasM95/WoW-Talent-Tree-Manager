@@ -34,6 +34,13 @@ export interface TalentNodeProps {
    * the question has moved from "what did I ask for" to "what does this build do".
    */
   spent?: number;
+  /**
+   * How often this talent appears across a job's whole result set, 0..1, or undefined when
+   * statistics are not being shown. Drawn as heat, because "which of these is actually a
+   * decision" is a question about the shape of the tree, and a person reading a talent tree
+   * reads a tree rather than a table.
+   */
+  share?: number;
   onActivate: (node: NodeData, alternate: boolean) => void;
   onHover: (node: NodeData | null, element: HTMLElement | null) => void;
 }
@@ -94,6 +101,7 @@ export const TalentNode = memo(function TalentNode({
   side,
   stale,
   spent,
+  share,
   onActivate,
   onHover,
 }: TalentNodeProps) {
@@ -107,9 +115,15 @@ export const TalentNode = memo(function TalentNode({
       data-state={state}
       data-kind={node.kind}
       data-spent={spent === undefined ? undefined : spent > 0 ? "yes" : "no"}
+      data-share={
+        share === undefined ? undefined : share >= 0.999 ? "all" : share > 0 ? "some" : "none"
+      }
       data-side={side ?? undefined}
       data-stale={stale ? "" : undefined}
       style={{
+        // The share rides along as a custom property so the stylesheet can interpolate the
+        // heat, rather than this component deciding what a frequency looks like.
+        ...(share === undefined ? {} : { "--share": String(share) }),
         left: x,
         top: y,
         width: SIZE,
@@ -150,11 +164,19 @@ export const TalentNode = memo(function TalentNode({
       {/* Rank pip. While a build is being inspected it shows what that build spends here;
           otherwise it shows the talent's maximum, and only where that says something -- a
           one-point talent does not need "1/1". */}
-      {(spent !== undefined ? spent > 0 : node.maxPoints > 1) && (
+      {/* A talent no matching build takes is already invisible on the canvas; labelling it
+          "0%" adds a row of noise across the unreachable bottom of the tree. */}
+      {share !== undefined ? (
+        share > 0 ? (
+          <span className="ttm-node-ranks tabular" aria-hidden="true">
+            {share >= 0.999 ? "all" : `${Math.round(share * 100)}%`}
+          </span>
+        ) : null
+      ) : (spent !== undefined ? spent > 0 : node.maxPoints > 1) ? (
         <span className="ttm-node-ranks tabular" aria-hidden="true">
           {spent !== undefined ? `${spent}/${node.maxPoints}` : node.maxPoints}
         </span>
-      )}
+      ) : null}
     </button>
   );
 });

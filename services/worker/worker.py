@@ -462,6 +462,23 @@ def store_results(conn, job_id, rows, reporter=None) -> int:
                 # million rows that is several seconds with nothing left to count, and
                 # setting the phase afterwards would mark a wait that had already ended.
                 reporter.enter("finalizing")
+
+        # Talent frequencies, in the same transaction as the rows they describe: either a
+        # job has results and statistics or it has neither. Done here rather than on demand
+        # because the aggregate walks every result row -- about a second for 165,000 builds
+        # -- which is nothing inside a job that is already asynchronous, and far too slow
+        # for a request someone is waiting on.
+        if stored:
+            cur.execute(
+                """
+                INSERT INTO solve_stats (job_id, node_id, builds, points)
+                SELECT %s, (kv.key)::bigint, count(*), sum((kv.value)::bigint)
+                FROM solve_results r, jsonb_each(r.points) kv
+                WHERE r.job_id = %s
+                GROUP BY kv.key
+                """,
+                (job_id, job_id),
+            )
     conn.commit()
     return stored
 

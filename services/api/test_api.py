@@ -494,6 +494,60 @@ def t_health_reports_icon_coverage():
     assert coverage is None or 0.0 <= coverage <= 1.0, coverage
 
 
+def t_stats_agree_with_the_dp():
+    """Talent frequencies must match the count the DP gives for requiring that talent.
+
+    This is the strongest check available on the whole pipeline, because the two sides share
+    nothing: one is a SQL aggregate over rows the C++ engine produced and the worker decoded,
+    the other is the frontier DP answering "how many builds take this talent". They agree on
+    every talent or something between the engine, the decoder and the DP is wrong.
+    """
+    job = post("/solve", {"treeKey": SPEC, "points": 13}, expect=202)
+    done = _await_job(job["id"])
+    assert done["state"] == "done", done
+
+    stats = get(f"/solve/{job['id']}/stats")
+    assert stats["talents"], "no statistics produced"
+    assert stats["total"] == done["resultCount"], (stats["total"], done["resultCount"])
+
+    for talent in stats["talents"]:
+        expected = post("/counts",
+                        {"treeKey": SPEC, "points": 13,
+                         "mustHave": [talent["nodeId"]]})["sets"]
+        assert talent["builds"] == expected, (talent["nodeId"], talent["builds"], expected)
+
+
+def t_stats_shape_is_sane():
+    job = post("/solve", {"treeKey": SPEC, "points": 12}, expect=202)
+    _await_job(job["id"])
+    stats = get(f"/solve/{job['id']}/stats")
+
+    for talent in stats["talents"]:
+        assert 0 < talent["share"] <= 1, talent
+        # A talent cannot appear in more builds than exist, and cannot be taken at a lower
+        # mean rank than one, since a row only exists for talents the build actually takes.
+        assert talent["builds"] <= stats["total"], talent
+        assert talent["meanPoints"] >= 1, talent
+        assert talent["mandatory"] == (talent["builds"] == stats["total"]), talent
+
+    # Sorted most common first, which is the order the ranked list reads in.
+    shares = [t["share"] for t in stats["talents"]]
+    assert shares == sorted(shares, reverse=True), shares[:5]
+
+    # A talent taken by every matching build is one the constraints already decided. At a
+    # realistic budget a spec tree always has some, and saying so is the point of the view.
+    assert any(t["mandatory"] for t in stats["talents"]), "expected some mandatory talents"
+
+
+def t_stats_not_served_before_results_exist():
+    body = {"treeKey": SPEC, "points": 30}
+    post("/counts", body)  # oversized, so no job can exist for it
+    r = post("/solve", body, expect=413)
+    assert r
+    status, _ = get_raw("/solve/00000000-0000-0000-0000-000000000000/stats")
+    assert status == 404, status
+
+
 def main() -> int:
     print(f"api: {BASE}")
     for name, fn in [
@@ -555,6 +609,15 @@ def main() -> int:
         ("an unusable icon name is 400", t_icon_name_is_validated),
         ("an unsupported size is 400", t_icon_size_is_validated),
         ("health reports icon coverage", t_health_reports_icon_coverage),
+    ]:
+        check(name, fn)
+
+    print("\nstatistics:")
+    for name, fn in [
+        ("talent frequencies agree with the DP", t_stats_agree_with_the_dp),
+        ("statistics are well formed and ranked", t_stats_shape_is_sane),
+        ("statistics are not served for an unknown job",
+         t_stats_not_served_before_results_exist),
     ]:
         check(name, fn)
 

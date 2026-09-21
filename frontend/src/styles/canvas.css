@@ -240,6 +240,51 @@
   filter: grayscale(0.85) brightness(1.06) contrast(0.8) opacity(0.6);
 }
 
+/* --- talent frequency across a result set ----------------------------------
+   Heat rather than a table: "which of these is actually a decision" is a question about the
+   shape of the tree, and a person reading a talent tree reads a tree. The share arrives as
+   --share (0..1) and is interpolated here, so the component never decides what a frequency
+   looks like. */
+
+.ttm-node[data-share] .ttm-node-face {
+  /* Opacity carries the magnitude and the ring carries the reading, so the two are legible
+     together: a dim node with a bright ring is "rare but real". */
+  opacity: calc(0.35 + 0.65 * var(--share, 0));
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--arcane) calc(var(--share, 0) * 100%), var(--node-ring)),
+    inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 45%, transparent);
+}
+
+/* Taken by every matching build: already decided, so it reads as settled rather than hot.
+   Distinguishing this from 99% matters -- one is a fact, the other is a choice. */
+.ttm-node[data-share="all"] .ttm-node-face {
+  opacity: 1;
+  box-shadow:
+    0 0 0 2px var(--taken),
+    inset 0 0 0 1px var(--metal-bright),
+    0 0 12px color-mix(in srgb, var(--taken) 40%, transparent);
+}
+
+.ttm-node[data-share="none"] .ttm-node-face {
+  opacity: 0.22;
+  filter: grayscale(1);
+}
+
+.ttm-node[data-share] .ttm-node-ranks {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--arcane) 60%, var(--metal-dim));
+}
+
+.ttm-node[data-share="all"] .ttm-node-ranks {
+  border-color: var(--taken);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-share="all"] .ttm-node-face {
+  box-shadow:
+    0 0 0 3px var(--taken),
+    inset 0 0 0 1px var(--metal-bright);
+}
+
 /* A count in flight makes the whole canvas provisional. Cheaper and calmer than a spinner
    per node, and it says the right thing: these numbers are about to change. */
 .ttm-node[data-stale] {

@@ -23,6 +23,7 @@ bash services/db/smoke_test.sh                     # end-to-end check
 | `loadouts`, `builds` | Saved builds, keyed by Blizzard `nodeId`. |
 | `solve_jobs`, `solve_results` | The filtered-enumeration queue and its output. |
 | `icons` | Per-name icon image cache, including the negative cache. Derived data. |
+| `solve_stats` | Talent frequency across one job's results. Derived; cascades with the job. |
 
 `current_trees` is a view returning only the highest **promoted** revision — that is what
 the API should read, never `trees` directly.

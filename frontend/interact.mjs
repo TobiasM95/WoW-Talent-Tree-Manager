@@ -268,6 +268,44 @@ if (await browser_.count()) {
   await page.screenshot({ path: `${outDir}/state-build.png` });
 }
 
+// --- talent statistics -----------------------------------------------------
+/*
+  The analytical payoff of enumerating rather than sampling, so it gets checked as such:
+  the tree must actually be painted with frequencies, and the talents every build takes must
+  be distinguished from the ones that are a real choice.
+*/
+const statsPanel = page.locator("section", { hasText: "What they share" }).first();
+check("statistics appear for a finished job", (await statsPanel.count()) === 1);
+
+if (await statsPanel.count()) {
+  // A build may already be selected from the step above, and the two readings cannot share
+  // a canvas. The checkbox is the switch between them, so use it rather than reaching for
+  // Clear -- which would also discard the constraints.
+  await statsPanel.locator('input[type="checkbox"]').check();
+  await page.waitForFunction(() => !!document.querySelector(".ttm-node[data-share]"), {
+    timeout: 10000,
+  }).catch(() => {});
+
+  const shared = await page.locator(".ttm-node[data-share]").count();
+  check("every talent carries a frequency", shared > 0, `${shared} nodes`);
+
+  const settled = await page.locator('.ttm-node[data-share="all"]').count();
+  check("talents in every build are marked settled", settled > 0, `${settled}`);
+
+  const text = await statsPanel.innerText();
+  check("the panel names where the choice is", /where the choice actually is/i.test(text),
+        text.split("\n").join(" | ").slice(0, 120));
+
+  await page.screenshot({ path: `${outDir}/state-stats.png` });
+
+  // Inspecting one build and reading the whole set are different questions. Showing both at
+  // once would make neither legible, so picking a build has to take the canvas back.
+  await page.locator('button[aria-label="Next build"]').click();
+  await page.waitForTimeout(400);
+  check("picking a build takes the canvas back from the heat map",
+        (await page.locator(".ttm-node[data-share]").count()) === 0);
+}
+
 // --- sharing ---------------------------------------------------------------
 /*
   The point of rebuilding this as a web app was that the tool should be a URL. That only

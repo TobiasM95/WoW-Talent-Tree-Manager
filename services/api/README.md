@@ -23,6 +23,7 @@ open http://localhost:8000/docs        # generated OpenAPI
 | `POST /solve` | Queue a filtered enumeration — refused if the gate says it is too large |
 | `GET /solve/{id}` | Job state, phase, progress, expected and actual counts |
 | `GET /solve/{id}/results` | A page of matching builds, nodeId-keyed |
+| `GET /solve/{id}/stats` | How often each talent appears across all of them |
 | `POST /solve/{id}/cancel` | Stop a job, if it can still be stopped |
 | `GET /icons/{name}` | One talent icon, cached for a year |
 
@@ -135,6 +136,28 @@ lost the response to its first attempt cannot tell whether it landed. Cancelling
 
 A cancelled job keeps no results and does not report 100% progress. See
 [`../worker/README.md`](../worker/README.md) for how the worker notices.
+
+## Talent statistics
+
+`GET /solve/{id}/stats` reports, for every talent, how many of the job's builds take it,
+that as a `share`, its `meanPoints` among the builds that take it, and whether it is
+`mandatory` — present in *every* matching build.
+
+This is what exhaustive enumeration buys that sampling cannot: a statement about the whole
+matching set rather than about a draw from it. "Every one of these 34,619 builds takes
+Eclipse" is a fact about the constraints; "42% take Shooting Stars" locates the decision
+that is actually open.
+
+**Computed by the worker, not on demand.** The aggregate walks every result row — about a
+second for 165,000 builds, proportionally worse toward the listing limit — which is fine
+inside a job that is already asynchronous and has the rows hot, and far too slow for a
+request someone is waiting on. It is written in the same transaction as the rows it
+describes, so a job has results and statistics or neither.
+
+**Cross-checked against the DP.** The test suite asserts that every talent's `builds` equals
+the count `POST /counts` gives for requiring that talent. The two sides share nothing — one
+is a SQL aggregate over rows the C++ engine produced and the worker decoded, the other is
+the frontier DP — so agreement on every talent exercises the whole pipeline at once.
 
 ## Icons
 

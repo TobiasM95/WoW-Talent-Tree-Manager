@@ -242,6 +242,28 @@ export interface ResultPage {
 export const getResults = (id: string, offset = 0, limit = 100) =>
   request<ResultPage>(`/solve/${id}/results?offset=${offset}&limit=${limit}`);
 
+export interface TalentStat {
+  nodeId: number;
+  /** How many of the job's results take this talent at all. */
+  builds: number;
+  /** That, as a fraction of the whole matching set. */
+  share: number;
+  /** Mean rank among the builds that take it, which is at least 1. */
+  meanPoints: number;
+  /** Taken by every matching build: the constraints already decided it. */
+  mandatory: boolean;
+}
+
+export interface JobStats {
+  jobId: string;
+  state: JobState;
+  total: number;
+  /** Most common first. */
+  talents: TalentStat[];
+}
+
+export const getStats = (id: string) => request<JobStats>(`/solve/${id}/stats`);
+
 /* --- icons ----------------------------------------------------------------- */
 
 /**

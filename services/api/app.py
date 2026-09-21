@@ -621,6 +621,50 @@ def get_icon(name: str, request: Request,
                     headers=headers)
 
 
+@app.get("/solve/{job_id}/stats")
+def get_job_stats(job_id: str) -> dict[str, Any]:
+    """How often each talent appears across every build the job produced.
+
+    This is what exhaustive enumeration buys that sampling cannot: a statement about the
+    whole matching set rather than about a draw from it. "Every one of these 34,619 builds
+    takes Eclipse" is a fact; "42% take Shooting Stars" locates the decision that is
+    actually open.
+
+    `share` is the fraction of results containing the talent at all. `meanPoints` is its
+    average rank among the builds that take it, which separates "always taken, at one of
+    two ranks" from "always maxed". `mandatory` marks the talents your constraints and the
+    tree's own structure have already decided for you -- the ones worth *not* thinking
+    about.
+    """
+    rows = query(
+        "SELECT state, result_count FROM solve_jobs WHERE id = %s", (job_id,))
+    if not rows:
+        raise HTTPException(404, f"no job {job_id}")
+    state, total = rows[0]["state"], int(rows[0]["result_count"] or 0)
+    if state not in ("done", "capped"):
+        raise HTTPException(409, f"job is {state}, statistics are not ready")
+
+    stats = query(
+        "SELECT node_id, builds, points FROM solve_stats WHERE job_id = %s "
+        "ORDER BY builds DESC, node_id", (job_id,))
+
+    return {
+        "jobId": job_id,
+        "state": state,
+        "total": total,
+        "talents": [
+            {
+                "nodeId": int(row["node_id"]),
+                "builds": int(row["builds"]),
+                "share": round(int(row["builds"]) / total, 6) if total else 0.0,
+                "meanPoints": round(int(row["points"]) / int(row["builds"]), 3),
+                "mandatory": total > 0 and int(row["builds"]) == total,
+            }
+            for row in stats
+        ],
+    }
+
+
 @app.post("/counts", response_model=CountResponse)
 def count_builds(req: CountRequest) -> CountResponse:
     """The pre-flight gate: how many builds match these constraints?

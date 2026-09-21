@@ -170,6 +170,16 @@ A cancelled job keeps the progress fraction it actually reached. `finish()` only
 `progress = 1` for `done` and `capped` — reporting 100% for work abandoned at 40% would
 misstate what happened, and that number is what a client displays.
 
+## Talent statistics
+
+After storing, the worker runs one aggregate over the rows it just wrote and fills
+`solve_stats`: per talent, how many results take it and how many points they spend on it.
+
+In the same transaction as the results, so a job has both or neither. In the worker rather
+than the API because the aggregate walks every result row — roughly a second per 165,000
+builds — which is nothing inside a job that is already asynchronous, and far too slow for a
+request a person is waiting on.
+
 ## Not yet here
 
 - **Cancelling from another worker's perspective.** Cancellation is observed by the worker

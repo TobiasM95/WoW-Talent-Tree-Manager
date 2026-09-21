@@ -12,6 +12,7 @@ import {
   type CountResult,
   type Health,
   type Job,
+  type JobStats,
   type TreeDetail,
   type TreeSummary,
 } from "./lib/api";
@@ -23,6 +24,7 @@ import { CountGate } from "./components/CountGate";
 import { JobPanel } from "./components/JobPanel";
 import { ResultsBrowser } from "./components/ResultsBrowser";
 import { ShareButton } from "./components/ShareButton";
+import { StatsPanel } from "./components/StatsPanel";
 import { TreeCanvas } from "./components/TreeCanvas";
 
 /**
@@ -65,6 +67,11 @@ export default function App() {
   const [sharedBuild, setSharedBuild] = useState<Record<string, number> | null>(
     SHARED.build,
   );
+  // Statistics for the finished job, and whether they are painted on the tree. On by
+  // default: it is the reading a person most likely wants the moment a job finishes, and
+  // a view that has to be switched on is a view most people never see.
+  const [stats, setStats] = useState<JobStats | null>(null);
+  const [showStats, setShowStats] = useState(true);
 
   // --- bootstrap ----------------------------------------------------------
   useEffect(() => {
@@ -153,16 +160,19 @@ export default function App() {
   }, [job]);
 
   const onPick = useCallback(
-    (index: number, build: Record<string, number> | null) =>
+    (index: number, build: Record<string, number> | null) => {
       setPick((previous) =>
         previous.index === index && previous.build === build ? previous : { index, build },
-      ),
+      );
+      if (build) setShowStats(false);
+    },
     [],
   );
 
   const onSolve = useCallback(() => {
     if (!tree) return;
     setSharedBuild(null);
+    setStats(null);
     setPick({ index: 0, build: null });
     void submitSolve(tree.key, c.payload)
       .then(setJob)
@@ -183,6 +193,27 @@ export default function App() {
   const grouped = useMemo(() => groupByClass(trees), [trees]);
   const current = trees.find((t) => t.key === treeKey) ?? null;
   const shownBuild = pick.build ?? sharedBuild;
+
+  // Inspecting one build and reading the whole set are different questions, so only one is
+  // on the canvas at a time. Picking a build is the more specific act, so it wins.
+  const shares = useMemo(() => {
+    if (!stats || !showStats || shownBuild) return null;
+    return new Map(stats.talents.map((t) => [t.nodeId, t.share]));
+  }, [stats, showStats, shownBuild]);
+
+  /*
+    One switch, two readings. Inspecting a build and reading the whole set answer different
+    questions and cannot share a canvas, so turning the heat map on releases the build and
+    picking a build turns the heat map off. Without that, stepping into a build was a
+    one-way door: the only way back was Clear, which also threw away the constraints.
+  */
+  const onShowStats = useCallback((on: boolean) => {
+    setShowStats(on);
+    if (on) {
+      setSharedBuild(null);
+      setPick((previous) => ({ index: previous.index, build: null }));
+    }
+  }, []);
 
   // Keep the address bar current so it can be copied at any moment. Replaced rather than
   // pushed: painting constraints is a dozen clicks, and pushing each one would turn the back
@@ -271,6 +302,7 @@ export default function App() {
               sides={c.sides}
               stale={counting}
               build={shownBuild}
+              shares={shares}
               onActivate={c.activate}
             />
           ) : (
@@ -284,7 +316,9 @@ export default function App() {
           <p className="canvas-hint pointer-events-none absolute inset-x-0 bottom-0 px-3 pt-6 pb-2 text-[11px] text-ink-faint">
             {shownBuild
               ? "showing one build · press Clear to go back to painting constraints"
-              : "drag to pan · scroll to zoom · click a talent to require it, again to bar it"}
+              : shares
+                ? "showing how often each talent appears across every matching build"
+                : "drag to pan · scroll to zoom · click a talent to require it, again to bar it"}
           </p>
         </div>
 
@@ -379,6 +413,16 @@ export default function App() {
 
           {job && (
             <JobPanel job={job} onCancel={onCancel} onDismiss={() => setJob(null)} />
+          )}
+
+          {job && tree && (job.state === "done" || job.state === "capped") && (
+            <StatsPanel
+              job={job}
+              tree={tree}
+              showing={showStats}
+              onToggle={onShowStats}
+              onStats={setStats}
+            />
           )}
 
           {job && (job.state === "done" || job.state === "capped") && (
