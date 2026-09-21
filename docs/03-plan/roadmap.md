@@ -134,28 +134,54 @@ under a generous budget is unaffected.
 identical request is served from the existing job rather than recomputed; an oversized job is
 refused with a 413 before it is ever queued.
 
-Still open in this area: progress reporting (jobs jump 0 to 1), cancellation, and passing
-or-group/one-of filters through to the engine.
+**All three items that were open here are now done.**
+
+- **Group filters** reach the engine. `atLeastOneOf` and `exactlyOneOf` are counted by
+  inclusion-exclusion in the DP and passed to the engine as its `-2`/`-3` sentinels, which
+  agree exactly (6,135 and 1,625 at 14 points on Balance Druid). Counting supports any number
+  of groups; listing supports one of each kind, because the engine's filter holds a single
+  value per talent, and `/solve` refuses more rather than silently dropping one.
+- **Progress** is reported per phase over stderr, not a progress file. Building it found the
+  more interesting problem: the engine is not the slow part. A 25-point spec solve enumerates
+  1,906,208 selections in 0.11 s and then had not finished storing them after 25 minutes at
+  one INSERT per row. With `COPY` the job takes about 16 s, and progress is reported as
+  `solving` / `storing` / `finalizing` because a single bar driven by the solver would sit at
+  100% for almost the whole wait.
+- **Cancellation** is a request rather than a state: a worker holds the row and a solver
+  process is running, and neither stops because a table changed. The worker learns about it
+  on the progress write it already makes once a second.
 
 ## Phase 3 — Core product (Loadout Editor + Solver)
 
-The first genuinely user-facing phase.
+The first genuinely user-facing phase. **Mostly done**; see
+[`../../frontend/README.md`](../../frontend/README.md).
 
-- Tree canvas (SVG), pan/zoom, per-class theming, talent tooltips with descriptions.
-- Point spending: left-click adds, right-click removes (the convention players expect), choice-node
-  toggling, gating and prerequisite validation, level cap, point-budget display.
-- Hero sub-tree selection.
-- Loadout management: multiple named builds per tree.
-- Solver UI built around the count-first flow: constraint painting (must-have / must-not-have /
-  at-least-one / exactly-one) with a **live exact count** updating as constraints are painted,
-  per-talent marginals ("requiring this drops you to 1,204"), a pre-flight gate refusing filters
-  too broad to sim, then job submission with a real progress bar, results, and transfer into a
-  loadout.
-- Import/export: Blizzard hash, SimC string, and `ttm1.` share codes.
-- Anonymous use works end to end; share-by-URL works without an account.
+Done:
+
+- **Tree canvas** with pan, zoom, per-class tinting, node silhouette carrying node type, and
+  tooltips with per-rank descriptions. Both themes, desktop and phone.
+- **Constraint painting** — must-have, must-not-have, choice sides, at-least-one and
+  exactly-one — with a **live exact count** that updates as constraints land, and a pre-flight
+  gate that disables enumeration when the result would be too large to list.
+- **Job submission** with per-phase progress, cancellation, and a results browser that paints
+  each enumerated build onto the tree rather than listing rows of numbers.
+- **Per-talent statistics** over the whole matching set: which talents the constraints have
+  already decided, and where the choice actually is. Cross-checked against the DP.
+- **Share by URL**, carrying the tree, the budget, every constraint and the build being
+  inspected — 124 characters for a 27-point build with nine constraints. No account needed.
+
+Still to do in this phase:
+
+- **Point spending by hand.** The canvas paints *constraints*, not points; building a loadout
+  directly is a different interaction on the same surface.
+- **Hero sub-tree selection**, and with it the multi-tree question: a loadout is class + spec +
+  hero, while the solver works one tree at a time.
+- **Loadout management**: multiple named builds per tree.
+- **Import/export**: Blizzard loadout string, SimC string, `ttm1.` share codes. The loadout
+  string spans all three trees, so it waits on the item above.
 
 Exit criteria: a player can land on the site, build a spec, solve it under constraints, and share
-a link — without signing in.
+a link — without signing in. **Everything but "build a spec" by hand is there.**
 
 ## Phase 4 — Accounts and persistence
 
@@ -170,8 +196,9 @@ Only now, once the foundation holds:
 
 - Tree Editor (custom/homebrew trees) — the native app's authoring surface.
 - Sim Analysis rebuilt on SimC's JSON report (open question Q9): export the filtered build set as
-  profilesets, import results back, rank builds, and show per-talent statistics over that set.
-  Feasible precisely because the filter bounds the set to something simmable.
+  profilesets, import results back, and rank builds. Feasible precisely because the filter bounds
+  the set to something simmable. **Per-talent statistics over the set are already done** and did
+  not need SimC at all — they are a property of the enumeration, not of the sim.
 - Classic support (open question Q3).
 - Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.
 - Engine improvements, which are far easier once it is under test in CI with a stable contract.
