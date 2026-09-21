@@ -8,7 +8,9 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "shots": "node shot.mjs",
-    "test": "node interact.mjs"
+    "test": "node interact.mjs",
+    "test:share": "node share.test.mjs",
+    "test:all": "npm run typecheck && npm run test:share && npm test"
   },
   "dependencies": {
     "react": "^19.3.0",

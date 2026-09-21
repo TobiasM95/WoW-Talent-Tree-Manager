@@ -17,10 +17,12 @@ import {
 } from "./lib/api";
 import { classTintStyle } from "./lib/classes";
 import { useConstraints } from "./lib/constraints";
+import { decode, syncUrl, type ShareState } from "./lib/share";
 import { useTheme } from "./lib/theme";
 import { CountGate } from "./components/CountGate";
 import { JobPanel } from "./components/JobPanel";
 import { ResultsBrowser } from "./components/ResultsBrowser";
+import { ShareButton } from "./components/ShareButton";
 import { TreeCanvas } from "./components/TreeCanvas";
 
 /**
@@ -34,11 +36,15 @@ import { TreeCanvas } from "./components/TreeCanvas";
 const COUNT_DEBOUNCE_MS = 140;
 const JOB_POLL_MS = 500;
 
+// Read once, at module scope. The URL is the *initial* state; after that the app owns it and
+// writes back, and re-reading would fight its own writes.
+const SHARED: ShareState = decode(window.location.search);
+
 export default function App() {
   const { resolved, toggle } = useTheme();
   const [health, setHealth] = useState<Health | null>(null);
   const [trees, setTrees] = useState<TreeSummary[]>([]);
-  const [treeKey, setTreeKey] = useState<string | null>(null);
+  const [treeKey, setTreeKey] = useState<string | null>(SHARED.tree);
   const [tree, setTree] = useState<TreeDetail | null>(null);
   const [count, setCount] = useState<CountResult | null>(null);
   const [countError, setCountError] = useState<string | null>(null);
@@ -52,7 +58,13 @@ export default function App() {
     build: null,
   });
 
-  const c = useConstraints(tree);
+  const c = useConstraints(tree, SHARED);
+
+  // A build carried in the link is shown until the user does something else, so a shared
+  // build link opens on that build rather than on an empty canvas next to it.
+  const [sharedBuild, setSharedBuild] = useState<Record<string, number> | null>(
+    SHARED.build,
+  );
 
   // --- bootstrap ----------------------------------------------------------
   useEffect(() => {
@@ -61,8 +73,14 @@ export default function App() {
         const [h, list] = await Promise.all([getHealth(), listTrees()]);
         setHealth(h);
         setTrees(list);
-        const first = list.find((t) => t.kind === "spec") ?? list[0];
-        if (first) setTreeKey(first.key);
+        // A tree from the link wins, but only if it still exists -- a link can outlive a
+        // tree that upstream removed, and silently showing a different spec would be worse
+        // than falling back visibly to the default.
+        const fromLink = SHARED.tree && list.some((t) => t.key === SHARED.tree);
+        if (!fromLink) {
+          const first = list.find((t) => t.kind === "spec") ?? list[0];
+          if (first) setTreeKey(first.key);
+        }
       } catch (error) {
         setLoadError(error instanceof Error ? error.message : String(error));
       }
@@ -144,6 +162,7 @@ export default function App() {
 
   const onSolve = useCallback(() => {
     if (!tree) return;
+    setSharedBuild(null);
     setPick({ index: 0, build: null });
     void submitSolve(tree.key, c.payload)
       .then(setJob)
@@ -163,6 +182,23 @@ export default function App() {
 
   const grouped = useMemo(() => groupByClass(trees), [trees]);
   const current = trees.find((t) => t.key === treeKey) ?? null;
+  const shownBuild = pick.build ?? sharedBuild;
+
+  // Keep the address bar current so it can be copied at any moment. Replaced rather than
+  // pushed: painting constraints is a dozen clicks, and pushing each one would turn the back
+  // button into an undo stepper for something nobody thinks of as navigation.
+  useEffect(() => {
+    syncUrl({
+      tree: treeKey,
+      points: c.points,
+      required: [...c.required],
+      excluded: [...c.excluded],
+      sides: new Map(c.sides),
+      atLeastOne: [...c.atLeastOne],
+      exactlyOne: [...c.exactlyOne],
+      build: shownBuild,
+    });
+  }, [treeKey, c.points, c.required, c.excluded, c.sides, c.atLeastOne, c.exactlyOne, shownBuild]);
 
   if (loadError) {
     return (
@@ -234,7 +270,7 @@ export default function App() {
               states={c.states}
               sides={c.sides}
               stale={counting}
-              build={pick.build}
+              build={shownBuild}
               onActivate={c.activate}
             />
           ) : (
@@ -246,8 +282,8 @@ export default function App() {
           {/* Sits over the canvas, so it carries its own scrim -- on a phone the tree fills
               the panel and unbacked text lands on top of talent icons. */}
           <p className="canvas-hint pointer-events-none absolute inset-x-0 bottom-0 px-3 pt-6 pb-2 text-[11px] text-ink-faint">
-            {pick.build
-              ? "showing one enumerated build · clear the job to go back to painting constraints"
+            {shownBuild
+              ? "showing one build · press Clear to go back to painting constraints"
               : "drag to pan · scroll to zoom · click a talent to require it, again to bar it"}
           </p>
         </div>
@@ -319,8 +355,11 @@ export default function App() {
               <button
                 type="button"
                 className="btn py-0.5 text-[12px]"
-                onClick={c.reset}
-                disabled={c.count === 0}
+                onClick={() => {
+                  c.reset();
+                  setSharedBuild(null);
+                }}
+                disabled={c.count === 0 && !sharedBuild}
               >
                 Clear
               </button>
@@ -345,6 +384,18 @@ export default function App() {
           {job && (job.state === "done" || job.state === "capped") && (
             <ResultsBrowser job={job} index={pick.index} onSelect={onPick} />
           )}
+
+          {/* The link carries the tree, the budget, every constraint and the build being
+              inspected, so it reproduces the screen rather than the front page. */}
+          <section className="panel framed grain p-4">
+            <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">Share</h2>
+            <p className="mt-1 mb-2 text-[12px] text-ink-soft">
+              {shownBuild
+                ? "This link opens on the build you are looking at."
+                : "This link opens on this tree with these constraints."}
+            </p>
+            <ShareButton />
+          </section>
 
           <footer className="px-1 pb-1 text-[11px] leading-relaxed text-ink-faint">
             A fan project. Not affiliated with or endorsed by Blizzard Entertainment.

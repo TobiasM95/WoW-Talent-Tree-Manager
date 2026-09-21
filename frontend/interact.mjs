@@ -244,6 +244,58 @@ if (await browser_.count()) {
   await page.screenshot({ path: `${outDir}/state-build.png` });
 }
 
+// --- sharing ---------------------------------------------------------------
+/*
+  The point of rebuilding this as a web app was that the tool should be a URL. That only
+  means something if opening the URL reproduces the screen, so this loads the link the app
+  produced into a *fresh page* and checks the state came back -- the tree, the build being
+  inspected, and which talents it lights.
+*/
+const shareUrl = page.url();
+check("the address bar carries state", shareUrl.includes("?"), shareUrl);
+
+if (shareUrl.includes("?")) {
+  const litHere = await page.locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
+    els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
+  );
+
+  const fresh = await context.newPage();
+  await fresh.goto(shareUrl, { waitUntil: "networkidle" });
+  await fresh.waitForSelector(".ttm-node");
+  await fresh.waitForFunction(() => !!document.querySelector('.ttm-node[data-spent="yes"]'), {
+    timeout: 10000,
+  }).catch(() => {});
+
+  const litThere = await fresh.locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
+    els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
+  );
+  check("a shared link reopens on the same build", litThere === litHere && litThere.length > 0,
+        `${litThere.split("|").length} vs ${litHere.split("|").length} talents`);
+
+  const budgetHere = await page.locator("#points").inputValue();
+  const budgetThere = await fresh.locator("#points").inputValue();
+  check("a shared link restores the point budget", budgetThere === budgetHere,
+        `${budgetThere} vs ${budgetHere}`);
+
+  const treeHere = await page.locator("select").inputValue();
+  const treeThere = await fresh.locator("select").inputValue();
+  check("a shared link restores the tree", treeThere === treeHere,
+        `${treeThere} vs ${treeHere}`);
+
+  await fresh.screenshot({ path: `${outDir}/state-shared.png` });
+
+  // A link that has been mangled in transit must still open something usable.
+  const mangled = await context.newPage();
+  await mangled.goto(shareUrl.replace(/([?&]r=)[^&]*/, "$1zz-!!").replace(/([&?]p=)\d+/, "$1abc"));
+  await mangled.waitForSelector(".ttm-node", { timeout: 15000 });
+  const errors = [];
+  mangled.on("pageerror", (error) => errors.push(error.message));
+  await mangled.waitForTimeout(800);
+  check("a mangled link still opens a usable page", errors.length === 0, errors.join("; "));
+  await mangled.close();
+  await fresh.close();
+}
+
 await browser.close();
 
 console.log();

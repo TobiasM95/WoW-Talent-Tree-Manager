@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChoiceSide, Constraints, TalentNode, TreeDetail } from "./api";
+import type { ShareState } from "./share";
 import type { NodeState } from "../components/TalentNode";
 
 /**
@@ -35,15 +36,28 @@ export interface ConstraintState {
 
 const SIDE_CYCLE: ChoiceSide[] = ["a", "b", "none"];
 
-export function useConstraints(tree: TreeDetail | null) {
+export function useConstraints(tree: TreeDetail | null, initial?: ShareState) {
   const cap = tree?.pointCap ?? tree?.maxPointsInTree ?? 30;
-  const [points, setPoints] = useState(() => Math.min(20, cap));
-  const [required, setRequired] = useState<Set<number>>(new Set());
-  const [excluded, setExcluded] = useState<Set<number>>(new Set());
-  const [sides, setSides] = useState<Map<number, ChoiceSide>>(new Map());
-  const [atLeastOne, setAtLeastOne] = useState<Set<number>>(new Set());
-  const [exactlyOne, setExactlyOne] = useState<Set<number>>(new Set());
+  const [points, setPoints] = useState(() => Math.min(initial?.points ?? 20, cap));
+  const [required, setRequired] = useState<Set<number>>(() => new Set(initial?.required));
+  const [excluded, setExcluded] = useState<Set<number>>(() => new Set(initial?.excluded));
+  const [sides, setSides] = useState<Map<number, ChoiceSide>>(
+    () => new Map(initial?.sides),
+  );
+  const [atLeastOne, setAtLeastOne] = useState<Set<number>>(
+    () => new Set(initial?.atLeastOne),
+  );
+  const [exactlyOne, setExactlyOne] = useState<Set<number>>(
+    () => new Set(initial?.exactlyOne),
+  );
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
+
+  // A tree's cap differs per kind -- a hero tree grants 13 points and a class tree 34 -- so
+  // a budget carried over from the previous tree can exceed the new one. Clamping rather
+  // than resetting keeps a deliberate choice where it still fits.
+  useEffect(() => {
+    setPoints((current) => Math.min(current, cap));
+  }, [cap]);
 
   const reset = useCallback(() => {
     setRequired(new Set());
@@ -52,6 +66,23 @@ export function useConstraints(tree: TreeDetail | null) {
     setAtLeastOne(new Set());
     setExactlyOne(new Set());
     setGroupMode("none");
+  }, []);
+
+  /**
+   * Adopt a constraint set wholesale, for a link that was opened or pasted.
+   *
+   * Separate from `reset` because the two are opposites: one empties the canvas, the other
+   * fills it from somewhere else, and conflating them made "clear" and "load a share link"
+   * the same code path with a flag.
+   */
+  const adopt = useCallback((state: ShareState) => {
+    setRequired(new Set(state.required));
+    setExcluded(new Set(state.excluded));
+    setSides(new Map(state.sides));
+    setAtLeastOne(new Set(state.atLeastOne));
+    setExactlyOne(new Set(state.exactlyOne));
+    setGroupMode("none");
+    if (state.points) setPoints(state.points);
   }, []);
 
   const activate = useCallback(
@@ -149,6 +180,7 @@ export function useConstraints(tree: TreeDetail | null) {
     setGroupMode,
     activate,
     reset,
+    adopt,
     states,
     payload,
     pending,

@@ -13,7 +13,9 @@ npm run dev                                   # http://localhost:5173
 
 npm run typecheck
 npm run shots                                 # both themes, desktop + phone
+npm run test:share                            # the share codec, no browser
 npm test                                      # drives the real interactions
+npm run test:all                              # all three
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -56,12 +58,14 @@ game data the tool exists to display; everything around them is ours.
 | `lib/api.ts` | Typed client. Every field checked against a live response. |
 | `lib/constraints.ts` | The constraint set and the click-cycling rules. |
 | `lib/theme.ts` | Theme choice, stamped on `<html data-theme>`. |
+| `lib/share.ts` | The whole view, encoded into the URL. |
 | `lib/classes.ts` | Class colours, one value per theme. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
 | `components/CountGate.tsx` | The pre-flight count and the listable verdict. |
 | `components/JobPanel.tsx` | A running enumeration, per phase. |
 | `components/ResultsBrowser.tsx` | A cursor over the enumerated builds. |
+| `components/ShareButton.tsx` | Copy the current link, with a fallback. |
 
 ## Things worth knowing before changing this
 
@@ -91,6 +95,14 @@ lit with their point counts, everything else receding — and arrow keys step th
 moving between builds animates the difference. That is the question a person actually has
 after asking for every build matching their constraints. Pages of 100, because "every
 matching build" reaches two million.
+
+**The URL is the state, and it uses node ids.** The tree, the budget, every constraint and
+the build being inspected all live in the query string, so a link reproduces the screen
+rather than the front page — 124 characters for a 27-point build with nine constraints. Ids
+are base36 for length, never positional: the legacy format stored points positionally and a
+regeneration silently reassigned them to different talents, and a link outlives more
+revisions than a database row does. The URL is *replaced* rather than pushed, because
+painting constraints is a dozen clicks and nobody thinks of it as navigation.
 
 **A missing icon is normal.** Upstream has no art for about 1% of names. Those render with
 a hatched fill and the node still reads as a talent.
@@ -122,3 +134,11 @@ awkwardness:
   working around it.
 - **Every build spends the whole budget.** So the *number* of lit talents is not a signal
   that stepping to the next build did anything — the test compares which talents are lit.
+
+Share links get a suite of their own (`npm run test:share`) because that is where a mistake
+is silent: a link that loses a constraint still opens, shows a plausible tree and gives the
+wrong answer, with nothing for a person to notice. It round-trips every field, checks that
+multi-rank point counts are not flattened to 1, and feeds in mangled query strings — links
+get truncated and hand-edited in chat clients, and garbage has to produce an empty view
+rather than a wrong one. `npm test` then opens a real link in a fresh page and checks the
+same talents light up.
