@@ -230,13 +230,22 @@ namespace Engine {
                 sortedTreeDAG.safetyGuard = treeDAGInfo->safetyGuardOverride;
             }
             sortedTreeDAG.timeBudgetMs = treeDAGInfo->timeBudgetMs;
+            sortedTreeDAG.reportProgress = treeDAGInfo->reportProgress;
+            sortedTreeDAG.progressIntervalMs = treeDAGInfo->progressIntervalMs;
         }
 
         SolveDeadline deadline;
+        const auto solveStart = std::chrono::steady_clock::now();
         if (sortedTreeDAG.timeBudgetMs > 0) {
             deadline.unlimited = false;
-            deadline.deadline = std::chrono::steady_clock::now()
+            deadline.deadline = solveStart
                 + std::chrono::milliseconds(sortedTreeDAG.timeBudgetMs);
+        }
+        if (sortedTreeDAG.reportProgress) {
+            deadline.reportProgress = true;
+            deadline.reportInterval =
+                std::chrono::milliseconds(sortedTreeDAG.progressIntervalMs);
+            deadline.nextReport = solveStart + deadline.reportInterval;
         }
         if (sortedTreeDAG.sortedTalents.size() > 64)
             throw std::logic_error("Number of talents exceeds 64, need different indexing type instead of uint64");
@@ -414,8 +423,8 @@ namespace Engine {
             safetyGuardTriggered = true;
             return;
         }
-        //stop cleanly when the wall-clock budget is spent, rather than running unbounded
-        if (deadline.exceeded()) {
+        //stop cleanly when the wall-clock budget is spent, and report progress as we go
+        if (deadline.check(runningCount)) {
             return;
         }
         //do combination housekeeping

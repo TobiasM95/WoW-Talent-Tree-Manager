@@ -171,6 +171,12 @@ class JobResponse(BaseModel):
     expectedCount: int | None
     resultCount: int | None
     progress: float
+    # Which part of the job `progress` measures -- "solving", "storing" or "finalizing",
+    # null when the job is not running. A single fraction cannot carry this, because the
+    # phases are not comparable: a solve can enumerate two million sets in a tenth of a
+    # second and then spend far longer writing them. "finalizing" has no fraction at all
+    # and reports 0 rather than inventing one.
+    phase: str | None
     error: str | None
     createdAt: str
     finishedAt: str | None
@@ -356,7 +362,7 @@ def _job_row(row: dict, tree_key: str) -> "JobResponse":
         points=int(row["request"]["points"]),
         expectedCount=int(row["expected_count"]) if row["expected_count"] is not None else None,
         resultCount=int(row["result_count"]) if row["result_count"] is not None else None,
-        progress=float(row["progress"]), error=row["error"],
+        progress=float(row["progress"]), phase=row.get("phase"), error=row["error"],
         createdAt=row["created_at"].isoformat(),
         finishedAt=row["finished_at"].isoformat() if row["finished_at"] else None,
     )

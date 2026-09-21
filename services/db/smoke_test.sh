@@ -57,4 +57,15 @@ if psql -c "INSERT INTO builds (tree_id, tree_revision, points)
   fail "builds accepted a positional array for points"
 fi
 
+# A job's phase is a closed set. A typo in a worker would otherwise reach clients as a
+# phase name no UI knows how to render. Inserted rather than updated, so the check does
+# not quietly pass on an empty table.
+if psql -c "BEGIN;
+            INSERT INTO solve_jobs (tree_id, tree_revision, request, request_hash, phase)
+            SELECT id, revision, '{\"points\": 1}', decode('00', 'hex'), 'typo'
+            FROM current_trees LIMIT 1;
+            ROLLBACK" 2>/dev/null | grep -q "INSERT 0 1"; then
+  fail "solve_jobs accepted an unknown phase"
+fi
+
 echo "== ok: $trees trees ($hero hero), counts present, constraints enforced"

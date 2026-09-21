@@ -19,6 +19,8 @@ namespace CLI {
 		bool countOnly = false;
 		size_t maxResults = 0;   // 0 = derive from memory
 		size_t timeBudgetMs = 0; // 0 = unlimited
+		bool reportProgress = false;
+		size_t progressIntervalMs = 250;
 	};
 
 	struct RunDetails {
@@ -33,6 +35,8 @@ namespace CLI {
 		bool countOnly = false;
 		size_t maxResults = 0;
 		size_t timeBudgetMs = 0;
+		bool reportProgress = false;
+		size_t progressIntervalMs = 250;
 	};
 
 	CLSettings processCommandLine(int argc, char** argv);

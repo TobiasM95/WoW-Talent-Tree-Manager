@@ -332,7 +332,9 @@ throw uncaught on garbage input, killing the process) and no `--help`.
 - **Output**: plain text, one raw decimal `uint64` per matching skillset plus CSV-ish switch
   metadata; **not** a re-usable skillset string, **not** JSON — the caller must independently
   know the `bitToIndexVec` mapping to interpret bits back into named talents.
-- **What it cannot do today**: no progress reporting, no partial/streaming output (writes
+- **What it cannot do today** (as of the archived master; `--progress`, `--count-only`,
+  `--max-results` and `--time-budget-ms` have since been added — see §8.3): no progress
+  reporting, no partial/streaming output (writes
   everything at the very end after the whole solve finishes), no distinction in output
   between "solved cleanly" vs "safety guard triggered" (that flag is computed
   per-`RunDetails` but never written to `outFile` or printed), no per-run time reporting to
@@ -481,6 +483,22 @@ output. Recommendation, concrete:
 - For jobs expected to run long, prefer polling a progress file over parsing live stdout —
   simpler for the backend, survives worker restarts/log rotation, and avoids the need for
   the worker to flush stdout precisely.
+
+> **Built differently.** The counter and the sampling interval are as described, and the
+> change was indeed localized. The channel is not: progress goes to **stderr**, one
+> `PROGRESS <count>` line per time interval, not to a file. The argument above assumed the
+> reader would be a separate poller; it is the parent process, which already holds the pipe.
+> A file would add shared state between a container and its reader plus a cleanup path for
+> every way a job can end, to solve a problem the pipe does not have. Sampling is by
+> wall-clock, not by result count — a solve can run a long time while finding nothing, which
+> is exactly when progress matters most.
+>
+> The interval also reuses the sampled clock check that enforces `--time-budget-ms`, so the
+> two together cost one comparison per 8,192 nodes: 1.6% on a 23-second solve.
+>
+> What this section does not anticipate at all is that the engine is rarely the slow part.
+> Every job the count gate admits solves in well under a second; the wait is storing the
+> results. See [`../../services/worker/README.md`](../../services/worker/README.md).
 
 ### 8.4 Capping work per job
 

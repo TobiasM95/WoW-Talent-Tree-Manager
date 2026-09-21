@@ -21,7 +21,7 @@ open http://localhost:8000/docs        # generated OpenAPI
 | `GET /trees/{key}/counts` | Precomputed unfiltered counts for every budget |
 | `POST /counts` | **The gate.** Counts under constraints |
 | `POST /solve` | Queue a filtered enumeration — refused if the gate says it is too large |
-| `GET /solve/{id}` | Job state, expected and actual counts |
+| `GET /solve/{id}` | Job state, phase, progress, expected and actual counts |
 | `GET /solve/{id}/results` | A page of matching builds, nodeId-keyed |
 
 `/health` reporting data age is deliberate: the legacy pipeline's defining failure was that
@@ -109,8 +109,16 @@ The top rows of a spec tree are in *every* build at a realistic budget — exclu
 20 points yields zero — so requiring them narrows nothing. That is not a bug; it is exactly
 the "requiring this changes nothing" signal the marginals are meant to surface.
 
+## Progress
+
+`GET /solve/{id}` returns `progress` together with `phase` — `solving`, `storing` or
+`finalizing`. One number cannot carry this: a 25-point Balance Druid solve enumerates
+1,906,208 sets in 0.11 s and then spends the rest of its wall clock storing them, so a bar
+driven by the solver alone would sit at 100% for almost the whole wait. `finalizing` has no
+fraction to report and says so rather than inventing one. See
+[`../worker/README.md`](../worker/README.md).
+
 ## Not yet here
 
-- **Progress.** Jobs jump from 0 to 1; there is no incremental reporting yet.
 - **Auth.** Nothing here needs an account; identity is additive and comes later.
 - **Cancellation.** The `cancelled` state exists in the schema but nothing sets it.

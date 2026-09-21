@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <chrono>
+#include <iostream>
 
 #include "TTMEnginePresets.h"
 #include "TalentTrees.h"
@@ -64,6 +65,18 @@ namespace Engine {
         */
         size_t timeBudgetMs = 0;
         bool timedOut = false;
+
+        /*
+        Emit progress to stderr while solving. Off by default so interactive use stays
+        quiet; the server-side worker turns it on and streams the lines.
+
+        stderr rather than a file: a progress file means shared state between a container
+        and whatever reads it, and a pipe the worker already owns carries the same
+        information with nothing to clean up. stdout is left alone because it carries the
+        result summary.
+        */
+        bool reportProgress = false;
+        size_t progressIntervalMs = 250;
     };
 
     /*
@@ -77,19 +90,42 @@ namespace Engine {
         unsigned int tick = 0;
         bool expired = false;
 
+        bool reportProgress = false;
+        std::chrono::steady_clock::time_point nextReport{};
+        std::chrono::milliseconds reportInterval{ 250 };
+
         static constexpr unsigned int CHECK_INTERVAL = 8192;
 
-        bool exceeded() {
-            if (unlimited || expired) {
-                return expired;
+        /*
+        One sampled clock read serves both the deadline and progress reporting. Reading it
+        per node would cost more than the node's work, so the check fires every 8,192
+        visits -- accurate to a few milliseconds, which is all either purpose needs.
+
+        `runningCount` is the number of matching results so far. The caller knows the
+        expected total from the pre-flight count, so this is a real fraction rather than
+        a spinner.
+        */
+        bool check(size_t runningCount) {
+            if (expired) {
+                return true;
+            }
+            if (unlimited && !reportProgress) {
+                return false;
             }
             if ((++tick % CHECK_INTERVAL) != 0) {
                 return false;
             }
-            if (std::chrono::steady_clock::now() >= deadline) {
+            const auto now = std::chrono::steady_clock::now();
+            if (!unlimited && now >= deadline) {
                 expired = true;
+                return true;
             }
-            return expired;
+            if (reportProgress && now >= nextReport) {
+                //flushed per line so a reader sees it immediately
+                std::cerr << "PROGRESS " << runningCount << std::endl;
+                nextReport = now + reportInterval;
+            }
+            return false;
         }
     };
 

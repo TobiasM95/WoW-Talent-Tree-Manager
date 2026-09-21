@@ -84,6 +84,12 @@ namespace CLI {
             if (component == "--time-budget-ms" && argc >= i + 1) {
                 settings.timeBudgetMs = static_cast<size_t>(std::stoull(std::string{ argv[i + 1] }));
             }
+            if (component == "--progress") {
+                settings.reportProgress = true;
+            }
+            if (component == "--progress-interval-ms" && argc >= i + 1) {
+                settings.progressIntervalMs = static_cast<size_t>(std::stoull(std::string{ argv[i + 1] }));
+            }
         }
 
         return settings;
@@ -302,6 +308,12 @@ namespace CLI {
             run.countOnly = settings.countOnly;
             run.maxResults = settings.maxResults;
             run.timeBudgetMs = settings.timeBudgetMs;
+            /* Progress is a single-run feature on purpose. With several runs the counts
+             * are per-run and the lines from parallel workers interleave, so a reader
+             * cannot tell whose number it is looking at. The server-side case -- one
+             * tree, one budget -- is exactly the single-run case. */
+            run.reportProgress = settings.reportProgress && allRunDetails.size() == 1;
+            run.progressIntervalMs = settings.progressIntervalMs;
             if (run.filter) {
                 continue;
             }
@@ -330,6 +342,8 @@ namespace CLI {
         run.treeDAGInfo->countOnly = run.countOnly;
         run.treeDAGInfo->safetyGuardOverride = run.maxResults;
         run.treeDAGInfo->timeBudgetMs = run.timeBudgetMs;
+        run.treeDAGInfo->reportProgress = run.reportProgress;
+        run.treeDAGInfo->progressIntervalMs = run.progressIntervalMs;
         Engine::countConfigurationsFiltered(
             run.tree,
             run.filter,

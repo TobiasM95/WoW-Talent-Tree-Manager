@@ -17,7 +17,6 @@ Exit is clean on SIGTERM so `docker compose down` does not orphan a running solv
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import shutil
@@ -25,6 +24,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import tempfile
 import time
 
@@ -32,6 +32,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 for path in (os.path.join(REPO, "services", "ingest"), os.path.join("services", "ingest")):
     sys.path.insert(0, path)
+
+from psycopg.types.json import Jsonb  # noqa: E402
 
 from ttm_ingest import ttm_format  # noqa: E402
 
@@ -44,6 +46,15 @@ DEFAULT_TIME_BUDGET_MS = 120_000
 DEFAULT_MAX_RESULTS = 2_000_000
 
 COUNT_RE = re.compile(r"Tree 0: (\d+) combinations")
+PROGRESS_RE = re.compile(r"^PROGRESS (\d+)$")
+
+# How often the engine emits a progress line, and the floor between database writes.
+# The engine can report far more often than this, but a job's progress is read by a
+# person watching a bar move; a write per second is enough for that and keeps a
+# hundred concurrent jobs from turning into a hundred writes per second.
+PROGRESS_INTERVAL_MS = 1000
+PROGRESS_MIN_WRITE_SECONDS = 1.0
+PROGRESS_ROW_BATCH = 20_000
 _stopping = False
 
 
@@ -61,8 +72,8 @@ class SolveFailed(RuntimeError):
 # decoding the engine's output
 # ---------------------------------------------------------------------------
 
-def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, int]]:
-    """Turn the engine's output into nodeId-keyed point maps.
+def iter_results(output_path: str, tree: dict, limit: int):
+    """Yield the engine's output as nodeId-keyed point maps, one row at a time.
 
     The engine emits a header listing, per bit, the positional talent index that bit
     belongs to, then one line per set: the raw SIND, followed by the indices of any choice
@@ -72,19 +83,33 @@ def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, i
     point total is how many of its bits are set -- which is why this counts rather than
     flags. Output rows are positional; what we store is keyed by Blizzard nodeId, because
     positional references are exactly what made shared builds unsafe before.
+
+    A generator rather than a list: a job at the listing limit is two million rows, and
+    holding two million dicts to hand them to an INSERT costs gigabytes for no reason.
+    The file is read in step with the COPY that consumes it.
     """
     node_ids = [n["nodeId"] for n in tree["nodes"]]
 
     with open(output_path, encoding="utf-8") as handle:
         header = handle.readline().strip()
         if not header:
-            return []
+            return
         try:
             bit_to_index = [int(x) for x in header.split("/") if x != ""]
         except ValueError as exc:
             raise SolveFailed(f"unreadable result header: {header[:80]!r}") from exc
+        for positional in bit_to_index:
+            if positional >= len(node_ids):
+                raise SolveFailed(
+                    f"result references talent index {positional}, but the tree "
+                    f"has {len(node_ids)}"
+                )
+        # Hoisted out of the row loop: the mapping is the same for every row, and at two
+        # million rows anything done per row per bit is the whole cost of the phase.
+        bit_keys = [(1 << bit, str(node_ids[positional]))
+                    for bit, positional in enumerate(bit_to_index)]
 
-        builds: list[dict[str, int]] = []
+        emitted = 0
         for line in handle:
             line = line.strip()
             if not line:
@@ -96,19 +121,18 @@ def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, i
                 raise SolveFailed(f"unreadable result row: {line[:80]!r}") from exc
 
             points: dict[str, int] = {}
-            for bit, positional in enumerate(bit_to_index):
-                if mask & (1 << bit):
-                    if positional >= len(node_ids):
-                        raise SolveFailed(
-                            f"result references talent index {positional}, but the tree "
-                            f"has {len(node_ids)}"
-                        )
-                    key = str(node_ids[positional])
+            for bit_value, key in bit_keys:
+                if mask & bit_value:
                     points[key] = points.get(key, 0) + 1
-            builds.append(points)
-            if len(builds) >= limit:
-                break
-    return builds
+            yield points
+            emitted += 1
+            if emitted >= limit:
+                return
+
+
+def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, int]]:
+    """List form of iter_results, for callers small enough not to care."""
+    return list(iter_results(output_path, tree, limit))
 
 
 def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[int],
@@ -145,13 +169,63 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
 # running a job
 # ---------------------------------------------------------------------------
 
-def run_solve(solver: str, tree: dict, request: dict, workdir: str) -> tuple[list, dict]:
+def _run_streaming(args: list[str], stdout_path: str, hard_timeout: float,
+                   on_progress) -> tuple[str, str, int, bool]:
+    """
+    Run the solver, consuming its stderr line by line so progress is visible while the
+    job is still running.
+
+    stdout goes to a file rather than a second pipe on purpose: reading only one of two
+    pipes deadlocks as soon as the unread one fills its buffer, and the result summary
+    on stdout is not needed until the process has exited anyway.
+
+    The hard timeout is a watchdog thread rather than a read timeout, because a hung
+    solver produces no lines at all -- there would be nothing for a read deadline to
+    interrupt. It is a backstop; the engine's own --time-budget-ms is what normally
+    stops a long solve, cleanly and with partial results intact.
+    """
+    killed = threading.Event()
+    stderr_tail: list[str] = []
+
+    with open(stdout_path, "w", encoding="utf-8") as sink:
+        proc = subprocess.Popen(args, stdout=sink, stderr=subprocess.PIPE,
+                                text=True, bufsize=1)
+
+        def _kill():
+            killed.set()
+            proc.kill()
+
+        watchdog = threading.Timer(hard_timeout, _kill)
+        watchdog.start()
+        try:
+            for line in proc.stderr:
+                line = line.strip()
+                match = PROGRESS_RE.match(line)
+                if match:
+                    if on_progress is not None:
+                        on_progress(int(match.group(1)))
+                elif line:
+                    # Anything else on stderr is diagnostic; keep the tail for the
+                    # error message rather than the whole stream.
+                    stderr_tail.append(line)
+                    del stderr_tail[:-20]
+            proc.wait()
+        finally:
+            watchdog.cancel()
+            if proc.stderr:
+                proc.stderr.close()
+
+    with open(stdout_path, encoding="utf-8", errors="replace") as handle:
+        stdout_text = handle.read()
+    return stdout_text, "\n".join(stderr_tail), proc.returncode, killed.is_set()
+
+
+def run_solve(solver: str, tree: dict, request: dict, workdir: str,
+              on_progress=None) -> tuple[str | None, dict]:
     points = int(request["points"])
     level_cap = int(request.get("levelCap", 90))
     must_have = [int(x) for x in request.get("mustHave", [])]
     must_not_have = [int(x) for x in request.get("mustNotHave", [])]
-    at_least_one_of = [[int(x) for x in g] for g in request.get("atLeastOneOf", [])]
-    exactly_one_of = [[int(x) for x in g] for g in request.get("exactlyOneOf", [])]
     at_least_one_of = [[int(x) for x in g] for g in request.get("atLeastOneOf", [])]
     exactly_one_of = [[int(x) for x in g] for g in request.get("exactlyOneOf", [])]
     time_budget = min(int(request.get("timeBudgetMs", DEFAULT_TIME_BUDGET_MS)),
@@ -173,34 +247,39 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str) -> tuple[lis
         "--max-results", str(max_results),
         "--time-budget-ms", str(time_budget),
     ]
+    if on_progress is not None:
+        args += ["--progress", "--progress-interval-ms", str(PROGRESS_INTERVAL_MS)]
     if must_have or must_not_have or at_least_one_of or exactly_one_of:
         args += ["--filter", build_filter_string(tree, must_have, must_not_have,
                                                  at_least_one_of, exactly_one_of)]
 
+    hard_timeout = (time_budget / 1000) + 60
     started = time.monotonic()
-    proc = subprocess.run(args, capture_output=True, text=True,
-                          timeout=(time_budget / 1000) + 60)
+    stdout_text, stderr_tail, returncode, killed = _run_streaming(
+        args, os.path.join(workdir, "solver.out"), hard_timeout, on_progress)
     elapsed = time.monotonic() - started
 
-    if proc.returncode != 0:
+    if killed:
+        raise subprocess.TimeoutExpired(args, hard_timeout)
+    if returncode != 0:
         raise SolveFailed(
-            f"solver exited {proc.returncode}: {(proc.stderr or proc.stdout)[:300]}"
+            f"solver exited {returncode}: {(stderr_tail or stdout_text)[:300]}"
         )
-    if "No valid trees found" in proc.stdout:
+    if "No valid trees found" in stdout_text:
         raise SolveFailed("the engine rejected the generated tree")
 
-    match = COUNT_RE.search(proc.stdout)
+    match = COUNT_RE.search(stdout_text)
     if not match:
-        raise SolveFailed(f"no count in solver output: {proc.stdout[-200:]!r}")
+        raise SolveFailed(f"no count in solver output: {stdout_text[-200:]!r}")
 
     meta = {
         "reported": int(match.group(1)),
-        "timedOut": "time budget exceeded" in proc.stdout,
-        "capped": "safety guard triggered" in proc.stdout,
+        "timedOut": "time budget exceeded" in stdout_text,
+        "capped": "safety guard triggered" in stdout_text,
         "elapsed": elapsed,
     }
-    builds = decode_results(output, tree, max_results) if os.path.exists(output) else []
-    return builds, meta
+    meta["maxResults"] = max_results
+    return (output if os.path.exists(output) else None), meta
 
 
 # ---------------------------------------------------------------------------
@@ -242,18 +321,112 @@ def load_tree(conn, tree_id, revision) -> dict:
     return row["definition"]
 
 
-def finish(conn, job_id, state, *, result_count=None, error=None, builds=None):
+class ProgressReporter:
+    """
+    Turns the engine's progress lines into `solve_jobs.progress`.
+
+    Two jobs, not one. The obvious one is the fraction a client polls for. The second
+    is the lease: `requeue_expired` treats a job whose `locked_at` is older than
+    LEASE_SECONDS as abandoned, and a solve that legitimately runs longer than the
+    lease would be requeued underneath a worker that is still working on it. A job
+    that is visibly making progress is not abandoned, so the same write says so.
+
+    Writes are throttled because the denominator is a person watching a bar, not a
+    scheduler. `expected` is the pre-flight count the gate already computed, which is
+    what makes this a real fraction rather than a spinner.
+
+    It runs on its own connection, and has to. The storing phase reports from inside a
+    COPY, and a connection in COPY mode accepts no other statement -- an UPDATE sent
+    down the same connection waits for a COPY that is itself waiting on the row that
+    would trigger the next report. That deadlocks, silently, with the job stuck at 0%.
+    """
+
+    def __init__(self, conn, job_id, expected):
+        self.conn = conn
+        self.job_id = job_id
+        self.expected = int(expected) if expected else 0
+        self.phase = None
+        self.last_write = 0.0
+        self.broken = False
+
+    def enter(self, phase: str, expected=None) -> None:
+        """Start a new phase, resetting the fraction and forcing an immediate write."""
+        self.phase = phase
+        if expected is not None:
+            self.expected = int(expected)
+        self.last_write = 0.0
+        self(0)
+
+    def __call__(self, count: int, force: bool = False) -> None:
+        if self.broken:
+            return
+        now = time.monotonic()
+        if not force and now - self.last_write < PROGRESS_MIN_WRITE_SECONDS:
+            return
+        self.last_write = now
+        # Clamp: the column is CHECKed to [0, 1], and a count can exceed the
+        # prediction if the request was edited between the gate and the solve.
+        fraction = min(count / self.expected, 1.0) if self.expected else 0.0
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE solve_jobs SET progress = %s, phase = %s, locked_at = now() "
+                    "WHERE id = %s AND state = 'running'",
+                    (fraction, self.phase, self.job_id),
+                )
+            self.conn.commit()
+        except Exception:  # noqa: BLE001
+            # Losing progress reporting must not lose the job that is producing it.
+            self.broken = True
+            try:
+                self.conn.rollback()
+            except Exception:  # noqa: BLE001
+                pass
+
+
+def store_results(conn, job_id, rows, reporter=None) -> int:
+    """Write the decoded builds with COPY, reporting progress as they go.
+
+    COPY rather than executemany: this phase, not the engine, is where a listing job
+    spends its time. An unfiltered 25-point Balance Druid solve enumerates 1,906,208
+    sets in 0.11 s and then spent over ten minutes on a per-row INSERT. COPY turns that
+    back into something proportionate to the data.
+
+    The denominator for the fraction lives on the reporter, which the caller has already
+    pointed at the engine's own count rather than the pre-flight one -- a capped run
+    produced fewer rows than the gate predicted.
+    """
+    stored = 0
     with conn.cursor() as cur:
-        if builds:
-            cur.executemany(
-                "INSERT INTO solve_results (job_id, ordinal, points) VALUES (%s, %s, %s)",
-                [(job_id, i, json.dumps(b)) for i, b in enumerate(builds)],
-            )
+        with cur.copy(
+            "COPY solve_results (job_id, ordinal, points) FROM STDIN (FORMAT BINARY)"
+        ) as copy:
+            copy.set_types(["uuid", "int4", "jsonb"])
+            for points in rows:
+                copy.write_row((job_id, stored, Jsonb(points)))
+                stored += 1
+                # The check is batched because it is on the hot path; the reporter
+                # throttles the writes themselves on top of this.
+                if reporter is not None and stored % PROGRESS_ROW_BATCH == 0:
+                    reporter(stored)
+            if reporter is not None:
+                # Marked here, inside the block, not after it: leaving a COPY is not free.
+                # Closing it flushes the stream and waits while the server builds
+                # solve_results' primary key over everything just written -- for two
+                # million rows that is several seconds with nothing left to count, and
+                # setting the phase afterwards would mark a wait that had already ended.
+                reporter.enter("finalizing")
+    conn.commit()
+    return stored
+
+
+def finish(conn, job_id, state, *, result_count=None, error=None):
+    with conn.cursor() as cur:
         cur.execute(
             """
             UPDATE solve_jobs
             SET state = %s, result_count = %s, error = %s, finished_at = now(),
-                progress = 1, locked_by = NULL, locked_at = NULL
+                progress = 1, phase = NULL, locked_by = NULL, locked_at = NULL
             WHERE id = %s
             """,
             (state, result_count, error, job_id),
@@ -292,7 +465,17 @@ def requeue_expired(conn) -> int:
     return requeued + failed
 
 
-def process_one(conn, solver: str, worker_id: str) -> bool:
+def _rollback(conn) -> None:
+    """A failure part-way through the COPY leaves the transaction aborted, and every
+    statement after that -- including the one recording the failure -- would be rejected.
+    Discarding the partial rows is also what we want: a job is stored whole or not at all."""
+    try:
+        conn.rollback()
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def process_one(conn, progress_conn, solver: str, worker_id: str) -> bool:
     job = claim(conn, worker_id)
     if not job:
         return False
@@ -300,20 +483,17 @@ def process_one(conn, solver: str, worker_id: str) -> bool:
     job_id = job["id"]
     print(f"worker: claimed {job_id} (attempt {job['attempts']})", flush=True)
     workdir = tempfile.mkdtemp(prefix="ttm-solve-")
+    started = time.monotonic()
     try:
         tree = load_tree(conn, job["tree_id"], job["tree_revision"])
-        builds, meta = run_solve(solver, tree, job["request"], workdir)
-
-        if meta["timedOut"] or meta["capped"]:
-            # A truncated result is a distinct outcome, not a failure and not a success.
-            reason = "time budget exceeded" if meta["timedOut"] else "result cap reached"
-            finish(conn, job_id, "capped", result_count=len(builds), builds=builds,
-                   error=f"partial result: {reason}")
-            print(f"worker: {job_id} capped ({reason}), {len(builds)} builds", flush=True)
-            return True
-
         expected = job.get("expected_count")
-        if expected is not None and int(expected) != meta["reported"]:
+        reporter = ProgressReporter(progress_conn, job_id, expected)
+        reporter.enter("solving")
+        output, meta = run_solve(solver, tree, job["request"], workdir,
+                                 on_progress=reporter)
+
+        truncated = meta["timedOut"] or meta["capped"]
+        if not truncated and expected is not None and int(expected) != meta["reported"]:
             # The gate and the engine must agree; if they do not, the user should not be
             # handed a result that silently contradicts the count they were shown.
             raise SolveFailed(
@@ -321,16 +501,34 @@ def process_one(conn, solver: str, worker_id: str) -> bool:
                 f"predicted {int(expected)}"
             )
 
-        finish(conn, job_id, "done", result_count=len(builds), builds=builds)
-        print(f"worker: {job_id} done, {len(builds)} builds in {meta['elapsed']:.2f}s",
-              flush=True)
+        # The engine's own count is the denominator for storing, not the pre-flight one:
+        # a capped run produced fewer rows than the gate predicted, and a bar measured
+        # against the prediction would stop short of the end for a job that did finish.
+        reporter.enter("storing", expected=min(meta["reported"], meta["maxResults"]))
+        rows = iter_results(output, tree, meta["maxResults"]) if output else iter(())
+        stored = store_results(conn, job_id, rows, reporter)
+
+        if truncated:
+            # A truncated result is a distinct outcome, not a failure and not a success.
+            reason = "time budget exceeded" if meta["timedOut"] else "result cap reached"
+            finish(conn, job_id, "capped", result_count=stored,
+                   error=f"partial result: {reason}")
+            print(f"worker: {job_id} capped ({reason}), {stored} builds", flush=True)
+            return True
+
+        finish(conn, job_id, "done", result_count=stored)
+        print(f"worker: {job_id} done, {stored} builds in {meta['elapsed']:.2f}s "
+              f"solving, {time.monotonic() - started:.2f}s total", flush=True)
     except SolveFailed as exc:
+        _rollback(conn)
         finish(conn, job_id, "failed", error=str(exc)[:500])
         print(f"worker: {job_id} failed: {exc}", flush=True)
     except subprocess.TimeoutExpired:
+        _rollback(conn)
         finish(conn, job_id, "failed", error="solver did not exit within its budget")
         print(f"worker: {job_id} failed: solver hung", flush=True)
     except Exception as exc:  # noqa: BLE001 - a worker must not die on one bad job
+        _rollback(conn)
         finish(conn, job_id, "failed", error=f"{type(exc).__name__}: {exc}"[:500])
         print(f"worker: {job_id} failed unexpectedly: {exc}", flush=True)
     finally:
@@ -363,7 +561,10 @@ def main() -> int:
     worker_id = f"{socket.gethostname()}:{os.getpid()}"
     print(f"worker: {worker_id} using {solver}", flush=True)
 
-    with psycopg.connect(args.database_url) as conn:
+    # Two connections: one runs the job, one reports its progress. See ProgressReporter --
+    # progress is written from inside a COPY, which a single connection cannot do.
+    with (psycopg.connect(args.database_url) as conn,
+          psycopg.connect(args.database_url) as progress_conn):
         last_sweep = 0.0
         while not _stopping:
             if time.monotonic() - last_sweep > 30:
@@ -372,7 +573,7 @@ def main() -> int:
                     print(f"worker: recovered {recovered} expired job(s)", flush=True)
                 last_sweep = time.monotonic()
 
-            worked = process_one(conn, solver, worker_id)
+            worked = process_one(conn, progress_conn, solver, worker_id)
             if args.once:
                 return 0 if worked else 1
             if not worked:

@@ -77,7 +77,9 @@ What each stage buys:
   known, bounded size — which removes most of the defensive machinery the earlier design
   needed.
 - Because the count is known in advance, the job gets a **real progress bar** with a true
-  denominator and an honest ETA, rather than an open-ended spinner.
+  denominator and an honest ETA, rather than an open-ended spinner. It is reported per phase,
+  because the two phases of a job are not comparable: an unfiltered 25-point Balance Druid solve
+  enumerates 1,906,208 sets in 0.11 s and then spends the rest of its wall clock storing them.
 - Stage 2 is now genuinely cheap for realistic filters. See below.
 
 Explicitly **not** the model: sampling random builds. A user who constrains to 5,000 builds
@@ -146,6 +148,7 @@ CREATE TABLE solve_jobs (
   priority       smallint NOT NULL DEFAULT 100,
   attempts       smallint NOT NULL DEFAULT 0,
   progress       real NOT NULL DEFAULT 0,
+  phase          text,                    -- solving | storing | finalizing
   result_count   bigint,
   error          text,
   locked_by      text,
@@ -190,10 +193,17 @@ Three details that matter:
 Solve results are potentially enormous — the engine's own safety guard defaults to 500 million
 combinations. Never materialise that into the database or into a JSON response.
 
-- The worker writes the engine's NDJSON output to object storage (or a mounted volume for a
-  single-host deployment), and stores only a pointer plus `result_count` in Postgres.
-- Postgres stores a **bounded top-N page** of results for immediate display, not the full set.
-- The API paginates over the result file by byte offset, or re-reads it on demand.
+**The count gate changed this.** Nothing reaches a worker without a known result size under
+`LISTING_LIMIT` (2,000,000 sets), so results go into Postgres normally and the object-storage
+tier this section originally called for does not exist.
+
+- The worker decodes the engine's output as a generator and streams it into `solve_results` with
+  `COPY`, so neither the raw rows nor the decoded builds are ever all in memory at once.
+- `COPY`, not `executemany`. Storing 1,906,208 rows one INSERT at a time had not finished after
+  25 minutes, for a solve that itself took 0.11 s; with `COPY` the whole job takes about 16 s, of
+  which roughly 4 s is the primary key build after the stream ends. That last stretch has no
+  number to report, which is what the `finalizing` phase is for.
+- The API paginates over `solve_results` by `ordinal`.
 - Apply a retention policy: results are derived data, and can be recomputed from the cached
   `request_hash`. Expire them.
 
@@ -240,22 +250,33 @@ Args plus files, not stdin — it keeps the contract inspectable and lets a fail
 by hand, which matters a lot when debugging an enumeration bug.
 
 ```
-ttm-solver solve \
-  --tree       /work/<job>/tree.json      \
-  --request    /work/<job>/request.json   \
-  --out        /work/<job>/results.ndjson \
-  --progress   /work/<job>/progress.json  \
-  --max-results  5000000 \
-  --mem-budget   2147483648 \
-  --time-budget  60000
+ttm-solver \
+  --structure-file-path  /work/<job>/tree.txt    \
+  --structure-indices    0                       \
+  --target-talent-count  25                      \
+  --output-file-path     /work/<job>/results.txt \
+  --filter               0:1:-1:0:...            \
+  --max-results          2000000                 \
+  --time-budget-ms       120000                  \
+  --progress --progress-interval-ms 1000
 ```
 
-- **stdout** stays clean for a single final JSON summary; **stderr** carries logs.
-- **Results stream** as NDJSON, one decoded build per line, flushed incrementally. The current
-  CLI buffers everything until completion and emits raw decimal integers, which is unusable for
-  a responsive UI.
-- **Progress** is written to a small separate file from the existing `runningCount` counter — a
-  cheap change against a counter the hot loop already maintains.
+- **stdout** carries the settings echo and the final count; **stderr** carries logs and progress.
+- **Progress goes to stderr**, not to a progress file. A file means shared state between the
+  container that writes it and the process that reads it, plus a cleanup path for every way a
+  job can end. The worker already owns the child's stderr pipe, and a line on it carries the
+  same number with nothing to tidy up afterwards. Format is one `PROGRESS <count>` line per
+  interval, taken from the `runningCount` the hot loop already maintains; the sampled clock
+  check that enforces `--time-budget-ms` decides when to emit, so it costs one comparison --
+  measured at 1.6% on a 23-second solve.
+- **The worker reads that pipe line by line** and writes the fraction to `solve_jobs.progress`,
+  throttled to one database write per second. The same write refreshes `locked_at`, so a solve
+  that legitimately outlives its lease is not requeued underneath the worker still running it.
+  stdout is redirected to a file rather than a second pipe: reading only one of two pipes
+  deadlocks as soon as the other fills its buffer.
+- **Results are still a file, read once at the end.** Incremental NDJSON was the earlier plan;
+  the count gate removed the reason for it, since every job that reaches a worker now has a
+  bounded result size and there is nothing to stream away from.
 - **Exit codes** must distinguish: success, cap-exceeded-but-partial-results, invalid input,
   internal error. "Capped" is a legitimate, expectable outcome and needs to be a first-class
   state, not an error.
