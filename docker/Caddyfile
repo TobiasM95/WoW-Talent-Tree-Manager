@@ -1,0 +1,36 @@
+# Caddy: TLS, static assets, and one reverse proxy hop.
+#
+# The frontend calls /api/* and nothing else, so the API is same-origin in production
+# exactly as it is behind Vite's dev proxy. That is the point: there is no CORS
+# configuration that exists only for development and then has to be remembered later.
+
+{
+	admin off
+}
+
+# The site address comes from the environment, defaulted in docker-compose.yml rather than
+# here: Caddy's `{$VAR:default}` only falls back when the variable is *unset*, and Compose
+# sets it to an empty string. That produced a keyless block and a startup failure whose
+# message ("server block without any key") does not point at the cause.
+#
+# `:80` serves plain HTTP for local use. Set TTM_SITE_ADDRESS to a hostname and Caddy
+# provisions a certificate for it automatically.
+{$TTM_SITE_ADDRESS} {
+	encode zstd gzip
+
+	handle_path /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		root * /srv
+		# Hashed bundles never change under their name, so they can be cached like the
+		# icons are. index.html must not be, or a deploy would not reach anyone.
+		@immutable path /assets/*
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}

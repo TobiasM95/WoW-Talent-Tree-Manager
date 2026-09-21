@@ -1,0 +1,150 @@
+import { memo } from "react";
+import type { TalentNode as NodeData } from "../lib/api";
+import { iconUrl } from "../lib/api";
+
+/**
+ * One talent on the canvas.
+ *
+ * Shape carries meaning, the way the game's own UI does it: the silhouette tells you what
+ * kind of node it is before you read anything. That replaces a legend, and it is why the
+ * constraint state is drawn with light and weight rather than with yet another colour of
+ * border -- the border is already doing a job.
+ *
+ *   circle          a single talent
+ *   split diamond   a choice node: two alternatives, one point
+ *   hexagon         a tiered talent, whose max ranks depend on character level
+ *   square          a hero sub-tree selector
+ */
+
+export type NodeState = "neutral" | "required" | "excluded" | "grouped";
+
+export interface TalentNodeProps {
+  node: NodeData;
+  /** Canvas pixel position. Kept out of `node` so the API shape stays the API shape. */
+  x: number;
+  y: number;
+  state: NodeState;
+  /** Which side of a choice node is pinned, if any. */
+  side?: "a" | "b" | "none";
+  /** Set while a count is in flight, so the canvas can read as provisional. */
+  stale?: boolean;
+  onActivate: (node: NodeData, alternate: boolean) => void;
+  onHover: (node: NodeData | null, element: HTMLElement | null) => void;
+}
+
+const CLIP: Record<string, string | undefined> = {
+  // A hexagon reads as "this one changes with level" without needing a badge.
+  tiered: "polygon(25% 2%, 75% 2%, 100% 50%, 75% 98%, 25% 98%, 0% 50%)",
+  subtree: undefined, // square: left as a plain box, the most "structural" silhouette
+};
+
+const SIZE = 44;
+
+function shapeClass(kind: NodeData["kind"]): string {
+  if (kind === "single") return "rounded-full";
+  if (kind === "choice") return "rounded-[3px]";
+  if (kind === "subtree") return "rounded-[2px]";
+  return "rounded-[3px]";
+}
+
+function EntryIcon({
+  icon,
+  name,
+  half,
+}: {
+  icon: string | null;
+  name: string;
+  half?: "left" | "right";
+}) {
+  const url = iconUrl(icon, 56);
+  return (
+    <div
+      className="absolute inset-0 bg-cover bg-center"
+      style={{
+        backgroundImage: url ? `url(${url})` : undefined,
+        // A choice node shows both alternatives, split down the middle: the node is one
+        // point spent on one of two things, and the silhouette should say so.
+        clipPath:
+          half === "left"
+            ? "polygon(0 0, 100% 0, 0 100%)"
+            : half === "right"
+              ? "polygon(100% 0, 100% 100%, 0 100%)"
+              : undefined,
+      }}
+      // An icon is decoration here; the name is already in the tooltip and the aria-label.
+      role="presentation"
+      aria-hidden="true"
+      data-icon={url ? undefined : "missing"}
+      title={url ? undefined : name}
+    />
+  );
+}
+
+export const TalentNode = memo(function TalentNode({
+  node,
+  x,
+  y,
+  state,
+  side,
+  stale,
+  onActivate,
+  onHover,
+}: TalentNodeProps) {
+  const entries = node.entries;
+  const isChoice = node.kind === "choice" && entries.length >= 2;
+
+  return (
+    <button
+      type="button"
+      className="ttm-node absolute"
+      data-state={state}
+      data-kind={node.kind}
+      data-side={side ?? undefined}
+      data-stale={stale ? "" : undefined}
+      style={{
+        left: x,
+        top: y,
+        width: SIZE,
+        height: SIZE,
+        marginLeft: -SIZE / 2,
+        marginTop: -SIZE / 2,
+        clipPath: CLIP[node.kind],
+      }}
+      // Left click cycles toward requiring; right click (or shift) cycles the other way.
+      // Two directions on one control, because painting constraints is the main gesture in
+      // this app and reaching for a mode switch between every node would dominate it.
+      onClick={(event) => onActivate(node, event.shiftKey)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        onActivate(node, true);
+      }}
+      onMouseEnter={(event) => onHover(node, event.currentTarget)}
+      onFocus={(event) => onHover(node, event.currentTarget)}
+      onMouseLeave={() => onHover(null, null)}
+      onBlur={() => onHover(null, null)}
+      aria-label={`${node.name}${
+        state === "neutral" ? "" : `, ${state}`
+      }. ${node.maxPoints} point${node.maxPoints === 1 ? "" : "s"}.`}
+      aria-pressed={state !== "neutral"}
+    >
+      <span className={`ttm-node-face ${shapeClass(node.kind)}`}>
+        {isChoice ? (
+          <>
+            <EntryIcon icon={entries[0]!.icon} name={entries[0]!.name} half="left" />
+            <EntryIcon icon={entries[1]!.icon} name={entries[1]!.name} half="right" />
+            <span className="ttm-node-split" aria-hidden="true" />
+          </>
+        ) : (
+          <EntryIcon icon={entries[0]?.icon ?? null} name={entries[0]?.name ?? node.name} />
+        )}
+      </span>
+
+      {/* Rank pip. Only where it says something: a one-point talent does not need "1/1". */}
+      {node.maxPoints > 1 && (
+        <span className="ttm-node-ranks tabular" aria-hidden="true">
+          {node.maxPoints}
+        </span>
+      )}
+    </button>
+  );
+});

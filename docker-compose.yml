@@ -111,6 +111,23 @@ services:
               "--reload", "--reload-dir", "/app/services/api",
               "--reload-exclude", "*test*"]
 
+  # The React app, built and served by Caddy together with the /api proxy. Not started by
+  # default: `docker compose up -d` is the development stack, where Vite serves the frontend
+  # with hot reload and proxies /api itself.
+  #
+  #   docker compose --profile web up -d --build web   ->  http://localhost:8080
+  web:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    depends_on:
+      - api
+    environment:
+      TTM_SITE_ADDRESS: ${TTM_SITE_ADDRESS:-:80}
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    profiles: ["web"]
+
   # Claims solve jobs and execs the C++ engine. Scale with --scale worker=N; the queue
   # uses SKIP LOCKED so workers need no coordination.
   worker:

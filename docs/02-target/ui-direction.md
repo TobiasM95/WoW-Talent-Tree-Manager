@@ -1,7 +1,9 @@
 # UI direction
 
-Status: direction set by the owner, to be applied in Phase 3. Recorded now so it is not
-quietly defaulted away when the UI work starts.
+Status: **applied** (2026-09-21). Direction set by the owner and now implemented in
+[`../../frontend/`](../../frontend/); this document remains the brief the implementation is
+answerable to. The one open item below, type, is resolved: Cinzel for display and Alegreya
+Sans for everything that gets read, both SIL OFL.
 
 ## The brief
 
@@ -99,10 +101,25 @@ palette on bare `:root`, redefined under `prefers-color-scheme: dark` and again 
 explicit `[data-theme]` stamp, so an un-stamped system-preference visitor gets a correct
 theme too.
 
-## Open
+## Type: resolved
 
-- Type. Needs a pairing that reads as fantasy without imitating any game's faces, and that
-  stays readable at 12px in a tooltip. Likely a characterful display face used sparingly
-  for headings and tree/class names, with a plain, highly legible face doing all the work
-  in tooltips and data. Worth auditing licences at selection time, since "free" and
-  "licensed for a web product" are not the same thing.
+- **Cinzel** for display — Roman inscriptional capitals. Carved stone is the vocabulary of
+  fantasy interfaces generally rather than any one game's property, and it looks nothing
+  like the faces WoW uses, so it takes the genre without borrowing the game.
+- **Alegreya Sans** for everything that gets read. Humanist and warm rather than neutral,
+  and legible at 12px in a tooltip, which is where most of this app's text lives.
+
+Both are SIL Open Font License, which does permit use in a web product — the distinction
+the open item above was pointing at.
+
+## How it came out
+
+See [`../../frontend/README.md`](../../frontend/README.md). The parts that answer this
+brief most directly:
+
+- Three-layer tokens, so an un-stamped visitor whose OS is dark gets the dark theme.
+- Node silhouette carries type, which frees colour to carry constraint state.
+- Framing, grain and ornament are CSS gradients and a generated noise filter. Nothing is
+  lifted and nothing needs a licence.
+- The screenshot script captures both themes at desktop and phone width and fails on a
+  console error, because a design decision cannot be verified by a passing build.

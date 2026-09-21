@@ -7,20 +7,21 @@ in Postgres.
 
 ## 1. Component topology
 
-Five containers. Deliberately no Redis, no RabbitMQ, no Celery, no separate cache — Postgres
-covers queueing and caching at this scale, and every component removed is one fewer thing to
-operate.
+Four containers, plus the ingest and the one-shot jobs. Deliberately no Redis, no RabbitMQ,
+no Celery, no separate cache — Postgres covers queueing and caching at this scale, and every
+component removed is one fewer thing to operate. The frontend is not a container of its own
+either: a static build has nothing to run, so the thing already terminating TLS serves it.
 
 ```
-                    ┌─────────────┐
-   browser ────────►│   caddy     │  TLS, static assets, reverse proxy
-                    └──┬───────┬──┘
-                       │       │
-            /api/*     │       │  /*
-                       ▼       ▼
-                ┌──────────┐  ┌──────────────┐
-                │   api    │  │  frontend    │  React+Tailwind (static build)
-                │ FastAPI  │  └──────────────┘
+                    ┌──────────────────────────┐
+   browser ────────►│   web (caddy)            │  TLS, static assets, /api proxy
+                    │   └─ React+Tailwind      │  built in; no Node at runtime
+                    └──────────┬───────────────┘
+                               │ /api/*
+                               ▼
+                ┌──────────┐
+                │   api    │
+                │ FastAPI  │
                 └────┬─────┘
                      │ SQL + LISTEN/NOTIFY
                      ▼
@@ -37,8 +38,7 @@ operate.
 
 | Container | Role | Notes |
 |---|---|---|
-| `caddy` | TLS termination, static file serving, reverse proxy | Automatic HTTPS; one less config file than nginx |
-| `frontend` | build-time only | Vite build output served by caddy; no Node at runtime |
+| `web` | TLS, static assets, `/api` reverse proxy | Caddy. The Vite build is baked in at image build time, so there is no Node at runtime and no second container. `--profile web`; in development Vite serves and proxies instead. |
 | `api` | HTTP API | FastAPI + uvicorn; stateless; horizontally scalable |
 | `worker` | claims solve jobs, execs the C++ binary | Thin Python supervisor around `ttm-solver` |
 | `postgres` | data + queue + cache | Postgres 17 |

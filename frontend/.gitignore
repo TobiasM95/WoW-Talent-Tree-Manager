@@ -1,0 +1,7 @@
+node_modules/
+dist/
+# Screenshots are build output of the check scripts, regenerated on demand.
+shots/
+
+# TypeScript incremental build state.
+*.tsbuildinfo

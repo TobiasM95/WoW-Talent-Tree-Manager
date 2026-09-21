@@ -1,0 +1,274 @@
+/*
+  The tree canvas.
+
+  Constraint state is drawn as illumination and weight, not as a fourth border colour: the
+  border is already carrying node type. A required talent is lit, an excluded one is cold
+  and struck through, a grouped one is ringed. In the light theme none of them glow --
+  nothing glows in daylight -- so the same states read as saturation and ink weight instead.
+*/
+
+.ttm-canvas {
+  /*
+    Absolutely filling its panel rather than `height: 100%`. Every child here is absolutely
+    positioned, so the element's own auto height is zero -- and a percentage height cannot
+    resolve against a parent sized only by min-height. That measured as a 0px viewport, the
+    fit maths produced an off-screen offset, and the canvas came up blank at phone width
+    while looking fine on desktop, where the flex row happened to give it a definite height.
+  */
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      120% 90% at 50% 0%,
+      color-mix(in srgb, var(--class-tint) 9%, transparent) 0%,
+      transparent 60%
+    ),
+    linear-gradient(180deg, var(--panel-sunken), var(--ground-deep));
+  touch-action: none;
+  cursor: grab;
+}
+
+/*
+  A vignette, so the canvas reads as a lit surface with depth rather than a flat rectangle.
+  It does most of its work in the light theme, where there is no glow to carry atmosphere --
+  daylight on stone still falls off toward the edges of a room.
+*/
+.ttm-canvas::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(
+    115% 85% at 50% 42%,
+    transparent 55%,
+    var(--canvas-edge) 100%
+  );
+}
+
+.ttm-canvas[data-panning] {
+  cursor: grabbing;
+}
+
+.ttm-canvas-world {
+  position: absolute;
+  transform-origin: 0 0;
+  /* Pan and zoom are a single transform on one element, so a 100-node tree moves in one
+     composited step rather than laying out 100 boxes per frame. */
+  will-change: transform;
+}
+
+.canvas-hint {
+  background: linear-gradient(to top, var(--ground-deep) 30%, transparent);
+}
+
+/* --- edges ----------------------------------------------------------------- */
+
+.ttm-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ttm-edge {
+  stroke: color-mix(in srgb, var(--metal) 55%, transparent);
+  stroke-width: 2;
+  fill: none;
+}
+
+.ttm-edge[data-gate] {
+  /* An edge crossing a point gate is drawn as a dashed run: it is a prerequisite you have
+     to earn rather than merely connect to. */
+  stroke-dasharray: 4 4;
+  stroke: color-mix(in srgb, var(--metal-dim) 70%, transparent);
+}
+
+/* --- nodes ----------------------------------------------------------------- */
+
+.ttm-node {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* The whole node is one stacking context so the frame, icon and pip move together. */
+  isolation: isolate;
+  transition: filter 120ms ease, transform 120ms ease;
+}
+
+.ttm-node:hover {
+  transform: scale(1.06);
+  z-index: 2;
+}
+
+.ttm-node-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--panel-sunken);
+  /* Two rings: a dark outer edge so the node separates from the ground, and a bronze inner
+     bevel. That is the "frame is part of the design" rule at node scale. */
+  box-shadow:
+    0 0 0 2px var(--node-ring),
+    inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 55%, transparent);
+}
+
+.ttm-node-split {
+  position: absolute;
+  inset: 0;
+  /* The dividing line of a choice node, corner to corner. */
+  background: linear-gradient(
+    to bottom left,
+    transparent calc(50% - 1px),
+    var(--metal-bright) calc(50% - 1px),
+    var(--metal-bright) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}
+
+.ttm-node-ranks {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  min-width: 15px;
+  padding: 0 3px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 15px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--panel-raised);
+  border: 1px solid var(--metal-dim);
+  border-radius: 2px;
+}
+
+/* Talent art we could not fetch. A ring plus the node's own shape still reads as a talent,
+   which is the point: ~1% of names have no image upstream and the tree must not look broken.
+   The diagonal hatch is generated, not an asset. */
+[data-icon="missing"] {
+  background-image: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--metal) 22%, transparent) 0 3px,
+    transparent 3px 7px
+  );
+}
+
+/* --- constraint state ------------------------------------------------------ */
+
+.ttm-node[data-state="required"] .ttm-node-face {
+  box-shadow:
+    0 0 0 2px var(--taken),
+    inset 0 0 0 1px var(--metal-bright),
+    0 0 14px color-mix(in srgb, var(--taken) 55%, transparent);
+}
+
+.ttm-node[data-state="excluded"] .ttm-node-face {
+  box-shadow:
+    0 0 0 2px var(--barred),
+    inset 0 0 0 1px var(--metal-dim);
+  /* Cold and drained rather than merely outlined: an excluded talent should read as out of
+     play at a glance across a hundred nodes. */
+  filter: grayscale(0.85) brightness(0.55);
+}
+
+.ttm-node[data-state="excluded"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 1.5px),
+    var(--barred) calc(50% - 1.5px),
+    var(--barred) calc(50% + 1.5px),
+    transparent calc(50% + 1.5px)
+  );
+}
+
+.ttm-node[data-state="grouped"] .ttm-node-face {
+  box-shadow:
+    0 0 0 2px var(--arcane),
+    inset 0 0 0 1px var(--metal-bright),
+    var(--arcane-glow);
+}
+
+/* A pinned choice side dims the alternative that is out of play, so the node shows the
+   decision rather than needing a caption. */
+.ttm-node[data-side="a"] .ttm-node-face > :nth-child(2),
+.ttm-node[data-side="b"] .ttm-node-face > :nth-child(1) {
+  filter: grayscale(1) brightness(0.4);
+}
+
+/* A count in flight makes the whole canvas provisional. Cheaper and calmer than a spinner
+   per node, and it says the right thing: these numbers are about to change. */
+.ttm-node[data-stale] {
+  filter: saturate(0.85);
+}
+
+/* In the light theme, state is saturation and weight. Glow is removed rather than reduced:
+   a faint bloom on parchment looks like a rendering artefact. */
+:root:not([data-theme="dark"]) .ttm-node[data-state="required"] .ttm-node-face {
+  box-shadow:
+    0 0 0 3px var(--taken),
+    inset 0 0 0 1px var(--metal-bright);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-state="grouped"] .ttm-node-face {
+  box-shadow:
+    0 0 0 3px var(--arcane),
+    inset 0 0 0 1px var(--metal-bright);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-state="excluded"] .ttm-node-face {
+  filter: grayscale(0.7) brightness(0.9) contrast(0.9);
+}
+
+/* --- tooltip --------------------------------------------------------------- */
+
+.ttm-tooltip {
+  position: fixed;
+  z-index: 50;
+  max-width: 22rem;
+  padding: 0.6rem 0.75rem;
+  pointer-events: none;
+  /* Readable first, decorative second: this is read constantly, so the ground is near-flat
+     and the ornament is one bronze edge. */
+  background: var(--panel-raised);
+  border: 1px solid var(--metal);
+  border-radius: 2px;
+  box-shadow: 0 6px 20px var(--metal-shadow);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.ttm-tooltip h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--metal-bright);
+}
+
+:root:not([data-theme="dark"]) .ttm-tooltip h4 {
+  color: var(--metal-dim);
+}
+
+.ttm-tooltip p {
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+}
+
+.ttm-tooltip .rank-label {
+  color: var(--metal);
+  font-variant-numeric: tabular-nums;
+}
+
+.ttm-tooltip .meta {
+  margin-top: 0.4rem;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}

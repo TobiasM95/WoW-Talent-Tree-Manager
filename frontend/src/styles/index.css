@@ -1,0 +1,191 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+  Tailwind v4 generates utilities from @theme, so the semantic tokens are mapped here once
+  and everything else uses `bg-panel`, `text-ink-soft`, `border-metal` rather than raw
+  hex. Because the values are var() references, a theme switch is a single attribute on
+  <html> -- no class churn on every element, and no second set of `dark:` variants to keep
+  in sync with the first.
+*/
+@theme inline {
+  --color-ground: var(--ground);
+  --color-ground-deep: var(--ground-deep);
+  --color-panel: var(--panel);
+  --color-panel-raised: var(--panel-raised);
+  --color-panel-sunken: var(--panel-sunken);
+
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-inverse: var(--ink-inverse);
+
+  --color-metal: var(--metal);
+  --color-metal-bright: var(--metal-bright);
+  --color-metal-dim: var(--metal-dim);
+
+  --color-arcane: var(--arcane);
+  --color-arcane-bright: var(--arcane-bright);
+  --color-arcane-dim: var(--arcane-dim);
+  --color-arcane-wash: var(--arcane-wash);
+
+  --color-taken: var(--taken);
+  --color-taken-wash: var(--taken-wash);
+  --color-barred: var(--barred);
+  --color-barred-wash: var(--barred-wash);
+  --color-locked: var(--locked-ink);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+}
+
+@layer base {
+  html {
+    background: var(--ground);
+  }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Numbers are compared constantly here -- counts, point budgets, progress. Tabular
+     figures stop them jittering as they tick. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2,
+  h3,
+  .display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* The ornament is decoration; it must never be what makes an interaction feel slow, and
+     for anyone who asked for less motion it should simply not move. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+  --- surface treatments -------------------------------------------------------
+
+  The framing is the design, not a 1px line: a bronze edge, a bevelled inner border and a
+  cast shadow, built from gradients rather than images so there is nothing to license, no
+  extra request, and no blurring when it scales.
+*/
+.grain {
+  position: relative;
+  isolation: isolate;
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: var(--grain-blend);
+  /* Fractal noise, generated in the browser. Original material by construction. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+}
+
+.panel {
+  background:
+    linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 55%, var(--panel-sunken) 100%);
+  border: var(--frame-width) solid var(--metal-dim);
+  border-radius: var(--radius-panel);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 35%, transparent),
+    0 2px 10px var(--metal-shadow);
+}
+
+/* Corner ornament: four short bronze rules that stop short of meeting, which reads as
+   worked metal rather than as a box. Drawn with gradients, so it costs no elements. */
+.framed {
+  position: relative;
+}
+
+.framed::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--metal) 45%, transparent);
+  border-radius: 1px;
+  mask-image:
+    linear-gradient(to right, #000 0 14px, transparent 14px calc(100% - 14px), #000 calc(100% - 14px) 100%),
+    linear-gradient(to bottom, #000 0 14px, transparent 14px calc(100% - 14px), #000 calc(100% - 14px) 100%);
+  mask-composite: add;
+  -webkit-mask-composite: source-over;
+}
+
+.rule {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--metal) 70%, transparent) 20%,
+    var(--metal-bright) 50%,
+    color-mix(in srgb, var(--metal) 70%, transparent) 80%,
+    transparent
+  );
+}
+
+/* --- controls --------------------------------------------------------------- */
+
+.btn {
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 0.9rem;
+  border-radius: 2px;
+  border: 1px solid var(--metal-dim);
+  background: linear-gradient(180deg, var(--panel-raised), var(--panel-sunken));
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms, color 120ms;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: var(--metal-bright);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 40%, transparent);
+}
+
+.btn:disabled {
+  color: var(--locked-ink);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-arcane {
+  border-color: var(--arcane-dim);
+  color: var(--arcane);
+  background: linear-gradient(180deg, var(--panel-raised), var(--arcane-wash));
+}
+
+.btn-arcane:hover:not(:disabled) {
+  border-color: var(--arcane);
+  box-shadow: var(--arcane-glow), inset 0 0 0 1px var(--arcane-wash);
+  color: var(--arcane-bright);
+}
