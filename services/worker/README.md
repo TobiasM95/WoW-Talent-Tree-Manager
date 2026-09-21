@@ -7,10 +7,16 @@ docker compose up -d worker
 docker compose up -d --scale worker=4 worker    # SKIP LOCKED needs no coordination
 docker compose logs -f worker
 
-# Tests: decoding, filter strings, and progress parsing against the real solver.
-# Engine/ is mounted because the solver-backed test needs the preset file.
+# Tests. test_worker.py needs no database; Engine/ is mounted because the
+# solver-backed progress and cancel tests run the real binary.
 docker compose run --rm -v "$PWD/Engine:/app/Engine" worker   python /app/services/worker/test_worker.py
+docker compose run --rm --entrypoint python worker   /app/services/worker/test_queue.py
 ```
+
+**The worker does not hot-reload.** `./services` is mounted, so the API (running under
+`uvicorn --reload`) picks up edits immediately and the worker does not: it keeps the code
+it started with. `docker compose restart worker` after changing `worker.py`, or a test run
+will quietly grade the old code and pass.
 
 ## The loop
 
@@ -56,6 +62,7 @@ behind the gate matches the engine on all 160 trees and on every filter shape te
 |---|---|
 | `done` | Complete, and the count matched the prediction. |
 | `capped` | Truncated by the time budget or the result cap. Partial builds are kept, with the reason in `error`. A distinct outcome, not a failure. |
+| `cancelled` | Someone asked for it to stop. No results are kept. |
 | `failed` | The solve could not be completed. The message is user-facing. |
 
 `capped` exists because a truncated result is genuinely different from both success and
@@ -125,6 +132,45 @@ that took 0.11 s. With `COPY` the same job completes in about 16 seconds. The de
 generator feeding the COPY directly, so neither the engine's output nor the decoded builds
 are ever all in memory at once.
 
+## Cancellation
+
+`POST /solve/{id}/cancel`. A queued job is cancelled outright, in the same statement that
+reads its state — checking first and writing after has a race, because a worker can claim
+the job in the gap and the write would then mark a *running* job cancelled with nothing
+telling the worker to stop.
+
+A running job is **asked** to stop. `cancel_requested` is a separate column from `state`
+for that reason: a worker holds the row and a solver process is running, and neither stops
+because a table changed. Writing `state = 'cancelled'` directly would claim the job had
+stopped while its solver was still burning a core — and the worker's own `finish()` would
+then overwrite the claim.
+
+The worker hears about it **for free**. It already writes progress once a second, so the
+flag rides back on that statement's `RETURNING` clause: no extra query, no second
+connection, no `LISTEN`/`NOTIFY`, and observed within about a second.
+
+What happens then depends on the phase:
+
+| Phase | How it stops |
+|---|---|
+| `solving` | The solver is killed. A cancelled enumeration has no partial value, and the engine has no input channel to ask on. |
+| `storing` | Unwinding out of the `COPY` aborts the transaction, so no rows survive. |
+| between phases | `enter()` checks before starting — no point storing two million rows a pending cancel is about to discard. |
+
+A row with `progress = 0` and no matching row is also a stop signal: it means the job is
+no longer `running` under this worker, whether cancelled outright or requeued by a sweeper
+that thought the worker was dead.
+
+**The sweeper cancels rather than requeues.** If the worker that was told to stop is the
+one that died, returning the job to the queue would start the work again with the
+instruction to stop still unread. `requeue_expired` is the only code that moves a row back
+to `queued`, so that is where it has to be caught.
+
+A cancelled job keeps the progress fraction it actually reached. `finish()` only forces
+`progress = 1` for `done` and `capped` — reporting 100% for work abandoned at 40% would
+misstate what happened, and that number is what a client displays.
+
 ## Not yet here
 
-- **Cancellation.** The `cancelled` state exists in the schema but nothing sets it.
+- **Cancelling from another worker's perspective.** Cancellation is observed by the worker
+  running the job. Nothing needs a broadcast today, because there is exactly one holder.

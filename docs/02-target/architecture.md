@@ -149,6 +149,7 @@ CREATE TABLE solve_jobs (
   attempts       smallint NOT NULL DEFAULT 0,
   progress       real NOT NULL DEFAULT 0,
   phase          text,                    -- solving | storing | finalizing
+  cancel_requested boolean NOT NULL DEFAULT false,
   result_count   bigint,
   error          text,
   locked_by      text,
@@ -186,7 +187,14 @@ Three details that matter:
   value optimisation available and it costs one index.
 - **Crash recovery**: a sweeper requeues rows stuck in `running` past a lease timeout
   (`locked_at < now() - interval '10 min'`), up to a max `attempts`. Workers extend the lease as
-  they report progress.
+  they report progress. One exception: a row with `cancel_requested` is *cancelled* rather than
+  requeued, since restarting work whose stop instruction is still unread is worse than losing it.
+- **Cancellation is a request, not a state.** `cancel_requested` is a separate column because a
+  worker holds the row and a solver process is running, and neither stops because a table
+  changed. The worker learns about it on the progress write it already makes once a second, via
+  `RETURNING cancel_requested` — no `LISTEN`/`NOTIFY`, no polling query. Queued jobs are
+  cancelled outright in the same statement that reads their state, because checking first and
+  writing after loses to a worker claiming the job in between.
 
 ### Results
 

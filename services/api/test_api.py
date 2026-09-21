@@ -264,6 +264,25 @@ def t_solved_builds_actually_satisfy_the_group():
 
 # --- solve jobs (need a running worker) ------------------------------------
 
+def get_raw(path):
+    """Like get(), but returns (status, body) instead of raising on 4xx."""
+    try:
+        with urllib.request.urlopen(BASE + path, timeout=60) as r:
+            return r.status, json.loads(r.read())
+    except urllib.error.HTTPError as exc:
+        return exc.code, json.loads(exc.read() or b"{}")
+
+
+def _queue_a_cancellable_job():
+    """A job big enough to still be running when the cancel arrives.
+
+    Just under the listing limit: the engine finishes in well under a second, so what the
+    cancel lands in is the storing phase. That is the realistic case anyway -- storing is
+    where a large job actually spends its wall clock.
+    """
+    return post("/solve", {"treeKey": SPEC, "points": 25}, expect=202)
+
+
 def _await_job(job_id, timeout=120):
     import time
     deadline = time.time() + timeout
@@ -338,6 +357,60 @@ def t_results_are_not_served_before_they_exist():
         assert exc.code == 404, exc.code
 
 
+def t_cancelling_a_finished_job_is_refused():
+    """A job that already produced results cannot be un-produced."""
+    tree = get(f"/trees/{SPEC}")
+    plain = [n["nodeId"] for n in tree["nodes"] if n["kind"] != "choice"]
+    job = post("/solve", {"treeKey": SPEC, "points": 10, "mustHave": plain[3:6]},
+               expect=202)
+    done = _await_job(job["id"])
+    assert done["state"] == "done", done
+    body = post(f"/solve/{job['id']}/cancel", {}, expect=409)
+    assert "done" in body.get("detail", ""), body
+
+
+def t_cancel_is_idempotent():
+    """Retrying a cancel returns the same answer instead of failing.
+
+    A client that loses the response to its first cancel has no way to tell whether it
+    landed. Making the retry an error would push that ambiguity onto the caller.
+    """
+    job = _queue_a_cancellable_job()
+    first = post(f"/solve/{job['id']}/cancel", {}, expect=200)
+    second = post(f"/solve/{job['id']}/cancel", {}, expect=200)
+    assert first["cancelRequested"] and second["cancelRequested"], (first, second)
+    final = _await_job(job["id"])
+    assert final["state"] == "cancelled", final
+
+
+def t_cancelled_job_keeps_no_results():
+    """A cancelled job leaves nothing half-stored.
+
+    The store is a single COPY, so unwinding out of it aborts the transaction -- there is
+    no state in which a user can page through the fraction of a job they cancelled.
+    """
+    job = _queue_a_cancellable_job()
+    post(f"/solve/{job['id']}/cancel", {}, expect=200)
+    final = _await_job(job["id"])
+    assert final["state"] == "cancelled", final
+    assert final["resultCount"] in (None, 0), final
+    status, _ = get_raw(f"/solve/{job['id']}/results")
+    assert status == 409, status
+
+
+def t_cancelled_job_does_not_claim_full_progress():
+    """Progress must not read 100% for work that was abandoned."""
+    job = _queue_a_cancellable_job()
+    post(f"/solve/{job['id']}/cancel", {}, expect=200)
+    final = _await_job(job["id"])
+    assert final["state"] == "cancelled", final
+    assert final["progress"] < 1.0, final["progress"]
+
+
+def t_cancelling_an_unknown_job_is_404():
+    post("/solve/00000000-0000-0000-0000-000000000000/cancel", {}, expect=404)
+
+
 def main() -> int:
     print(f"api: {BASE}")
     for name, fn in [
@@ -386,6 +459,17 @@ def main() -> int:
         ("impossible solve refused", t_impossible_solve_is_refused),
         ("identical requests share one job", t_identical_requests_share_one_job),
         ("results not served before they exist", t_results_are_not_served_before_they_exist),
+    ]:
+        check(name, fn)
+
+    print("\ncancellation:")
+    for name, fn in [
+        ("cancelling a finished job is refused", t_cancelling_a_finished_job_is_refused),
+        ("cancel is idempotent", t_cancel_is_idempotent),
+        ("a cancelled job keeps no results", t_cancelled_job_keeps_no_results),
+        ("a cancelled job does not claim full progress",
+         t_cancelled_job_does_not_claim_full_progress),
+        ("cancelling an unknown job is 404", t_cancelling_an_unknown_job_is_404),
     ]:
         check(name, fn)
 

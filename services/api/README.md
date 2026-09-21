@@ -23,6 +23,7 @@ open http://localhost:8000/docs        # generated OpenAPI
 | `POST /solve` | Queue a filtered enumeration — refused if the gate says it is too large |
 | `GET /solve/{id}` | Job state, phase, progress, expected and actual counts |
 | `GET /solve/{id}/results` | A page of matching builds, nodeId-keyed |
+| `POST /solve/{id}/cancel` | Stop a job, if it can still be stopped |
 
 `/health` reporting data age is deliberate: the legacy pipeline's defining failure was that
 nothing ever asked how old the data was, so it served stale trees for months after breaking.
@@ -118,7 +119,22 @@ driven by the solver alone would sit at 100% for almost the whole wait. `finaliz
 fraction to report and says so rather than inventing one. See
 [`../worker/README.md`](../worker/README.md).
 
+## Cancellation
+
+`POST /solve/{id}/cancel` answers with the job, and the job says which of two things
+happened:
+
+- `state: "cancelled"` — it was still queued, and is now gone.
+- `state: "running"`, `cancelRequested: true` — a worker holds it. It stops within about a
+  second, and a UI shows "cancelling..." on that flag rather than pretending it is done.
+
+Cancelling an already-cancelled job returns 200 with the same answer, because a client that
+lost the response to its first attempt cannot tell whether it landed. Cancelling a `done`,
+`capped` or `failed` job is a 409: those cannot be un-produced.
+
+A cancelled job keeps no results and does not report 100% progress. See
+[`../worker/README.md`](../worker/README.md) for how the worker notices.
+
 ## Not yet here
 
 - **Auth.** Nothing here needs an account; identity is additive and comes later.
-- **Cancellation.** The `cancelled` state exists in the schema but nothing sets it.

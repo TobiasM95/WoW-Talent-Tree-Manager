@@ -68,6 +68,10 @@ class SolveFailed(RuntimeError):
     """The solve could not be completed. The message reaches the user."""
 
 
+class Cancelled(RuntimeError):
+    """Someone asked for this job to stop. Not a failure, and not the job's fault."""
+
+
 # ---------------------------------------------------------------------------
 # decoding the engine's output
 # ---------------------------------------------------------------------------
@@ -170,7 +174,7 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
 # ---------------------------------------------------------------------------
 
 def _run_streaming(args: list[str], stdout_path: str, hard_timeout: float,
-                   on_progress) -> tuple[str, str, int, bool]:
+                   on_progress) -> tuple[str, str, int, bool, bool]:
     """
     Run the solver, consuming its stderr line by line so progress is visible while the
     job is still running.
@@ -183,8 +187,15 @@ def _run_streaming(args: list[str], stdout_path: str, hard_timeout: float,
     solver produces no lines at all -- there would be nothing for a read deadline to
     interrupt. It is a backstop; the engine's own --time-budget-ms is what normally
     stops a long solve, cleanly and with partial results intact.
+
+    `on_progress` returning False means stop: the solver is killed rather than asked
+    nicely, because a cancelled enumeration has no partial value to preserve and the
+    engine has no input channel to ask on.
+
+    Returns (stdout, stderr tail, exit code, timed out, stopped on request).
     """
     killed = threading.Event()
+    stopped = False
     stderr_tail: list[str] = []
 
     with open(stdout_path, "w", encoding="utf-8") as sink:
@@ -202,14 +213,16 @@ def _run_streaming(args: list[str], stdout_path: str, hard_timeout: float,
                 line = line.strip()
                 match = PROGRESS_RE.match(line)
                 if match:
-                    if on_progress is not None:
-                        on_progress(int(match.group(1)))
+                    if on_progress is not None and not on_progress(int(match.group(1))):
+                        stopped = True
+                        proc.kill()
+                        break
                 elif line:
                     # Anything else on stderr is diagnostic; keep the tail for the
                     # error message rather than the whole stream.
                     stderr_tail.append(line)
                     del stderr_tail[:-20]
-            proc.wait()
+            proc.wait()  # also reaps the process after an early break
         finally:
             watchdog.cancel()
             if proc.stderr:
@@ -217,7 +230,8 @@ def _run_streaming(args: list[str], stdout_path: str, hard_timeout: float,
 
     with open(stdout_path, encoding="utf-8", errors="replace") as handle:
         stdout_text = handle.read()
-    return stdout_text, "\n".join(stderr_tail), proc.returncode, killed.is_set()
+    return (stdout_text, "\n".join(stderr_tail), proc.returncode,
+            killed.is_set(), stopped)
 
 
 def run_solve(solver: str, tree: dict, request: dict, workdir: str,
@@ -255,10 +269,12 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str,
 
     hard_timeout = (time_budget / 1000) + 60
     started = time.monotonic()
-    stdout_text, stderr_tail, returncode, killed = _run_streaming(
+    stdout_text, stderr_tail, returncode, killed, stopped = _run_streaming(
         args, os.path.join(workdir, "solver.out"), hard_timeout, on_progress)
     elapsed = time.monotonic() - started
 
+    if stopped:
+        raise Cancelled("cancelled while solving")
     if killed:
         raise subprocess.TimeoutExpired(args, hard_timeout)
     if returncode != 0:
@@ -339,6 +355,11 @@ class ProgressReporter:
     COPY, and a connection in COPY mode accepts no other statement -- an UPDATE sent
     down the same connection waits for a COPY that is itself waiting on the row that
     would trigger the next report. That deadlocks, silently, with the job stuck at 0%.
+
+    It is also how the worker hears about cancellation. The flag rides back on the same
+    statement's RETURNING clause, so noticing costs nothing: there was already a write
+    per second, and a cancel is now observed within that second without a second query,
+    a second connection, or LISTEN/NOTIFY.
     """
 
     def __init__(self, conn, job_id, expected):
@@ -348,21 +369,35 @@ class ProgressReporter:
         self.phase = None
         self.last_write = 0.0
         self.broken = False
+        self.cancelled = False
 
     def enter(self, phase: str, expected=None) -> None:
-        """Start a new phase, resetting the fraction and forcing an immediate write."""
+        """Start a new phase, resetting the fraction and forcing an immediate write.
+
+        Also the cancellation checkpoint between phases: there is no point starting to
+        store two million rows that a pending cancel is about to throw away.
+        """
         self.phase = phase
         if expected is not None:
             self.expected = int(expected)
         self.last_write = 0.0
         self(0)
+        if self.cancelled:
+            raise Cancelled("cancelled before " + phase)
 
-    def __call__(self, count: int, force: bool = False) -> None:
+    def __call__(self, count: int, force: bool = False) -> bool:
+        """Report progress; returns False once a cancellation has been seen.
+
+        A return value rather than an exception, because the caller is sometimes inside a
+        COPY or holding a live subprocess and has to unwind it deliberately.
+        """
+        if self.cancelled:
+            return False
         if self.broken:
-            return
+            return True
         now = time.monotonic()
         if not force and now - self.last_write < PROGRESS_MIN_WRITE_SECONDS:
-            return
+            return True
         self.last_write = now
         # Clamp: the column is CHECKed to [0, 1], and a count can exceed the
         # prediction if the request was edited between the gate and the solve.
@@ -371,10 +406,17 @@ class ProgressReporter:
             with self.conn.cursor() as cur:
                 cur.execute(
                     "UPDATE solve_jobs SET progress = %s, phase = %s, locked_at = now() "
-                    "WHERE id = %s AND state = 'running'",
+                    "WHERE id = %s AND state = 'running' "
+                    "RETURNING cancel_requested",
                     (fraction, self.phase, self.job_id),
                 )
+                row = cur.fetchone()
             self.conn.commit()
+            # No row means the job is no longer running under us -- cancelled outright,
+            # or requeued by a sweeper that thought we were dead. Either way, stop.
+            if row is None or row[0]:
+                self.cancelled = True
+                return False
         except Exception:  # noqa: BLE001
             # Losing progress reporting must not lose the job that is producing it.
             self.broken = True
@@ -382,6 +424,7 @@ class ProgressReporter:
                 self.conn.rollback()
             except Exception:  # noqa: BLE001
                 pass
+        return True
 
 
 def store_results(conn, job_id, rows, reporter=None) -> int:
@@ -407,8 +450,11 @@ def store_results(conn, job_id, rows, reporter=None) -> int:
                 stored += 1
                 # The check is batched because it is on the hot path; the reporter
                 # throttles the writes themselves on top of this.
-                if reporter is not None and stored % PROGRESS_ROW_BATCH == 0:
-                    reporter(stored)
+                if (reporter is not None and stored % PROGRESS_ROW_BATCH == 0
+                        and not reporter(stored)):
+                    # Unwinding out of the COPY aborts the transaction, which is exactly
+                    # right: a cancelled job leaves no rows behind to explain.
+                    raise Cancelled("cancelled while storing")
             if reporter is not None:
                 # Marked here, inside the block, not after it: leaving a COPY is not free.
                 # Closing it flushes the stream and waits while the server builds
@@ -421,15 +467,23 @@ def store_results(conn, job_id, rows, reporter=None) -> int:
 
 
 def finish(conn, job_id, state, *, result_count=None, error=None):
+    """Record a terminal state and release the lease.
+
+    `progress` is only forced to 1 for a job that ran to the end. A cancelled or failed
+    job keeps the fraction it actually reached: claiming 100% for work that was abandoned
+    at 40% would misreport what happened, and that number is what a client displays.
+    """
+    completed = state in ("done", "capped")
     with conn.cursor() as cur:
         cur.execute(
             """
             UPDATE solve_jobs
             SET state = %s, result_count = %s, error = %s, finished_at = now(),
-                progress = 1, phase = NULL, locked_by = NULL, locked_at = NULL
+                progress = CASE WHEN %s THEN 1 ELSE progress END,
+                phase = NULL, locked_by = NULL, locked_at = NULL
             WHERE id = %s
             """,
-            (state, result_count, error, job_id),
+            (state, result_count, error, completed, job_id),
         )
     conn.commit()
 
@@ -441,9 +495,25 @@ def requeue_expired(conn) -> int:
     indistinguishable to a user from one that is simply slow.
     """
     with conn.cursor() as cur:
+        # A job whose cancellation is pending must not be handed back to the queue: the
+        # worker that was told to stop is the one that died, and requeueing would start
+        # the work again with the instruction to stop still sitting unread. This is the
+        # only place a row returns to 'queued', so it is the only place that can catch it.
         cur.execute(
             """
-            UPDATE solve_jobs SET state = 'queued', locked_by = NULL, locked_at = NULL
+            UPDATE solve_jobs
+            SET state = 'cancelled', finished_at = now(),
+                locked_by = NULL, locked_at = NULL, phase = NULL
+            WHERE state = 'running' AND cancel_requested
+              AND locked_at < now() - make_interval(secs => %s)
+            """,
+            (LEASE_SECONDS,),
+        )
+        cancelled = cur.rowcount
+        cur.execute(
+            """
+            UPDATE solve_jobs SET state = 'queued', locked_by = NULL, locked_at = NULL,
+                                  phase = NULL
             WHERE state = 'running' AND locked_at < now() - make_interval(secs => %s)
               AND attempts < %s
             """,
@@ -462,7 +532,7 @@ def requeue_expired(conn) -> int:
         )
         failed = cur.rowcount
     conn.commit()
-    return requeued + failed
+    return requeued + failed + cancelled
 
 
 def _rollback(conn) -> None:
@@ -519,6 +589,10 @@ def process_one(conn, progress_conn, solver: str, worker_id: str) -> bool:
         finish(conn, job_id, "done", result_count=stored)
         print(f"worker: {job_id} done, {stored} builds in {meta['elapsed']:.2f}s "
               f"solving, {time.monotonic() - started:.2f}s total", flush=True)
+    except Cancelled as exc:
+        _rollback(conn)
+        finish(conn, job_id, "cancelled", error=None)
+        print(f"worker: {job_id} cancelled ({exc})", flush=True)
     except SolveFailed as exc:
         _rollback(conn)
         finish(conn, job_id, "failed", error=str(exc)[:500])

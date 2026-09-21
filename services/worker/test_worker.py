@@ -15,6 +15,7 @@ a mock reproduces by construction and therefore cannot catch.
 import os
 import subprocess
 import sys
+import time
 import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -132,10 +133,16 @@ def test_progress_streaming(solver, tmp):
             "--count-only",
             "--max-results", "10000000000",
             "--progress", "--progress-interval-ms", "250"]
-    stdout_text, stderr_tail, code, killed = worker._run_streaming(
-        args, os.path.join(tmp, "out.txt"), 600, seen.append)
+    def record(count):
+        seen.append(count)
+        return True
 
-    check("solver exited cleanly", code == 0 and not killed, f"code={code} killed={killed}")
+    stdout_text, stderr_tail, code, killed, stopped = worker._run_streaming(
+        args, os.path.join(tmp, "out.txt"), 600, record)
+
+    check("solver exited cleanly",
+          code == 0 and not killed and not stopped,
+          f"code={code} killed={killed} stopped={stopped}")
     check("progress lines were seen", len(seen) > 5, f"{len(seen)} lines")
     check("progress only increases", seen == sorted(seen), repr(seen[:5]))
     check("progress stays under the final count",
@@ -146,13 +153,46 @@ def test_progress_streaming(solver, tmp):
           "PROGRESS" not in stderr_tail, stderr_tail[:120])
 
 
+def test_cancel_kills_the_solver(solver, tmp):
+    """A cancel during the solving phase must actually stop the solver.
+
+    Same 24-second solve as above, told to stop on the second progress line. If the kill
+    did not work this would run to completion, so the elapsed time is the assertion: the
+    process has to be gone long before the solve would have finished.
+    """
+    seen = []
+
+    def stop_after_two(count):
+        seen.append(count)
+        return len(seen) < 2
+
+    args = [solver,
+            "--structure-file-path", PRESETS,
+            "--structure-indices", "2",
+            "--target-talent-count", "30",
+            "--count-only",
+            "--max-results", "10000000000",
+            "--progress", "--progress-interval-ms", "250"]
+    started = time.monotonic()
+    stdout_text, _, _, killed, stopped = worker._run_streaming(
+        args, os.path.join(tmp, "cancel.out"), 600, stop_after_two)
+    elapsed = time.monotonic() - started
+
+    check("stop request is reported", stopped and not killed,
+          f"stopped={stopped} killed={killed}")
+    check("solver died promptly", elapsed < 10, f"{elapsed:.1f}s (full solve is ~24s)")
+    check("no final count was produced",
+          "combinations" not in stdout_text, stdout_text[-120:])
+
+
 def test_watchdog(tmp):
     """A solver that never exits must not hold the worker forever."""
     script = os.path.join(tmp, "hang.py")
     write(script, "import time\ntime.sleep(300)\n")
-    _, _, _, killed = worker._run_streaming(
+    _, _, _, killed, stopped = worker._run_streaming(
         [sys.executable, script], os.path.join(tmp, "hang.out"), 2.0, None)
-    check("a hung solver is killed at the deadline", killed)
+    check("a hung solver is killed at the deadline", killed and not stopped,
+          f"killed={killed} stopped={stopped}")
 
 
 def main():
@@ -163,6 +203,7 @@ def main():
         test_watchdog(tmp)
         if solver and os.path.exists(PRESETS):
             test_progress_streaming(solver, tmp)
+            test_cancel_kills_the_solver(solver, tmp)
         else:
             print("skip solver-backed progress test (no ttm-solver found)")
 

@@ -177,6 +177,9 @@ class JobResponse(BaseModel):
     # second and then spend far longer writing them. "finalizing" has no fraction at all
     # and reports 0 rather than inventing one.
     phase: str | None
+    # A cancellation was asked for but the job has not stopped yet. A UI shows
+    # "cancelling..." on this rather than pretending the job is already gone.
+    cancelRequested: bool = False
     error: str | None
     createdAt: str
     finishedAt: str | None
@@ -362,7 +365,8 @@ def _job_row(row: dict, tree_key: str) -> "JobResponse":
         points=int(row["request"]["points"]),
         expectedCount=int(row["expected_count"]) if row["expected_count"] is not None else None,
         resultCount=int(row["result_count"]) if row["result_count"] is not None else None,
-        progress=float(row["progress"]), phase=row.get("phase"), error=row["error"],
+        progress=float(row["progress"]), phase=row.get("phase"),
+        cancelRequested=bool(row.get("cancel_requested")), error=row["error"],
         createdAt=row["created_at"].isoformat(),
         finishedAt=row["finished_at"].isoformat() if row["finished_at"] else None,
     )
@@ -456,6 +460,57 @@ def get_job(job_id: str) -> "JobResponse":
     if not row:
         raise HTTPException(404, f"no job {job_id}")
     return _job_row(row, row["tree_key"])
+
+
+@app.post("/solve/{job_id}/cancel", response_model=JobResponse)
+def cancel_job(job_id: str) -> "JobResponse":
+    """Stop a job, if it can still be stopped.
+
+    A queued job is cancelled outright. A running one is *asked* to stop: a worker holds
+    it and a solver process is running, and neither can be stopped by writing to a table,
+    so this records the request and the worker acts on it within about a second. The
+    response says which happened -- `state` is already `cancelled`, or `cancelRequested`
+    is set and `state` is still `running`.
+
+    One statement, because the alternative has a race: read the state, decide, write. A
+    worker can claim a queued job in that gap, and the write would then mark a running
+    job cancelled without anything telling the worker to stop.
+    """
+    from psycopg.rows import dict_row
+    with pool().connection() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                """
+                UPDATE solve_jobs SET
+                    cancel_requested = true,
+                    state       = CASE WHEN state = 'queued' THEN 'cancelled'
+                                       ELSE state END,
+                    finished_at = CASE WHEN state = 'queued' THEN now()
+                                       ELSE finished_at END
+                WHERE id = %s AND state IN ('queued', 'running')
+                RETURNING *, (SELECT key FROM trees
+                              WHERE id = tree_id AND revision = tree_revision) AS tree_key
+                """, (job_id,))
+            row = cur.fetchone()
+            conn.commit()
+            if row:
+                return _job_row(row, row["tree_key"])
+
+            # Nothing was updated: either the job does not exist, or it already finished.
+            # Cancelling a cancelled job is not an error -- a client that retries should
+            # get the same answer, not a failure.
+            cur.execute(
+                """
+                SELECT j.*, t.key AS tree_key FROM solve_jobs j JOIN trees t
+                  ON t.id = j.tree_id AND t.revision = j.tree_revision
+                WHERE j.id = %s
+                """, (job_id,))
+            row = cur.fetchone()
+    if not row:
+        raise HTTPException(404, f"no job {job_id}")
+    if row["state"] == "cancelled":
+        return _job_row(row, row["tree_key"])
+    raise HTTPException(409, f"job is already {row['state']} and cannot be cancelled")
 
 
 @app.get("/solve/{job_id}/results")
