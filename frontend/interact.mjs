@@ -22,6 +22,30 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures.push(name);
 };
 
+/**
+ * Wait for the target to answer before opening a browser at it.
+ *
+ * A freshly created container takes a second or two to bind, and both of these suites have
+ * already reported a false failure against one that was still starting. A test that fails
+ * because of its own timing teaches the wrong lesson twice: once when it fails, and again
+ * when someone learns to re-run it rather than read it.
+ */
+async function waitForServer(target, timeoutMs = 30000) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      const response = await fetch(target, { redirect: "manual" });
+      if (response.status < 500) return;
+    } catch {
+      /* not listening yet */
+    }
+    if (Date.now() > deadline) throw new Error(`${target} did not respond within ${timeoutMs}ms`);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}
+
+await waitForServer(url);
+
 const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
