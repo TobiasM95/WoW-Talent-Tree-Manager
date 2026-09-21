@@ -8,8 +8,10 @@ constraints.
 
 > **Status: being rebuilt as a web application.**
 > The native Windows client (v1.4.2) was discontinued in July 2024. It is preserved on the
-> [`archive/native-client`](../../tree/archive/native-client) branch. Work in progress; not
-> yet deployable.
+> [`archive/native-client`](../../tree/archive/native-client) branch.
+>
+> The core loop runs end to end — count, constrain, enumerate, inspect — on live retail data
+> for all 160 trees. Not yet public; the tree editor, sharing and sim analysis are not built.
 
 ## What this is
 
@@ -39,6 +41,47 @@ code, the target architecture, and the open decisions:
 | [`docs/03-plan/open-questions.md`](docs/03-plan/open-questions.md) | What is settled and what still needs deciding |
 | [`docs/03-plan/roadmap.md`](docs/03-plan/roadmap.md) | Phased plan with exit criteria |
 
+## Running it
+
+Everything is in Docker Compose. Postgres carries the data, the queue and the cache; there
+is no broker and no separate cache to operate.
+
+```bash
+docker compose up -d postgres
+docker compose run --rm migrate                     # schema
+docker compose run --rm ingest --point-caps --descriptions
+docker compose run --rm loader                      # trees + precomputed counts
+docker compose run --rm sync-icons                  # optional; see docs/02-target/icons.md
+docker compose up -d api worker
+
+cd frontend && npm install && npm run dev           # http://localhost:5173
+```
+
+Or the production shape — Caddy serving the built frontend and proxying `/api`:
+
+```bash
+docker compose --profile web up -d --build web      # http://localhost:8080
+```
+
+The ingest fetches live talent data from Raidbots and derives point caps from DB2. The
+loader refuses to promote a revision whose description coverage collapses against what is
+already being served, so a run without `--descriptions` cannot quietly replace a complete
+dataset with a blank one.
+
+### Checking it
+
+| | |
+|---|---|
+| `python tests/golden_counts.py build/ttm-solver` | Engine counts against known-correct values |
+| `python tools/frontier-dp/test_counting.py` | The frontier DP the pre-flight gate uses |
+| `python services/ingest/tests/test_ingest.py` | Transform and validation |
+| `python services/ingest/tests/test_icons.py` | Icon names and fetch classification |
+| `python services/api/test_api.py` | The API, against a live instance |
+| `services/worker/test_worker.py` | Decoding, progress parsing, the watchdog |
+| `services/worker/test_queue.py` | The lease sweeper |
+| `bash services/db/smoke_test.sh` | End to end, and that the constraints bite |
+| `cd frontend && npm test` | The real interactions in a real browser |
+
 ## Repository layout
 
 | Path | What |
@@ -47,7 +90,11 @@ code, the target architecture, and the open decisions:
 | `CLI/` | Headless entry point to the engine; becoming the server-side worker binary. |
 | `GUI/`, `AppUpdater/` | The native Dear ImGui client. Retained as the reference implementation while the web app catches up. Not actively developed. |
 | `docs/` | Analysis, target architecture, and plan. |
-| `services/` | New backend services (ingest, api, worker). |
+| `services/` | Backend services: ingest, api, worker, database schema and loaders. |
+| `frontend/` | The web client. React + Tailwind; see [`frontend/README.md`](frontend/README.md). |
+| `docker/` | Container definitions and the Caddy config. |
+| `tools/frontier-dp/` | The counting DP, kept as the verified reference implementation. |
+| `tests/` | Golden counts for the C++ engine. |
 
 The `WoW Talent Manager.sln` still builds the native client in Visual Studio 2022. A portable
 CMake build for `Engine` + `CLI` is being added alongside it so the solver can run in Linux
