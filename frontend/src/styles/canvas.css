@@ -200,6 +200,46 @@
   filter: grayscale(1) brightness(0.4);
 }
 
+/* --- inspecting one build --------------------------------------------------
+   While a build is selected the canvas answers a different question, so the constraint
+   colours step aside: what matters is which talents this build takes. Taken ones are lit
+   and full strength, untaken ones recede to the ground. */
+
+.ttm-node[data-spent="yes"] .ttm-node-face {
+  box-shadow:
+    0 0 0 2px var(--taken),
+    inset 0 0 0 1px var(--metal-bright),
+    0 0 16px color-mix(in srgb, var(--taken) 50%, transparent);
+}
+
+.ttm-node[data-spent="no"] .ttm-node-face {
+  filter: grayscale(0.9) brightness(0.45) contrast(0.9);
+  box-shadow:
+    0 0 0 2px var(--node-ring),
+    inset 0 0 0 1px color-mix(in srgb, var(--metal-dim) 50%, transparent);
+}
+
+/* An untaken talent's strike-through would be noise here -- nothing was barred, it simply
+   is not in this build. */
+.ttm-node[data-spent] .ttm-node-ranks {
+  color: var(--ink);
+  border-color: var(--taken);
+}
+
+.ttm-node[data-spent="no"]::after {
+  content: none;
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-spent="yes"] .ttm-node-face {
+  box-shadow:
+    0 0 0 3px var(--taken),
+    inset 0 0 0 1px var(--metal-bright);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-spent="no"] .ttm-node-face {
+  filter: grayscale(0.85) brightness(1.06) contrast(0.8) opacity(0.6);
+}
+
 /* A count in flight makes the whole canvas provisional. Cheaper and calmer than a spinner
    per node, and it says the right thing: these numbers are about to change. */
 .ttm-node[data-stale] {

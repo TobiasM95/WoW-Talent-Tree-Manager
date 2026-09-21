@@ -200,6 +200,50 @@ if (wasCached) {
 
 await page.screenshot({ path: `${outDir}/state-done.png` });
 
+// --- inspecting the results ------------------------------------------------
+/*
+  A list of builds is not the useful artefact -- a build is twenty talents, and twenty rows
+  of numbers tell nobody anything. The tree is. So what is checked here is that selecting a
+  build actually paints it onto the canvas, and that stepping to the next one paints a
+  different set.
+*/
+const browser_ = page.locator("section", { hasText: "Builds" }).first();
+check("a results browser appears for a finished job", (await browser_.count()) === 1);
+
+if (await browser_.count()) {
+  await page.waitForFunction(() => !!document.querySelector(".ttm-node[data-spent]"), {
+    timeout: 10000,
+  });
+  const taken = () => page.locator('.ttm-node[data-spent="yes"]').count();
+  const untaken = () => page.locator('.ttm-node[data-spent="no"]').count();
+
+  const firstTaken = await taken();
+  check("the selected build is drawn on the tree", firstTaken > 0, `${firstTaken} lit`);
+  check("talents outside the build recede", (await untaken()) > 0);
+
+  // Every build spends the whole budget, so the count of lit nodes is not the signal --
+  // *which* nodes are lit is. Compare the identity of the set, not its size.
+  const litIds = async () =>
+    (await page.locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
+      els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
+    ));
+  const before = await litIds();
+  await page.locator('button[aria-label="Next build"]').click();
+  await page.waitForTimeout(400);
+  check("stepping to the next build changes which talents are lit",
+        (await litIds()) !== before);
+
+  // The panel stack grows twice over a job's life, so the column has to stay reachable.
+  const aside = page.locator("aside").first();
+  const fits = await aside.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return box.bottom <= window.innerHeight + 1;
+  });
+  check("the sidebar stays within the viewport once results arrive", fits);
+
+  await page.screenshot({ path: `${outDir}/state-build.png` });
+}
+
 await browser.close();
 
 console.log();

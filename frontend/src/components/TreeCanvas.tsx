@@ -19,6 +19,8 @@ export interface TreeCanvasProps {
   states: Map<number, NodeState>;
   sides: Map<number, "a" | "b" | "none">;
   stale?: boolean;
+  /** nodeId -> points, for the build currently being inspected. */
+  build?: Record<string, number> | null;
   onActivate: (node: NodeData, alternate: boolean) => void;
 }
 
@@ -63,7 +65,14 @@ function layoutOf(tree: TreeDetail): Layout {
   };
 }
 
-export function TreeCanvas({ tree, states, sides, stale, onActivate }: TreeCanvasProps) {
+export function TreeCanvas({
+  tree,
+  states,
+  sides,
+  stale,
+  build,
+  onActivate,
+}: TreeCanvasProps) {
   const viewport = useRef<HTMLDivElement>(null);
   const [view, setView] = useState({ x: 0, y: 0, zoom: 1 });
   const [panning, setPanning] = useState(false);
@@ -210,6 +219,7 @@ export function TreeCanvas({ tree, states, sides, stale, onActivate }: TreeCanva
             state={states.get(node.nodeId) ?? "neutral"}
             side={sides.get(node.nodeId)}
             stale={stale}
+            spent={build ? (build[String(node.nodeId)] ?? 0) : undefined}
             onActivate={onActivate}
             onHover={onHover}
           />

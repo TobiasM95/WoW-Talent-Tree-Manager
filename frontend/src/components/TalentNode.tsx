@@ -28,6 +28,12 @@ export interface TalentNodeProps {
   side?: "a" | "b" | "none";
   /** Set while a count is in flight, so the canvas can read as provisional. */
   stale?: boolean;
+  /**
+   * Points this talent has in the build being inspected, or undefined when no build is
+   * selected. A selected build takes over the node's appearance from the constraint state:
+   * the question has moved from "what did I ask for" to "what does this build do".
+   */
+  spent?: number;
   onActivate: (node: NodeData, alternate: boolean) => void;
   onHover: (node: NodeData | null, element: HTMLElement | null) => void;
 }
@@ -87,6 +93,7 @@ export const TalentNode = memo(function TalentNode({
   state,
   side,
   stale,
+  spent,
   onActivate,
   onHover,
 }: TalentNodeProps) {
@@ -99,6 +106,7 @@ export const TalentNode = memo(function TalentNode({
       className="ttm-node absolute"
       data-state={state}
       data-kind={node.kind}
+      data-spent={spent === undefined ? undefined : spent > 0 ? "yes" : "no"}
       data-side={side ?? undefined}
       data-stale={stale ? "" : undefined}
       style={{
@@ -139,10 +147,12 @@ export const TalentNode = memo(function TalentNode({
         )}
       </span>
 
-      {/* Rank pip. Only where it says something: a one-point talent does not need "1/1". */}
-      {node.maxPoints > 1 && (
+      {/* Rank pip. While a build is being inspected it shows what that build spends here;
+          otherwise it shows the talent's maximum, and only where that says something -- a
+          one-point talent does not need "1/1". */}
+      {(spent !== undefined ? spent > 0 : node.maxPoints > 1) && (
         <span className="ttm-node-ranks tabular" aria-hidden="true">
-          {node.maxPoints}
+          {spent !== undefined ? `${spent}/${node.maxPoints}` : node.maxPoints}
         </span>
       )}
     </button>

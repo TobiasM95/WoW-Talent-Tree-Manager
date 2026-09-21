@@ -1,9 +1,10 @@
 # Frontend
 
-React + Tailwind. One screen: pick a tree, paint constraints on it, watch the count, then
-enumerate. That shape follows from the product model — the count is free and answered
-inline, so it belongs beside the canvas being painted rather than behind a "calculate"
-step. The number moving as constraints land *is* the feedback loop.
+React + Tailwind. One screen: pick a tree, paint constraints on it, watch the count,
+enumerate, then step through the builds on the tree itself. That shape follows from the
+product model — the count is free and answered inline, so it belongs beside the canvas
+being painted rather than behind a "calculate" step. The number moving as constraints land
+*is* the feedback loop.
 
 ```bash
 docker compose up -d postgres api worker      # the services it talks to
@@ -60,6 +61,7 @@ game data the tool exists to display; everything around them is ours.
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
 | `components/CountGate.tsx` | The pre-flight count and the listable verdict. |
 | `components/JobPanel.tsx` | A running enumeration, per phase. |
+| `components/ResultsBrowser.tsx` | A cursor over the enumerated builds. |
 
 ## Things worth knowing before changing this
 
@@ -82,6 +84,13 @@ for a budget the user has already moved past.
 value per talent, so *listing* supports one at-least-one group and one exactly-one group.
 Offering more in the canvas would produce constraints the counter honours and the
 enumerator silently drops.
+
+**The results browser is a cursor, not a list.** A build is twenty talents; twenty rows of
+numbers tell nobody anything. Selecting a build paints it onto the canvas — taken talents
+lit with their point counts, everything else receding — and arrow keys step through them, so
+moving between builds animates the difference. That is the question a person actually has
+after asking for every build matching their constraints. Pages of 100, because "every
+matching build" reaches two million.
 
 **A missing icon is normal.** Upstream has no art for about 1% of names. Those render with
 a hatched fill and the node still reads as a talent.
@@ -111,3 +120,5 @@ awkwardness:
 - **Deduplication.** An identical request is served from the previous job, instantly, with
   no phases to observe. That is the cache working, so the test asserts it rather than
   working around it.
+- **Every build spends the whole budget.** So the *number* of lit talents is not a signal
+  that stepping to the next build did anything — the test compares which talents are lit.
