@@ -22,6 +22,7 @@ bash services/db/smoke_test.sh                     # end-to-end check
 | `users`, `sessions` | Minimal identity. The core loop works anonymously. |
 | `loadouts`, `builds` | Saved builds, keyed by Blizzard `nodeId`. |
 | `solve_jobs`, `solve_results` | The filtered-enumeration queue and its output. |
+| `icons` | Per-name icon image cache, including the negative cache. Derived data. |
 
 `current_trees` is a view returning only the highest **promoted** revision — that is what
 the API should read, never `trees` directly.
@@ -57,6 +58,22 @@ constraints anywhere, and one global `ContentID` space shared across six tables 
 be probed to discover what an id referred to. Here every entity has its own id space, and
 the smoke test asserts that the constraints actually reject bad data rather than merely
 being declared.
+
+**A revision is refused if it is worse than what is being served.** The loader compares
+description coverage against the promoted revision and rolls the whole load back on a
+collapse. This is not theoretical: running the ingest without `--descriptions` produces a
+perfectly valid revision in which every entry has empty text, and promoting it silently
+replaces a fully-described dataset with a blank one. Nothing else would complain — the
+trees are correct and the counts are correct, and only a user reading a talent would
+notice. That is exactly the quiet degradation that killed the legacy pipeline.
+`--allow-coverage-drop` overrides it when the drop is intended.
+
+**Icons live here too, at about 5 MB.** 2,094 names at ~2.3 KB. At that size the question
+is not performance but operational surface: a table needs no extra mount, no separate backup
+path and nothing more to reason about when a container is replaced. Rows with
+`status <> 200` are the negative cache — upstream genuinely has no art for 19 of those
+names, and without recording that the sync would re-ask forever. See
+[`../../docs/02-target/icons.md`](../../docs/02-target/icons.md).
 
 **Queue is `FOR UPDATE SKIP LOCKED`.** A partial index on `state = 'queued'` serves the
 claim path; a partial unique index on `request_hash` makes dedup and caching the same

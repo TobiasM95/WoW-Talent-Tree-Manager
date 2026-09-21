@@ -15,7 +15,7 @@ open http://localhost:8000/docs        # generated OpenAPI
 
 | | |
 |---|---|
-| `GET /health` | Liveness, the promoted revision, and **how old the data is** |
+| `GET /health` | Liveness, the promoted revision, **how old the data is**, and description/icon coverage |
 | `GET /trees` | Every tree in the promoted revision; filter by `kind`, `classId`, `specId` |
 | `GET /trees/{key}` | Full definition: nodes, edges, gating, entries, per-rank descriptions |
 | `GET /trees/{key}/counts` | Precomputed unfiltered counts for every budget |
@@ -24,6 +24,7 @@ open http://localhost:8000/docs        # generated OpenAPI
 | `GET /solve/{id}` | Job state, phase, progress, expected and actual counts |
 | `GET /solve/{id}/results` | A page of matching builds, nodeId-keyed |
 | `POST /solve/{id}/cancel` | Stop a job, if it can still be stopped |
+| `GET /icons/{name}` | One talent icon, cached for a year |
 
 `/health` reporting data age is deliberate: the legacy pipeline's defining failure was that
 nothing ever asked how old the data was, so it served stale trees for months after breaking.
@@ -134,6 +135,17 @@ lost the response to its first attempt cannot tell whether it landed. Cancelling
 
 A cancelled job keeps no results and does not report 100% progress. See
 [`../worker/README.md`](../worker/README.md) for how the worker notices.
+
+## Icons
+
+`GET /icons/{name}` serves one talent icon with `Cache-Control: immutable`, a one-year
+max-age and an ETag, so a returning visitor makes no icon requests at all. `?size=` takes
+18, 36 or 56. The `.jpg` a browser will append is optional.
+
+**A 404 is expected.** Upstream has no art for every name the talent payload uses (19 of
+2,094 today), so a client renders the talent without its icon rather than treating it as an
+error. `iconCoverage` on `/health` says how complete the cache is; the application works
+with it empty. See [`../../docs/02-target/icons.md`](../../docs/02-target/icons.md).
 
 ## Not yet here
 

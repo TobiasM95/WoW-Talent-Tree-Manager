@@ -75,8 +75,14 @@ normalised to `null`. Treating `0` as a node id invents an edge.
 - **`rankLevels` is carried, and resolved downstream.** Tiered nodes' max ranks depend on
   character level; the solver and the DP both resolve them against a level cap before
   expanding a tree.
-- **No icons yet.** Individual files behind a cache, not the 16 MB packed atlas that grew
-  `.git` to 1.4 GB.
+- **Icon *names* only, normalised.** The transform lowercases them and strips an asset
+  extension, because the live payload carries `ability_druid_mangle.tga` — a raw filename.
+  The images are a separate, optional cache filled by `sync-icons`: individual files behind
+  a cache, not the 16 MB packed atlas that grew `.git` to 1.4 GB. See
+  [`../../docs/02-target/icons.md`](../../docs/02-target/icons.md).
+- **An ingest without `--descriptions` will be refused by the loader.** It produces a valid
+  revision with every entry's text empty, and promoting that would silently replace a
+  described dataset with a blank one. The loader compares coverage and rolls back.
 
 ## Descriptions
 

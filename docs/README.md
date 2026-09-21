@@ -34,6 +34,7 @@ It separates what the analysis settled from what still needs a decision.
 | [`data-model.md`](02-target/data-model.md) | Proposed JSON schemas for trees, builds and loadouts; the identifier-stability rule; interop-format keep/replace decisions; Postgres mapping |
 | [`architecture.md`](02-target/architecture.md) | Container topology, the Postgres-based queue, the engine worker protocol, frontend approach, ingestion requirements, auth, and what is deliberately excluded |
 | [`ui-direction.md`](02-target/ui-direction.md) | The interface should feel like it belongs to a fantasy game: what to draw from in WoW's own visual language, and which default web looks are explicitly rejected |
+| [`icons.md`](02-target/icons.md) | **Implemented (2026-09-21).** Where talent icon images come from, the position taken on assets nobody here owns, why one file per name rather than an atlas, and why a missing icon is cached as an answer |
 | [`talent-data-sources.md`](02-target/talent-data-sources.md) | Comparison of SimC, the Blizzard Game Data API, and community sources; retail vs. classic; why simc is the wrong primary source and what to use instead |
 
 ### 03 — Plan

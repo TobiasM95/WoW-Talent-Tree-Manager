@@ -48,6 +48,49 @@ def load_dp():
     return load_tree_json, build_expanded_graph, topo_sort, count_frontier_dp
 
 
+# How much worse than what is already being served a revision may be before promotion is
+# refused. Coverage moves a little between ingests as upstream adds spells faster than
+# tooltips; a wholesale collapse is a different thing entirely.
+COVERAGE_TOLERANCE = 0.02
+
+
+def _currently_serving(cur) -> tuple[int, float] | None:
+    """(revision, description coverage) of the revision being served right now, if any."""
+    cur.execute(
+        """
+        SELECT revision, description_coverage FROM ingest_runs
+        WHERE promoted_at IS NOT NULL AND description_coverage IS NOT NULL
+        ORDER BY promoted_at DESC LIMIT 1
+        """)
+    row = cur.fetchone()
+    return (int(row[0]), float(row[1])) if row else None
+
+
+def _coverage_regression(serving, new_coverage) -> str | None:
+    """Describe a description-coverage regression against what is being served, or None.
+
+    This exists because of a mistake that is very easy to make: running the ingest without
+    `--descriptions` produces a perfectly valid revision in which every entry has empty
+    text, and promoting it silently replaces a fully-described dataset with a blank one.
+    Nothing downstream would complain -- the trees are correct, the counts are correct, and
+    only a user reading a talent would notice.
+
+    That is the exact failure mode that killed the original pipeline: not a crash, but quiet
+    degradation that nothing was watching for. So the loader compares against what is
+    already being served and refuses to make it worse without being told to.
+    """
+    if serving is None:
+        return None
+    previous_revision, previous = serving
+    current = 0.0 if new_coverage is None else float(new_coverage)
+    if current >= previous - COVERAGE_TOLERANCE:
+        return None
+    detail = ("no descriptions at all -- was the ingest run without --descriptions?"
+              if new_coverage is None else f"coverage fell to {current:.1%}")
+    return (f"description coverage {previous:.1%} -> {current:.1%} "
+            f"(serving revision {previous_revision}): {detail}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Load TTM trees into Postgres.")
     parser.add_argument("--database-url", default=os.environ.get("DATABASE_URL"))
@@ -58,6 +101,9 @@ def main() -> int:
     parser.add_argument("--skip-counts", action="store_true",
                         help="load trees without precomputing build counts")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--allow-coverage-drop", action="store_true",
+                        help="promote even if description coverage is worse than the "
+                             "revision currently being served")
     args = parser.parse_args()
 
     if not args.database_url:
@@ -115,6 +161,12 @@ def main() -> int:
 
     with psycopg.connect(args.database_url) as conn:
         with conn.cursor() as cur:
+            # Read what is being served *before* touching anything. The upsert below
+            # overwrites this revision's own coverage and clears its promoted_at, so after
+            # it there is nothing left to compare against -- and re-ingesting the same
+            # upstream build reuses the same revision number, which is the common case.
+            serving = _currently_serving(cur)
+
             # Re-running the same revision updates it in place rather than deleting it.
             # Deleting would cascade into trees, which solve_jobs references -- a reload
             # must never destroy a user's job. promoted_at is cleared here and set again
@@ -195,7 +247,25 @@ def main() -> int:
                 )
                 print(f"inserted  {sum(len(v) for v in counts.values()):,} count rows")
 
-            # Only now is the revision fit to serve.
+            # Only now is the revision fit to serve -- if it is actually an improvement
+            # on what is being served already.
+            regression = _coverage_regression(serving, descriptions.get("coverage"))
+            if regression and not args.allow_coverage_drop:
+                # Everything, not just the promotion. Re-ingesting the same upstream build
+                # reuses the revision number, so the upsert above has already cleared the
+                # good revision's promoted_at and coverage -- committing the load while
+                # withholding the promotion would un-promote the very data it protects.
+                conn.rollback()
+                print(f"REFUSED to promote revision {revision}: {regression}",
+                      file=sys.stderr)
+                print("  Nothing was written: the whole load is rolled back, so the "
+                      "previous revision keeps being served.", file=sys.stderr)
+                print("  Re-run the ingest with --descriptions, or pass "
+                      "--allow-coverage-drop if the drop is intended.", file=sys.stderr)
+                return 1
+            if regression:
+                print(f"WARNING: {regression} (promoting anyway, as asked)",
+                      file=sys.stderr)
             cur.execute(
                 "UPDATE ingest_runs SET promoted_at = now() WHERE revision = %s",
                 (revision,),

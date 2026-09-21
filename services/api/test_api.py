@@ -264,6 +264,21 @@ def t_solved_builds_actually_satisfy_the_group():
 
 # --- solve jobs (need a running worker) ------------------------------------
 
+def _raw_request(path, headers=None):
+    """(status, headers, body) for a request that may legitimately be a 304 or a 4xx.
+
+    The headers are returned as the message object, not a dict: HTTP header names are
+    case-insensitive and dict() makes them case-sensitive, so `.get("ETag")` would miss a
+    header spelled `etag` on the wire.
+    """
+    req = urllib.request.Request(BASE + path, headers=headers or {})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status, r.headers, r.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.headers, exc.read()
+
+
 def get_raw(path):
     """Like get(), but returns (status, body) instead of raising on 4xx."""
     try:
@@ -411,6 +426,74 @@ def t_cancelling_an_unknown_job_is_404():
     post("/solve/00000000-0000-0000-0000-000000000000/cancel", {}, expect=404)
 
 
+def _an_icon_name():
+    tree = get(f"/trees/{SPEC}")
+    for node in tree["nodes"]:
+        for entry in node["entries"]:
+            if entry.get("icon"):
+                return entry["icon"]
+    raise AssertionError("no tree entry carries an icon name")
+
+
+def t_icon_is_served_with_immutable_caching():
+    """An icon never changes under a name, which is the whole reason to serve them per file.
+
+    Without `immutable` + a long max-age, a tree canvas would re-request 60 icons on every
+    navigation; with it, the second visit makes no icon requests at all.
+    """
+    status, headers, body = _raw_request(f"/icons/{_an_icon_name()}.jpg")
+    assert status == 200, status
+    assert headers.get("Content-Type", "").startswith("image/"), headers
+    assert "immutable" in headers.get("Cache-Control", ""), headers
+    assert headers.get("ETag"), headers
+    # JPEG magic. Serving something a browser cannot decode would still pass a status check.
+    assert body[:2] == bytes((0xFF, 0xD8)), body[:8]
+
+
+def t_icon_honours_conditional_get():
+    path = f"/icons/{_an_icon_name()}"
+    _, headers, _ = _raw_request(path)
+    status, _, body = _raw_request(path, {"If-None-Match": headers["ETag"]})
+    assert status == 304, status
+    assert not body, body[:32]
+
+
+def t_icon_extension_is_optional():
+    """`/icons/foo` and `/icons/foo.jpg` are the same icon.
+
+    Both spellings will be written by hand, and the name normaliser the ingest uses already
+    strips the extension -- so this is a property of sharing that function, not a special case.
+    """
+    name = _an_icon_name()
+    bare = _raw_request(f"/icons/{name}")
+    with_ext = _raw_request(f"/icons/{name}.jpg")
+    assert bare[0] == with_ext[0] == 200, (bare[0], with_ext[0])
+    assert bare[2] == with_ext[2], "different bytes for the same icon"
+
+
+def t_unknown_icon_is_404_not_an_error():
+    """Upstream has no art for every name, so a miss is expected and must be survivable."""
+    status, _, _ = _raw_request("/icons/spell_this_does_not_exist_at_all")
+    assert status == 404, status
+
+
+def t_icon_name_is_validated():
+    for bad in ("/icons/not%20a%20name", "/icons/a"):
+        status, _, _ = _raw_request(bad)
+        assert status == 400, (bad, status)
+
+
+def t_icon_size_is_validated():
+    status, _, _ = _raw_request(f"/icons/{_an_icon_name()}?size=64")
+    assert status == 400, status
+
+
+def t_health_reports_icon_coverage():
+    body = get("/health")
+    coverage = body.get("iconCoverage")
+    assert coverage is None or 0.0 <= coverage <= 1.0, coverage
+
+
 def main() -> int:
     print(f"api: {BASE}")
     for name, fn in [
@@ -459,6 +542,19 @@ def main() -> int:
         ("impossible solve refused", t_impossible_solve_is_refused),
         ("identical requests share one job", t_identical_requests_share_one_job),
         ("results not served before they exist", t_results_are_not_served_before_they_exist),
+    ]:
+        check(name, fn)
+
+    print("\nicons:")
+    for name, fn in [
+        ("an icon is served with immutable caching",
+         t_icon_is_served_with_immutable_caching),
+        ("a conditional GET gets 304", t_icon_honours_conditional_get),
+        ("the .jpg extension is optional", t_icon_extension_is_optional),
+        ("an unknown icon is 404", t_unknown_icon_is_404_not_an_error),
+        ("an unusable icon name is 400", t_icon_name_is_validated),
+        ("an unsupported size is 400", t_icon_size_is_validated),
+        ("health reports icon coverage", t_health_reports_icon_coverage),
     ]:
         check(name, fn)
 

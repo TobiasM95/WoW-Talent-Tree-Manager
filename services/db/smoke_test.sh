@@ -68,4 +68,23 @@ if psql -c "BEGIN;
   fail "solve_jobs accepted an unknown phase"
 fi
 
+# The icon cache must not be able to hold a row that says "here is an image" with no
+# image, or one whose body is too small to be a real icon. Either would reach a browser as
+# a broken image with nothing in the pipeline reporting a problem.
+if psql -c "INSERT INTO icons (name, size, status, source)
+            VALUES ('smoke_test_icon', 56, 200, 'test')" 2>/dev/null; then
+  fail "icons accepted status 200 with no bytes"
+fi
+if psql -c "INSERT INTO icons (name, size, status, content_type, bytes, etag, source)
+            VALUES ('smoke_test_icon', 56, 200, 'image/jpeg', decode('00', 'hex'),
+                    'x', 'test')" 2>/dev/null; then
+  fail "icons accepted a body too small to be an image"
+fi
+# Upstream paths are built from the name, so anything outside the alphabet is refused at
+# the storage layer as well as in code.
+if psql -c "INSERT INTO icons (name, size, status, source)
+            VALUES ('../../etc/passwd', 56, 404, 'test')" 2>/dev/null; then
+  fail "icons accepted a name outside the allowed alphabet"
+fi
+
 echo "== ok: $trees trees ($hero hero), counts present, constraints enforced"

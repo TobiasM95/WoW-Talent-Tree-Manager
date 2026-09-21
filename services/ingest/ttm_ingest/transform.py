@@ -15,6 +15,8 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Iterable
 
+from . import icons
+
 SCHEMA_VERSION = 1
 
 # Namespace for deterministic tree ids. Re-ingesting the same tree yields the same id,
@@ -85,13 +87,27 @@ def _entry(raw: dict[str, Any]) -> dict[str, Any]:
         "visibleSpellId": raw.get("visibleSpellId"),
         "name": raw.get("name") or "",
         "kind": kind,
-        "icon": raw.get("icon"),
+        # Normalised here so the stored definition is clean: upstream carries at least one
+        # raw asset filename ("ability_druid_mangle.tga"), and every consumer downstream --
+        # the icon sync, the API, the client -- would otherwise have to know that. A name
+        # nothing can be made of becomes None rather than failing the ingest; a tree with
+        # one icon missing is still a correct tree.
+        "icon": _icon_name(raw.get("icon")),
         "index": raw.get("index"),
         "maxRanks": raw.get("maxRanks"),
         # Raidbots carries no tooltip text. Descriptions are an unsolved input; the
         # legacy pipeline scraped Wowhead HTML for them. See open question Q4.
         "ranks": [],
     }
+
+
+def _icon_name(value: Any) -> str | None:
+    if not value:
+        return None
+    try:
+        return icons.normalise(value)
+    except icons.IconNameError:
+        return None
 
 
 def _node(

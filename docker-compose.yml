@@ -73,6 +73,24 @@ services:
       - ./data:/app/data
     entrypoint: ["python", "services/db/load_trees.py"]
 
+  # Fills the per-name icon cache. Idempotent: it fetches only what is missing, so it is
+  # safe to run after every ingest even though icons rarely change.
+  sync-icons:
+    build:
+      context: .
+      dockerfile: docker/python.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://ttm:ttm_dev_only@postgres:5432/ttm}
+      # Blizzard's own renderer. Point this at a mirror, or leave the cache empty and the
+      # client falls back to drawing talents by name. See docs/02-target/icons.md.
+      TTM_ICON_BASE_URL: ${TTM_ICON_BASE_URL:-https://render.worldofwarcraft.com/us/icons}
+    volumes:
+      - ./services:/app/services
+    entrypoint: ["python", "services/db/sync_icons.py"]
+
   api:
     build:
       context: .

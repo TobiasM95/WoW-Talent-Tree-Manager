@@ -22,7 +22,7 @@ import sys
 import time
 from typing import Annotated, Any, Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field, field_validator
 
 # The frontier DP lives in tools/ as the verified reference implementation; the API uses it
@@ -31,7 +31,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), "tools", "frontier-dp"))
 sys.path.insert(0, os.path.join("tools", "frontier-dp"))
 
+# The ingest package owns icon-name normalisation; the API must agree with it exactly, or a
+# lookup would miss the very row the sync wrote.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))), "services", "ingest"))
+sys.path.insert(0, os.path.join("services", "ingest"))
+
 DEFAULT_LEVEL_CAP = 90
+
+# Icons are content-addressed by name and never change under a name, so they can be cached
+# for a year. This is the entire reason to serve them per file instead of as an atlas.
+ICON_CACHE_SECONDS = 31_536_000
 
 # Above this many matching builds, listing them is not something to offer. The count is
 # free, so this is a product decision enforced at the gate rather than a worker failure.
@@ -234,8 +244,41 @@ def health() -> dict[str, Any]:
         "trees": run["tree_count"],
         "nodes": run["node_count"],
         "descriptionCoverage": run["description_coverage"],
+        "iconCoverage": _icon_coverage(),
         "dataAgeSeconds": run["age_seconds"],
     }
+
+
+def _icon_coverage() -> float | None:
+    """Fraction of referenced icon names with a cached image.
+
+    Reported next to descriptionCoverage for the same reason: the legacy pipeline's defining
+    failure was that nothing asked whether the data it served was complete. Icons are
+    optional -- a client renders talents by name without them -- so this is information,
+    not a health failure, and None means the cache has never been filled.
+    """
+    try:
+        rows = query(
+            """
+            WITH referenced AS (
+                SELECT DISTINCT lower(e->>'icon') AS name
+                FROM current_trees t,
+                     jsonb_array_elements(t.definition->'nodes') n,
+                     jsonb_array_elements(n->'entries') e
+                WHERE e->>'icon' IS NOT NULL
+            )
+            SELECT count(*) AS want,
+                   count(i.name) AS have
+            FROM referenced r
+            LEFT JOIN icons i ON i.name = r.name AND i.status = 200
+            """
+        )
+    except Exception:  # noqa: BLE001 - health must report, not raise
+        return None
+    want = int(rows[0]["want"] or 0)
+    if not want:
+        return None
+    return round(int(rows[0]["have"] or 0) / want, 4)
 
 
 @app.get("/trees", response_model=list[TreeSummary])
@@ -529,6 +572,53 @@ def get_job_results(job_id: str, offset: int = 0, limit: int = Query(100, ge=1, 
         "total": int(rows[0]["result_count"] or 0), "offset": offset,
         "builds": [r["points"] for r in results],
     }
+
+
+@app.get("/icons/{name}", responses={200: {"content": {"image/jpeg": {}}}})
+def get_icon(name: str, request: Request,
+             size: int = Query(56, description="18, 36 or 56")) -> Response:
+    """One talent icon, cached hard.
+
+    Served per file rather than as an atlas, which is the point of the whole icon layer: a
+    browser caches each icon separately and drawing one tree does not mean downloading
+    every icon in the game. An icon never changes under a name, so the response is
+    `immutable` with a one-year lifetime and an ETag -- after the first visit a tree canvas
+    makes no icon requests at all.
+
+    A 404 here is expected and survivable. Upstream does not have art for every name the
+    talent payload uses (19 of 2,094 today), so a client must render a talent without its
+    icon rather than treat this as an error.
+
+    The `.jpg` a browser will happily append is stripped by the same normaliser the ingest
+    uses, so `/icons/foo` and `/icons/foo.jpg` are the same icon.
+    """
+    from ttm_ingest import icons as icon_source
+
+    try:
+        key = icon_source.normalise(name)
+    except icon_source.IconNameError:
+        raise HTTPException(400, f"not an icon name: {name!r}") from None
+    if size not in icon_source.SIZES:
+        raise HTTPException(400, f"size must be one of {list(icon_source.SIZES)}")
+
+    rows = query(
+        "SELECT content_type, bytes, etag FROM icons "
+        "WHERE name = %s AND size = %s AND status = 200", (key, size))
+    if not rows:
+        raise HTTPException(404, f"no cached icon {key!r} at {size}px")
+
+    row = rows[0]
+    etag = f'"{row["etag"]}"'
+    headers = {
+        "Cache-Control": f"public, max-age={ICON_CACHE_SECONDS}, immutable",
+        "ETag": etag,
+    }
+    # A revalidating client gets no body. Cheap to honour and it is what `immutable`
+    # promises, so honour it rather than shipping the bytes again.
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=bytes(row["bytes"]), media_type=row["content_type"],
+                    headers=headers)
 
 
 @app.post("/counts", response_model=CountResponse)
