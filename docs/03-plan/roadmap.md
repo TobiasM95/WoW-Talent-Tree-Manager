@@ -170,18 +170,22 @@ Done:
 - **Share by URL**, carrying the tree, the budget, every constraint and the build being
   inspected — 124 characters for a 27-point build with nine constraints. No account needed.
 
+- **Point spending by hand**, across all three trees at once, under the same rules the solver
+  counts under. The rules are lifted from the counting DP rather than from a reading of the
+  game, and the test suite asserts the agreement the only way that means anything: it builds
+  loadouts and asks the API to count them.
+- **Hero sub-tree selection**, and with it the multi-tree view.
+
 Still to do in this phase:
 
-- **Point spending by hand.** The canvas paints *constraints*, not points; building a loadout
-  directly is a different interaction on the same surface.
-- **Hero sub-tree selection**, and with it the multi-tree question: a loadout is class + spec +
-  hero, while the solver works one tree at a time.
-- **Loadout management**: multiple named builds per tree.
+- **Loadout management**: multiple named builds, which needs somewhere to keep them — so it
+  waits on Phase 4.
 - **Import/export**: Blizzard loadout string, SimC string, `ttm1.` share codes. The loadout
-  string spans all three trees, so it waits on the item above.
+  string is a bit-packed encoding over the spec's `fullNodeOrder`, which the ingest already
+  carries; this is the next piece of work.
 
-Exit criteria: a player can land on the site, build a spec, solve it under constraints, and share
-a link — without signing in. **Everything but "build a spec" by hand is there.**
+**Phase 3 exit criteria met.** A player can land on the site, build a spec across all three
+trees, solve it under constraints, and share a link — without signing in.
 
 ## Phase 4 — Accounts and persistence
 

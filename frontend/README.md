@@ -1,8 +1,11 @@
 # Frontend
 
-React + Tailwind. One screen: a specialisation's three trees side by side, constraints
-painted on whichever the solver is pointed at, and the count moving as they land. Then
-enumerate, and step through the builds on the tree itself. That shape follows from the
+React + Tailwind. One screen, two modes.
+
+**Build** spends points by hand across all three of a specialisation's trees, under the
+same rules the solver counts under. **Explore** paints constraints on the tree the solver
+is pointed at, watches the count move as they land, enumerates the matches, and steps
+through them on the tree itself. That shape follows from the
 product model — the count is free and answered inline, so it belongs beside the canvas
 being painted rather than behind a "calculate" step. The number moving as constraints land
 *is* the feedback loop.
@@ -15,8 +18,9 @@ npm run dev                                   # http://localhost:5173
 npm run typecheck
 npm run shots                                 # both themes, desktop + phone
 npm run test:share                            # the share codec, no browser
+npm run test:loadout                          # spending rules, against the API
 npm test                                      # drives the real interactions
-npm run test:all                              # all three
+npm run test:all                              # all four
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -87,6 +91,7 @@ game data the tool exists to display; everything around them is ours.
 | `components/SpecRail.tsx` | Class and specialisation selection. |
 | `components/TreePane.tsx` | One tree, with its heading and active state. |
 | `lib/share.ts` | The whole view, encoded into the URL. |
+| `lib/loadout.ts` | Spending points by hand, under the solver's rules. |
 | `lib/classes.ts` | Class colours, one value per theme. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
@@ -125,11 +130,40 @@ moving between builds animates the difference. That is the question a person act
 after asking for every build matching their constraints. Pages of 100, because "every
 matching build" reaches two million.
 
+**A hand-built loadout must be one the counter counts.** That is the property the
+spending rules exist to hold, and `npm run test:loadout` asserts it by building real
+loadouts on real trees and asking the API to count them. If the two ever disagree the
+tool is telling a player they have made something it also says does not exist -- the kind
+of quiet contradiction nobody notices until it has shipped for months. So the rules are
+lifted from the counting DP rather than from a reading of the game:
+
+1. total spent is below the tree's cap;
+2. total spent is at least the node's `pointsRequired`, measured *before* this point;
+3. the first point in a node needs a way in -- the node is a root, or some parent is
+   **fully ranked**. Not merely taken: the DP attaches a node's children to its *last*
+   rank, so a two-rank talent gates its children until both points are in it.
+
+Placement is greedy, and exact because of it: taking a point never removes an option, so
+if any order can place a point, placing what is available now cannot prevent it. That is
+also what makes a refund cascade correctly -- re-place what remains and whatever no longer
+has a way in simply does not land.
+
+**Refunds cascade rather than refusing.** Taking a point out of the middle of a tree can
+strand everything below it, and a tool that answers "no" leaves the player to work out
+which of thirty talents is the obstacle. Re-placing what remains says instead: here is
+what your build becomes.
+
 **Statistics and a single build cannot share the canvas.** They answer different questions
 — "what do all of these have in common" and "what does this one do" — and drawing both would
 make neither legible. One switch moves between them: turning the heat map on releases the
 selected build, and picking a build turns the heat map off. Without that, stepping into a
 build was a one-way door whose only exit also discarded the constraints.
+
+**Build and explore cannot share the canvas either**, and they cannot share an attribute.
+`spent` means what the player has taken in one and what a finished build contains in the
+other, and the treatments are opposites -- an untaken talent you could still take must
+stay inviting, one absent from a finished build should recede. They collided once, which
+made a tree with no points in it nearly invisible.
 
 **The URL is the state, and it uses node ids.** The tree, the budget, every constraint and
 the build being inspected all live in the query string, so a link reproduces the screen
@@ -138,6 +172,11 @@ are base36 for length, never positional: the legacy format stored points positio
 regeneration silently reassigned them to different talents, and a link outlives more
 revisions than a database row does. The URL is *replaced* rather than pushed, because
 painting constraints is a dozen clicks and nobody thinks of it as navigation.
+
+It carries the loadout for all three trees, which hero tree is showing, and **the mode**.
+The mode is carried rather than inferred: a link can hold both a hand-built loadout and an
+enumerated build, and guessing from which fields are present produced a link that reopened
+showing neither.
 
 **Trees are scaled by grid pitch, not overall width.** Normalising total width made every
 tree the same number of pixels across regardless of its column count, which stretched a

@@ -26,8 +26,29 @@ export interface ShareState {
   sides: Map<number, ChoiceSide>;
   atLeastOne: number[];
   exactlyOne: number[];
-  /** A specific build being inspected: nodeId -> points. */
+  /** A specific enumerated build being inspected on the active tree: nodeId -> points. */
   build: Record<string, number> | null;
+  /**
+   * Points spent by hand, per tree.
+   *
+   * Three separate fields rather than one keyed by tree name, because a loadout spans class,
+   * specialisation and hero and a link has to carry all three -- a class build without its
+   * spec is not a build anyone meant to share. `hero` names which hero tree, since a spec
+   * has two and the points alone would not say which.
+   */
+  spent: { class: Record<string, number> | null;
+           spec: Record<string, number> | null;
+           hero: Record<string, number> | null };
+  heroKey: string | null;
+  /**
+   * Which mode the link opens in.
+   *
+   * Carried explicitly rather than inferred from which fields are present. A link can hold
+   * both a hand-built loadout and an enumerated build, and guessing from that produced a
+   * link that reopened in build mode showing none of the result it was sharing. The mode is
+   * part of what the person was looking at, so it is part of the state.
+   */
+  mode: "build" | "explore" | null;
 }
 
 export const EMPTY: ShareState = {
@@ -39,6 +60,9 @@ export const EMPTY: ShareState = {
   atLeastOne: [],
   exactlyOne: [],
   build: null,
+  spent: { class: null, spec: null, hero: null },
+  heroKey: null,
+  mode: null,
 };
 
 const b36 = (id: number) => id.toString(36);
@@ -92,6 +116,14 @@ export function encode(state: ShareState): string {
   if (state.atLeastOne.length) params.set("o", ids(state.atLeastOne));
   if (state.exactlyOne.length) params.set("e", ids(state.exactlyOne));
   if (state.build) params.set("b", encodeBuild(state.build));
+  // Defaulted rather than assumed: this is called with hand-assembled state in places, and
+  // a missing field should drop a parameter, not throw and lose the whole link.
+  const spent = state.spent ?? EMPTY.spent;
+  if (spent.class) params.set("bc", encodeBuild(spent.class));
+  if (spent.spec) params.set("bs", encodeBuild(spent.spec));
+  if (spent.hero) params.set("bh", encodeBuild(spent.hero));
+  if (state.heroKey) params.set("h", state.heroKey);
+  if (state.mode) params.set("m", state.mode === "build" ? "b" : "e");
   return params.toString();
 }
 
@@ -119,6 +151,13 @@ export function decode(search: string): ShareState {
     atLeastOne: parseIds(params.get("o")),
     exactlyOne: parseIds(params.get("e")),
     build: decodeBuild(params.get("b")),
+    spent: {
+      class: decodeBuild(params.get("bc")),
+      spec: decodeBuild(params.get("bs")),
+      hero: decodeBuild(params.get("bh")),
+    },
+    heroKey: params.get("h"),
+    mode: params.get("m") === "b" ? "build" : params.get("m") === "e" ? "explore" : null,
   };
 }
 

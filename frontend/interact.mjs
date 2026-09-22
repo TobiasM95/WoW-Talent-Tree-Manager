@@ -152,6 +152,55 @@ if (chosen) {
   await page.screenshot({ path: `${outDir}/state-constraints.png` });
 }
 
+// --- building by hand --------------------------------------------------------
+/*
+  Build mode spends points across all three trees under the solver's own rules. The checks
+  that matter are that a point actually lands, that the tree it lands in is not only the one
+  the solver is pointed at, and that a refund cascades rather than leaving a build the rules
+  say is impossible.
+*/
+await page.getByRole("button", { name: "Build", exact: true }).click();
+await page.waitForTimeout(300);
+
+const budgets = () => page.locator(".ttm-tree header .num").allInnerTexts();
+const reachable = () => page.locator('.ttm-node[data-reachable="yes"]');
+const held = () => page.locator('.ttm-node[data-editing][data-spent="yes"]');
+
+check("build mode shows a budget per tree", (await budgets()).length === 3,
+      JSON.stringify(await budgets()));
+check("something is reachable from an empty tree", (await reachable().count()) > 0);
+
+for (let i = 0; i < 10; i++) {
+  const open = reachable();
+  const n = await open.count();
+  if (!n) break;
+  await open.nth(i % n).click({ force: true });
+  await page.waitForTimeout(50);
+}
+const spentNodes = await held().count();
+check("clicking reachable talents spends points", spentNodes > 0, `${spentNodes} held`);
+
+// A loadout is all three trees, so more than one pane should have points in it.
+const withPoints = (await budgets()).filter((t) => !t.startsWith("0/")).length;
+check("points can be spent in more than one tree", withPoints >= 2,
+      JSON.stringify(await budgets()));
+
+// Refunding a root can strand everything below it; the build must stay one the rules allow.
+const beforeRefund = await held().count();
+const roots = page.locator('.ttm-node[data-editing][data-spent="yes"]');
+await roots.first().click({ button: "right", force: true });
+await page.waitForTimeout(300);
+const afterRefund = await held().count();
+check("refunding removes at least the point clicked", afterRefund < beforeRefund,
+      `${beforeRefund} -> ${afterRefund}`);
+
+check("the link carries the loadout", /[?&]b[csh]=/.test(page.url()), page.url().slice(0, 120));
+await page.screenshot({ path: `${outDir}/state-build.png` });
+
+// Back to explore for the rest of the suite.
+await page.getByRole("button", { name: "Explore", exact: true }).click();
+await settled();
+
 // --- three trees, one solver -----------------------------------------------
 /*
   All three trees are on screen; the solver is pointed at one. Two things have to hold, and

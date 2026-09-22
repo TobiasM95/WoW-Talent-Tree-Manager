@@ -33,6 +33,13 @@ const state = {
   atLeastOne: [88204, 88215, 88219],
   exactlyOne: [88221, 88236],
   build: { 88203: 1, 88210: 2, 91045: 1 },
+  spent: {
+    class: { 76169: 1, 76170: 2 },
+    spec: { 88203: 1, 88225: 1 },
+    hero: { 91045: 1 },
+  },
+  heroKey: "retail/11/102/hero/23",
+  mode: "build",
 };
 
 const round = decode(encode(state));
@@ -75,17 +82,36 @@ const sparse = decode(encode({ ...state, build: { 100: 0, 200: 1 } }));
 check("zero-point talents are omitted", !("100" in (sparse.build ?? {})),
       JSON.stringify(sparse.build));
 
-const empty = decode(encode({
-  tree: null, points: null, required: [], excluded: [],
-  sides: new Map(), atLeastOne: [], exactlyOne: [], build: null,
-}));
+// A loadout spans three trees, and a link carrying only one of them is not a build anyone
+// meant to share.
+check(
+  "a loadout survives for all three trees",
+  JSON.stringify(round.spent) === JSON.stringify(state.spent),
+  JSON.stringify(round.spent),
+);
+check("the hero tree is named, since a spec has two", round.heroKey === state.heroKey,
+      String(round.heroKey));
+
+// A link can hold both a loadout and an enumerated build; guessing the mode from which
+// fields are present reopened one showing neither.
+check("the mode is carried, not guessed", round.mode === state.mode, String(round.mode));
+
+const blank = { tree: null, points: null, required: [], excluded: [],
+                sides: new Map(), atLeastOne: [], exactlyOne: [], build: null,
+                spent: { class: null, spec: null, hero: null }, heroKey: null,
+                mode: null };
+const empty = decode(encode(blank));
 check(
   "an empty state encodes to nothing and decodes back to empty",
-  encode({
-    tree: null, points: null, required: [], excluded: [],
-    sides: new Map(), atLeastOne: [], exactlyOne: [], build: null,
-  }) === "" && empty.tree === null && empty.build === null,
+  encode(blank) === "" && empty.tree === null && empty.build === null
+    && empty.spent.class === null,
 );
+
+// Called with hand-assembled state in a few places, so a missing field must drop a
+// parameter rather than throw and lose the whole link.
+const partial = { ...blank };
+delete partial.spent;
+check("a partial state encodes without throwing", encode(partial) === "");
 
 // Links get truncated, hand-edited and pasted out of chat clients. Garbage must produce an
 // empty view, never a wrong one.

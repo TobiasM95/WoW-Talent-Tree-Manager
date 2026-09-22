@@ -41,6 +41,23 @@ export interface TalentNodeProps {
    * reads a tree rather than a table.
    */
   share?: number;
+  /**
+   * Build mode: `spent` is what this node holds, and `reachable` says whether another point
+   * could go in right now. Out-of-reach talents recede rather than disappear -- a player is
+   * choosing *where to go next*, and a tree with the unreachable parts hidden cannot answer
+   * that.
+   */
+  reachable?: boolean;
+  /**
+   * True while points are being spent by hand.
+   *
+   * `spent` means two different things depending on this: in build mode it is what the
+   * player has put into the node, and in explore mode it is what the enumerated build being
+   * inspected contains. The two need opposite treatments -- an untaken talent you could
+   * still take must stay inviting, while one absent from a finished build should recede --
+   * so they are distinguished here rather than sharing one attribute and one set of rules.
+   */
+  editing?: boolean;
   onActivate: (node: NodeData, alternate: boolean) => void;
   onHover: (node: NodeData | null, element: HTMLElement | null) => void;
 }
@@ -102,6 +119,8 @@ export const TalentNode = memo(function TalentNode({
   stale,
   spent,
   share,
+  reachable,
+  editing,
   onActivate,
   onHover,
 }: TalentNodeProps) {
@@ -118,6 +137,8 @@ export const TalentNode = memo(function TalentNode({
       data-share={
         share === undefined ? undefined : share >= 0.999 ? "all" : share > 0 ? "some" : "none"
       }
+      data-reachable={reachable === undefined ? undefined : reachable ? "yes" : "no"}
+      data-editing={editing ? "" : undefined}
       data-side={side ?? undefined}
       data-stale={stale ? "" : undefined}
       style={{

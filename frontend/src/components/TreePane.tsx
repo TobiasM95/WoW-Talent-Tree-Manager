@@ -24,6 +24,10 @@ export interface TreePaneProps {
   stale?: boolean;
   build?: Record<string, number> | null;
   shares?: Map<number, number> | null;
+  reachable?: Set<number> | null;
+  editing?: boolean;
+  /** Points spent by hand in this tree, shown beside the heading in build mode. */
+  budget?: { spent: number; cap: number } | null;
   onNode?: (node: NodeData, alternate: boolean) => void;
   className?: string;
   /** Rendered under the heading; the hero pane puts its sub-tree picker here. */
@@ -45,6 +49,9 @@ export function TreePane({
   stale,
   build,
   shares,
+  reachable,
+  editing,
+  budget,
   onNode,
   className,
   children,
@@ -76,6 +83,12 @@ export function TreePane({
             {subtitle}
           </span>
         )}
+        {budget && (
+          <span className="num shrink-0 text-[12px] text-ink-soft">
+            {budget.spent}
+            <span className="text-ink-faint">/{budget.cap}</span>
+          </span>
+        )}
         {children}
       </header>
 
@@ -86,9 +99,14 @@ export function TreePane({
             states={active ? (states ?? EMPTY_STATES) : EMPTY_STATES}
             sides={active ? (sides ?? EMPTY_SIDES) : EMPTY_SIDES}
             stale={active ? stale : false}
-            build={active ? build : null}
+            build={build}
             shares={active ? shares : null}
-            onActivate={active ? (onNode ?? noop) : () => onActivate()}
+            reachable={reachable}
+            editing={editing}
+            // In build mode every tree is editable, because a loadout spans all three.
+            // In explore mode only the tree the solver is pointed at takes constraints, so a
+            // click anywhere else re-points it instead.
+            onActivate={onNode ?? (active ? noop : () => onActivate())}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-[12px] text-ink-faint">
