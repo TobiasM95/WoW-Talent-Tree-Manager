@@ -232,6 +232,18 @@ def _build_tree(
         "pointCap": None,
         "maxPointsInTree": sum(n["maxPoints"] or 0 for n in nodes),
         "nodeCount": len(nodes),
+        # The order Blizzard's loadout string walks, carried on the spec tree only.
+        #
+        # It belongs to the *class's* trait tree, not to this tree: 206 entries for a Death
+        # Knight against 114 nodes across its three trees, because it also contains the other
+        # specs' nodes, and it is byte-identical for every spec of a class. Encoding a loadout
+        # string means emitting one entry per id in this list, selected or not, so it cannot
+        # be reconstructed from the split trees -- the nodes that are not ours still occupy
+        # their place in the stream.
+        #
+        # On the spec tree because that is what the string identifies: its header carries a
+        # spec id, and a class tree alone does not name one.
+        "fullNodeOrder": list(spec.get("fullNodeOrder") or []) if kind == "spec" else None,
         "source": source,
         "nodes": nodes,
     }

@@ -10,8 +10,9 @@
     "shots": "node shot.mjs",
     "test": "node interact.mjs",
     "test:share": "node share.test.mjs",
-    "test:all": "npm run typecheck && npm run test:share && npm run test:loadout && npm test",
-    "test:loadout": "node loadout.test.mjs"
+    "test:all": "npm run typecheck && npm run test:share && npm run test:loadout && npm run test:string && npm test",
+    "test:loadout": "node loadout.test.mjs",
+    "test:string": "node loadoutString.test.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

@@ -209,6 +209,40 @@ check("refunding removes at least the point clicked", afterRefund < beforeRefund
       `${beforeRefund} -> ${afterRefund}`);
 
 check("the link carries the loadout", /[?&]b[csh]=/.test(page.url()), page.url().slice(0, 120));
+
+/*
+  The talent string is the tool's way in and out of the game. Round-tripping it through the
+  UI checks the whole path: encode from three trees, clear, paste, split back across those
+  trees, and re-place under the spending rules.
+*/
+const stringBox = page.locator('textarea[aria-label="Talent loadout string"]');
+const exported = await stringBox.inputValue();
+check("a loadout exports to a talent string",
+      /^[A-Za-z0-9+/]{20,}$/.test(exported), exported.slice(0, 40));
+
+const budgetsNow = await budgets();
+await page.locator("section", { hasText: "LOADOUT" }).getByRole("button", { name: "Clear" }).click();
+await page.waitForTimeout(400);
+check("clearing empties every tree",
+      (await budgets()).every((t) => t.startsWith("0/")), JSON.stringify(await budgets()));
+
+await stringBox.fill(exported);
+await page.getByRole("button", { name: "Import", exact: true }).click();
+await page.waitForTimeout(600);
+check("importing restores the same loadout",
+      JSON.stringify(await budgets()) === JSON.stringify(budgetsNow),
+      `${JSON.stringify(await budgets())} vs ${JSON.stringify(budgetsNow)}`);
+
+// A string this tool cannot read must say so rather than produce a plausible wrong build.
+await stringBox.fill("CkEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+await page.getByRole("button", { name: "Import", exact: true }).click();
+await page.waitForTimeout(400);
+const stringPanel = await page.locator("section", { hasText: "TALENT STRING" }).innerText();
+check("a string for another specialisation is refused with a reason",
+      /specialisation \d+/i.test(stringPanel), stringPanel.split("\n").slice(-3).join(" | "));
+check("and the loadout is left alone",
+      JSON.stringify(await budgets()) === JSON.stringify(budgetsNow),
+      JSON.stringify(await budgets()));
 await page.screenshot({ path: `${outDir}/state-build.png` });
 
 // Back to explore for the rest of the suite.

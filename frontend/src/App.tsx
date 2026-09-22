@@ -23,6 +23,7 @@ import { decode, syncUrl, EMPTY, type ShareState } from "./lib/share";
 import { useTheme } from "./lib/theme";
 import { CountGate } from "./components/CountGate";
 import { JobPanel } from "./components/JobPanel";
+import { LoadoutString } from "./components/LoadoutString";
 import { ResultsBrowser } from "./components/ResultsBrowser";
 import { ShareButton } from "./components/ShareButton";
 import { SpecRail } from "./components/SpecRail";
@@ -83,6 +84,10 @@ export default function App() {
   */
   const [mode, setMode] = useState<"build" | "explore">(SHARED.mode ?? "explore");
   const [spent, setSpent] = useState<Record<string, loadout.Points>>({});
+  // Which alternative of a choice node a hand-built loadout takes. Kept beside the points
+  // rather than inside them: a choice node holds one point either way, so the side is a
+  // second fact about it, and a talent string has to carry both.
+  const [picks, setPicks] = useState<Record<string, number>>({});
   const [note, setNote] = useState<string | null>(null);
 
   const active = activeKey ? (loaded[activeKey] ?? null) : null;
@@ -99,6 +104,8 @@ export default function App() {
       heroes: mine.filter((t) => t.kind === "hero"),
     };
   }, [trees, className, specName]);
+
+  const hero = group.heroes.find((h) => h.key === heroKey) ?? null;
 
   // --- bootstrap ----------------------------------------------------------
   useEffect(() => {
@@ -302,6 +309,14 @@ export default function App() {
         setSpent((previous) => ({ ...previous, [key]: result.points }));
         // Refunding can strand everything below; saying so beats a build quietly shrinking.
         setNote(lost ? `Removing ${node.name} also refunded ${lost} talent${lost === 1 ? "" : "s"} below it.` : null);
+      } else if (node.kind === "choice" && (current[String(node.nodeId)] ?? 0) > 0) {
+        // Already taken: a second click swaps which alternative it is, since a choice node
+        // holds one point either way and the side is the only thing left to change.
+        setPicks((previous) => ({
+          ...previous,
+          [String(node.nodeId)]: ((previous[String(node.nodeId)] ?? 0) + 1) % 2,
+        }));
+        setNote(null);
       } else {
         const result = loadout.add(tree, current, cap, node);
         setSpent((previous) => ({ ...previous, [key]: result.points }));
@@ -334,6 +349,35 @@ export default function App() {
     setPick((previous) => ({ index: previous.index, build: null }));
   }, [c]);
 
+  /**
+   * Take an imported loadout apart again.
+   *
+   * A talent string is one flat map over three trees, so each point has to be returned to
+   * the tree that owns it -- and then re-placed, so anything the rules will not allow is
+   * dropped here rather than leaving the canvas in a state the counter disagrees with.
+   */
+  const onImportString = useCallback(
+    (points: loadout.Points, choices: Record<string, number>) => {
+      const next: Record<string, loadout.Points> = {};
+      for (const summary of [group.class, group.spec, hero]) {
+        if (!summary) continue;
+        const tree = loaded[summary.key];
+        if (!tree) continue;
+        const mine: loadout.Points = {};
+        for (const node of tree.nodes) {
+          const held = points[String(node.nodeId)];
+          if (held) mine[String(node.nodeId)] = held;
+        }
+        next[summary.key] = loadout.place(tree, mine, capOf(summary)).points;
+      }
+      setSpent(next);
+      setPicks(choices);
+      setNote(null);
+      setMode("build");
+    },
+    [group.class, group.spec, hero, loaded, capOf],
+  );
+
   const onShowStats = useCallback((on: boolean) => {
     setShowStats(on);
     if (on) {
@@ -364,6 +408,16 @@ export default function App() {
   }, [job]);
 
   const shownBuild = pick.build ?? sharedBuild;
+
+  // The canvas already knows how to dim the alternative a choice node is not taking; build
+  // mode reuses it so a hand-picked side reads the same way an explored one does.
+  const buildSides = useMemo(
+    () =>
+      new Map<number, "a" | "b" | "none">(
+        Object.entries(picks).map(([id, side]) => [Number(id), side === 1 ? "b" : "a"]),
+      ),
+    [picks],
+  );
 
   // In build mode every pane shows its own hand-spent points; in explore mode only the
   // active pane shows the enumerated build being inspected.
@@ -430,8 +484,6 @@ export default function App() {
       </main>
     );
   }
-
-  const hero = group.heroes.find((h) => h.key === heroKey) ?? null;
 
   return (
     <div
@@ -509,7 +561,7 @@ export default function App() {
           active={activeKey === group.class?.key}
           onActivate={() => group.class && pointSolverAt(group.class.key)}
           states={c.states}
-          sides={c.sides}
+          sides={mode === "build" ? buildSides : c.sides}
           stale={counting}
           shares={shares}
           onNode={
@@ -534,7 +586,7 @@ export default function App() {
           active={activeKey === group.spec?.key}
           onActivate={() => group.spec && pointSolverAt(group.spec.key)}
           states={c.states}
-          sides={c.sides}
+          sides={mode === "build" ? buildSides : c.sides}
           stale={counting}
           shares={shares}
           onNode={
@@ -559,7 +611,7 @@ export default function App() {
           active={activeKey === hero?.key}
           onActivate={() => hero && pointSolverAt(hero.key)}
           states={c.states}
-          sides={c.sides}
+          sides={mode === "build" ? buildSides : c.sides}
           stale={counting}
           shares={shares}
           onNode={
@@ -641,6 +693,7 @@ export default function App() {
                   className="btn"
                   onClick={() => {
                     setSpent({});
+                    setPicks({});
                     setNote(null);
                   }}
                   disabled={Object.values(spent).every((p) => loadout.total(p) === 0)}
@@ -747,6 +800,21 @@ export default function App() {
 
           {job && (job.state === "done" || job.state === "capped") && (
             <ResultsBrowser job={job} index={pick.index} onSelect={onPick} />
+          )}
+
+          {mode === "build" && (
+            <LoadoutString
+              spec={group.spec ? (loaded[group.spec.key] ?? null) : null}
+              trees={
+                [group.class?.key, group.spec?.key, heroKey]
+                  .filter(Boolean)
+                  .map((key) => loaded[key as string])
+                  .filter(Boolean) as TreeDetail[]
+              }
+              points={Object.assign({}, ...Object.values(spent))}
+              choices={picks}
+              onImport={onImportString}
+            />
           )}
 
           <section className="panel p-3.5">

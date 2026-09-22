@@ -19,8 +19,9 @@ npm run typecheck
 npm run shots                                 # both themes, desktop + phone
 npm run test:share                            # the share codec, no browser
 npm run test:loadout                          # spending rules, against the API
+npm run test:string                           # the Blizzard talent-string codec
 npm test                                      # drives the real interactions
-npm run test:all                              # all four
+npm run test:all                              # all five
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -92,6 +93,8 @@ game data the tool exists to display; everything around them is ours.
 | `components/TreePane.tsx` | One tree, with its heading and active state. |
 | `lib/share.ts` | The whole view, encoded into the URL. |
 | `lib/loadout.ts` | Spending points by hand, under the solver's rules. |
+| `lib/loadoutString.ts` | Blizzard's talent string, in and out. |
+| `components/LoadoutString.tsx` | Paste a build in, copy one out. |
 | `lib/classes.ts` | Class colours, one value per theme. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
@@ -157,6 +160,30 @@ Placement is greedy, and exact because of it: taking a point never removes an op
 if any order can place a point, placing what is available now cannot prevent it. That is
 also what makes a refund cascade correctly -- re-place what remains and whatever no longer
 has a way in simply does not land.
+
+**The talent string is unconfirmed, so importing says no rather than guessing.** The
+layout -- a base64 bit stream over the class trait tree's `fullNodeOrder`, packed
+least-significant-bit first -- is the one every community tool implements and
+SimulationCraft parses, but nothing here has round-tripped a string the game produced.
+A round trip proves nothing on its own: encode and decode share a reading of the layout,
+so a wrong reading round-trips perfectly.
+
+What protects a user is the validation. The header carries a version and a spec id, and
+a misread layout almost never yields a plausible spec id -- so a string for another
+specialisation, another class, a newer format version, a truncated one, or one whose
+ranks do not fit this tree is **refused with a reason**. A rejected paste is a far better
+outcome than a build that looks right and is not, which a person has no way to notice.
+The panel says so on screen too. One real string is all it takes to confirm the layout.
+
+The bit order is worth stating because it is the part a reimplementation gets backwards:
+bits pack least-significant-first *within* each 6-bit character.
+
+**`fullNodeOrder` belongs to the class, not the tree.** 206 entries for a Death Knight
+against 114 nodes across its three trees, because it also contains the other specs'
+nodes, and it is identical for every spec of a class. A string emits one entry per id in
+that list, selected or not, so it cannot be rebuilt from the split trees -- the nodes
+that are not ours still occupy their place in the stream. It is carried on the spec tree,
+because that is what the string's header identifies.
 
 **A capstone has no edges.** Every retail spec tree ends in a talent with no parents
 and no children, opened purely by the final point gate. The spending rules reach it

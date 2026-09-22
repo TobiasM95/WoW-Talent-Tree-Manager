@@ -128,6 +128,15 @@ export interface TreeDetail extends TreeSummary {
   schemaVersion: number;
   gating: TreeGating | null;
   source: Record<string, unknown> | null;
+  /**
+   * The order Blizzard's loadout string walks. Present on spec trees only.
+   *
+   * It belongs to the *class's* trait tree rather than to this one: 206 entries for a Death
+   * Knight against 114 nodes across its three trees, because it also contains the other
+   * specs' nodes, and it is identical for every spec of a class. A loadout string emits one
+   * entry per id in this list, selected or not, so it cannot be rebuilt from the split trees.
+   */
+  fullNodeOrder: number[] | null;
   nodes: TalentNode[];
 }
 
