@@ -57,7 +57,15 @@ page.on("pageerror", (error) => failures.push(`page error: ${error.message}`));
 await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForSelector(".ttm-node");
 
-const countText = () => page.locator(".display.tabular").first().innerText();
+const countText = () => page.locator(".num-display").first().innerText();
+
+/*
+  Every assertion below is about the tree the solver is pointed at, and there are now three
+  trees on screen. Scoping to the active pane is not tidiness: clicking a talent in an
+  inactive pane points the solver at that pane instead of painting a constraint, which is
+  correct behaviour and would make a naive "click any node" test do something else entirely.
+*/
+const activePane = () => page.locator('.ttm-tree[data-active="yes"]');
 const stale = () => page.locator(".ttm-node[data-stale]").count();
 
 /*
@@ -99,7 +107,7 @@ check("a count is shown on load", /\d/.test(baseline), baseline);
 
   So: require it, and insist the result is both non-zero and strictly smaller.
 */
-const nodes = page.locator(".ttm-node");
+const nodes = activePane().locator(".ttm-node");
 const total = await nodes.count();
 const asNumber = (text) => Number(text.replace(/[^0-9]/g, ""));
 const base = asNumber(baseline);
@@ -126,7 +134,7 @@ check(
 
 check(
   "the talent reads as required",
-  (await page.locator('.ttm-node[data-state="required"]').count()) === 1,
+  (await activePane().locator('.ttm-node[data-state="required"]').count()) === 1,
 );
 
 if (chosen) {
@@ -139,10 +147,49 @@ if (chosen) {
         barred > 0 && barred !== chosen.required, `${barred} vs ${chosen.required}`);
   check(
     "the talent reads as barred",
-    (await page.locator('.ttm-node[data-state="excluded"]').count()) === 1,
+    (await activePane().locator('.ttm-node[data-state="excluded"]').count()) === 1,
   );
   await page.screenshot({ path: `${outDir}/state-constraints.png` });
 }
+
+// --- three trees, one solver -----------------------------------------------
+/*
+  All three trees are on screen; the solver is pointed at one. Two things have to hold, and
+  both are easy to get wrong:
+
+  - clicking in an inactive pane *re-points* the solver rather than painting a constraint,
+    because painting into a tree the count does not cover would be a silent lie;
+  - constraints are put away per tree rather than thrown away, so going to the class tree
+    and back does not lose what was painted on the spec.
+*/
+const paneTitles = () =>
+  page.locator(".ttm-tree header").evaluateAll((els) =>
+    els.map((el) => el.textContent.trim().split(/\s{2,}|\n/)[0]),
+  );
+check("all three trees are on screen", (await page.locator(".ttm-tree").count()) === 3,
+      JSON.stringify(await paneTitles()));
+check("exactly one is active",
+      (await page.locator('.ttm-tree[data-active="yes"]').count()) === 1);
+
+const before = await activePane().getAttribute("aria-label");
+const painted = await activePane().locator('.ttm-node[data-state="excluded"]').count();
+
+const other = page.locator('.ttm-tree[data-active="no"]').first();
+await other.locator(".ttm-node").first().click({ force: true });
+await page.waitForTimeout(500);
+const after = await activePane().getAttribute("aria-label");
+check("clicking an inactive tree points the solver at it", after !== before,
+      `${before} -> ${after}`);
+check("it did not paint a constraint there",
+      (await activePane().locator('.ttm-node[data-state]:not([data-state="neutral"])').count()) === 0);
+
+// Back again: what was painted on the first tree must still be there.
+await page.locator(".ttm-tree", { hasText: before.split(" ")[0] }).first()
+  .locator("header button").first().click();
+await settled();
+check("constraints survive pointing the solver elsewhere and back",
+      (await activePane().locator('.ttm-node[data-state="excluded"]').count()) === painted,
+      `${painted} before`);
 
 // --- tooltip ---------------------------------------------------------------
 await page.locator('button:has-text("Clear")').click();
@@ -235,11 +282,12 @@ const browser_ = page.locator("section", { hasText: "Builds" }).first();
 check("a results browser appears for a finished job", (await browser_.count()) === 1);
 
 if (await browser_.count()) {
-  await page.waitForFunction(() => !!document.querySelector(".ttm-node[data-spent]"), {
-    timeout: 10000,
-  });
-  const taken = () => page.locator('.ttm-node[data-spent="yes"]').count();
-  const untaken = () => page.locator('.ttm-node[data-spent="no"]').count();
+  await page.waitForFunction(
+    () => !!document.querySelector('.ttm-tree[data-active="yes"] .ttm-node[data-spent]'),
+    { timeout: 10000 },
+  );
+  const taken = () => activePane().locator('.ttm-node[data-spent="yes"]').count();
+  const untaken = () => activePane().locator('.ttm-node[data-spent="no"]').count();
 
   const firstTaken = await taken();
   check("the selected build is drawn on the tree", firstTaken > 0, `${firstTaken} lit`);
@@ -248,7 +296,7 @@ if (await browser_.count()) {
   // Every build spends the whole budget, so the count of lit nodes is not the signal --
   // *which* nodes are lit is. Compare the identity of the set, not its size.
   const litIds = async () =>
-    (await page.locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
+    (await activePane().locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
       els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
     ));
   const before = await litIds();
@@ -282,14 +330,15 @@ if (await statsPanel.count()) {
   // a canvas. The checkbox is the switch between them, so use it rather than reaching for
   // Clear -- which would also discard the constraints.
   await statsPanel.locator('input[type="checkbox"]').check();
-  await page.waitForFunction(() => !!document.querySelector(".ttm-node[data-share]"), {
-    timeout: 10000,
-  }).catch(() => {});
+  await page.waitForFunction(
+    () => !!document.querySelector('.ttm-tree[data-active="yes"] .ttm-node[data-share]'),
+    { timeout: 10000 },
+  ).catch(() => {});
 
-  const shared = await page.locator(".ttm-node[data-share]").count();
+  const shared = await activePane().locator(".ttm-node[data-share]").count();
   check("every talent carries a frequency", shared > 0, `${shared} nodes`);
 
-  const settled = await page.locator('.ttm-node[data-share="all"]').count();
+  const settled = await activePane().locator('.ttm-node[data-share="all"]').count();
   check("talents in every build are marked settled", settled > 0, `${settled}`);
 
   const text = await statsPanel.innerText();
@@ -303,7 +352,7 @@ if (await statsPanel.count()) {
   await page.locator('button[aria-label="Next build"]').click();
   await page.waitForTimeout(400);
   check("picking a build takes the canvas back from the heat map",
-        (await page.locator(".ttm-node[data-share]").count()) === 0);
+        (await activePane().locator(".ttm-node[data-share]").count()) === 0);
 }
 
 // --- sharing ---------------------------------------------------------------
@@ -317,18 +366,21 @@ const shareUrl = page.url();
 check("the address bar carries state", shareUrl.includes("?"), shareUrl);
 
 if (shareUrl.includes("?")) {
-  const litHere = await page.locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
+  const litHere = await activePane().locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
     els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
   );
 
   const fresh = await context.newPage();
   await fresh.goto(shareUrl, { waitUntil: "networkidle" });
   await fresh.waitForSelector(".ttm-node");
-  await fresh.waitForFunction(() => !!document.querySelector('.ttm-node[data-spent="yes"]'), {
-    timeout: 10000,
-  }).catch(() => {});
+  await fresh.waitForFunction(
+    () => !!document.querySelector('.ttm-tree[data-active="yes"] .ttm-node[data-spent="yes"]'),
+    { timeout: 10000 },
+  ).catch(() => {});
 
-  const litThere = await fresh.locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
+  const litThere = await fresh
+    .locator('.ttm-tree[data-active="yes"] .ttm-node[data-spent="yes"]')
+    .evaluateAll((els) =>
     els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
   );
   check("a shared link reopens on the same build", litThere === litHere && litThere.length > 0,
@@ -339,8 +391,12 @@ if (shareUrl.includes("?")) {
   check("a shared link restores the point budget", budgetThere === budgetHere,
         `${budgetThere} vs ${budgetHere}`);
 
-  const treeHere = await page.locator("select").inputValue();
-  const treeThere = await fresh.locator("select").inputValue();
+  // The picker is a rail of names rather than a <select>, so "the same tree" is read off
+  // the heading of whichever pane the solver is pointed at.
+  const paneTitle = (target) =>
+    target.locator('.ttm-tree[data-active="yes"] header').first().innerText();
+  const treeHere = await paneTitle(page);
+  const treeThere = await paneTitle(fresh);
   check("a shared link restores the tree", treeThere === treeHere,
         `${treeThere} vs ${treeHere}`);
 

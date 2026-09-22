@@ -77,10 +77,10 @@ export function ResultsBrowser({ job, index, onSelect }: ResultsBrowserProps) {
   );
 
   return (
-    <section className="panel framed grain p-4">
+    <section className="panel p-3.5">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">Builds</h2>
-        <span className="text-[11px] tabular text-ink-faint">
+        <h2 className="label">Builds</h2>
+        <span className="text-[11px] num text-ink-faint">
           {loading ? "loading…" : `${fmt(total)} found`}
         </span>
       </header>
@@ -94,7 +94,7 @@ export function ResultsBrowser({ job, index, onSelect }: ResultsBrowserProps) {
       ) : (
         <>
           <div
-            className="mt-3 flex items-center gap-2"
+            className="mt-2.5 flex items-center gap-2"
             tabIndex={0}
             onKeyDown={onKeyDown}
             role="group"
@@ -110,7 +110,7 @@ export function ResultsBrowser({ job, index, onSelect }: ResultsBrowserProps) {
               ‹
             </button>
             <div className="flex-1 text-center">
-              <div className="tabular text-[15px]">
+              <div className="num text-[15px]">
                 {fmt(index + 1)}
                 <span className="text-ink-faint"> of {fmt(total)}</span>
               </div>

@@ -101,16 +101,52 @@ palette on bare `:root`, redefined under `prefers-color-scheme: dark` and again 
 explicit `[data-theme]` stamp, so an un-stamped system-preference visitor gets a correct
 theme too.
 
-## Type: resolved
+## The direction it landed on: star chart
 
-- **Cinzel** for display — Roman inscriptional capitals. Carved stone is the vocabulary of
-  fantasy interfaces generally rather than any one game's property, and it looks nothing
-  like the faces WoW uses, so it takes the genre without borrowing the game.
-- **Alegreya Sans** for everything that gets read. Humanist and warm rather than neutral,
-  and legible at 12px in a tooltip, which is where most of this app's text lives.
+The first implementation answered this brief literally — carved stone, bronze framing,
+inscriptional capitals — and the owner's verdict was the useful one: *"a weird in-between of
+not looking WoW-themed enough and just looking bad/outdated."* That is what happens when a
+theme is applied uniformly. A bronze gradient border around every panel and a display face in
+letterspaced small caps on every heading is a skin on a dashboard, not a designed surface.
 
-Both are SIL Open Font License, which does permit use in a web product — the distinction
-the open item above was pointing at.
+The second answer is more specific, and specificity is what was missing. **A talent tree is a
+constellation** — nodes and the lines between them — and this tool's whole job is counting
+the stars in it. So: astral cartography. Fantasy through astronomy and divination rather than
+through tavern woodgrain, which belongs to the genre rather than to any one game, and which
+happens to describe exactly what the app does.
+
+- **Dark is the void.** Near-black with a blue cast, a generated star field behind the tree,
+  edges as thin lines of light and nodes as discs with a halo.
+- **Light is the plate.** An engraved star atlas on laid paper: the same constellation as
+  copper-plate linework, state read as ink weight, nothing glowing, because nothing glows on
+  paper.
+- **Brass in three places only** — the rules, the corner brackets that mark which tree the
+  solver is aimed at, and the node pips. Used everywhere it is a skin; used sparingly it is a
+  material.
+
+### Layout: all three trees
+
+A build is class plus spec plus hero, so choosing a spec talent with the class tree behind a
+dropdown is choosing blind. All three are on screen, and class and spec are picked from a
+rail of names — there are thirteen classes and three or four specs, a number you can simply
+show, and it lets class colour do the work of a label.
+
+The solver works one tree at a time, which is a property of the engine rather than of the
+product, so that tree is marked rather than isolated.
+
+### Type: resolved
+
+- **Cormorant Garamond** for display, at large sizes and in normal case only. A
+  plate-engraving face; letterspaced small caps would flatten it, which is the mistake the
+  first attempt made.
+- **IBM Plex Sans** for everything that gets read, legible at 11px, which is where most of
+  this app's text lives.
+- **IBM Plex Mono** for numbers. A count is a measurement and should read like an instrument
+  — with one exception: the mono comma is centred in a full advance width, so display-size
+  numbers use the body face with tabular figures instead.
+
+All three SIL Open Font License, which does permit use in a web product — the distinction
+the open item was pointing at.
 
 ## How it came out
 

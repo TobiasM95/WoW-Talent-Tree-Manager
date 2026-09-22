@@ -168,12 +168,12 @@ export const TalentNode = memo(function TalentNode({
           "0%" adds a row of noise across the unreachable bottom of the tree. */}
       {share !== undefined ? (
         share > 0 ? (
-          <span className="ttm-node-ranks tabular" aria-hidden="true">
+          <span className="ttm-node-ranks" aria-hidden="true">
             {share >= 0.999 ? "all" : `${Math.round(share * 100)}%`}
           </span>
         ) : null
       ) : (spent !== undefined ? spent > 0 : node.maxPoints > 1) ? (
-        <span className="ttm-node-ranks tabular" aria-hidden="true">
+        <span className="ttm-node-ranks" aria-hidden="true">
           {spent !== undefined ? `${spent}/${node.maxPoints}` : node.maxPoints}
         </span>
       ) : null}

@@ -45,15 +45,13 @@ export function JobPanel({ job, onCancel, onDismiss }: JobPanelProps) {
         ? "var(--taken)"
         : job.state === "cancelled"
           ? "var(--ink-faint)"
-          : "var(--arcane)";
+          : "var(--star)";
 
   return (
-    <section className="panel framed grain p-4" aria-live="polite">
+    <section className="panel p-3.5" aria-live="polite">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">
-          Enumeration
-        </h2>
-        <span className="text-[11px] uppercase tracking-[0.1em]" style={{ color: tone }}>
+        <h2 className="label">Enumeration</h2>
+        <span className="label" style={{ color: tone }}>
           {STATE_LABEL[job.state]}
           {job.cancelRequested && running ? " · stopping" : ""}
         </span>
@@ -64,14 +62,14 @@ export function JobPanel({ job, onCancel, onDismiss }: JobPanelProps) {
           <p className="mt-2 text-[13px] text-ink-soft">
             {job.phase ? (PHASE_LABEL[job.phase] ?? job.phase) : "Waiting for a worker"}
             {!indeterminate && job.phase && (
-              <span className="tabular"> · {Math.round(job.progress * 100)}%</span>
+              <span className="num"> · {Math.round(job.progress * 100)}%</span>
             )}
           </p>
           <div
             className="mt-2 h-[6px] overflow-hidden"
             style={{
               background: "var(--panel-sunken)",
-              border: "1px solid var(--metal-dim)",
+              border: "1px solid color-mix(in srgb, var(--brass) 35%, transparent)",
               borderRadius: "1px",
             }}
             role="progressbar"
@@ -84,8 +82,8 @@ export function JobPanel({ job, onCancel, onDismiss }: JobPanelProps) {
               className="h-full"
               style={{
                 width: indeterminate ? "100%" : `${Math.max(2, job.progress * 100)}%`,
-                background: `linear-gradient(90deg, var(--arcane-dim), var(--arcane-bright))`,
-                boxShadow: "var(--arcane-glow)",
+                background: `linear-gradient(90deg, var(--star-dim), var(--star-bright))`,
+                boxShadow: "var(--star-glow)",
                 opacity: indeterminate ? 0.45 : 1,
                 transition: "width 320ms ease-out",
               }}
@@ -95,7 +93,7 @@ export function JobPanel({ job, onCancel, onDismiss }: JobPanelProps) {
       )}
 
       {job.expectedCount !== null && (
-        <p className="mt-3 text-[12px] text-ink-faint tabular">
+        <p className="mt-3 text-[12px] text-ink-faint num">
           {job.resultCount !== null
             ? `${fmt(job.resultCount)} selections stored`
             : `${fmt(job.expectedCount)} selections expected`}
@@ -105,7 +103,7 @@ export function JobPanel({ job, onCancel, onDismiss }: JobPanelProps) {
       {job.error && (
         <p
           className="mt-2 text-[12px]"
-          style={{ color: job.state === "capped" ? "var(--metal)" : "var(--barred)" }}
+          style={{ color: job.state === "capped" ? "var(--brass)" : "var(--barred)" }}
         >
           {job.error}
         </p>

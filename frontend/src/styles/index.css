@@ -2,11 +2,10 @@
 @import "./tokens.css";
 
 /*
-  Tailwind v4 generates utilities from @theme, so the semantic tokens are mapped here once
-  and everything else uses `bg-panel`, `text-ink-soft`, `border-metal` rather than raw
-  hex. Because the values are var() references, a theme switch is a single attribute on
-  <html> -- no class churn on every element, and no second set of `dark:` variants to keep
-  in sync with the first.
+  Semantic tokens mapped into Tailwind once, so components write `bg-panel` and
+  `text-ink-soft` rather than raw hex. Because the values are var() references, switching
+  theme is one attribute on <html> -- no class churn, and no second set of `dark:` variants
+  to keep in sync with the first.
 */
 @theme inline {
   --color-ground: var(--ground);
@@ -20,62 +19,78 @@
   --color-ink-faint: var(--ink-faint);
   --color-ink-inverse: var(--ink-inverse);
 
-  --color-metal: var(--metal);
-  --color-metal-bright: var(--metal-bright);
-  --color-metal-dim: var(--metal-dim);
+  --color-brass: var(--brass);
+  --color-brass-bright: var(--brass-bright);
+  --color-brass-dim: var(--brass-dim);
 
-  --color-arcane: var(--arcane);
-  --color-arcane-bright: var(--arcane-bright);
-  --color-arcane-dim: var(--arcane-dim);
-  --color-arcane-wash: var(--arcane-wash);
+  --color-star: var(--star);
+  --color-star-bright: var(--star-bright);
+  --color-star-dim: var(--star-dim);
 
   --color-taken: var(--taken);
-  --color-taken-wash: var(--taken-wash);
   --color-barred: var(--barred);
-  --color-barred-wash: var(--barred-wash);
   --color-locked: var(--locked-ink);
 
   --font-display: var(--font-display);
   --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
 @layer base {
-  html {
-    background: var(--ground);
-  }
-
+  html,
   body {
     margin: 0;
     background: var(--ground);
     color: var(--ink);
     font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1.45;
+    font-size: 14px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Numbers are compared constantly here -- counts, point budgets, progress. Tabular
-     figures stop them jittering as they tick. */
-  .tabular {
+  /* Every number in this app is a measurement: a count, a budget, a percentage, a position
+     in a result set. They get the instrument face and tabular figures so they stop jittering
+     as they tick. */
+  .num {
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "zero" 1;
   }
 
-  h1,
-  h2,
-  h3,
+  /*
+    Big numbers use the body face with tabular figures, not the mono one. IBM Plex Mono
+    centres its comma in a full advance width, which at display size reads as "50 , 944" --
+    correct monospacing, wrong typography. Small numbers keep the mono face, where the
+    even rhythm is the point and the gap is invisible.
+  */
+  .num-display {
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+
   .display {
     font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+
+  /* One label style, used for panel titles and nothing else. Small, quiet, wide -- it steps
+     back so the numbers and the tree can step forward. */
+  .label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
   }
 
   :focus-visible {
-    outline: 2px solid var(--focus-ring);
+    outline: 1px solid var(--focus-ring);
     outline-offset: 2px;
   }
 
-  /* The ornament is decoration; it must never be what makes an interaction feel slow, and
-     for anyone who asked for less motion it should simply not move. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -87,67 +102,78 @@
 }
 
 /*
-  --- surface treatments -------------------------------------------------------
+  --- ground ------------------------------------------------------------------
 
-  The framing is the design, not a 1px line: a bronze edge, a bevelled inner border and a
-  cast shadow, built from gradients rather than images so there is nothing to license, no
-  extra request, and no blurring when it scales.
+  The page ground carries only grain. The star field belongs to the canvas, which is the
+  part that is actually sky -- see canvas.css.
 */
-.grain {
+.sky {
   position: relative;
   isolation: isolate;
+  background: var(--ground);
 }
 
-.grain::after {
+.sky::after {
   content: "";
   position: absolute;
   inset: 0;
-  pointer-events: none;
   z-index: -1;
+  pointer-events: none;
   opacity: var(--grain-opacity);
   mix-blend-mode: var(--grain-blend);
-  /* Fractal noise, generated in the browser. Original material by construction. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)' opacity='0.5'/%3E%3C/svg%3E");
 }
 
+/*
+  --- surfaces ----------------------------------------------------------------
+
+  No border on everything. A panel is a change in ground and a hairline at the top, which is
+  enough separation on both themes and stops the page reading as a stack of boxed cards.
+*/
 .panel {
-  background:
-    linear-gradient(180deg, var(--panel-raised) 0%, var(--panel) 55%, var(--panel-sunken) 100%);
-  border: var(--frame-width) solid var(--metal-dim);
-  border-radius: var(--radius-panel);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 35%, transparent),
-    0 2px 10px var(--metal-shadow);
-}
-
-/* Corner ornament: four short bronze rules that stop short of meeting, which reads as
-   worked metal rather than as a box. Drawn with gradients, so it costs no elements. */
-.framed {
   position: relative;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--brass) 22%, transparent);
 }
 
-.framed::before {
+:root:not([data-theme="dark"]) .panel {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--brass) 18%, transparent),
+    0 1px 2px var(--shadow);
+}
+
+/* Brass appears in exactly three places, and this is the loudest: the corner brackets that
+   mark which tree the solver is pointed at. An instrument's aiming reticle, not a frame. */
+.bracket::before,
+.bracket::after {
   content: "";
   position: absolute;
-  inset: 4px;
+  width: 12px;
+  height: 12px;
   pointer-events: none;
-  border: 1px solid color-mix(in srgb, var(--metal) 45%, transparent);
-  border-radius: 1px;
-  mask-image:
-    linear-gradient(to right, #000 0 14px, transparent 14px calc(100% - 14px), #000 calc(100% - 14px) 100%),
-    linear-gradient(to bottom, #000 0 14px, transparent 14px calc(100% - 14px), #000 calc(100% - 14px) 100%);
-  mask-composite: add;
-  -webkit-mask-composite: source-over;
+  border-color: var(--brass-bright);
+  border-style: solid;
+  opacity: 0.9;
+}
+
+.bracket::before {
+  top: 0;
+  left: 0;
+  border-width: 1px 0 0 1px;
+}
+
+.bracket::after {
+  right: 0;
+  bottom: 0;
+  border-width: 0 1px 1px 0;
 }
 
 .rule {
   height: 1px;
   background: linear-gradient(
     90deg,
-    transparent,
-    color-mix(in srgb, var(--metal) 70%, transparent) 20%,
-    var(--metal-bright) 50%,
-    color-mix(in srgb, var(--metal) 70%, transparent) 80%,
+    color-mix(in srgb, var(--brass) 45%, transparent),
     transparent
   );
 }
@@ -156,36 +182,92 @@
 
 .btn {
   font-family: var(--font-body);
+  font-size: 12px;
   font-weight: 500;
-  letter-spacing: 0.02em;
-  padding: 0.4rem 0.9rem;
-  border-radius: 2px;
-  border: 1px solid var(--metal-dim);
-  background: linear-gradient(180deg, var(--panel-raised), var(--panel-sunken));
-  color: var(--ink);
+  letter-spacing: 0.01em;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius);
+  border: 1px solid color-mix(in srgb, var(--brass) 35%, transparent);
+  background: transparent;
+  color: var(--ink-soft);
   cursor: pointer;
-  transition: border-color 120ms, box-shadow 120ms, color 120ms;
+  transition: color 120ms, border-color 120ms, background 120ms;
 }
 
 .btn:hover:not(:disabled) {
-  border-color: var(--metal-bright);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 40%, transparent);
+  color: var(--ink);
+  border-color: var(--brass);
+  background: color-mix(in srgb, var(--brass) 10%, transparent);
+}
+
+.btn[aria-pressed="true"] {
+  color: var(--star-bright);
+  border-color: var(--star);
+  background: var(--star-wash);
 }
 
 .btn:disabled {
   color: var(--locked-ink);
+  border-color: color-mix(in srgb, var(--locked-ink) 35%, transparent);
   cursor: not-allowed;
-  opacity: 0.7;
 }
 
-.btn-arcane {
-  border-color: var(--arcane-dim);
-  color: var(--arcane);
-  background: linear-gradient(180deg, var(--panel-raised), var(--arcane-wash));
+/* The one loud control: start the enumeration. It is the app's verb. */
+.btn-primary {
+  width: 100%;
+  padding: 0.5rem 0.9rem;
+  font-size: 13px;
+  color: var(--star-bright);
+  border-color: var(--star);
+  background: var(--star-wash);
 }
 
-.btn-arcane:hover:not(:disabled) {
-  border-color: var(--arcane);
-  box-shadow: var(--arcane-glow), inset 0 0 0 1px var(--arcane-wash);
-  color: var(--arcane-bright);
+.btn-primary:hover:not(:disabled) {
+  color: var(--ink-inverse);
+  background: var(--star);
+  border-color: var(--star-bright);
+  box-shadow: var(--star-glow);
+}
+
+/* --- the class rail --------------------------------------------------------- */
+
+.rail-item {
+  position: relative;
+  padding: 0.25rem 0.55rem;
+  font-size: 12px;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 120ms;
+}
+
+.rail-item:hover {
+  color: var(--ink);
+}
+
+.rail-item[aria-pressed="true"] {
+  color: var(--class-tint);
+}
+
+/* A lit underline rather than a filled pill: the rail is a row of names, and a pill per
+   name would turn thirteen classes into thirteen buttons. */
+.rail-item[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0.4rem;
+  bottom: -1px;
+  height: 1px;
+  background: var(--class-tint);
+  box-shadow: 0 0 8px var(--class-tint);
+}
+
+:root:not([data-theme="dark"]) .rail-item[aria-pressed="true"]::after {
+  box-shadow: none;
+  height: 2px;
+}
+
+input[type="range"] {
+  accent-color: var(--star);
 }

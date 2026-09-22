@@ -26,13 +26,16 @@ export interface TreeCanvasProps {
   onActivate: (node: NodeData, alternate: boolean) => void;
 }
 
-const PAD = 60;
+const PAD = 44;
+// Pixels between adjacent talent columns at zoom 1. Two node widths, so neighbours are
+// clearly separate without the tree spreading out.
+const COLUMN_PITCH = 86;
 // Low enough that a full spec tree fits a phone viewport. A higher floor looks tidier on a
 // desktop and silently crops the tree on a small screen, which is worse than small icons.
 const MIN_ZOOM = 0.2;
-const MAX_ZOOM = 2.5;
+const MAX_ZOOM = 3;
 // A whole tree pressed flat against the panel edge reads as clipped even when it is not.
-const FIT_MARGIN = 0.94;
+const FIT_MARGIN = 0.97;
 
 interface Layout {
   nodes: Map<number, { x: number; y: number }>;
@@ -48,10 +51,28 @@ function layoutOf(tree: TreeDetail): Layout {
   const maxX = Math.max(...xs);
   const maxY = Math.max(...ys);
 
-  // Upstream coordinates are in game units, a few thousand across. Scaling to a sane pixel
-  // grid here means the zoom control starts at 1 and means something to a person.
-  const span = Math.max(maxX - minX, 1);
-  const scale = 620 / span;
+  /*
+    Scale from the grid pitch, not from the tree's overall width.
+
+    Normalising total width to a constant makes every tree the same number of pixels across
+    regardless of how many columns it has -- which stretches a four-column hero tree to the
+    width of a seven-column class tree, and then the fit shrinks it to nothing in a narrow
+    pane. Deriving the scale from the smallest gap between adjacent columns gives every tree
+    the same node *density* instead, so a hero tree is simply narrower than a class tree,
+    which is what it is.
+  */
+  const columns = [...new Set(xs)].sort((a, b) => a - b);
+  let pitch = Infinity;
+  for (let i = 1; i < columns.length; i++) {
+    const gap = columns[i]! - columns[i - 1]!;
+    if (gap > 0) pitch = Math.min(pitch, gap);
+  }
+  // A single-column tree has no pitch to measure; fall back to its height instead so it
+  // still lands at a sane size.
+  if (!Number.isFinite(pitch) || pitch <= 0) {
+    pitch = Math.max((maxY - minY) / Math.max(tree.nodes.length - 1, 1), 1);
+  }
+  const scale = COLUMN_PITCH / pitch;
 
   const nodes = new Map<number, { x: number; y: number }>();
   for (const node of tree.nodes) {
@@ -169,7 +190,7 @@ export function TreeCanvas({
   return (
     <div
       ref={viewport}
-      className="ttm-canvas grain"
+      className="ttm-canvas"
       data-panning={panning ? "" : undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

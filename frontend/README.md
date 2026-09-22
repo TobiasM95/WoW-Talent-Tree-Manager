@@ -1,7 +1,8 @@
 # Frontend
 
-React + Tailwind. One screen: pick a tree, paint constraints on it, watch the count,
-enumerate, then step through the builds on the tree itself. That shape follows from the
+React + Tailwind. One screen: a specialisation's three trees side by side, constraints
+painted on whichever the solver is pointed at, and the count moving as they land. Then
+enumerate, and step through the builds on the tree itself. That shape follows from the
 product model — the count is free and answered inline, so it belongs beside the canvas
 being painted rather than behind a "calculate" step. The number moving as constraints land
 *is* the feedback loop.
@@ -29,17 +30,40 @@ docker compose --profile web up -d --build web   # http://localhost:8081
 The full brief is [`../docs/02-target/ui-direction.md`](../docs/02-target/ui-direction.md).
 What it comes down to here:
 
-**Two coherent themes, not one plus an inversion.** Dark is carved stone and worked bronze
-lit from within; state reads as light emitted. Light is inked parchment and daylight on
-stone; state reads as saturation and ink weight, because nothing glows in daylight. The
-arcane accent keeps its hue across both and shifts luminosity instead, so the solver's
-colour stays the solver's colour.
+**Star chart.** A talent tree is a constellation, and this tool's job is counting the
+stars in it -- so the interface is astral cartography rather than tavern woodgrain. That
+belongs to the genre rather than to any one game, and it happens to describe exactly what
+the app does.
+
+Dark is **the void**: near-black with a blue cast, the tree drawn in light against a
+generated star field, brass only where structure has to be read. Light is **the plate**:
+an engraved star atlas on laid paper, where the same constellation is copper-plate
+linework and nothing glows, because nothing glows on paper. Two coherent worlds, not one
+plus an inversion.
+
+This replaced a first attempt that put a bronze gradient border around every panel and a
+display face in letterspaced small caps on every heading. Both ideas were fine once;
+applied uniformly they read as a skin on a dashboard rather than as a designed surface.
+Brass now appears in three places -- the rules, the corner brackets marking the active
+tree, and the node pips -- and the display face only at large sizes in normal case.
 
 Tokens are defined in three layers in `styles/tokens.css`: bare `:root` (light), then
 `prefers-color-scheme: dark` guarded by `:root:not([data-theme="light"])`, then an explicit
 `:root[data-theme="dark"]`. The middle layer is the one that is easy to skip and the one
 that matters — without it a visitor who has never touched the toggle and whose OS is dark
 gets the light theme.
+
+**All three trees, always.** A build is class plus spec plus hero, so choosing a spec
+talent with the class tree behind a dropdown is choosing blind. The solver works one tree
+at a time -- a property of the engine, not of the product -- so that tree is *marked*
+rather than isolated: a lit rule in the class colour, corner brackets, and the others
+dimmed just enough to say "not this one" while staying readable. Clicking an inactive
+tree points the solver at it rather than painting a constraint, and constraints are put
+away per tree so going across and back does not lose them.
+
+Class and spec are chosen from a rail of names, not a dropdown. There are thirteen
+classes and three or four specs -- a number you can simply show -- and it lets class
+colour do the work of a label.
 
 **Shape carries meaning.** Circle for a single talent, split square for a choice node,
 hexagon for a tiered one, square for a hero sub-tree. The silhouette says what kind of node
@@ -48,7 +72,9 @@ constraint state instead.
 
 **Nothing is lifted.** The framing, grain, ornament and node treatments are CSS gradients
 and a generated SVG noise filter — no textures, no game UI art, no look-alike typefaces.
-Cinzel (Roman inscriptional capitals) and Alegreya Sans, both SIL OFL. Talent icons are the
+Cormorant Garamond (a plate-engraving face, large sizes only), IBM Plex Sans for reading
+and IBM Plex Mono for numbers -- a count is a measurement and should read like an
+instrument. All three SIL OFL. Talent icons are the
 game data the tool exists to display; everything around them is ours.
 
 ## Structure
@@ -58,6 +84,8 @@ game data the tool exists to display; everything around them is ours.
 | `lib/api.ts` | Typed client. Every field checked against a live response. |
 | `lib/constraints.ts` | The constraint set and the click-cycling rules. |
 | `lib/theme.ts` | Theme choice, stamped on `<html data-theme>`. |
+| `components/SpecRail.tsx` | Class and specialisation selection. |
+| `components/TreePane.tsx` | One tree, with its heading and active state. |
 | `lib/share.ts` | The whole view, encoded into the URL. |
 | `lib/classes.ts` | Class colours, one value per theme. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
@@ -110,6 +138,17 @@ are base36 for length, never positional: the legacy format stored points positio
 regeneration silently reassigned them to different talents, and a link outlives more
 revisions than a database row does. The URL is *replaced* rather than pushed, because
 painting constraints is a dozen clicks and nobody thinks of it as navigation.
+
+**Trees are scaled by grid pitch, not overall width.** Normalising total width made every
+tree the same number of pixels across regardless of its column count, which stretched a
+four-column hero tree to the width of a seven-column class tree and then shrank it to
+nothing in a narrow pane. Scaling from the smallest gap between adjacent columns gives
+every tree the same node *density*, so a hero tree is simply narrower -- which is what it
+is.
+
+**Big numbers use the body face, small ones the mono face.** IBM Plex Mono centres its
+comma in a full advance width, so at display size "50,944" reads as "50 , 944":
+correct monospacing, wrong typography.
 
 **A missing icon is normal.** Upstream has no art for about 1% of names. Those render with
 a hatched fill and the node still reads as a talent.

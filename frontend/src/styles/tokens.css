@@ -1,180 +1,180 @@
 /*
-  Design tokens: two coherent worlds, not one plus an inversion.
+  Star chart.
 
-  Dark is "deep vault" -- carved stone and worked bronze lit from within. State reads as
-  light emitted: a taken talent glows, an unaffordable one goes dim and desaturated.
+  A talent tree is a constellation -- nodes and the lines between them -- and this tool's
+  whole job is counting the stars in it. So the interface is astral cartography rather than
+  tavern woodgrain: the vocabulary of fantasy astronomy and divination, which belongs to the
+  genre rather than to any one game, and which happens to describe exactly what the app does.
 
-  Light is "inked parchment" -- warm ground, sepia ink, daylight on stone. It is NOT dark
-  with a white background. State reads as saturation and weight instead of emission,
-  because nothing glows in daylight.
+  Dark is **the void**: near-black with a blue cast, the tree drawn in light, brass used only
+  where structure has to be read. Light is **the plate**: an engraved star atlas on laid
+  paper, where the same constellation is copper-plate linework and nothing glows, because
+  nothing glows on paper.
 
-  The accent stays in the same hue family across both (astral violet-cyan), shifting
-  luminosity and saturation rather than swapping hue, so a user switching themes does not
-  have to relearn what "the solver colour" is.
+  What this replaces, deliberately: a bronze gradient border around every panel, which reads
+  as a skin applied to a dashboard rather than as a designed surface, and a display face in
+  letterspaced small caps on every heading, which turns one good idea into wallpaper.
 
-  Three layers, deliberately:
-    1. :root                                  -- light, the un-stamped default
+  Three layers, so an un-stamped visitor whose system is dark still gets the void:
+    1. :root                                  -- the plate, the un-stamped default
     2. @media (prefers-color-scheme: dark)    -- guarded by :root:not([data-theme="light"])
-    3. :root[data-theme="dark"]               -- an explicit choice wins over the system
-
-  Layer 2 matters: without it a visitor who has never touched the toggle and whose OS is in
-  dark mode gets the light theme, which is the wrong first impression for a dark-first app.
+    3. :root[data-theme="dark"]               -- an explicit choice beats the system
 */
 
 :root {
   color-scheme: light;
 
-  /* --- ground and panels ------------------------------------------------ */
-  --ground: #e8dcc3;
-  --ground-deep: #ddcfb1;
-  --panel: #f2e8d5;
-  --panel-raised: #f8f1e3;
-  --panel-sunken: #e0d2b6;
+  /* --- ground ----------------------------------------------------------- */
+  --ground: #efe9dd;
+  --ground-deep: #e4dccb;
+  --panel: #f7f3ea;
+  --panel-raised: #fdfaf3;
+  --panel-sunken: #e8e0cf;
 
   /* --- ink -------------------------------------------------------------- */
-  --ink: #2c2013;
-  --ink-soft: #5e4c36;
-  --ink-faint: #8a7657;
-  --ink-inverse: #f8f1e3;
+  --ink: #1e1b17;
+  --ink-soft: #554e43;
+  --ink-faint: #8b8172;
+  --ink-inverse: #f7f3ea;
 
-  /* --- metal (framing, rules, ornament) --------------------------------- */
-  --metal: #9a7134;
-  --metal-bright: #c39a4d;
-  --metal-dim: #6f5227;
-  --metal-shadow: rgba(58, 40, 14, 0.28);
+  /* --- brass: structure, rules, the active marker ----------------------- */
+  /* Used sparingly on purpose. Brass everywhere is a skin; brass in three places is a
+     material. */
+  --brass: #7a5c22;
+  --brass-bright: #a17b33;
+  --brass-dim: #b8a884;
+  --shadow: rgba(60, 48, 24, 0.16);
 
-  /* --- arcane accent: the solver's colour ------------------------------- */
-  /* In light it is pigment, not glow: deeper, less saturated, no bloom. */
-  --arcane: #5b3fa8;
-  --arcane-bright: #7554cc;
-  --arcane-dim: #453080;
-  --arcane-wash: rgba(91, 63, 168, 0.12);
-  --arcane-glow: none;
+  /* --- starlight: the count, the solver, the measurement ---------------- */
+  /* On paper it is plate-engraving blue: ink, not light. Same hue family as the void's
+     starlight so the solver's colour stays the solver's colour across themes. */
+  --star: #1d5f8c;
+  --star-bright: #2a7cb5;
+  --star-dim: #6a9dbd;
+  --star-wash: rgba(29, 95, 140, 0.1);
+  --star-glow: none;
 
   /* --- state ------------------------------------------------------------ */
   --taken: #2f6b4a;
-  --taken-wash: rgba(47, 107, 74, 0.16);
+  --taken-wash: rgba(47, 107, 74, 0.14);
   --barred: #96341f;
-  --barred-wash: rgba(150, 52, 31, 0.14);
-  --locked-ink: #9c8c6f;
-  --focus-ring: #5b3fa8;
+  --barred-wash: rgba(150, 52, 31, 0.12);
+  --locked-ink: #a2998a;
+  --focus-ring: #1d5f8c;
 
-  /*
-    The ring that separates a talent from the ground behind it. On parchment the ground is
-    light, so a light ring does nothing and the icons read as stickers laid on the page --
-    the separating edge has to be dark ink. On a dark ground the same job needs the opposite.
-  */
-  --node-ring: #6b5a3c;
-  --canvas-edge: rgba(74, 58, 32, 0.22);
+  --node-ring: #4a4237;
+  --canvas-edge: rgba(74, 62, 40, 0.16);
 
-  /* --- surface texture -------------------------------------------------- */
-  /*
-    Original material, generated rather than sourced: fractal noise from an inline SVG
-    filter. No lifted textures, and nothing to license. Opacity is low enough that it
-    reads as tooth in the paper rather than as an image, which is what keeps text contrast
-    intact over it.
-  */
-  --grain-opacity: 0.35;
+  /* --- atmosphere ------------------------------------------------------- */
+  /* On paper the ground is laid texture, not a star field: the plate is the object, and
+     the sky is what is drawn on it. */
+  --field-opacity: 0;
+  --grain-opacity: 0.28;
   --grain-blend: multiply;
 
   /* --- shape ------------------------------------------------------------ */
-  --radius-panel: 3px;
-  --radius-node: 6px;
-  --frame-width: 2px;
+  --radius: 2px;
 
   /* --- type ------------------------------------------------------------- */
-  --font-display: "Cinzel", "Palatino Linotype", Palatino, serif;
-  --font-body: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
-
   /*
-    Which of a class's two colours is in play. Components set --class-glow and --class-ink
-    on a wrapper and then use --class-tint; the theme decides which one that resolves to,
-    so nothing in the component tree has to know the active theme.
+    Cormorant Garamond only at large sizes and in normal case -- it is a plate-engraving
+    face and letterspaced small caps would flatten it. IBM Plex Sans does all the reading,
+    IBM Plex Mono every number: a count is a measurement, and it should read like an
+    instrument. All three SIL OFL.
   */
-  --class-tint: var(--class-ink, #6f5227);
+  --font-display: "Cormorant Garamond", "Palatino Linotype", Palatino, serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+
+  --class-tint: var(--class-ink, #7a5c22);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --class-tint: var(--class-glow, #a8823f);
 
-    --ground: #14121a;
-    --ground-deep: #0c0b11;
-    --panel: #1d1a25;
-    --panel-raised: #262230;
-    --panel-sunken: #15131c;
+    --ground: #07070e;
+    --ground-deep: #030307;
+    --panel: #0d0d17;
+    --panel-raised: #141421;
+    --panel-sunken: #0a0a13;
 
-    --ink: #e8e2d4;
-    --ink-soft: #b0a795;
-    --ink-faint: #7d7566;
-    --ink-inverse: #14121a;
+    --ink: #e8e6f2;
+    --ink-soft: #a6a2bb;
+    --ink-faint: #6d6982;
+    --ink-inverse: #07070e;
 
-    --metal: #a8823f;
-    --metal-bright: #d9b263;
-    --metal-dim: #6b5326;
-    --metal-shadow: rgba(0, 0, 0, 0.6);
+    --brass: #a8863f;
+    --brass-bright: #e0bd7a;
+    --brass-dim: #5d4c28;
+    --shadow: rgba(0, 0, 0, 0.7);
 
-    --arcane: #9b7dff;
-    --arcane-bright: #c3b0ff;
-    --arcane-dim: #5f4aa8;
-    --arcane-wash: rgba(155, 125, 255, 0.14);
-    --arcane-glow: 0 0 12px rgba(155, 125, 255, 0.45);
+    --star: #9fd8ff;
+    --star-bright: #d6efff;
+    --star-dim: #4d7fa0;
+    --star-wash: rgba(159, 216, 255, 0.12);
+    --star-glow: 0 0 14px rgba(159, 216, 255, 0.4);
 
-    --taken: #5fd39a;
-    --taken-wash: rgba(95, 211, 154, 0.12);
-    --barred: #e0674a;
-    --barred-wash: rgba(224, 103, 74, 0.12);
-    --node-ring: var(--ground-deep);
-    --canvas-edge: rgba(0, 0, 0, 0.45);
-    --locked-ink: #5a5346;
-    --focus-ring: #c3b0ff;
+    --taken: #6de0a8;
+    --taken-wash: rgba(109, 224, 168, 0.1);
+    --barred: #ff7a5c;
+    --barred-wash: rgba(255, 122, 92, 0.1);
+    --locked-ink: #4a4659;
+    --focus-ring: #9fd8ff;
 
-    --grain-opacity: 0.5;
+    --node-ring: #030307;
+    --canvas-edge: rgba(0, 0, 0, 0.55);
+
+    --field-opacity: 1;
+    --grain-opacity: 0.4;
     --grain-blend: overlay;
+
+    --class-tint: var(--class-glow, #a8863f);
   }
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --class-tint: var(--class-glow, #a8823f);
 
-  --ground: #14121a;
-  --ground-deep: #0c0b11;
-  --panel: #1d1a25;
-  --panel-raised: #262230;
-  --panel-sunken: #15131c;
+  --ground: #07070e;
+  --ground-deep: #030307;
+  --panel: #0d0d17;
+  --panel-raised: #141421;
+  --panel-sunken: #0a0a13;
 
-  --ink: #e8e2d4;
-  --ink-soft: #b0a795;
-  --ink-faint: #7d7566;
-  --ink-inverse: #14121a;
+  --ink: #e8e6f2;
+  --ink-soft: #a6a2bb;
+  --ink-faint: #6d6982;
+  --ink-inverse: #07070e;
 
-  --metal: #a8823f;
-  --metal-bright: #d9b263;
-  --metal-dim: #6b5326;
-  --metal-shadow: rgba(0, 0, 0, 0.6);
+  --brass: #a8863f;
+  --brass-bright: #e0bd7a;
+  --brass-dim: #5d4c28;
+  --shadow: rgba(0, 0, 0, 0.7);
 
-  --arcane: #9b7dff;
-  --arcane-bright: #c3b0ff;
-  --arcane-dim: #5f4aa8;
-  --arcane-wash: rgba(155, 125, 255, 0.14);
-  --arcane-glow: 0 0 12px rgba(155, 125, 255, 0.45);
+  --star: #9fd8ff;
+  --star-bright: #d6efff;
+  --star-dim: #4d7fa0;
+  --star-wash: rgba(159, 216, 255, 0.12);
+  --star-glow: 0 0 14px rgba(159, 216, 255, 0.4);
 
-  --taken: #5fd39a;
-  --taken-wash: rgba(95, 211, 154, 0.12);
-  --barred: #e0674a;
-  --barred-wash: rgba(224, 103, 74, 0.12);
-  --node-ring: var(--ground-deep);
-  --canvas-edge: rgba(0, 0, 0, 0.45);
-  --locked-ink: #5a5346;
-  --focus-ring: #c3b0ff;
+  --taken: #6de0a8;
+  --taken-wash: rgba(109, 224, 168, 0.1);
+  --barred: #ff7a5c;
+  --barred-wash: rgba(255, 122, 92, 0.1);
+  --locked-ink: #4a4659;
+  --focus-ring: #9fd8ff;
 
-  --grain-opacity: 0.5;
+  --node-ring: #030307;
+  --canvas-edge: rgba(0, 0, 0, 0.55);
+
+  --field-opacity: 1;
+  --grain-opacity: 0.4;
   --grain-blend: overlay;
+
+  --class-tint: var(--class-glow, #a8863f);
 }
 
-/* An explicit light choice must also beat a dark system preference. */
 :root[data-theme="light"] {
   color-scheme: light;
 }

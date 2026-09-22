@@ -46,10 +46,8 @@ export function StatsPanel({ job, tree, showing, onToggle, onStats }: StatsPanel
 
   if (error) {
     return (
-      <section className="panel framed grain p-4">
-        <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">
-          What they share
-        </h2>
+      <section className="panel p-3.5">
+        <h2 className="label">What they share</h2>
         <p className="mt-2 text-[13px]" style={{ color: "var(--barred)" }}>
           {error}
         </p>
@@ -69,17 +67,15 @@ export function StatsPanel({ job, tree, showing, onToggle, onStats }: StatsPanel
     .slice(0, 6);
 
   return (
-    <section className="panel framed grain p-4">
+    <section className="panel p-3.5">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">
-          What they share
-        </h2>
+        <h2 className="label">What they share</h2>
         <label className="flex items-center gap-1.5 text-[11px] text-ink-faint">
           <input
             type="checkbox"
             checked={showing}
             onChange={(event) => onToggle(event.target.checked)}
-            style={{ accentColor: "var(--arcane)" }}
+            style={{ accentColor: "var(--star)" }}
           />
           {/* Also the way back from inspecting a single build, which is otherwise a
               one-way door. */}
@@ -94,7 +90,7 @@ export function StatsPanel({ job, tree, showing, onToggle, onStats }: StatsPanel
           <p className="mt-2 text-[12px] text-ink-soft">
             {settled.length > 0 ? (
               <>
-                <span className="tabular">{settled.length}</span> talent
+                <span className="num">{settled.length}</span> talent
                 {settled.length === 1 ? " is" : "s are"} in <em>every</em> matching build.
                 Those are already decided.
               </>
@@ -106,7 +102,7 @@ export function StatsPanel({ job, tree, showing, onToggle, onStats }: StatsPanel
           {open.length > 0 && (
             <>
               <div className="rule my-3" />
-              <h3 className="text-[11px] uppercase tracking-[0.1em] text-ink-faint">
+              <h3 className="label">
                 Where the choice actually is
               </h3>
               <ul className="mt-2 space-y-1.5">
@@ -114,7 +110,7 @@ export function StatsPanel({ job, tree, showing, onToggle, onStats }: StatsPanel
                   <li key={talent.nodeId} className="text-[12px]">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="truncate">{nameOf(talent.nodeId)}</span>
-                      <span className="tabular shrink-0 text-ink-faint">
+                      <span className="num shrink-0 text-ink-faint">
                         {(talent.share * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -127,7 +123,7 @@ export function StatsPanel({ job, tree, showing, onToggle, onStats }: StatsPanel
                         className="h-full"
                         style={{
                           width: `${talent.share * 100}%`,
-                          background: "var(--arcane)",
+                          background: "var(--star)",
                         }}
                       />
                     </div>

@@ -1,10 +1,10 @@
 /*
-  The tree canvas.
+  The tree, drawn as a constellation.
 
-  Constraint state is drawn as illumination and weight, not as a fourth border colour: the
-  border is already carrying node type. A required talent is lit, an excluded one is cold
-  and struck through, a grouped one is ringed. In the light theme none of them glow --
-  nothing glows in daylight -- so the same states read as saturation and ink weight instead.
+  Edges are thin lines of light and nodes are discs with a halo, so the graph reads as a
+  figure in a sky rather than as boxes joined by connectors. On paper the same structure is
+  copper-plate linework: the lines darken, the halos become weight, and nothing glows,
+  because nothing glows on paper.
 */
 
 .ttm-canvas {
@@ -20,20 +20,42 @@
   overflow: hidden;
   background:
     radial-gradient(
-      120% 90% at 50% 0%,
+      100% 70% at 50% 8%,
       color-mix(in srgb, var(--class-tint) 9%, transparent) 0%,
-      transparent 60%
+      transparent 62%
     ),
-    linear-gradient(180deg, var(--panel-sunken), var(--ground-deep));
+    var(--ground-deep);
   touch-action: none;
   cursor: grab;
 }
 
 /*
-  A vignette, so the canvas reads as a lit surface with depth rather than a flat rectangle.
-  It does most of its work in the light theme, where there is no glow to carry atmosphere --
-  daylight on stone still falls off toward the edges of a room.
+  The star field lives here, not behind the page.
+
+  It was on the root element first, where the panels covered all of it and it showed only in
+  the gutters between them -- which is exactly backwards. The canvas *is* the sky; the panels
+  are instruments laid over it. Putting the field in the canvas is what makes the tree read
+  as a constellation rather than as a graph on a dark grey card.
+
+  Generated from an SVG turbulence filter and thresholded into points, so there is nothing to
+  license and nothing to download.
 */
+.ttm-canvas::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--field-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='1' seed='11'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.82 0 0 0 0 0.89 0 0 0 0 1 5 0 0 0 -3.95'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23s)'/%3E%3C/svg%3E");
+}
+
+.ttm-canvas[data-panning] {
+  cursor: grabbing;
+}
+
+/* A vignette so the canvas reads as a lit surface with depth. It does most of its work on
+   paper, where there is no glow to carry atmosphere -- daylight still falls off. */
 .ttm-canvas::before {
   content: "";
   position: absolute;
@@ -42,25 +64,55 @@
   z-index: 1;
   background: radial-gradient(
     115% 85% at 50% 42%,
-    transparent 55%,
+    transparent 52%,
     var(--canvas-edge) 100%
   );
 }
 
-.ttm-canvas[data-panning] {
-  cursor: grabbing;
+/* A tree the solver is not pointed at is still readable, just not the subject. Dimming
+   rather than hiding: the class tree is context for the spec tree, and context that is gone
+   is not context. */
+.ttm-tree[data-active="no"] .ttm-canvas {
+  /* Enough to say "not this one", not so much that the tree stops being readable. Context
+     you have to squint at is not context. */
+  filter: saturate(0.72) brightness(0.88);
+}
+
+:root:not([data-theme="dark"]) .ttm-tree[data-active="no"] .ttm-canvas {
+  filter: saturate(0.6) contrast(0.94);
+}
+
+/* The active pane is marked twice: corner brackets, and a lit rule in the class colour along
+   its top edge. The rule is what you notice from across the screen; the brackets are what
+   confirm it when you look. */
+.ttm-tree[data-active="yes"]::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  z-index: 2;
+  background: var(--class-tint);
+  box-shadow: 0 0 10px var(--class-tint);
+}
+
+:root:not([data-theme="dark"]) .ttm-tree[data-active="yes"]::before {
+  height: 2px;
+  box-shadow: none;
+}
+
+/* An inactive pane is a button for its whole area: clicking anywhere in it points the
+   solver there, so it should say so on hover. */
+.ttm-tree[data-active="no"] .ttm-canvas:hover {
+  filter: saturate(0.85) brightness(0.97);
 }
 
 .ttm-canvas-world {
   position: absolute;
   transform-origin: 0 0;
-  /* Pan and zoom are a single transform on one element, so a 100-node tree moves in one
-     composited step rather than laying out 100 boxes per frame. */
+  /* Pan and zoom are a single transform on one element, so a hundred-node tree moves in one
+     composited step rather than laying out a hundred boxes per frame. */
   will-change: transform;
-}
-
-.canvas-hint {
-  background: linear-gradient(to top, var(--ground-deep) 30%, transparent);
 }
 
 /* --- edges ----------------------------------------------------------------- */
@@ -73,16 +125,24 @@
 }
 
 .ttm-edge {
-  stroke: color-mix(in srgb, var(--metal) 55%, transparent);
-  stroke-width: 2;
+  stroke: color-mix(in srgb, var(--star-dim) 55%, transparent);
+  stroke-width: 1.25;
   fill: none;
 }
 
+:root:not([data-theme="dark"]) .ttm-edge {
+  stroke: color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+/* An edge crossing a point gate is a prerequisite you have to earn rather than merely
+   connect to, so it is drawn as a broken run. */
 .ttm-edge[data-gate] {
-  /* An edge crossing a point gate is drawn as a dashed run: it is a prerequisite you have
-     to earn rather than merely connect to. */
-  stroke-dasharray: 4 4;
-  stroke: color-mix(in srgb, var(--metal-dim) 70%, transparent);
+  stroke-dasharray: 3 5;
+  stroke: color-mix(in srgb, var(--star-dim) 32%, transparent);
+}
+
+:root:not([data-theme="dark"]) .ttm-edge[data-gate] {
+  stroke: color-mix(in srgb, var(--ink) 18%, transparent);
 }
 
 /* --- nodes ----------------------------------------------------------------- */
@@ -92,65 +152,71 @@
   border: 0;
   background: none;
   cursor: pointer;
-  /* The whole node is one stacking context so the frame, icon and pip move together. */
   isolation: isolate;
-  transition: filter 120ms ease, transform 120ms ease;
+  transition: transform 120ms ease;
 }
 
 .ttm-node:hover {
-  transform: scale(1.06);
-  z-index: 2;
+  transform: scale(1.08);
+  z-index: 3;
 }
 
 .ttm-node-face {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: var(--panel-sunken);
-  /* Two rings: a dark outer edge so the node separates from the ground, and a bronze inner
-     bevel. That is the "frame is part of the design" rule at node scale. */
+  background: var(--ground-deep);
+  /* A dark rim so the disc separates from the sky, and a faint halo so it reads as lit
+     rather than pasted on. The halo is what makes the tree a constellation. */
   box-shadow:
-    0 0 0 2px var(--node-ring),
-    inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 55%, transparent);
+    0 0 0 1px var(--node-ring),
+    0 0 0 2px color-mix(in srgb, var(--star-dim) 40%, transparent),
+    0 0 10px color-mix(in srgb, var(--star-dim) 18%, transparent);
+}
+
+:root:not([data-theme="dark"]) .ttm-node-face {
+  box-shadow:
+    0 0 0 1px var(--node-ring),
+    0 0 0 2px color-mix(in srgb, var(--brass) 28%, transparent);
 }
 
 .ttm-node-split {
   position: absolute;
   inset: 0;
-  /* The dividing line of a choice node, corner to corner. */
   background: linear-gradient(
     to bottom left,
-    transparent calc(50% - 1px),
-    var(--metal-bright) calc(50% - 1px),
-    var(--metal-bright) calc(50% + 1px),
-    transparent calc(50% + 1px)
+    transparent calc(50% - 0.75px),
+    var(--brass-bright) calc(50% - 0.75px),
+    var(--brass-bright) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
   );
 }
 
 .ttm-node-ranks {
   position: absolute;
-  right: -5px;
-  bottom: -5px;
-  min-width: 15px;
+  right: -4px;
+  bottom: -4px;
+  min-width: 14px;
   padding: 0 3px;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 15px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 14px;
   text-align: center;
   color: var(--ink);
   background: var(--panel-raised);
-  border: 1px solid var(--metal-dim);
-  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--brass) 45%, transparent);
+  border-radius: 1px;
 }
 
-/* Talent art we could not fetch. A ring plus the node's own shape still reads as a talent,
-   which is the point: ~1% of names have no image upstream and the tree must not look broken.
-   The diagonal hatch is generated, not an asset. */
+/* Art we could not fetch. A ring plus the node's own shape still reads as a talent, which is
+   the point: ~1% of names have no image upstream and the tree must not look broken. */
 [data-icon="missing"] {
   background-image: repeating-linear-gradient(
     135deg,
-    color-mix(in srgb, var(--metal) 22%, transparent) 0 3px,
-    transparent 3px 7px
+    color-mix(in srgb, var(--star-dim) 26%, transparent) 0 2px,
+    transparent 2px 6px
   );
 }
 
@@ -158,18 +224,16 @@
 
 .ttm-node[data-state="required"] .ttm-node-face {
   box-shadow:
+    0 0 0 1px var(--node-ring),
     0 0 0 2px var(--taken),
-    inset 0 0 0 1px var(--metal-bright),
-    0 0 14px color-mix(in srgb, var(--taken) 55%, transparent);
+    0 0 16px color-mix(in srgb, var(--taken) 55%, transparent);
 }
 
 .ttm-node[data-state="excluded"] .ttm-node-face {
   box-shadow:
-    0 0 0 2px var(--barred),
-    inset 0 0 0 1px var(--metal-dim);
-  /* Cold and drained rather than merely outlined: an excluded talent should read as out of
-     play at a glance across a hundred nodes. */
-  filter: grayscale(0.85) brightness(0.55);
+    0 0 0 1px var(--node-ring),
+    0 0 0 2px var(--barred);
+  filter: grayscale(0.9) brightness(0.45);
 }
 
 .ttm-node[data-state="excluded"]::after {
@@ -179,50 +243,68 @@
   z-index: 3;
   background: linear-gradient(
     to bottom right,
-    transparent calc(50% - 1.5px),
-    var(--barred) calc(50% - 1.5px),
-    var(--barred) calc(50% + 1.5px),
-    transparent calc(50% + 1.5px)
+    transparent calc(50% - 1px),
+    var(--barred) calc(50% - 1px),
+    var(--barred) calc(50% + 1px),
+    transparent calc(50% + 1px)
   );
 }
 
 .ttm-node[data-state="grouped"] .ttm-node-face {
   box-shadow:
-    0 0 0 2px var(--arcane),
-    inset 0 0 0 1px var(--metal-bright),
-    var(--arcane-glow);
+    0 0 0 1px var(--node-ring),
+    0 0 0 2px var(--star),
+    var(--star-glow);
 }
 
 /* A pinned choice side dims the alternative that is out of play, so the node shows the
    decision rather than needing a caption. */
 .ttm-node[data-side="a"] .ttm-node-face > :nth-child(2),
 .ttm-node[data-side="b"] .ttm-node-face > :nth-child(1) {
-  filter: grayscale(1) brightness(0.4);
+  filter: grayscale(1) brightness(0.35);
+}
+
+/* A count in flight makes the whole canvas provisional -- calmer than a spinner per node,
+   and it says the right thing: these numbers are about to change. */
+.ttm-node[data-stale] {
+  filter: saturate(0.8);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-state="required"] .ttm-node-face {
+  box-shadow:
+    0 0 0 1px var(--node-ring),
+    0 0 0 3px var(--taken);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-state="grouped"] .ttm-node-face {
+  box-shadow:
+    0 0 0 1px var(--node-ring),
+    0 0 0 3px var(--star);
+}
+
+:root:not([data-theme="dark"]) .ttm-node[data-state="excluded"] .ttm-node-face {
+  filter: grayscale(0.75) brightness(0.92) contrast(0.9);
 }
 
 /* --- inspecting one build --------------------------------------------------
    While a build is selected the canvas answers a different question, so the constraint
-   colours step aside: what matters is which talents this build takes. Taken ones are lit
-   and full strength, untaken ones recede to the ground. */
+   colours step aside: what matters is which talents this build takes. */
 
 .ttm-node[data-spent="yes"] .ttm-node-face {
   box-shadow:
+    0 0 0 1px var(--node-ring),
     0 0 0 2px var(--taken),
-    inset 0 0 0 1px var(--metal-bright),
-    0 0 16px color-mix(in srgb, var(--taken) 50%, transparent);
+    0 0 18px color-mix(in srgb, var(--taken) 50%, transparent);
 }
 
 .ttm-node[data-spent="no"] .ttm-node-face {
-  filter: grayscale(0.9) brightness(0.45) contrast(0.9);
+  filter: grayscale(0.92) brightness(0.4);
   box-shadow:
-    0 0 0 2px var(--node-ring),
-    inset 0 0 0 1px color-mix(in srgb, var(--metal-dim) 50%, transparent);
+    0 0 0 1px var(--node-ring),
+    0 0 0 1px color-mix(in srgb, var(--star-dim) 22%, transparent);
 }
 
-/* An untaken talent's strike-through would be noise here -- nothing was barred, it simply
-   is not in this build. */
 .ttm-node[data-spent] .ttm-node-ranks {
-  color: var(--ink);
   border-color: var(--taken);
 }
 
@@ -232,27 +314,26 @@
 
 :root:not([data-theme="dark"]) .ttm-node[data-spent="yes"] .ttm-node-face {
   box-shadow:
-    0 0 0 3px var(--taken),
-    inset 0 0 0 1px var(--metal-bright);
+    0 0 0 1px var(--node-ring),
+    0 0 0 3px var(--taken);
 }
 
 :root:not([data-theme="dark"]) .ttm-node[data-spent="no"] .ttm-node-face {
-  filter: grayscale(0.85) brightness(1.06) contrast(0.8) opacity(0.6);
+  filter: grayscale(0.9) brightness(1.05) contrast(0.8) opacity(0.5);
 }
 
-/* --- talent frequency across a result set ----------------------------------
-   Heat rather than a table: "which of these is actually a decision" is a question about the
-   shape of the tree, and a person reading a talent tree reads a tree. The share arrives as
-   --share (0..1) and is interpolated here, so the component never decides what a frequency
-   looks like. */
+/* --- frequency across a result set -----------------------------------------
+   Heat, because "which of these is actually a decision" is a question about the shape of
+   the tree. The share arrives as --share (0..1) and is interpolated here, so the component
+   never decides what a frequency looks like. */
 
 .ttm-node[data-share] .ttm-node-face {
-  /* Opacity carries the magnitude and the ring carries the reading, so the two are legible
-     together: a dim node with a bright ring is "rare but real". */
-  opacity: calc(0.35 + 0.65 * var(--share, 0));
+  opacity: calc(0.3 + 0.7 * var(--share, 0));
   box-shadow:
-    0 0 0 2px color-mix(in srgb, var(--arcane) calc(var(--share, 0) * 100%), var(--node-ring)),
-    inset 0 0 0 1px color-mix(in srgb, var(--metal-bright) 45%, transparent);
+    0 0 0 1px var(--node-ring),
+    0 0 0 2px color-mix(in srgb, var(--star) calc(var(--share, 0) * 100%), transparent),
+    0 0 calc(4px + 12px * var(--share, 0))
+      color-mix(in srgb, var(--star) calc(var(--share, 0) * 45%), transparent);
 }
 
 /* Taken by every matching build: already decided, so it reads as settled rather than hot.
@@ -260,53 +341,35 @@
 .ttm-node[data-share="all"] .ttm-node-face {
   opacity: 1;
   box-shadow:
+    0 0 0 1px var(--node-ring),
     0 0 0 2px var(--taken),
-    inset 0 0 0 1px var(--metal-bright),
-    0 0 12px color-mix(in srgb, var(--taken) 40%, transparent);
+    0 0 14px color-mix(in srgb, var(--taken) 45%, transparent);
 }
 
 .ttm-node[data-share="none"] .ttm-node-face {
-  opacity: 0.22;
+  opacity: 0.16;
   filter: grayscale(1);
 }
 
 .ttm-node[data-share] .ttm-node-ranks {
-  color: var(--ink);
-  border-color: color-mix(in srgb, var(--arcane) 60%, var(--metal-dim));
+  border-color: color-mix(in srgb, var(--star) 55%, transparent);
 }
 
 .ttm-node[data-share="all"] .ttm-node-ranks {
   border-color: var(--taken);
 }
 
+:root:not([data-theme="dark"]) .ttm-node[data-share] .ttm-node-face {
+  box-shadow:
+    0 0 0 1px var(--node-ring),
+    0 0 0 calc(1px + 2px * var(--share, 0))
+      color-mix(in srgb, var(--star) calc(30% + var(--share, 0) * 70%), transparent);
+}
+
 :root:not([data-theme="dark"]) .ttm-node[data-share="all"] .ttm-node-face {
   box-shadow:
-    0 0 0 3px var(--taken),
-    inset 0 0 0 1px var(--metal-bright);
-}
-
-/* A count in flight makes the whole canvas provisional. Cheaper and calmer than a spinner
-   per node, and it says the right thing: these numbers are about to change. */
-.ttm-node[data-stale] {
-  filter: saturate(0.85);
-}
-
-/* In the light theme, state is saturation and weight. Glow is removed rather than reduced:
-   a faint bloom on parchment looks like a rendering artefact. */
-:root:not([data-theme="dark"]) .ttm-node[data-state="required"] .ttm-node-face {
-  box-shadow:
-    0 0 0 3px var(--taken),
-    inset 0 0 0 1px var(--metal-bright);
-}
-
-:root:not([data-theme="dark"]) .ttm-node[data-state="grouped"] .ttm-node-face {
-  box-shadow:
-    0 0 0 3px var(--arcane),
-    inset 0 0 0 1px var(--metal-bright);
-}
-
-:root:not([data-theme="dark"]) .ttm-node[data-state="excluded"] .ttm-node-face {
-  filter: grayscale(0.7) brightness(0.9) contrast(0.9);
+    0 0 0 1px var(--node-ring),
+    0 0 0 3px var(--taken);
 }
 
 /* --- tooltip --------------------------------------------------------------- */
@@ -314,46 +377,53 @@
 .ttm-tooltip {
   position: fixed;
   z-index: 50;
-  max-width: 22rem;
-  padding: 0.6rem 0.75rem;
+  max-width: 21rem;
+  padding: 0.65rem 0.8rem;
   pointer-events: none;
-  /* Readable first, decorative second: this is read constantly, so the ground is near-flat
-     and the ornament is one bronze edge. */
+  /* Read constantly, so: near-flat ground, one hairline, no ornament competing with text. */
   background: var(--panel-raised);
-  border: 1px solid var(--metal);
-  border-radius: 2px;
-  box-shadow: 0 6px 20px var(--metal-shadow);
-  font-size: 13px;
-  line-height: 1.4;
+  border: 1px solid color-mix(in srgb, var(--brass) 50%, transparent);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 34px var(--shadow);
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--ink);
 }
 
 .ttm-tooltip h4 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 14px;
-  letter-spacing: 0.04em;
-  color: var(--metal-bright);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--brass-bright);
 }
 
 :root:not([data-theme="dark"]) .ttm-tooltip h4 {
-  color: var(--metal-dim);
+  color: var(--brass);
 }
 
 .ttm-tooltip p {
-  margin: 0.35rem 0 0;
+  margin: 0.3rem 0 0;
   color: var(--ink-soft);
 }
 
 .ttm-tooltip .rank-label {
-  color: var(--metal);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-faint);
 }
 
 .ttm-tooltip .meta {
-  margin-top: 0.4rem;
-  font-size: 11px;
+  margin-top: 0.45rem;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   color: var(--ink-faint);
+}
+
+/* --- the hint --------------------------------------------------------------- */
+
+.canvas-hint {
+  background: linear-gradient(to top, var(--panel-sunken) 35%, transparent);
 }

@@ -18,21 +18,24 @@ import {
 } from "./lib/api";
 import { classTintStyle } from "./lib/classes";
 import { useConstraints } from "./lib/constraints";
-import { decode, syncUrl, type ShareState } from "./lib/share";
+import { decode, syncUrl, EMPTY, type ShareState } from "./lib/share";
 import { useTheme } from "./lib/theme";
 import { CountGate } from "./components/CountGate";
 import { JobPanel } from "./components/JobPanel";
 import { ResultsBrowser } from "./components/ResultsBrowser";
 import { ShareButton } from "./components/ShareButton";
+import { SpecRail } from "./components/SpecRail";
 import { StatsPanel } from "./components/StatsPanel";
-import { TreeCanvas } from "./components/TreeCanvas";
+import { TreePane } from "./components/TreePane";
 
 /**
- * The app is one screen: pick a tree, paint constraints on it, watch the count, enumerate.
+ * One screen: a specialisation's three trees side by side, constraints painted on whichever
+ * the solver is pointed at, and the count moving as they land.
  *
- * That shape follows from the product model. The count is free and answered inline, so it
- * belongs next to the canvas being painted rather than behind a "calculate" step -- the
- * number moving as constraints land is the whole feedback loop.
+ * All three trees are shown because that is the unit a player thinks in -- a build is class
+ * plus spec plus hero, and choosing a spec tree talent while the class tree is behind a
+ * dropdown is choosing blind. The solver works one tree at a time, which is a property of
+ * the engine rather than of the product, so that tree is marked rather than isolated.
  */
 
 const COUNT_DEBOUNCE_MS = 140;
@@ -46,32 +49,38 @@ export default function App() {
   const { resolved, toggle } = useTheme();
   const [health, setHealth] = useState<Health | null>(null);
   const [trees, setTrees] = useState<TreeSummary[]>([]);
-  const [treeKey, setTreeKey] = useState<string | null>(SHARED.tree);
-  const [tree, setTree] = useState<TreeDetail | null>(null);
+  const [className, setClassName] = useState<string | null>(null);
+  const [specName, setSpecName] = useState<string | null>(null);
+  const [activeKey, setActiveKey] = useState<string | null>(SHARED.tree);
+  const [heroKey, setHeroKey] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState<Record<string, TreeDetail>>({});
   const [count, setCount] = useState<CountResult | null>(null);
   const [countError, setCountError] = useState<string | null>(null);
   const [counting, setCounting] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  // Which enumerated build is being inspected, and its contents once its page has loaded.
-  // Selection is by absolute index so paging stays inside the browser component.
+  const [sharedBuild, setSharedBuild] = useState<Record<string, number> | null>(SHARED.build);
+  const [stats, setStats] = useState<JobStats | null>(null);
+  const [showStats, setShowStats] = useState(true);
   const [pick, setPick] = useState<{ index: number; build: Record<string, number> | null }>({
     index: 0,
     build: null,
   });
 
-  const c = useConstraints(tree, SHARED);
+  const active = activeKey ? (loaded[activeKey] ?? null) : null;
+  const c = useConstraints(active, SHARED);
 
-  // A build carried in the link is shown until the user does something else, so a shared
-  // build link opens on that build rather than on an empty canvas next to it.
-  const [sharedBuild, setSharedBuild] = useState<Record<string, number> | null>(
-    SHARED.build,
-  );
-  // Statistics for the finished job, and whether they are painted on the tree. On by
-  // default: it is the reading a person most likely wants the moment a job finishes, and
-  // a view that has to be switched on is a view most people never see.
-  const [stats, setStats] = useState<JobStats | null>(null);
-  const [showStats, setShowStats] = useState(true);
+  // --- which trees belong to the current spec -----------------------------
+  const group = useMemo(() => {
+    const mine = trees.filter(
+      (t) => t.className === className && (t.kind === "class" || t.specName === specName),
+    );
+    return {
+      class: mine.find((t) => t.kind === "class") ?? null,
+      spec: mine.find((t) => t.kind === "spec") ?? null,
+      heroes: mine.filter((t) => t.kind === "hero"),
+    };
+  }, [trees, className, specName]);
 
   // --- bootstrap ----------------------------------------------------------
   useEffect(() => {
@@ -80,13 +89,19 @@ export default function App() {
         const [h, list] = await Promise.all([getHealth(), listTrees()]);
         setHealth(h);
         setTrees(list);
-        // A tree from the link wins, but only if it still exists -- a link can outlive a
-        // tree that upstream removed, and silently showing a different spec would be worse
-        // than falling back visibly to the default.
-        const fromLink = SHARED.tree && list.some((t) => t.key === SHARED.tree);
-        if (!fromLink) {
-          const first = list.find((t) => t.kind === "spec") ?? list[0];
-          if (first) setTreeKey(first.key);
+
+        // A tree from the link wins, but only if it still exists: a link can outlive a tree
+        // upstream removed, and quietly showing a different spec is worse than falling back.
+        const fromLink = list.find((t) => t.key === SHARED.tree);
+        const start = fromLink ?? list.find((t) => t.kind === "spec") ?? list[0];
+        if (start) {
+          setClassName(start.className);
+          setSpecName(
+            start.specName ??
+              list.find((t) => t.className === start.className && t.kind === "spec")?.specName ??
+              null,
+          );
+          setActiveKey(start.key);
         }
       } catch (error) {
         setLoadError(error instanceof Error ? error.message : String(error));
@@ -94,40 +109,106 @@ export default function App() {
     })();
   }, []);
 
+  // Pick a hero tree once the spec's heroes are known, unless one is already chosen.
   useEffect(() => {
-    if (!treeKey) return;
+    if (group.heroes.length === 0) {
+      setHeroKey(null);
+      return;
+    }
+    setHeroKey((current) =>
+      current && group.heroes.some((h) => h.key === current) ? current : group.heroes[0]!.key,
+    );
+  }, [group.heroes]);
+
+  // --- tree definitions, fetched once each and kept -----------------------
+  // Three trees are on screen and switching spec brings three more; caching by key means
+  // flipping between specs does not refetch what has already been seen.
+  const wanted = useMemo(
+    () => [group.class?.key, group.spec?.key, heroKey].filter(Boolean) as string[],
+    [group.class, group.spec, heroKey],
+  );
+
+  useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        const detail = await getTree(treeKey);
-        if (!cancelled) {
-          setTree(detail);
-          c.reset();
-        }
-      } catch (error) {
-        if (!cancelled) setLoadError(error instanceof Error ? error.message : String(error));
-      }
-    })();
+    for (const key of wanted) {
+      if (loaded[key]) continue;
+      void getTree(key)
+        .then((detail) => {
+          if (!cancelled) setLoaded((previous) => ({ ...previous, [key]: detail }));
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) setLoadError(error instanceof Error ? error.message : String(error));
+        });
+    }
     return () => {
       cancelled = true;
     };
-    // c.reset is stable; re-running on it would refetch the tree on every constraint change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [treeKey]);
+  }, [wanted, loaded]);
+
+  // --- constraints are per tree, and survive switching between them -------
+  const saved = useRef<Map<string, ShareState>>(new Map());
+  const previousActive = useRef<string | null>(activeKey);
+
+  const snapshot = useCallback(
+    (): ShareState => ({
+      tree: previousActive.current,
+      points: c.points,
+      required: [...c.required],
+      excluded: [...c.excluded],
+      sides: new Map(c.sides),
+      atLeastOne: [...c.atLeastOne],
+      exactlyOne: [...c.exactlyOne],
+      build: null,
+    }),
+    [c.points, c.required, c.excluded, c.sides, c.atLeastOne, c.exactlyOne],
+  );
+
+  const pointSolverAt = useCallback(
+    (key: string) => {
+      if (key === activeKey) return;
+      // Constraints belong to a tree, so they are put away rather than thrown away: pointing
+      // the solver at the class tree and back must not lose what was painted on the spec.
+      if (previousActive.current) saved.current.set(previousActive.current, snapshot());
+      previousActive.current = key;
+      setActiveKey(key);
+      setJob(null);
+      setStats(null);
+      setSharedBuild(null);
+      setPick({ index: 0, build: null });
+      c.adopt(saved.current.get(key) ?? EMPTY);
+    },
+    [activeKey, snapshot, c],
+  );
+
+  const selectSpec = useCallback(
+    (nextClass: string, nextSpec: string | null) => {
+      setClassName(nextClass);
+      const spec =
+        nextSpec ??
+        trees.find((t) => t.className === nextClass && t.kind === "spec")?.specName ??
+        null;
+      setSpecName(spec);
+      const target = trees.find(
+        (t) => t.className === nextClass && t.kind === "spec" && t.specName === spec,
+      );
+      if (target) pointSolverAt(target.key);
+    },
+    [trees, pointSolverAt],
+  );
 
   // --- the gate -----------------------------------------------------------
-  // Debounced, and the result of a superseded request is discarded: dragging the point
-  // slider fires a request per step, and without the guard a slow early one can land last
-  // and show a count for a budget the user has already moved past.
+  // Debounced, and superseded responses are discarded: dragging the point slider fires a
+  // request per step, and a slow early one landing last would show a count for a budget the
+  // user has already moved past.
   const requestId = useRef(0);
   useEffect(() => {
-    if (!tree) return;
+    if (!active) return;
     const mine = ++requestId.current;
     setCounting(true);
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const result = await countBuilds(tree.key, c.payload);
+          const result = await countBuilds(active.key, c.payload);
           if (mine === requestId.current) {
             setCount(result);
             setCountError(null);
@@ -144,7 +225,7 @@ export default function App() {
       })();
     }, COUNT_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [tree, c.payload]);
+  }, [active, c.payload]);
 
   // --- job polling --------------------------------------------------------
   useEffect(() => {
@@ -153,33 +234,38 @@ export default function App() {
       void getJob(job.id)
         .then(setJob)
         .catch(() => {
-          /* a transient failure should not kill the panel; the next tick retries */
+          /* transient; the next tick retries */
         });
     }, JOB_POLL_MS);
     return () => clearTimeout(timer);
   }, [job]);
 
-  const onPick = useCallback(
-    (index: number, build: Record<string, number> | null) => {
-      setPick((previous) =>
-        previous.index === index && previous.build === build ? previous : { index, build },
-      );
-      if (build) setShowStats(false);
-    },
-    [],
-  );
+  const onPick = useCallback((index: number, build: Record<string, number> | null) => {
+    setPick((previous) =>
+      previous.index === index && previous.build === build ? previous : { index, build },
+    );
+    if (build) setShowStats(false);
+  }, []);
+
+  const onShowStats = useCallback((on: boolean) => {
+    setShowStats(on);
+    if (on) {
+      setSharedBuild(null);
+      setPick((previous) => ({ index: previous.index, build: null }));
+    }
+  }, []);
 
   const onSolve = useCallback(() => {
-    if (!tree) return;
+    if (!active) return;
     setSharedBuild(null);
     setStats(null);
     setPick({ index: 0, build: null });
-    void submitSolve(tree.key, c.payload)
+    void submitSolve(active.key, c.payload)
       .then(setJob)
       .catch((error: unknown) =>
         setCountError(error instanceof ApiError ? error.detail : String(error)),
       );
-  }, [tree, c.payload]);
+  }, [active, c.payload]);
 
   const onCancel = useCallback(() => {
     if (!job) return;
@@ -190,37 +276,19 @@ export default function App() {
       });
   }, [job]);
 
-  const grouped = useMemo(() => groupByClass(trees), [trees]);
-  const current = trees.find((t) => t.key === treeKey) ?? null;
   const shownBuild = pick.build ?? sharedBuild;
-
-  // Inspecting one build and reading the whole set are different questions, so only one is
-  // on the canvas at a time. Picking a build is the more specific act, so it wins.
   const shares = useMemo(() => {
     if (!stats || !showStats || shownBuild) return null;
     return new Map(stats.talents.map((t) => [t.nodeId, t.share]));
   }, [stats, showStats, shownBuild]);
 
-  /*
-    One switch, two readings. Inspecting a build and reading the whole set answer different
-    questions and cannot share a canvas, so turning the heat map on releases the build and
-    picking a build turns the heat map off. Without that, stepping into a build was a
-    one-way door: the only way back was Clear, which also threw away the constraints.
-  */
-  const onShowStats = useCallback((on: boolean) => {
-    setShowStats(on);
-    if (on) {
-      setSharedBuild(null);
-      setPick((previous) => ({ index: previous.index, build: null }));
-    }
-  }, []);
-
   // Keep the address bar current so it can be copied at any moment. Replaced rather than
-  // pushed: painting constraints is a dozen clicks, and pushing each one would turn the back
-  // button into an undo stepper for something nobody thinks of as navigation.
+  // pushed: painting constraints is a dozen clicks and nobody calls that navigation.
   useEffect(() => {
+    if (!activeKey) return;
+    previousActive.current = activeKey;
     syncUrl({
-      tree: treeKey,
+      tree: activeKey,
       points: c.points,
       required: [...c.required],
       excluded: [...c.excluded],
@@ -229,110 +297,138 @@ export default function App() {
       exactlyOne: [...c.exactlyOne],
       build: shownBuild,
     });
-  }, [treeKey, c.points, c.required, c.excluded, c.sides, c.atLeastOne, c.exactlyOne, shownBuild]);
+  }, [activeKey, c.points, c.required, c.excluded, c.sides, c.atLeastOne, c.exactlyOne, shownBuild]);
 
   if (loadError) {
     return (
-      <main className="grain flex min-h-screen items-center justify-center p-6">
-        <div className="panel framed max-w-md p-6">
-          <h1 className="text-lg">Cannot reach the service</h1>
+      <main className="sky flex min-h-screen items-center justify-center p-6">
+        <div className="panel max-w-md p-6">
+          <h1 className="display text-2xl">Cannot reach the service</h1>
           <p className="mt-2 text-[13px] text-ink-soft">{loadError}</p>
           <p className="mt-3 text-[12px] text-ink-faint">
-            The API and database run in Docker: <code>docker compose up -d api worker</code>.
+            The API and database run in Docker:{" "}
+            <code className="num">docker compose up -d api worker</code>.
           </p>
         </div>
       </main>
     );
   }
 
+  const hero = group.heroes.find((h) => h.key === heroKey) ?? null;
+
   return (
     <div
-      /*
-        Desktop is a fixed-height app shell: the viewport is the frame, the canvas fills
-        what is left, and the sidebar scrolls inside it. `min-h-screen` alone lets the row
-        grow past the viewport, which pushes the results panel off the bottom of the screen
-        exactly when it starts mattering.
-
-        Phone keeps `min-h-screen` and scrolls the page, because stacking a canvas and four
-        panels into one screen height leaves nothing usable.
-      */
-      className="grain flex min-h-screen flex-col md:h-screen md:min-h-0 md:overflow-hidden"
-      style={classTintStyle(current?.className)}
+      className="sky flex min-h-screen flex-col md:h-screen md:min-h-0 md:overflow-hidden"
+      style={classTintStyle(className)}
     >
-      <header className="panel framed relative z-10 m-2 flex flex-wrap items-center gap-3 px-4 py-2 md:m-3">
-        <h1
-          className="text-[15px] md:text-[17px]"
-          style={{ color: "var(--class-tint)" }}
-        >
-          Talent Tree Manager
-        </h1>
-
-        <label className="ml-auto flex items-center gap-2 text-[12px] text-ink-faint">
-          <span className="sr-only">Tree</span>
-          <select
-            className="btn max-w-[15rem] truncate py-1 text-[13px] md:max-w-none"
-            value={treeKey ?? ""}
-            onChange={(event) => setTreeKey(event.target.value)}
+      <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3 pb-2.5">
+        <div className="flex shrink-0 items-baseline gap-2">
+          <span
+            aria-hidden="true"
+            className="text-[12px] leading-none"
+            style={{ color: "var(--class-tint)" }}
           >
-            {grouped.map(([className, group]) => (
-              <optgroup key={className} label={className}>
-                {group.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.specName ? `${t.specName} — ` : ""}
-                    {labelFor(t)}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </label>
+            ✦
+          </span>
+          <h1 className="display text-[18px] leading-none">Talent Tree Manager</h1>
+        </div>
 
-        <button type="button" className="btn py-1 text-[12px]" onClick={toggle}>
-          {resolved() === "dark" ? "Light" : "Dark"}
+        {/* A hairline between the wordmark and the rails, so two unrelated things stop
+            reading as one run of text. */}
+        <span
+          aria-hidden="true"
+          className="hidden h-7 w-px shrink-0 md:block"
+          style={{ background: "color-mix(in srgb, var(--brass) 30%, transparent)" }}
+        />
+
+        <SpecRail
+          trees={trees}
+          className={className}
+          specName={specName}
+          onSelect={selectSpec}
+        />
+
+        <button type="button" className="btn ml-auto shrink-0" onClick={toggle}>
+          {resolved() === "dark" ? "Plate" : "Void"}
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 px-2 pb-2 md:flex-row md:gap-3 md:px-3 md:pb-3">
-        {/* The canvas is the working surface, so it gets the room. */}
-        <div className="panel relative min-h-[22rem] flex-1 overflow-hidden md:min-h-0">
-          {tree ? (
-            <TreeCanvas
-              tree={tree}
-              states={c.states}
-              sides={c.sides}
-              stale={counting}
-              build={shownBuild}
-              shares={shares}
-              onActivate={c.activate}
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-[13px] text-ink-faint">
-              Loading tree…
-            </div>
-          )}
+      <div className="rule mx-4 shrink-0" />
 
-          {/* Sits over the canvas, so it carries its own scrim -- on a phone the tree fills
-              the panel and unbacked text lands on top of talent icons. */}
-          <p className="canvas-hint pointer-events-none absolute inset-x-0 bottom-0 px-3 pt-6 pb-2 text-[11px] text-ink-faint">
-            {shownBuild
-              ? "showing one build · press Clear to go back to painting constraints"
-              : shares
-                ? "showing how often each talent appears across every matching build"
-                : "drag to pan · scroll to zoom · click a talent to require it, again to bar it"}
-          </p>
-        </div>
+      {/*
+        Four columns on desktop: class, specialisation, hero, and the sidebar. Class and
+        spec get equal room because they are the same size and carry the same weight; hero
+        gets a narrow one because a hero tree is eleven nodes in a tall diamond, which is
+        exactly the shape a narrow column wants. Stacking hero under the class tree was the
+        first arrangement and it squeezed both.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 md:flex-row md:gap-2.5 md:p-2.5">
+        <TreePane
+          tree={group.class ? (loaded[group.class.key] ?? null) : null}
+          title="Class"
+          subtitle={className}
+          active={activeKey === group.class?.key}
+          onActivate={() => group.class && pointSolverAt(group.class.key)}
+          states={c.states}
+          sides={c.sides}
+          stale={counting}
+          build={shownBuild}
+          shares={shares}
+          onNode={c.activate}
+          className="min-h-[20rem] flex-1 md:min-h-0"
+        />
 
-        {/* Scrolls on its own. The panel stack grows as a job runs and then again when its
-            results arrive, so a fixed column would push the last panel -- the one holding
-            the results -- off the bottom of the screen exactly when it starts mattering. */}
-        <aside className="flex w-full shrink-0 flex-col gap-2 md:w-[20rem] md:gap-3 md:overflow-y-auto md:pr-1">
-          <section className="panel framed grain p-4">
-            <label
-              className="flex items-baseline justify-between text-[13px] tracking-[0.14em] uppercase text-ink-faint"
-              htmlFor="points"
-            >
-              Point budget
-              <span className="tabular text-[16px] normal-case tracking-normal text-ink">
+        <TreePane
+          tree={group.spec ? (loaded[group.spec.key] ?? null) : null}
+          title="Specialisation"
+          subtitle={specName}
+          active={activeKey === group.spec?.key}
+          onActivate={() => group.spec && pointSolverAt(group.spec.key)}
+          states={c.states}
+          sides={c.sides}
+          stale={counting}
+          build={shownBuild}
+          shares={shares}
+          onNode={c.activate}
+          className="min-h-[20rem] flex-1 md:min-h-0"
+        />
+
+        <TreePane
+          tree={hero ? (loaded[hero.key] ?? null) : null}
+          title="Hero"
+          subtitle={null}
+          active={activeKey === hero?.key}
+          onActivate={() => hero && pointSolverAt(hero.key)}
+          states={c.states}
+          sides={c.sides}
+          stale={counting}
+          build={shownBuild}
+          shares={shares}
+          onNode={c.activate}
+          className="min-h-[15rem] md:min-h-0 md:w-[16rem] md:shrink-0"
+        >
+          {/* Two hero trees per spec, so they are a choice rather than a fixed pane. */}
+          <span className="ml-auto flex shrink-0 items-center">
+            {group.heroes.map((h) => (
+              <button
+                key={h.key}
+                type="button"
+                className="rail-item !px-1 !text-[10.5px]"
+                aria-pressed={h.key === heroKey}
+                onClick={() => setHeroKey(h.key)}
+                title={h.name}
+              >
+                {h.name}
+              </button>
+            ))}
+          </span>
+        </TreePane>
+
+        <aside className="flex w-full shrink-0 flex-col gap-2 md:w-[19rem] md:gap-2.5 md:overflow-y-auto md:pr-1">
+          <section className="panel p-3.5">
+            <label className="flex items-baseline justify-between" htmlFor="points">
+              <span className="label">Point budget</span>
+              <span className="num text-[15px] text-ink">
                 {c.points}
                 <span className="text-ink-faint">/{c.cap}</span>
               </span>
@@ -345,50 +441,18 @@ export default function App() {
               value={c.points}
               onChange={(event) => c.setPoints(Number(event.target.value))}
               className="mt-2 w-full"
-              style={{ accentColor: "var(--arcane)" }}
             />
-            {current?.pointCap !== null && (
-              <p className="mt-1 text-[11px] text-ink-faint">
-                Cap is what the game grants by level 90.
-              </p>
-            )}
+            <p className="mt-1 text-[11px] text-ink-faint">
+              {active ? `Solving the ${paneName(activeKey, group, hero)} tree.` : " "}
+            </p>
           </section>
 
-          <section className="panel framed grain p-4">
-            <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">
-              Constraints
-            </h2>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {(
-                [
-                  ["none", "Require / bar"],
-                  ["atLeastOne", "At least one of"],
-                  ["exactlyOne", "Exactly one of"],
-                ] as const
-              ).map(([mode, label]) => (
-                <button
-                  key={mode}
-                  type="button"
-                  className={`btn py-1 text-[12px] ${c.groupMode === mode ? "btn-arcane" : ""}`}
-                  onClick={() => c.setGroupMode(mode)}
-                  aria-pressed={c.groupMode === mode}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-[12px] text-ink-soft">
-              {c.groupMode === "none"
-                ? "Click cycles require → bar → clear. Right-click reverses. Choice nodes cycle side."
-                : "Click talents to add them to the group."}
-            </p>
-            <div className="mt-3 flex items-baseline justify-between">
-              <span className="text-[12px] tabular text-ink-faint">
-                {c.count} constraint{c.count === 1 ? "" : "s"}
-              </span>
+          <section className="panel p-3.5">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="label">Constraints</span>
               <button
                 type="button"
-                className="btn py-0.5 text-[12px]"
+                className="btn !px-2 !py-0.5 !text-[11px]"
                 onClick={() => {
                   c.reset();
                   setSharedBuild(null);
@@ -398,6 +462,30 @@ export default function App() {
                 Clear
               </button>
             </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {(
+                [
+                  ["none", "Require / bar"],
+                  ["atLeastOne", "At least one"],
+                  ["exactlyOne", "Exactly one"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className="btn !px-2 !py-0.5 !text-[11px]"
+                  onClick={() => c.setGroupMode(mode)}
+                  aria-pressed={c.groupMode === mode}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[11.5px] leading-snug text-ink-soft">
+              {c.groupMode === "none"
+                ? "Click a talent to require it, again to bar it. Right-click reverses. Choice nodes cycle side."
+                : "Click talents to add them to the group."}
+            </p>
           </section>
 
           <CountGate
@@ -406,19 +494,15 @@ export default function App() {
             stale={counting}
             pending={c.pending}
             onSolve={onSolve}
-            solveDisabled={
-              !count || !count.listable || count.sets === 0 || c.pending.length > 0
-            }
+            solveDisabled={!count || !count.listable || count.sets === 0 || c.pending.length > 0}
           />
 
-          {job && (
-            <JobPanel job={job} onCancel={onCancel} onDismiss={() => setJob(null)} />
-          )}
+          {job && <JobPanel job={job} onCancel={onCancel} onDismiss={() => setJob(null)} />}
 
-          {job && tree && (job.state === "done" || job.state === "capped") && (
+          {job && active && (job.state === "done" || job.state === "capped") && (
             <StatsPanel
               job={job}
-              tree={tree}
+              tree={active}
               showing={showStats}
               onToggle={onShowStats}
               onStats={setStats}
@@ -429,24 +513,22 @@ export default function App() {
             <ResultsBrowser job={job} index={pick.index} onSelect={onPick} />
           )}
 
-          {/* The link carries the tree, the budget, every constraint and the build being
-              inspected, so it reproduces the screen rather than the front page. */}
-          <section className="panel framed grain p-4">
-            <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">Share</h2>
-            <p className="mt-1 mb-2 text-[12px] text-ink-soft">
+          <section className="panel p-3.5">
+            <span className="label">Share</span>
+            <p className="mt-1 mb-2 text-[11.5px] leading-snug text-ink-soft">
               {shownBuild
                 ? "This link opens on the build you are looking at."
-                : "This link opens on this tree with these constraints."}
+                : "This link opens on these trees with these constraints."}
             </p>
             <ShareButton />
           </section>
 
-          <footer className="px-1 pb-1 text-[11px] leading-relaxed text-ink-faint">
+          <footer className="px-1 pb-1 text-[10.5px] leading-relaxed text-ink-faint">
             A fan project. Not affiliated with or endorsed by Blizzard Entertainment.
             {health && (
               <>
                 {" "}
-                Data revision <span className="tabular">{health.revision}</span>.
+                Data revision <span className="num">{health.revision}</span>.
               </>
             )}
           </footer>
@@ -456,18 +538,12 @@ export default function App() {
   );
 }
 
-function labelFor(tree: TreeSummary): string {
-  if (tree.kind === "class") return "Class";
-  if (tree.kind === "spec") return "Specialisation";
-  return tree.name;
-}
-
-function groupByClass(trees: TreeSummary[]): [string, TreeSummary[]][] {
-  const map = new Map<string, TreeSummary[]>();
-  for (const tree of trees) {
-    const list = map.get(tree.className);
-    if (list) list.push(tree);
-    else map.set(tree.className, [tree]);
-  }
-  return [...map].sort(([a], [b]) => a.localeCompare(b));
+function paneName(
+  activeKey: string | null,
+  group: { class: TreeSummary | null; spec: TreeSummary | null },
+  hero: TreeSummary | null,
+): string {
+  if (activeKey && activeKey === group.class?.key) return "class";
+  if (activeKey && activeKey === hero?.key) return "hero";
+  return "specialisation";
 }

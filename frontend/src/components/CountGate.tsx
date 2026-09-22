@@ -1,7 +1,7 @@
 import type { CountResult } from "../lib/api";
 
 /**
- * The pre-flight count: the app's distinctive feature, so it gets the arcane accent and the
+ * The pre-flight count: the app's distinctive feature, so it gets the starlight accent and the
  * biggest number on screen.
  *
  * Two numbers, because they answer different questions. `builds` is what a person means by
@@ -33,13 +33,11 @@ export function CountGate({
   solveDisabled,
 }: CountGateProps) {
   return (
-    <section className="panel framed grain p-4" aria-live="polite">
+    <section className="panel p-3.5" aria-live="polite">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[13px] tracking-[0.14em] uppercase text-ink-faint">
-          Possibility space
-        </h2>
+        <h2 className="label">Possibility space</h2>
         {result && (
-          <span className="text-[11px] tabular text-ink-faint">
+          <span className="text-[11px] num text-ink-faint">
             {result.source === "precomputed" ? "precomputed" : `${result.elapsedMs} ms`}
           </span>
         )}
@@ -52,11 +50,13 @@ export function CountGate({
       ) : (
         <>
           <div
-            className="mt-2 tabular display leading-none"
+            className="mt-1.5 num-display leading-none"
             style={{
-              fontSize: "clamp(1.8rem, 6vw, 2.6rem)",
-              color: "var(--arcane)",
-              textShadow: "var(--arcane-glow)",
+              // The count is the biggest thing on the page and the instrument face carries
+              // it: a measurement, read off a dial, not a headline.
+              fontSize: "clamp(1.9rem, 5vw, 2.5rem)",
+              color: "var(--star)",
+              textShadow: "var(--star-glow)",
               // While a count is in flight the number is the previous answer, so it says so
               // rather than pretending to be current.
               opacity: stale ? 0.45 : 1,
@@ -70,7 +70,7 @@ export function CountGate({
             {result && (
               <>
                 {" · "}
-                <span className="tabular">{fmt(result.sets)}</span> selections
+                <span className="num">{fmt(result.sets)}</span> selections
               </>
             )}
           </div>
@@ -89,7 +89,7 @@ export function CountGate({
                 ) : (
                   <>
                     Too many to enumerate — the limit is{" "}
-                    <span className="tabular">{fmt(result.listingLimit)}</span> selections.
+                    <span className="num">{fmt(result.listingLimit)}</span> selections.
                     Add constraints to narrow it.
                   </>
                 )}
@@ -100,7 +100,7 @@ export function CountGate({
       )}
 
       {pending.length > 0 && (
-        <ul className="mt-3 space-y-1 text-[12px]" style={{ color: "var(--metal)" }}>
+        <ul className="mt-3 space-y-1 text-[12px]" style={{ color: "var(--brass)" }}>
           {pending.map((note) => (
             <li key={note}>{note}</li>
           ))}
@@ -109,7 +109,7 @@ export function CountGate({
 
       <button
         type="button"
-        className="btn btn-arcane mt-4 w-full"
+        className="btn btn-primary mt-3.5"
         onClick={onSolve}
         disabled={solveDisabled}
       >
