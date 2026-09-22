@@ -11,6 +11,31 @@ product model — the count is free and answered inline, so it belongs beside th
 being painted rather than behind a "calculate" step. The number moving as constraints land
 *is* the feedback loop.
 
+### Who owns what
+
+The two modes own disjoint state, and the sidebar is gated on the mode rather than on
+whether the data happens to exist:
+
+| | Build | Explore |
+| --- | --- | --- |
+| Canvas | points spent by hand, all three trees editable | constraints painted on the active tree |
+| Sidebar | Loadout, Talent string, Share | Point budget, Constraints, Possibility space, Enumeration, Statistics, Builds, Simulate, Share |
+| URL | `bc`/`bs`/`bh` (the loadout), `h`, `m=b` | `p`, `r`, `x`, `s`, `o`, `e`, `m=e` |
+
+This was not always true, and the ways it failed are the reason it is written down.
+Rendering the results panels on `job` alone put Simulate and a build browser in the mode
+that generates nothing, so the Build tab appeared to have results from nowhere. And a
+single URL carrying both modes' state meant a shared loadout arrived with a stale point
+budget and somebody else's constraints attached, with no way to tell which of the two
+things on screen you were looking at.
+
+**Two artefacts are shareable, and a link is one or the other.** A *loadout* is a build
+somebody made; a *search* is a question somebody asked. An enumerated result is neither:
+it exists only relative to its job and is gone with the next search, so it has no link.
+The way to keep one is to take it into the loadout — the button under the build browser —
+after which it is an ordinary loadout and shares, exports and edits like one. That is the
+only path that crosses between the modes, and `bridge.test.mjs` walks it end to end.
+
 ```bash
 docker compose up -d postgres api worker      # the services it talks to
 npm install
@@ -23,7 +48,9 @@ npm run test:loadout                          # spending rules, against the API
 npm run test:string                           # the Blizzard talent-string codec
 npm run test:simc                             # SimulationCraft export
 npm test                                      # drives the real interactions
-npm run test:all                              # all six
+npm run test:bugs                             # shapes, constraint colours, mode ownership
+npm run test:bridge                           # an enumerated build taken into the loadout
+npm run test:all                              # all eight
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -36,6 +63,19 @@ docker compose --profile web up -d --build web   # http://localhost:8081
 
 The full brief is [`../docs/02-target/ui-direction.md`](../docs/02-target/ui-direction.md).
 What it comes down to here:
+
+**Shape is the talent kind.** A circle is a passive, a square is an active ability, a
+hexagon is a choice between two, an octagon is the hero-tree selector — which is what the
+game does, and what a player reads before reading a single word. Encoding the data model
+instead (one point round, two points square) told nobody anything.
+
+**Constraint colours are sandwiched between keylines.** Four constraint kinds, four hues,
+each one drawn as a ring between two near-black keylines, because black neighbours every
+hue and a coloured rim laid straight onto talent artwork disappears against an icon of the
+same family. The ring is three nested elements wearing the same `clip-path` rather than a
+`box-shadow`, since a shadow is painted outside the border box and every hexagon clipped
+its own ring away. The sidebar names all four, with the swatches built from the same
+custom properties as the canvas so the legend cannot drift from what it describes.
 
 **Star chart.** A talent tree is a constellation, and this tool's job is counting the
 stars in it -- so the interface is astral cartography rather than tavern woodgrain. That
@@ -107,6 +147,7 @@ game data the tool exists to display; everything around them is ours.
 | `components/ResultsBrowser.tsx` | A cursor over the enumerated builds. |
 | `components/ShareButton.tsx` | Copy the current link, with a fallback. |
 | `components/StatsPanel.tsx` | What every matching build shares, and where the choice is. |
+| `components/Legend.tsx` | What the ring colours and the silhouettes mean. |
 
 ## Things worth knowing before changing this
 

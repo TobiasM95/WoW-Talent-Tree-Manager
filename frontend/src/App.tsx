@@ -23,6 +23,7 @@ import { decode, syncUrl, EMPTY, type ShareState } from "./lib/share";
 import { useTheme } from "./lib/theme";
 import { CountGate } from "./components/CountGate";
 import { JobPanel } from "./components/JobPanel";
+import { ConstraintLegend, ShapeKey } from "./components/Legend";
 import { LoadoutString } from "./components/LoadoutString";
 import { ResultsBrowser } from "./components/ResultsBrowser";
 import { ShareButton } from "./components/ShareButton";
@@ -62,7 +63,6 @@ export default function App() {
   const [counting, setCounting] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [sharedBuild, setSharedBuild] = useState<Record<string, number> | null>(SHARED.build);
   const [stats, setStats] = useState<JobStats | null>(null);
   const [showStats, setShowStats] = useState(true);
   const [pick, setPick] = useState<{ index: number; build: Record<string, number> | null }>({
@@ -210,7 +210,6 @@ export default function App() {
       sides: new Map(c.sides),
       atLeastOne: [...c.atLeastOne],
       exactlyOne: [...c.exactlyOne],
-      build: null,
       spent: EMPTY.spent,
       heroKey: null,
       mode: null,
@@ -228,7 +227,6 @@ export default function App() {
       setActiveKey(key);
       setJob(null);
       setStats(null);
-      setSharedBuild(null);
       setPick({ index: 0, build: null });
       c.adopt(saved.current.get(key) ?? EMPTY);
     },
@@ -302,6 +300,9 @@ export default function App() {
     if (build) setShowStats(false);
   }, []);
 
+  /** The active mode, as a flag, because the sidebar asks it once per panel. */
+  const explore = mode === "explore";
+
   const capOf = useCallback(
     (summary: TreeSummary | null) => summary?.pointCap ?? summary?.maxPointsInTree ?? 0,
     [],
@@ -356,7 +357,6 @@ export default function App() {
   /** Put the canvas back to showing constraints, and empty them. */
   const clearCanvas = useCallback(() => {
     c.reset();
-    setSharedBuild(null);
     setShowStats(false);
     setPick((previous) => ({ index: previous.index, build: null }));
   }, [c]);
@@ -400,17 +400,35 @@ export default function App() {
     [group.class, group.spec, group.heroes, loaded, capOf],
   );
 
+  /**
+   * Take the build being inspected into the hand-built loadout, and switch to Build.
+   *
+   * The bridge between the two modes, and the only way a result crosses. An enumerated build
+   * exists only relative to a job, so it is not a thing to share or to keep -- but "I will
+   * have that one" is exactly what a person wants after reading 34,619 of them, and until
+   * now there was no way to say it.
+   */
+  const takeIntoLoadout = useCallback(() => {
+    if (!activeKey || !active || !pick.build) return;
+    const cap = capOf(trees.find((t) => t.key === activeKey) ?? null);
+    const placed = loadout.place(active, pick.build, cap);
+    setSpent((previous) => ({ ...previous, [activeKey]: placed.points }));
+    setMode("build");
+    setPick((previous) => ({ index: previous.index, build: null }));
+    setNote(
+      `Build ${pick.index + 1} is now the ${paneName(activeKey, group, hero)} tree of your loadout.`,
+    );
+  }, [activeKey, active, pick, trees, capOf, group, hero]);
+
   const onShowStats = useCallback((on: boolean) => {
     setShowStats(on);
     if (on) {
-      setSharedBuild(null);
       setPick((previous) => ({ index: previous.index, build: null }));
     }
   }, []);
 
   const onSolve = useCallback(() => {
     if (!active) return;
-    setSharedBuild(null);
     setStats(null);
     setPick({ index: 0, build: null });
     void submitSolve(active.key, c.payload)
@@ -429,7 +447,7 @@ export default function App() {
       });
   }, [job]);
 
-  const shownBuild = pick.build ?? sharedBuild;
+  const shownBuild = pick.build;
 
   // The canvas already knows how to dim the alternative a choice node is not taking; build
   // mode reuses it so a hand-picked side reads the same way an explored one does.
@@ -443,10 +461,29 @@ export default function App() {
 
   // In build mode every pane shows its own hand-spent points; in explore mode only the
   // active pane shows the enumerated build being inspected.
+  /*
+    What a pane draws as taken.
+
+    Granted talents are folded in while building. They cost no point, so they are absent
+    from the spend map by design -- but the character *has* them, and drawing Vampiric
+    Strike as an empty socket in the hero tree it starts every build of is simply wrong. It
+    also made a build taken out of Explore look like it had lost a talent on the way in.
+  */
   const paneBuild = useCallback(
-    (key: string | undefined) =>
-      mode === "build" ? (key ? (spent[key] ?? {}) : {}) : key === activeKey ? shownBuild : null,
-    [mode, spent, activeKey, shownBuild],
+    (key: string | undefined) => {
+      if (mode !== "build") return key === activeKey ? shownBuild : null;
+      if (!key) return {};
+      const tree = loaded[key];
+      const mine = spent[key] ?? {};
+      if (!tree) return mine;
+      const withGranted: Record<string, number> = { ...mine };
+      for (const id of loadout.grantedRoots(tree)) {
+        const node = tree.nodes.find((n) => n.nodeId === id);
+        withGranted[String(id)] = node?.maxPoints ?? 1;
+      }
+      return withGranted;
+    },
+    [mode, spent, activeKey, shownBuild, loaded],
   );
   const paneReach = useCallback(
     (key: string | undefined, summary: TreeSummary | null) => {
@@ -481,7 +518,6 @@ export default function App() {
       sides: new Map(c.sides),
       atLeastOne: [...c.atLeastOne],
       exactlyOne: [...c.exactlyOne],
-      build: shownBuild,
       spent: {
         class: group.class ? (spent[group.class.key] ?? null) : null,
         spec: group.spec ? (spent[group.spec.key] ?? null) : null,
@@ -647,7 +683,7 @@ export default function App() {
           reachable={paneReach(hero?.key, hero)}
           budget={paneBudget(hero?.key, hero)}
           editing={mode === "build"}
-          className="min-h-[15rem] md:min-h-0 md:w-[16rem] md:shrink-0"
+          className="min-h-[15rem] md:min-h-0 md:w-[21rem] md:shrink-0"
         >
           {/* Two hero trees per spec, so they are a choice rather than a fixed pane. */}
           <span className="ml-auto flex shrink-0 items-center">
@@ -748,7 +784,7 @@ export default function App() {
           </section>
           )}
 
-          {mode === "explore" && (
+          {explore && (
           <section className="panel p-3.5">
             <div className="flex items-baseline justify-between gap-2">
               <span className="label">Constraints</span>
@@ -768,20 +804,32 @@ export default function App() {
                 Clear
               </button>
             </div>
+            {/* What a click does next. The group kinds are two different questions, so each
+                one says which question it is asking rather than leaving the player to infer
+                it from a ring they painted several clicks ago. */}
             <div className="mt-2 flex flex-wrap gap-1">
               {(
                 [
-                  ["none", "Require / bar"],
-                  ["atLeastOne", "At least one"],
-                  ["exactlyOne", "Exactly one"],
+                  ["none", "Require / bar", "Click a talent to require it, click again to bar it"],
+                  [
+                    "atLeastOne",
+                    "At least one",
+                    "Every build must take one or more of the talents you click",
+                  ],
+                  [
+                    "exactlyOne",
+                    "Exactly one",
+                    "Every build must take exactly one of the talents you click",
+                  ],
                 ] as const
-              ).map(([mode, label]) => (
+              ).map(([kind, label, why]) => (
                 <button
-                  key={mode}
+                  key={kind}
                   type="button"
                   className="btn !px-2 !py-0.5 !text-[11px]"
-                  onClick={() => c.setGroupMode(mode)}
-                  aria-pressed={c.groupMode === mode}
+                  onClick={() => c.setGroupMode(kind)}
+                  aria-pressed={c.groupMode === kind}
+                  title={why}
                 >
                   {label}
                 </button>
@@ -790,12 +838,22 @@ export default function App() {
             <p className="mt-2 text-[11.5px] leading-snug text-ink-soft">
               {c.groupMode === "none"
                 ? "Click a talent to require it, again to bar it. Right-click reverses. Choice nodes cycle side."
-                : "Click talents to add them to the group."}
+                : c.groupMode === "atLeastOne"
+                  ? "Click talents to build a group every matching build takes one or more of."
+                  : "Click talents to build a group every matching build takes exactly one of."}
             </p>
+            <ConstraintLegend
+              counts={{
+                required: c.required.size,
+                excluded: c.excluded.size,
+                anyOf: c.atLeastOne.size,
+                oneOf: c.exactlyOne.size,
+              }}
+            />
           </section>
           )}
 
-          {mode === "explore" && (
+          {explore && (
             <CountGate
             result={count}
             error={countError}
@@ -808,9 +866,15 @@ export default function App() {
             />
           )}
 
-          {job && <JobPanel job={job} onCancel={onCancel} onDismiss={() => setJob(null)} />}
+          {/* Everything below belongs to Explore, and says so structurally rather than by
+              habit. A job is a property of a *search*: rendering its results beside a tree
+              somebody is building by hand put generated builds in a mode that generates
+              nothing, which is why the Build tab appeared to have results from nowhere. */}
+          {explore && job && (
+            <JobPanel job={job} onCancel={onCancel} onDismiss={() => setJob(null)} />
+          )}
 
-          {job && active && (job.state === "done" || job.state === "capped") && (
+          {explore && job && active && (job.state === "done" || job.state === "capped") && (
             <StatsPanel
               job={job}
               tree={active}
@@ -820,14 +884,20 @@ export default function App() {
             />
           )}
 
-          {job && (job.state === "done" || job.state === "capped") && (
-            <ResultsBrowser job={job} index={pick.index} onSelect={onPick} />
+          {explore && job && (job.state === "done" || job.state === "capped") && (
+            <ResultsBrowser
+              job={job}
+              index={pick.index}
+              onSelect={onPick}
+              onTake={pick.build ? takeIntoLoadout : null}
+              takeLabel={`Use as my ${paneName(activeKey, group, hero)} tree`}
+            />
           )}
 
           {/* The end of the arc: count the space, narrow it, hand the survivors to the
               thing that can rank them. Needs the hand-built loadout, because every exported
               line is a whole character rather than one tree. */}
-          {job && (job.state === "done" || job.state === "capped") && (
+          {explore && job && (job.state === "done" || job.state === "capped") && (
             <SimcExport
               job={job}
               spec={group.spec ? (loaded[group.spec.key] ?? null) : null}
@@ -852,12 +922,19 @@ export default function App() {
 
           <section className="panel p-3.5">
             <span className="label">Share</span>
+            {/* Two modes, two artefacts, and the link says which one it is carrying. An
+                enumerated build is deliberately not among them: it exists only relative to
+                its job, so the way to keep one is to take it into the loadout first. */}
             <p className="mt-1 mb-2 text-[11.5px] leading-snug text-ink-soft">
-              {shownBuild
-                ? "This link opens on the build you are looking at."
-                : "This link opens on these trees with these constraints."}
+              {explore
+                ? "This link opens on these trees with these constraints — the search, not its results."
+                : "This link opens on the loadout you have built, all three trees."}
             </p>
             <ShareButton />
+          </section>
+
+          <section className="panel px-3.5 py-2.5">
+            <ShapeKey />
           </section>
 
           <footer className="px-1 pb-1 text-[10.5px] leading-relaxed text-ink-faint">

@@ -16,7 +16,7 @@ import { iconUrl } from "../lib/api";
  *   square          a hero sub-tree selector
  */
 
-export type NodeState = "neutral" | "required" | "excluded" | "grouped";
+export type NodeState = "neutral" | "required" | "excluded" | "anyOf" | "oneOf";
 
 export interface TalentNodeProps {
   node: NodeData;
@@ -62,19 +62,34 @@ export interface TalentNodeProps {
   onHover: (node: NodeData | null, element: HTMLElement | null) => void;
 }
 
-const CLIP: Record<string, string | undefined> = {
-  // A hexagon reads as "this one changes with level" without needing a badge.
-  tiered: "polygon(25% 2%, 75% 2%, 100% 50%, 75% 98%, 25% 98%, 0% 50%)",
-  subtree: undefined, // square: left as a plain box, the most "structural" silhouette
-};
-
 const SIZE = 44;
 
-function shapeClass(kind: NodeData["kind"]): string {
-  if (kind === "single") return "rounded-full";
-  if (kind === "choice") return "rounded-[3px]";
-  if (kind === "subtree") return "rounded-[2px]";
-  return "rounded-[3px]";
+/** A constraint state read aloud. "anyOf" is a variable name, not a sentence. */
+const SPOKEN: Record<NodeState, string> = {
+  neutral: "",
+  required: "required",
+  excluded: "barred",
+  anyOf: "in an at-least-one group",
+  oneOf: "in an exactly-one group",
+};
+
+/**
+ * What silhouette a talent gets, which is a question about the talent rather than about
+ * the tree structure.
+ *
+ * The game draws passives as circles and abilities as squares, and a player reading a tree
+ * uses that before reading a single word: "what does this build actually *do*" is answered
+ * by counting squares. We had circles for everything with one point, boxes for everything
+ * with two, which encoded the data model instead of the thing.
+ *
+ * A choice node is a hexagon whatever it contains -- its shape has to say "a decision" more
+ * loudly than it says "an ability", because that is what distinguishes it. The hero-tree
+ * selector is the octagon, and there is exactly one per tree.
+ */
+function shapeOf(node: NodeData): "passive" | "active" | "choice" | "subtree" {
+  if (node.kind === "subtree") return "subtree";
+  if (node.kind === "choice" && node.entries.length >= 2) return "choice";
+  return node.entries.some((entry) => entry.kind === "active") ? "active" : "passive";
 }
 
 function EntryIcon({
@@ -133,6 +148,7 @@ export const TalentNode = memo(function TalentNode({
       className="ttm-node absolute"
       data-state={state}
       data-kind={node.kind}
+      data-shape={shapeOf(node)}
       data-spent={spent === undefined ? undefined : spent > 0 ? "yes" : "no"}
       data-share={
         share === undefined ? undefined : share >= 0.999 ? "all" : share > 0 ? "some" : "none"
@@ -151,7 +167,6 @@ export const TalentNode = memo(function TalentNode({
         height: SIZE,
         marginLeft: -SIZE / 2,
         marginTop: -SIZE / 2,
-        clipPath: CLIP[node.kind],
       }}
       // Left click cycles toward requiring; right click (or shift) cycles the other way.
       // Two directions on one control, because painting constraints is the main gesture in
@@ -166,20 +181,26 @@ export const TalentNode = memo(function TalentNode({
       onMouseLeave={() => onHover(null, null)}
       onBlur={() => onHover(null, null)}
       aria-label={`${node.name}${
-        state === "neutral" ? "" : `, ${state}`
+        state === "neutral" ? "" : `, ${SPOKEN[state]}`
       }. ${node.maxPoints} point${node.maxPoints === 1 ? "" : "s"}.`}
       aria-pressed={state !== "neutral"}
     >
-      <span className={`ttm-node-face ${shapeClass(node.kind)}`}>
-        {isChoice ? (
-          <>
-            <EntryIcon icon={entries[0]!.icon} name={entries[0]!.name} half="left" />
-            <EntryIcon icon={entries[1]!.icon} name={entries[1]!.name} half="right" />
-            <span className="ttm-node-split" aria-hidden="true" />
-          </>
-        ) : (
-          <EntryIcon icon={entries[0]?.icon ?? null} name={entries[0]?.name ?? node.name} />
-        )}
+      {/* Three layers, one silhouette: keyline, state colour, artwork. The stylesheet
+          explains why a ring cannot be a box-shadow here. */}
+      <span className="ttm-node-ring" aria-hidden="true">
+        <span className="ttm-node-band">
+          <span className="ttm-node-face">
+            {isChoice ? (
+              <>
+                <EntryIcon icon={entries[0]!.icon} name={entries[0]!.name} half="left" />
+                <EntryIcon icon={entries[1]!.icon} name={entries[1]!.name} half="right" />
+                <span className="ttm-node-split" aria-hidden="true" />
+              </>
+            ) : (
+              <EntryIcon icon={entries[0]?.icon ?? null} name={entries[0]?.name ?? node.name} />
+            )}
+          </span>
+        </span>
       </span>
 
       {/* Rank pip. While a build is being inspected it shows what that build spends here;

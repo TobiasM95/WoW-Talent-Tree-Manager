@@ -154,8 +154,10 @@ export function useConstraints(tree: TreeDetail | null, initial?: ShareState) {
     const map = new Map<number, NodeState>();
     for (const id of required) map.set(id, "required");
     for (const id of excluded) map.set(id, "excluded");
-    for (const id of atLeastOne) map.set(id, "grouped");
-    for (const id of exactlyOne) map.set(id, "grouped");
+    // The two group kinds ask different questions -- "one of these at minimum" against
+    // "one of these and no more" -- so they are two states and two colours, not one.
+    for (const id of atLeastOne) map.set(id, "anyOf");
+    for (const id of exactlyOne) map.set(id, "oneOf");
     return map;
   }, [required, excluded, atLeastOne, exactlyOne]);
 

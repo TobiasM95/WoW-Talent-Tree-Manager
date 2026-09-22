@@ -32,14 +32,13 @@ const state = {
   ]),
   atLeastOne: [88204, 88215, 88219],
   exactlyOne: [88221, 88236],
-  build: { 88203: 1, 88210: 2, 91045: 1 },
   spent: {
     class: { 76169: 1, 76170: 2 },
     spec: { 88203: 1, 88225: 1 },
     hero: { 91045: 1 },
   },
   heroKey: "retail/11/102/hero/23",
-  mode: "build",
+  mode: "explore",
 };
 
 const round = decode(encode(state));
@@ -62,33 +61,41 @@ check(
   String(round.atLeastOne) === String(state.atLeastOne) &&
     String(round.exactlyOne) === String(state.exactlyOne),
 );
-check(
-  "a build survives with its point counts",
-  JSON.stringify(round.build) === JSON.stringify(state.build),
-  JSON.stringify(round.build),
-);
+/*
+  A link carries one of two things, chosen by the mode: a *loadout* or a *search*. Carrying
+  both is what produced links that arrived with a leftover budget and constraints their
+  sender never meant to send.
+*/
+check("a search link carries no loadout",
+      round.spent.class === null && round.spent.spec === null && round.spent.hero === null,
+      JSON.stringify(round.spent));
+
+const asBuild = decode(encode({ ...state, mode: "build" }));
+check("a loadout link carries the loadout for all three trees",
+      JSON.stringify(asBuild.spent) === JSON.stringify(state.spent),
+      JSON.stringify(asBuild.spent));
+check("and carries no search state",
+      asBuild.points === null && asBuild.required.length === 0 &&
+        asBuild.excluded.length === 0 && asBuild.sides.size === 0,
+      `${asBuild.points} / ${asBuild.required.length} required`);
 
 // Multi-rank talents are the case an encoding is most likely to flatten, since a naive
 // "list of taken ids" loses how many points each one has.
-const ranked = decode(encode({ ...state, build: { 100: 1, 200: 2, 300: 3 } }));
-check(
-  "point counts are not flattened to 1",
-  ranked.build?.["200"] === 2 && ranked.build?.["300"] === 3,
-  JSON.stringify(ranked.build),
-);
+const ranked = decode(encode({
+  ...state, mode: "build",
+  spent: { class: { 100: 1, 200: 2, 300: 3 }, spec: null, hero: null },
+}));
+check("point counts are not flattened to 1",
+      ranked.spent.class?.["200"] === 2 && ranked.spent.class?.["300"] === 3,
+      JSON.stringify(ranked.spent.class));
 
 // A talent with zero points is not in the build; carrying it would inflate every link.
-const sparse = decode(encode({ ...state, build: { 100: 0, 200: 1 } }));
-check("zero-point talents are omitted", !("100" in (sparse.build ?? {})),
-      JSON.stringify(sparse.build));
-
-// A loadout spans three trees, and a link carrying only one of them is not a build anyone
-// meant to share.
-check(
-  "a loadout survives for all three trees",
-  JSON.stringify(round.spent) === JSON.stringify(state.spent),
-  JSON.stringify(round.spent),
-);
+const sparse = decode(encode({
+  ...state, mode: "build",
+  spent: { class: { 100: 0, 200: 1 }, spec: null, hero: null },
+}));
+check("zero-point talents are omitted", !("100" in (sparse.spent.class ?? {})),
+      JSON.stringify(sparse.spent.class));
 check("the hero tree is named, since a spec has two", round.heroKey === state.heroKey,
       String(round.heroKey));
 
@@ -97,14 +104,13 @@ check("the hero tree is named, since a spec has two", round.heroKey === state.he
 check("the mode is carried, not guessed", round.mode === state.mode, String(round.mode));
 
 const blank = { tree: null, points: null, required: [], excluded: [],
-                sides: new Map(), atLeastOne: [], exactlyOne: [], build: null,
+                sides: new Map(), atLeastOne: [], exactlyOne: [],
                 spent: { class: null, spec: null, hero: null }, heroKey: null,
                 mode: null };
 const empty = decode(encode(blank));
 check(
   "an empty state encodes to nothing and decodes back to empty",
-  encode(blank) === "" && empty.tree === null && empty.build === null
-    && empty.spent.class === null,
+  encode(blank) === "" && empty.tree === null && empty.spent.class === null,
 );
 
 // Called with hand-assembled state in a few places, so a missing field must drop a
@@ -115,13 +121,12 @@ check("a partial state encodes without throwing", encode(partial) === "");
 
 // Links get truncated, hand-edited and pasted out of chat clients. Garbage must produce an
 // empty view, never a wrong one.
-for (const junk of ["?t=&p=abc&r=zzz-", "?r=-,-&x=!!!", "?b=-&s=x", "?p=-5"]) {
+for (const junk of ["?t=&p=abc&r=zzz-", "?r=-,-&x=!!!", "?bc=-&s=x", "?p=-5"]) {
   const parsed = decode(junk);
   const ok =
     parsed.required.every((id) => Number.isFinite(id) && id > 0) &&
     parsed.excluded.every((id) => Number.isFinite(id) && id > 0) &&
-    (parsed.points === null || parsed.points > 0) &&
-    (parsed.build === null || Object.values(parsed.build).every((p) => p > 0));
+    (parsed.points === null || parsed.points > 0);
   check(`malformed input is discarded, not misread: ${junk}`, ok, JSON.stringify(parsed));
 }
 

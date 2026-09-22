@@ -63,6 +63,16 @@
   --focus-ring: #1d5f8c;
 
   --node-ring: #4a4237;
+  /* --- the constraint palette -------------------------------------------
+     Four meanings, four hues, each one legible against talent artwork because the node
+     draws them between two keylines rather than against the icon. Kept apart in hue, not
+     just in lightness: must/bar/any/one are four different questions. */
+  --must: #197a45;
+  --any-of: #a8650a;
+  --one-of: #6b3fa0;
+  --keyline: #17120b;
+  --node-rim: #8a7a5c;
+  --node-glow: 0px;
   --canvas-edge: rgba(74, 62, 40, 0.16);
 
   /* --- atmosphere ------------------------------------------------------- */
@@ -123,6 +133,12 @@
     --focus-ring: #9fd8ff;
 
     --node-ring: #030307;
+    --must: #45e08a;
+    --any-of: #ffc94d;
+    --one-of: #c98dff;
+    --keyline: #04040a;
+    --node-rim: #6b5c3e;
+    --node-glow: 9px;
     --canvas-edge: rgba(0, 0, 0, 0.55);
 
     --field-opacity: 1;
@@ -166,6 +182,12 @@
   --focus-ring: #9fd8ff;
 
   --node-ring: #030307;
+  --must: #45e08a;
+  --any-of: #ffc94d;
+  --one-of: #c98dff;
+  --keyline: #04040a;
+  --node-rim: #6b5c3e;
+  --node-glow: 9px;
   --canvas-edge: rgba(0, 0, 0, 0.55);
 
   --field-opacity: 1;

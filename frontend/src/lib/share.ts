@@ -4,9 +4,20 @@ import type { ChoiceSide } from "./api";
  * The whole view, encoded into the URL.
  *
  * The point of rebuilding this as a web app was that the tool should be a URL. That only
- * means something if the URL carries what you are looking at -- the tree, the constraints
- * you painted, and the build you are inspecting -- so a link reproduces the screen rather
- * than the front page.
+ * means something if a link reproduces the screen rather than the front page.
+ *
+ * There are two things worth sharing, and they are not the same thing:
+ *
+ *   **a loadout** -- points spent by hand across all three trees, which is a build;
+ *   **a search** -- a tree, a budget and the constraints painted on it, which is a question.
+ *
+ * A link carries one or the other, chosen by the mode. Carrying both produced links that made
+ * no sense: a shared loadout arrived with a leftover point budget and a possibility space
+ * narrowed by constraints its sender never meant to send.
+ *
+ * An *enumerated* build is deliberately not shareable on its own. It only exists relative to
+ * a job that has since gone, and a link to one would be a loadout wearing someone else's
+ * context. Taking one into the loadout is an explicit act, and then it shares as a loadout.
  *
  * **Node ids, never positions.** This is the same rule the storage schema enforces, and for
  * the same reason: the legacy format stored point assignments positionally and the preset
@@ -26,8 +37,6 @@ export interface ShareState {
   sides: Map<number, ChoiceSide>;
   atLeastOne: number[];
   exactlyOne: number[];
-  /** A specific enumerated build being inspected on the active tree: nodeId -> points. */
-  build: Record<string, number> | null;
   /**
    * Points spent by hand, per tree.
    *
@@ -44,9 +53,9 @@ export interface ShareState {
    * Which mode the link opens in.
    *
    * Carried explicitly rather than inferred from which fields are present. A link can hold
-   * both a hand-built loadout and an enumerated build, and guessing from that produced a
-   * link that reopened in build mode showing none of the result it was sharing. The mode is
-   * part of what the person was looking at, so it is part of the state.
+   * It decides which half of the state is written, so it cannot be inferred from which
+   * fields are present -- that reasoning is circular. It is also part of what the person was
+   * looking at, which makes it part of what a link should reproduce.
    */
   mode: "build" | "explore" | null;
 }
@@ -59,7 +68,6 @@ export const EMPTY: ShareState = {
   sides: new Map(),
   atLeastOne: [],
   exactlyOne: [],
-  build: null,
   spent: { class: null, spec: null, hero: null },
   heroKey: null,
   mode: null,
@@ -101,27 +109,43 @@ const decodeBuild = (text: string | null): Record<string, number> | null => {
   return Object.keys(build).length ? build : null;
 };
 
+/**
+ * Only the fields the mode actually means.
+ *
+ * A link used to carry a hand-built loadout, a set of constraints and an inspected build all
+ * at once, because every write went through one function that wrote everything it had. What
+ * came back was incoherent: a shared loadout arrived with a point budget left over from some
+ * earlier search, and the possibility space it showed was narrowed by constraints the sender
+ * had never meant to send.
+ *
+ * The two modes are two different things to share. Build shares a *loadout*; explore shares a
+ * *search*. Writing only one of them is what makes a link mean something.
+ */
 export function encode(state: ShareState): string {
   const params = new URLSearchParams();
+  const building = state.mode === "build";
+
   if (state.tree) params.set("t", state.tree);
-  if (state.points) params.set("p", String(state.points));
-  if (state.required.length) params.set("r", ids(state.required));
-  if (state.excluded.length) params.set("x", ids(state.excluded));
-  if (state.sides.size) {
-    params.set(
-      "s",
-      [...state.sides].map(([id, side]) => `${b36(id)}${SIDE_CODE[side]}`).join("-"),
-    );
+  if (!building) {
+    if (state.points) params.set("p", String(state.points));
+    if (state.required.length) params.set("r", ids(state.required));
+    if (state.excluded.length) params.set("x", ids(state.excluded));
+    if (state.sides.size) {
+      params.set(
+        "s",
+        [...state.sides].map(([id, side]) => `${b36(id)}${SIDE_CODE[side]}`).join("-"),
+      );
+    }
+    if (state.atLeastOne.length) params.set("o", ids(state.atLeastOne));
+    if (state.exactlyOne.length) params.set("e", ids(state.exactlyOne));
   }
-  if (state.atLeastOne.length) params.set("o", ids(state.atLeastOne));
-  if (state.exactlyOne.length) params.set("e", ids(state.exactlyOne));
-  if (state.build) params.set("b", encodeBuild(state.build));
   // Defaulted rather than assumed: this is called with hand-assembled state in places, and
   // a missing field should drop a parameter, not throw and lose the whole link.
-  const spent = state.spent ?? EMPTY.spent;
+  const spent = building ? (state.spent ?? EMPTY.spent) : EMPTY.spent;
   if (spent.class) params.set("bc", encodeBuild(spent.class));
   if (spent.spec) params.set("bs", encodeBuild(spent.spec));
   if (spent.hero) params.set("bh", encodeBuild(spent.hero));
+  // Which hero tree is showing is true in both modes, so it is written in both.
   if (state.heroKey) params.set("h", state.heroKey);
   if (state.mode) params.set("m", state.mode === "build" ? "b" : "e");
   return params.toString();
@@ -150,7 +174,6 @@ export function decode(search: string): ShareState {
     sides,
     atLeastOne: parseIds(params.get("o")),
     exactlyOne: parseIds(params.get("e")),
-    build: decodeBuild(params.get("b")),
     spent: {
       class: decodeBuild(params.get("bc")),
       spec: decodeBuild(params.get("bs")),

@@ -11,18 +11,32 @@ import { getResults, type Job, type ResultPage } from "../lib/api";
  * person has after asking for every build matching their constraints.
  *
  * Paged rather than fetched whole, because "every matching build" reaches two million.
+ *
+ * `onTake` is the one door out of Explore. A build here exists only relative to its job --
+ * it has no URL and does not survive the next search -- so the way to keep one is to make it
+ * yours: it becomes the loadout's version of this tree, and from there it can be shared,
+ * exported as a talent string, or edited by hand.
  */
 
 export interface ResultsBrowserProps {
   job: Job;
   index: number;
   onSelect: (index: number, build: Record<string, number> | null) => void;
+  /** Adopt the shown build into the hand-built loadout. Null while none is in hand. */
+  onTake?: (() => void) | null;
+  takeLabel?: string;
 }
 
 const PAGE = 100;
 const fmt = (n: number) => n.toLocaleString("en-US");
 
-export function ResultsBrowser({ job, index, onSelect }: ResultsBrowserProps) {
+export function ResultsBrowser({
+  job,
+  index,
+  onSelect,
+  onTake = null,
+  takeLabel = "Use this build",
+}: ResultsBrowserProps) {
   const [page, setPage] = useState<ResultPage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -146,6 +160,16 @@ export function ResultsBrowser({ job, index, onSelect }: ResultsBrowserProps) {
                 )} points — shown on the tree.`
               : "Loading this build…"}
           </p>
+
+          <button
+            type="button"
+            className="btn mt-2.5 w-full"
+            onClick={() => onTake?.()}
+            disabled={!onTake}
+            title="Take this build into your loadout, where it can be edited, shared and exported"
+          >
+            {takeLabel}
+          </button>
         </>
       )}
     </section>

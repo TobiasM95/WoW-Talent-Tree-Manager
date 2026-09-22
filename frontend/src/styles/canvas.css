@@ -145,9 +145,29 @@
   stroke: color-mix(in srgb, var(--ink) 18%, transparent);
 }
 
-/* --- nodes ----------------------------------------------------------------- */
+/* --- nodes -----------------------------------------------------------------
+   A node is three stacked layers that all wear the same silhouette:
+
+       ring   keyline, the outermost pixel
+       band   the state colour
+       face   the artwork, with a keyline of its own on the inside
+
+   Rings used to be `box-shadow` spreads on the face. That failed twice. A shadow is drawn
+   outside the border box, so any node with a `clip-path` -- every hexagon -- had its ring
+   clipped away entirely. And a coloured ring laid directly against talent artwork blends
+   with whatever hue the icon happens to end on: a green rim on a green spell is invisible
+   exactly when it matters. Sandwiching the colour between two near-black keylines is the
+   standard fix, because black neighbours every hue, and the band now follows the shape
+   because it *is* the shape, one pixel smaller.
+
+   Shape says what kind of talent it is, which the game does and we did not: a circle is
+   passive, a square is an active ability, a hexagon is a choice between two, an octagon is
+   the hero-tree selector. */
 
 .ttm-node {
+  --shape: circle(50%);
+  --band: var(--node-rim);
+  --glow: none;
   padding: 0;
   border: 0;
   background: none;
@@ -156,28 +176,50 @@
   transition: transform 120ms ease;
 }
 
+.ttm-node[data-shape="active"] {
+  --shape: inset(0 round 6px);
+}
+
+/* A regular hexagon, pointy-top: inscribed in the square its width is sqrt(3)/2 of its
+   height, so the flats sit at 6.7% and 93.3%. */
+.ttm-node[data-shape="choice"] {
+  --shape: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+}
+
+.ttm-node[data-shape="subtree"] {
+  --shape: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+}
+
 .ttm-node:hover {
   transform: scale(1.08);
   z-index: 3;
 }
 
-.ttm-node-face {
+.ttm-node-ring {
   position: absolute;
   inset: 0;
-  overflow: hidden;
-  background: var(--ground-deep);
-  /* A dark rim so the disc separates from the sky, and a faint halo so it reads as lit
-     rather than pasted on. The halo is what makes the tree a constellation. */
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px color-mix(in srgb, var(--star-dim) 40%, transparent),
-    0 0 10px color-mix(in srgb, var(--star-dim) 18%, transparent);
+  clip-path: var(--shape);
+  background: var(--keyline);
+  filter: var(--glow);
 }
 
-:root:not([data-theme="dark"]) .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px color-mix(in srgb, var(--brass) 28%, transparent);
+.ttm-node-band {
+  position: absolute;
+  inset: 1px;
+  clip-path: var(--shape);
+  background: var(--band);
+  transition: background 120ms ease;
+}
+
+.ttm-node-face {
+  position: absolute;
+  inset: 3px;
+  clip-path: var(--shape);
+  overflow: hidden;
+  background: var(--ground-deep);
+  /* The inner keyline. Without it the band bleeds into the artwork and the sandwich is
+     only half there. */
+  box-shadow: inset 0 0 0 1px var(--keyline);
 }
 
 .ttm-node-split {
@@ -196,6 +238,7 @@
   position: absolute;
   right: -4px;
   bottom: -4px;
+  z-index: 4;
   min-width: 14px;
   padding: 0 3px;
   font-family: var(--font-mono);
@@ -210,8 +253,8 @@
   border-radius: 1px;
 }
 
-/* Art we could not fetch. A ring plus the node's own shape still reads as a talent, which is
-   the point: ~1% of names have no image upstream and the tree must not look broken. */
+/* Art we could not fetch. A ring plus the node shape still reads as a talent, which is the
+   point: ~1% of names have no image upstream and the tree must not look broken. */
 [data-icon="missing"] {
   background-image: repeating-linear-gradient(
     135deg,
@@ -220,20 +263,32 @@
   );
 }
 
-/* --- constraint state ------------------------------------------------------ */
+/* --- constraint state ------------------------------------------------------
+   Four states, four hues, each one named in the sidebar legend. They used to be three
+   colours for four meanings -- "at least one of these" and "exactly one of these" shared a
+   ring, so two different questions looked like the same answer. */
 
-.ttm-node[data-state="required"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--taken),
-    0 0 16px color-mix(in srgb, var(--taken) 55%, transparent);
+.ttm-node[data-state="required"] {
+  --band: var(--must);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--must) 60%, transparent));
+}
+
+.ttm-node[data-state="excluded"] {
+  --band: var(--barred);
 }
 
 .ttm-node[data-state="excluded"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--barred);
   filter: grayscale(0.9) brightness(0.45);
+}
+
+.ttm-node[data-state="anyOf"] {
+  --band: var(--any-of);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--any-of) 55%, transparent));
+}
+
+.ttm-node[data-state="oneOf"] {
+  --band: var(--one-of);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--one-of) 55%, transparent));
 }
 
 .ttm-node[data-state="excluded"]::after {
@@ -241,6 +296,7 @@
   position: absolute;
   inset: 0;
   z-index: 3;
+  clip-path: var(--shape);
   background: linear-gradient(
     to bottom right,
     transparent calc(50% - 1px),
@@ -248,13 +304,6 @@
     var(--barred) calc(50% + 1px),
     transparent calc(50% + 1px)
   );
-}
-
-.ttm-node[data-state="grouped"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--star),
-    var(--star-glow);
 }
 
 /* A pinned choice side dims the alternative that is out of play, so the node shows the
@@ -270,38 +319,21 @@
   filter: saturate(0.8);
 }
 
-:root:not([data-theme="dark"]) .ttm-node[data-state="required"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 3px var(--taken);
-}
-
-:root:not([data-theme="dark"]) .ttm-node[data-state="grouped"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 3px var(--star);
-}
-
-:root:not([data-theme="dark"]) .ttm-node[data-state="excluded"] .ttm-node-face {
-  filter: grayscale(0.75) brightness(0.92) contrast(0.9);
-}
-
 /* --- inspecting one build --------------------------------------------------
    While a build is selected the canvas answers a different question, so the constraint
    colours step aside: what matters is which talents this build takes. */
 
-.ttm-node:not([data-editing])[data-spent="yes"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--taken),
-    0 0 18px color-mix(in srgb, var(--taken) 50%, transparent);
+.ttm-node:not([data-editing])[data-spent="yes"] {
+  --band: var(--taken);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--taken) 55%, transparent));
 }
 
 .ttm-node:not([data-editing])[data-spent="no"] .ttm-node-face {
   filter: grayscale(0.92) brightness(0.4);
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 1px color-mix(in srgb, var(--star-dim) 22%, transparent);
+}
+
+:root:not([data-theme="dark"]) .ttm-node:not([data-editing])[data-spent="no"] .ttm-node-face {
+  filter: grayscale(0.9) brightness(1.05) contrast(0.8) opacity(0.5);
 }
 
 .ttm-node:not([data-editing])[data-spent] .ttm-node-ranks {
@@ -310,16 +342,6 @@
 
 .ttm-node:not([data-editing])[data-spent="no"]::after {
   content: none;
-}
-
-:root:not([data-theme="dark"]) .ttm-node:not([data-editing])[data-spent="yes"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 3px var(--taken);
-}
-
-:root:not([data-theme="dark"]) .ttm-node:not([data-editing])[data-spent="no"] .ttm-node-face {
-  filter: grayscale(0.9) brightness(1.05) contrast(0.8) opacity(0.5);
 }
 
 /* --- building by hand ------------------------------------------------------
@@ -339,29 +361,20 @@
   filter: saturate(0.6);
 }
 
-.ttm-node[data-editing][data-spent="no"][data-reachable="yes"] .ttm-node-face {
-  opacity: 1;
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--brass),
-    0 0 9px color-mix(in srgb, var(--brass) 30%, transparent);
+.ttm-node[data-editing][data-spent="no"][data-reachable="yes"] {
+  --band: var(--brass);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--brass) 35%, transparent));
 }
 
-.ttm-node[data-editing][data-spent="no"][data-reachable="yes"]:hover .ttm-node-face {
-  opacity: 1;
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--brass-bright),
-    0 0 12px color-mix(in srgb, var(--brass-bright) 40%, transparent);
+.ttm-node[data-editing][data-spent="no"][data-reachable="yes"]:hover {
+  --band: var(--brass-bright);
 }
 
 /* A maxed talent is done -- no more points fit -- so it reads as complete rather than as
    something still asking to be clicked. */
-.ttm-node[data-editing][data-spent="yes"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--taken),
-    0 0 18px color-mix(in srgb, var(--taken) 55%, transparent);
+.ttm-node[data-editing][data-spent="yes"] {
+  --band: var(--taken);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--taken) 55%, transparent));
 }
 
 /* --- frequency across a result set -----------------------------------------
@@ -369,23 +382,27 @@
    the tree. The share arrives as --share (0..1) and is interpolated here, so the component
    never decides what a frequency looks like. */
 
+.ttm-node[data-share] {
+  --band: color-mix(in srgb, var(--star) calc(30% + var(--share, 0) * 70%), var(--node-rim));
+  --glow: drop-shadow(
+    0 0 calc(var(--node-glow) * var(--share, 0))
+      color-mix(in srgb, var(--star) calc(var(--share, 0) * 50%), transparent)
+  );
+}
+
 .ttm-node[data-share] .ttm-node-face {
   opacity: calc(0.3 + 0.7 * var(--share, 0));
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px color-mix(in srgb, var(--star) calc(var(--share, 0) * 100%), transparent),
-    0 0 calc(4px + 12px * var(--share, 0))
-      color-mix(in srgb, var(--star) calc(var(--share, 0) * 45%), transparent);
 }
 
 /* Taken by every matching build: already decided, so it reads as settled rather than hot.
    Distinguishing this from 99% matters -- one is a fact, the other is a choice. */
+.ttm-node[data-share="all"] {
+  --band: var(--taken);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--taken) 45%, transparent));
+}
+
 .ttm-node[data-share="all"] .ttm-node-face {
   opacity: 1;
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 2px var(--taken),
-    0 0 14px color-mix(in srgb, var(--taken) 45%, transparent);
 }
 
 .ttm-node[data-share="none"] .ttm-node-face {
@@ -401,17 +418,64 @@
   border-color: var(--taken);
 }
 
-:root:not([data-theme="dark"]) .ttm-node[data-share] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 calc(1px + 2px * var(--share, 0))
-      color-mix(in srgb, var(--star) calc(30% + var(--share, 0) * 70%), transparent);
+/* --- legend swatches --------------------------------------------------------
+   The same sandwich the canvas uses, at 12px: keyline, band, keyline. Built from the node
+   custom properties so a swatch cannot say one thing while the tree says another. */
+
+.ttm-swatch {
+  --shape: circle(50%);
+  --band: var(--node-rim);
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 13px;
+  height: 13px;
+  clip-path: var(--shape);
+  background: var(--keyline);
+  translate: 0 1px;
 }
 
-:root:not([data-theme="dark"]) .ttm-node[data-share="all"] .ttm-node-face {
-  box-shadow:
-    0 0 0 1px var(--node-ring),
-    0 0 0 3px var(--taken);
+.ttm-swatch[data-shape="active"] {
+  --shape: inset(0 round 2px);
+}
+
+.ttm-swatch[data-shape="choice"] {
+  --shape: polygon(50% 0%, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+}
+
+.ttm-swatch[data-shape="subtree"] {
+  --shape: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+}
+
+.ttm-swatch[data-state="required"] {
+  --band: var(--must);
+}
+
+.ttm-swatch[data-state="excluded"] {
+  --band: var(--barred);
+}
+
+.ttm-swatch[data-state="anyOf"] {
+  --band: var(--any-of);
+}
+
+.ttm-swatch[data-state="oneOf"] {
+  --band: var(--one-of);
+}
+
+.ttm-swatch-band {
+  position: absolute;
+  inset: 1px;
+  clip-path: var(--shape);
+  background: var(--band);
+  box-shadow: inset 0 0 0 1.5px var(--ground-deep);
+}
+
+/* The shape key has no state to colour, so the silhouette is the whole message: it gets a
+   brighter rim and a hollow middle, which is what makes a hexagon read as a hexagon at
+   thirteen pixels. */
+.ttm-swatch:not([data-state]) {
+  --band: var(--brass);
 }
 
 /* --- tooltip --------------------------------------------------------------- */

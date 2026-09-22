@@ -101,6 +101,18 @@ check("a count is shown on load", /\d/.test(baseline), baseline);
   below the cap shows a tree half of which is unreachable and a count that is not the one they
   came for.
 */
+// Waited for rather than sampled. The slider exists before the tree detail lands, and its
+// cap follows that response -- so reading it the instant the page settles catches the
+// pre-load default against a freshly started container and fails a working app.
+await page
+  .waitForFunction(
+    () => {
+      const slider = document.querySelector("#points");
+      return slider && slider.value === slider.max;
+    },
+    { timeout: 10000 },
+  )
+  .catch(() => {});
 check(
   "the point budget starts at the tree's cap",
   (await page.locator("#points").inputValue()) ===
@@ -456,32 +468,42 @@ if (await statsPanel.count()) {
 /*
   The point of rebuilding this as a web app was that the tool should be a URL. That only
   means something if opening the URL reproduces the screen, so this loads the link the app
-  produced into a *fresh page* and checks the state came back -- the tree, the build being
-  inspected, and which talents it lights.
+  produced into a *fresh page* and checks the state came back.
+
+  What comes back is the **search** -- the tree, the budget, the constraints -- and
+  deliberately not the enumerated build that happens to be on screen. A result exists only
+  relative to its job; a link that carried one would reopen a build detached from the
+  question that produced it, next to a constraint set it did not come from, which is
+  exactly the confusion this restructure removed. Taking a result into the loadout first is
+  the supported path, and bridge.test.mjs walks it.
 */
+// Painted here rather than relied on from earlier in the flow: by this point the run has
+// cleared the canvas, and "0 constraints survived the round trip" is a test that passes
+// whether or not constraints are carried at all.
+await activePane().locator('.ttm-node').first().click();
+await page.waitForTimeout(500);
+
 const shareUrl = page.url();
 check("the address bar carries state", shareUrl.includes("?"), shareUrl);
 
 if (shareUrl.includes("?")) {
-  const litHere = await activePane().locator('.ttm-node[data-spent="yes"]').evaluateAll((els) =>
-    els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
-  );
-
   const fresh = await context.newPage();
   await fresh.goto(shareUrl, { waitUntil: "networkidle" });
   await fresh.waitForSelector(".ttm-node");
-  await fresh.waitForFunction(
-    () => !!document.querySelector('.ttm-tree[data-active="yes"] .ttm-node[data-spent="yes"]'),
-    { timeout: 10000 },
-  ).catch(() => {});
+  await fresh.waitForTimeout(1200);
 
-  const litThere = await fresh
-    .locator('.ttm-tree[data-active="yes"] .ttm-node[data-spent="yes"]')
-    .evaluateAll((els) =>
-    els.map((el) => el.getAttribute("aria-label")).sort().join("|"),
+  check("a search link carries no enumerated build", !/[?&]b[csehq]=/.test(shareUrl), shareUrl);
+  const constraintsHere = await activePane()
+    .locator(".ttm-node:not([data-state=\"neutral\"])")
+    .count();
+  const constraintsThere = await fresh
+    .locator('.ttm-tree[data-active="yes"] .ttm-node:not([data-state="neutral"])')
+    .count();
+  check(
+    "a shared link restores the constraints",
+    constraintsThere === constraintsHere && constraintsThere > 0,
+    `${constraintsThere} vs ${constraintsHere}`,
   );
-  check("a shared link reopens on the same build", litThere === litHere && litThere.length > 0,
-        `${litThere.split("|").length} vs ${litHere.split("|").length} talents`);
 
   const budgetHere = await page.locator("#points").inputValue();
   const budgetThere = await fresh.locator("#points").inputValue();

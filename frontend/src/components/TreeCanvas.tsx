@@ -56,23 +56,32 @@ function layoutOf(tree: TreeDetail): Layout {
   const maxY = Math.max(...ys);
 
   /*
-    Scale from the grid pitch, not from the tree's overall width.
+    Scale from the grid pitch, not from the tree overall width.
 
     Normalising total width to a constant makes every tree the same number of pixels across
     regardless of how many columns it has -- which stretches a four-column hero tree to the
     width of a seven-column class tree, and then the fit shrinks it to nothing in a narrow
-    pane. Deriving the scale from the smallest gap between adjacent columns gives every tree
-    the same node *density* instead, so a hero tree is simply narrower than a class tree,
-    which is what it is.
+    pane. Deriving the scale from the pitch gives every tree the same node *density*
+    instead, so a hero tree is simply narrower than a class tree, which is what it is.
+
+    The pitch is the closest any two talents come to each other, measured as a distance
+    rather than as a gap between column coordinates. A hero tree is a diamond: its middle
+    rows sit half a step off the rows above and below, so its column coordinates are 300
+    apart while no two talents are ever closer than 600. Reading the pitch off those
+    coordinates halved the scale and rendered the whole hero tree at sixteen pixels a node,
+    which is not a talent tree, it is a row of stamps.
   */
-  const columns = [...new Set(xs)].sort((a, b) => a - b);
   let pitch = Infinity;
-  for (let i = 1; i < columns.length; i++) {
-    const gap = columns[i]! - columns[i - 1]!;
-    if (gap > 0) pitch = Math.min(pitch, gap);
+  for (let i = 0; i < tree.nodes.length; i++) {
+    const a = tree.nodes[i]!.pos;
+    for (let j = i + 1; j < tree.nodes.length; j++) {
+      const b = tree.nodes[j]!.pos;
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d > 0) pitch = Math.min(pitch, d);
+    }
   }
-  // A single-column tree has no pitch to measure; fall back to its height instead so it
-  // still lands at a sane size.
+  // One node, or every node stacked on one point: nothing to measure, so fall back to the
+  // tree own height and let the fit do the rest.
   if (!Number.isFinite(pitch) || pitch <= 0) {
     pitch = Math.max((maxY - minY) / Math.max(tree.nodes.length - 1, 1), 1);
   }
