@@ -55,6 +55,8 @@ def post(path, body, expect=200):
 
 SPEC = "retail/11/102/spec"
 HERO = "retail/11/102/hero/23"
+# Blood Death Knight: its spec tree ends in a detached, gate-only capstone.
+SPEC_WITH_CAPSTONE = "retail/6/250/spec"
 
 
 def t_health_reports_promoted_data():
@@ -418,6 +420,49 @@ def t_every_filter_kind_reaches_the_engine():
         assert done["resultCount"] == predicted, (label, done["resultCount"], predicted)
 
 
+def t_a_gated_capstone_is_reachable():
+    """A talent with no edges at all, unlocked purely by the last point gate.
+
+    Retail spec trees end in one of these -- Blood Death Knight's "Dance of Midnight" is a
+    four-rank node with no parents, no children and `pointsRequired` at the final gate. It is
+    structurally unlike everything else in the tree, it exists in no other version of the
+    game, and it is exactly the shape that breaks quietly: a traversal that only reaches
+    nodes through edges never finds it, and reports a smaller number with no error.
+
+    So this pins the whole chain. The gate is measured *before* the point is placed, which is
+    why a tree gated at 20 needs 21 points before any build contains it.
+    """
+    tree = get(f"/trees/{SPEC_WITH_CAPSTONE}")
+    gates = sorted({n["pointsRequired"] for n in tree["nodes"]})
+    capstone = next(
+        (n for n in tree["nodes"]
+         if not n["parents"] and not n["children"] and n["pointsRequired"] == gates[-1]),
+        None,
+    )
+    assert capstone, "this tree no longer has a detached capstone"
+    gate = capstone["pointsRequired"]
+
+    at_gate = post("/counts", {"treeKey": SPEC_WITH_CAPSTONE, "points": gate,
+                               "mustHave": [capstone["nodeId"]]})["sets"]
+    assert at_gate == 0, f"{gate} points should not be enough: the gate is checked first"
+
+    predicted = post("/counts", {"treeKey": SPEC_WITH_CAPSTONE, "points": gate + 1,
+                                 "mustHave": [capstone["nodeId"]]})["sets"]
+    assert predicted > 0, "no build reaches the capstone at all"
+
+    # And the engine must find the same ones, which is the half that a traversal bug breaks.
+    job = post("/solve", {"treeKey": SPEC_WITH_CAPSTONE, "points": gate + 1,
+                          "mustHave": [capstone["nodeId"]]}, expect=202)
+    done = _await_job(job["id"])
+    assert done["state"] == "done", done
+    assert done["resultCount"] == predicted, (done["resultCount"], predicted)
+
+    page = get(f"/solve/{job['id']}/results?limit=5")
+    assert page["builds"], "no builds returned"
+    for build in page["builds"]:
+        assert str(capstone["nodeId"]) in build, build
+
+
 def t_cancelling_a_finished_job_is_refused():
     """A job that already produced results cannot be un-produced."""
     tree = get(f"/trees/{SPEC}")
@@ -666,6 +711,9 @@ def main() -> int:
          t_stats_not_served_before_results_exist),
     ]:
         check(name, fn)
+
+    print("\nunusual tree shapes:")
+    check("a detached, gate-only capstone is reachable", t_a_gated_capstone_is_reachable)
 
     print("\nfilters reach the engine:")
     check("every filter kind agrees between gate and engine",

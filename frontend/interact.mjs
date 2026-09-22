@@ -94,6 +94,20 @@ await settled();
 const baseline = await countText();
 check("a count is shown on load", /\d/.test(baseline), baseline);
 
+/*
+  The budget starts at the tree's cap.
+
+  A player arriving at a talent tree is looking at a full build, not a partial one: a default
+  below the cap shows a tree half of which is unreachable and a count that is not the one they
+  came for.
+*/
+check(
+  "the point budget starts at the tree's cap",
+  (await page.locator("#points").inputValue()) ===
+    (await page.locator("#points").getAttribute("max")),
+  `${await page.locator("#points").inputValue()} of ${await page.locator("#points").getAttribute("max")}`,
+);
+
 // --- painting constraints --------------------------------------------------
 /*
   Find a talent that is genuinely optional at this budget, which is narrower than "any
@@ -462,6 +476,30 @@ if (shareUrl.includes("?")) {
   await mangled.close();
   await fresh.close();
 }
+
+// --- clearing ---------------------------------------------------------------
+/*
+  Clear has to empty the *canvas*.
+
+  Resetting the constraint set alone looked like a button that did nothing: after an
+  enumeration every node carries the inspected build, which takes over the node's appearance,
+  so the rings a player had just painted were not what they were looking at.
+*/
+const overlays = () =>
+  activePane().locator(".ttm-node").evaluateAll((els) => ({
+    constrained: els.filter((e) => (e.getAttribute("data-state") ?? "neutral") !== "neutral").length,
+    share: els.filter((e) => e.hasAttribute("data-share")).length,
+    spent: els.filter((e) => e.hasAttribute("data-spent")).length,
+  }));
+const busy = await overlays();
+check("the canvas is showing something after a solve",
+      busy.spent > 0 || busy.share > 0, JSON.stringify(busy));
+await page.locator('button:has-text("Clear")').click();
+await settled();
+const cleared = await overlays();
+check("Clear empties the canvas, not just the constraint set",
+      cleared.constrained === 0 && cleared.share === 0 && cleared.spent === 0,
+      JSON.stringify(cleared));
 
 await browser.close();
 

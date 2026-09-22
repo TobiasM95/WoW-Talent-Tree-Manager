@@ -147,6 +147,33 @@ for (const summary of sample) {
   check(`${summary.kind}: every point was legal when it was placed`,
         stepFailures.length === 0, stepFailures.slice(0, 3).join("; "));
 
+  // --- a detached, gate-only capstone -------------------------------------
+  /*
+    Retail spec trees end in a talent with no parents and no children, unlocked purely by the
+    final point gate. It exists in no other version of the game and it is structurally unlike
+    everything else in the tree, so it is the shape most likely to be handled by accident:
+    anything that reaches nodes only by following edges never finds it.
+  */
+  const gates = [...new Set(tree.nodes.map((n) => n.pointsRequired))].sort((a, b) => a - b);
+  const capstone = tree.nodes.find(
+    (n) => !n.parents.length && !n.children.length && n.pointsRequired === gates[gates.length - 1]
+      && n.pointsRequired > 0,
+  );
+  if (capstone) {
+    const roomy = Math.max(cap, capstone.pointsRequired + 2);
+    const early = L.available(tree, {}, roomy);
+    check(`${summary.kind}: the capstone is closed before its gate`,
+          !early.has(capstone.nodeId));
+
+    // Spend up to the gate, then it must open -- with no edge leading to it.
+    const upTo = buildRandom(tree, capstone.pointsRequired, 3);
+    const spentThere = L.total(upTo);
+    const open = L.available(tree, upTo, roomy);
+    check(`${summary.kind}: the capstone opens on the gate alone`,
+          spentThere < capstone.pointsRequired || open.has(capstone.nodeId),
+          `${spentThere} spent, gate ${capstone.pointsRequired}`);
+  }
+
   // --- removal cascades rather than corrupting ----------------------------
   const built = buildRandom(tree, cap, 7);
   const roots = tree.nodes.filter((n) => n.parents.length === 0 && (built[String(n.nodeId)] ?? 0) > 0);

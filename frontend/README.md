@@ -114,6 +114,16 @@ definite height. Both halves of that are fixed and both are load-bearing.
 re-laid-out per frame is exactly the "ornament costs interaction latency" failure the
 design brief rules out.
 
+**The budget starts at the tree's cap and follows it until someone moves the slider.**
+A player arriving at a talent tree is looking at a full build; a default below the cap
+shows a tree half of which is unreachable and a count that is not the one they came for.
+Once the slider is touched that is a deliberate choice and survives, including onto a
+tree whose cap is smaller.
+
+**Clear empties the canvas, not just the constraint set.** After an enumeration every
+node carries the inspected build, which takes over its appearance — so resetting the
+constraints alone looked like a button that did nothing.
+
 **The count is debounced and superseded requests are discarded.** Dragging the point slider
 fires a request per step; without the guard a slow early one lands last and shows a count
 for a budget the user has already moved past.
@@ -147,6 +157,13 @@ Placement is greedy, and exact because of it: taking a point never removes an op
 if any order can place a point, placing what is available now cannot prevent it. That is
 also what makes a refund cascade correctly -- re-place what remains and whatever no longer
 has a way in simply does not land.
+
+**A capstone has no edges.** Every retail spec tree ends in a talent with no parents
+and no children, opened purely by the final point gate. The spending rules reach it
+because rule 3 exempts a node with no parents, not because anything special was written
+for it — but it is the shape most likely to be handled by accident, so
+`npm run test:loadout` checks that it is closed before its gate and open on the gate
+alone. See [`../docs/02-target/raidbots-live-schema.md`](../docs/02-target/raidbots-live-schema.md).
 
 **Refunds cascade rather than refusing.** Taking a point out of the middle of a tree can
 strand everything below it, and a tool that answers "no" leaves the player to work out

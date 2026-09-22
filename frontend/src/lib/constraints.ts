@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChoiceSide, Constraints, TalentNode, TreeDetail } from "./api";
 import type { ShareState } from "./share";
 import type { NodeState } from "../components/TalentNode";
@@ -38,7 +38,21 @@ const SIDE_CYCLE: ChoiceSide[] = ["a", "b", "none"];
 
 export function useConstraints(tree: TreeDetail | null, initial?: ShareState) {
   const cap = tree?.pointCap ?? tree?.maxPointsInTree ?? 30;
-  const [points, setPoints] = useState(() => Math.min(initial?.points ?? 20, cap));
+  const [points, setPointsState] = useState(() => initial?.points ?? cap);
+
+  /*
+    The budget follows the tree's cap until someone moves it.
+
+    A player arriving at a talent tree is looking at a full build, not a partial one -- a
+    default of 20 out of 34 shows a tree half of which is unreachable and a count that is not
+    the count they came for. But once the slider has been touched that is a deliberate choice
+    and must survive, including across a tree whose cap is smaller.
+  */
+  const touched = useRef(Boolean(initial?.points));
+  const setPoints = useCallback((value: number) => {
+    touched.current = true;
+    setPointsState(value);
+  }, []);
   const [required, setRequired] = useState<Set<number>>(() => new Set(initial?.required));
   const [excluded, setExcluded] = useState<Set<number>>(() => new Set(initial?.excluded));
   const [sides, setSides] = useState<Map<number, ChoiceSide>>(
@@ -52,11 +66,10 @@ export function useConstraints(tree: TreeDetail | null, initial?: ShareState) {
   );
   const [groupMode, setGroupMode] = useState<GroupMode>("none");
 
-  // A tree's cap differs per kind -- a hero tree grants 13 points and a class tree 34 -- so
-  // a budget carried over from the previous tree can exceed the new one. Clamping rather
-  // than resetting keeps a deliberate choice where it still fits.
+  // A tree's cap differs per kind -- a hero tree grants 13 and a class tree 34. An untouched
+  // budget simply follows the new cap; a deliberate one is kept where it still fits.
   useEffect(() => {
-    setPoints((current) => Math.min(current, cap));
+    setPointsState((current) => (touched.current ? Math.min(current, cap) : cap));
   }, [cap]);
 
   const reset = useCallback(() => {
@@ -76,13 +89,16 @@ export function useConstraints(tree: TreeDetail | null, initial?: ShareState) {
    * the same code path with a flag.
    */
   const adopt = useCallback((state: ShareState) => {
+    // A stash without a budget is a tree this session has not set one for, so the next
+    // effect puts it back on that tree's cap.
+    touched.current = Boolean(state.points);
     setRequired(new Set(state.required));
     setExcluded(new Set(state.excluded));
     setSides(new Map(state.sides));
     setAtLeastOne(new Set(state.atLeastOne));
     setExactlyOne(new Set(state.exactlyOne));
     setGroupMode("none");
-    if (state.points) setPoints(state.points);
+    if (state.points) setPointsState(state.points);
   }, []);
 
   const activate = useCallback(

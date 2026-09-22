@@ -109,6 +109,33 @@ Entry keys: `id`, `type`, `name` (always); `definitionId`, `maxRanks`, `spellId`
 (5307 of 5387); `visibleSpellId` (31); and on subtree entries only, `traitSubTreeId`,
 `traitTreeId`, `atlasMemberName`, `nodes`.
 
+### Detached capstones: a node with no edges at all
+
+Every retail spec tree ends in a talent that has **no parents and no children**, unlocked
+purely by the final point gate. Blood Death Knight's is *Dance of Midnight*: a four-rank
+`tiered` node, `pointsRequired: 20`, sitting alone below the last row.
+
+It is worth calling out separately because it is the shape most likely to be handled by
+accident. Anything that reaches nodes by following edges — a traversal seeded from the roots
+that only extends through children — never finds it, produces a smaller answer, and reports
+no error at all. Three layers here had to get it right independently: the frontier DP, the
+C++ enumerator, and the frontend's spending rules.
+
+All three do, and all three are now pinned by tests rather than left to inspection:
+
+| Layer | Check |
+|---|---|
+| DP | `POST /counts` with the capstone required returns a non-zero count |
+| Engine | a solve returns exactly that many, and every build contains it |
+| Spending rules | the node is closed before its gate and opens on the gate alone |
+
+The gate is evaluated *before* the point is placed, so a tree gated at 20 needs **21** points
+before any build can contain the capstone. A count at exactly the gate is correctly zero.
+
+**This shape does not exist outside retail.** Classic and its variants have no point gates of
+this kind, which matters when classic support is scoped: the handling is retail-specific, not
+a general rule to carry over.
+
 ### Data-quality traps
 
 - **6 degenerate nodes** exist with `name: ""` and `entries: [{}]` (e.g. Evoker Devastation node

@@ -326,6 +326,14 @@ export default function App() {
     setMode("explore");
   }, [activeKey, active, spent, c]);
 
+  /** Put the canvas back to showing constraints, and empty them. */
+  const clearCanvas = useCallback(() => {
+    c.reset();
+    setSharedBuild(null);
+    setShowStats(false);
+    setPick((previous) => ({ index: previous.index, build: null }));
+  }, [c]);
+
   const onShowStats = useCallback((on: boolean) => {
     setShowStats(on);
     if (on) {
@@ -669,14 +677,18 @@ export default function App() {
           <section className="panel p-3.5">
             <div className="flex items-baseline justify-between gap-2">
               <span className="label">Constraints</span>
+              {/* Clears the canvas, not just the constraint set.
+
+                  Resetting the constraints alone looked like a button that did nothing: after
+                  an enumeration every node carries the inspected build, which takes over the
+                  node's appearance, so the rings a player had just painted were not what they
+                  were looking at. "Clear" has to mean the surface goes back to showing what
+                  you are painting. */}
               <button
                 type="button"
                 className="btn !px-2 !py-0.5 !text-[11px]"
-                onClick={() => {
-                  c.reset();
-                  setSharedBuild(null);
-                }}
-                disabled={c.count === 0 && !sharedBuild}
+                onClick={clearCanvas}
+                disabled={c.count === 0 && !shownBuild && !shares}
               >
                 Clear
               </button>
