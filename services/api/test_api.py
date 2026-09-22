@@ -57,6 +57,8 @@ SPEC = "retail/11/102/spec"
 HERO = "retail/11/102/hero/23"
 # Blood Death Knight: its spec tree ends in a detached, gate-only capstone.
 SPEC_WITH_CAPSTONE = "retail/6/250/spec"
+# Feral Druid's class tree: Rake, Rip and Swipe are granted to it and not to its siblings.
+CLASS_WITH_GRANTED = "retail/11/103/class"
 
 
 def t_health_reports_promoted_data():
@@ -420,6 +422,57 @@ def t_every_filter_kind_reaches_the_engine():
         assert done["resultCount"] == predicted, (label, done["resultCount"], predicted)
 
 
+def t_granted_talents_cannot_be_constrained():
+    """A talent the game gives you for free is not part of any build's point spend.
+
+    The DP removes pre-filled roots from the graph entirely and promotes their children, so
+    nothing ever spends a point on one. A constraint naming such a node used to pass
+    validation and then be silently dropped: requiring it and excluding it both returned the
+    unfiltered count, which means a user who barred a talent got back builds that all had it,
+    with nothing anywhere to notice.
+
+    Which talents are granted depends on the **specialisation**, not just the class -- Rake,
+    Rip and Swipe come free to a Feral Druid and not to a Balance one -- so the class tree is
+    per spec and the two are not interchangeable.
+    """
+    tree = get(f"/trees/{CLASS_WITH_GRANTED}")
+    granted = [n for n in tree["nodes"] if n["preFilled"]]
+    assert granted, "this class tree no longer has granted talents"
+    node = granted[0]["nodeId"]
+
+    for body in ({"mustHave": [node]}, {"mustNotHave": [node]},
+                 {"atLeastOneOf": [[node, granted[-1]["nodeId"]]]}):
+        r = post("/counts", {"treeKey": CLASS_WITH_GRANTED, "points": 10, **body},
+                 expect=400)
+        assert "granted automatically" in str(r.get("detail", "")), (body, r)
+
+    # And an unconstrained count still works, so the check has not become a blanket refusal.
+    assert post("/counts", {"treeKey": CLASS_WITH_GRANTED, "points": 10})["sets"] > 0
+
+
+def t_class_trees_differ_by_specialisation():
+    """One class tree per spec, and they are genuinely different.
+
+    Only the granted talents differ, which is easy to mistake for duplication -- and picking
+    whichever came first in the listing showed the wrong ones and produced a talent string
+    the game would not accept.
+    """
+    trees = get("/trees?kind=class&classId=11")
+    assert len(trees) >= 3, trees
+    assert all(t["specName"] for t in trees), "class trees must name their specialisation"
+
+    granted = {}
+    for summary in trees:
+        detail = get(f"/trees/{summary['key']}")
+        granted[summary["specName"]] = frozenset(
+            n["nodeId"] for n in detail["nodes"] if n["preFilled"]
+        )
+    assert all(granted.values()), granted
+    assert len(set(granted.values())) > 1, (
+        "every spec's class tree grants the same talents, which contradicts the data"
+    )
+
+
 def t_a_gated_capstone_is_reachable():
     """A talent with no edges at all, unlocked purely by the last point gate.
 
@@ -714,6 +767,8 @@ def main() -> int:
 
     print("\nunusual tree shapes:")
     check("a detached, gate-only capstone is reachable", t_a_gated_capstone_is_reachable)
+    check("granted talents cannot be constrained", t_granted_talents_cannot_be_constrained)
+    check("class trees differ by specialisation", t_class_trees_differ_by_specialisation)
 
     print("\nfilters reach the engine:")
     check("every filter kind agrees between gate and engine",

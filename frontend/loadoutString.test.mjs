@@ -3,14 +3,17 @@
  *
  *   node loadoutString.test.mjs [api-url]
  *
- * A round trip proves almost nothing here: encode and decode share a reading of the layout,
- * so a wrong reading round-trips perfectly. What these tests are really for is the *other*
- * half -- that a string which does not match this tree is refused rather than silently
- * producing a plausible-looking wrong build. That is the failure a user cannot detect.
+ * A round trip proves almost nothing on its own: encode and decode share a reading of the
+ * layout, so a wrong reading round-trips perfectly. Two things are therefore load-bearing
+ * here, and neither is the round trip.
  *
- * The layout itself remains unconfirmed against a string produced by the game. Pasting one
- * real string is all it takes; until then the validation is the safety net, so it is what is
- * tested hardest.
+ * **A golden string exported from the game.** It caught three faults a round trip could not:
+ * a missing `purchased` bit, an unhandled hero-tree selector, and the fact that class trees
+ * differ per specialisation. Decoding it and re-encoding it byte for byte is the only check
+ * that speaks to whether the layout is right at all.
+ *
+ * **The refusal path**, because the alternative to rejecting a string this tool cannot read
+ * is a build that looks right and is not -- which a person has no way to detect.
  */
 import { createServer } from "vite";
 
@@ -38,17 +41,77 @@ const rejects = (fn) => {
   }
 };
 
+/*
+  --- the golden string ------------------------------------------------------
+
+  Exported from the game: a Feral Druid with a full spec tree, a half-spent class tree and a
+  partly-spent hero tree, chosen to cover granted talents, partial ranks, choice nodes and
+  the hero-tree selector at once.
+*/
+const GOLDEN = {
+  text: "CcGAAAAAAAAAAAAAAAAAAAAAAAAAAAAwYmxiZMzMzMjlZWGmxMzMzAAAAwSYGDegZmZqZmBYGAAAAAAAAGDAAAIjxMmBEYBwMAADAAAzGeAA",
+  className: "Druid",
+  specName: "Feral",
+  specId: 103,
+  heroSubTreeId: 21,
+  perTree: { class: 22, spec: 34, hero: 8 },
+  granted: 5,
+};
+
 const summaries = await get("/trees");
+
+// A class tree belongs to a specialisation, not just a class: which talents are granted
+// differs between them, so matching on class alone picks the wrong tree and the string stops
+// matching. That is one of the faults the golden string caught.
+const treesFor = async (className, specName) => {
+  const mine = summaries.filter((t) => t.className === className && t.specName === specName);
+  const out = [];
+  for (const summary of mine) out.push(await get(`/trees/${summary.key}`));
+  return out;
+};
+
+{
+  const goldenTrees = await treesFor(GOLDEN.className, GOLDEN.specName);
+  const goldenSpec = goldenTrees.find((t) => t.kind === "spec");
+  const decoded = S.decode(GOLDEN.text, goldenSpec, goldenTrees);
+
+  check("the golden string names its specialisation",
+        decoded.specId === GOLDEN.specId, String(decoded.specId));
+  check("it names its hero tree",
+        decoded.heroSubTreeId === GOLDEN.heroSubTreeId, String(decoded.heroSubTreeId));
+  check("it carries granted talents, which cost no points",
+        decoded.granted.length === GOLDEN.granted, `${decoded.granted.length}`);
+  check("nothing in it is unknown to these trees",
+        decoded.unknown.length === 0, JSON.stringify(decoded.unknown));
+
+  const per = {};
+  for (const tree of goldenTrees) {
+    const spentHere = tree.nodes.reduce(
+      (sum, node) => sum + (decoded.points[String(node.nodeId)] ?? 0), 0);
+    if (spentHere) per[tree.kind] = spentHere;
+  }
+  // Compared key by key: the two objects are built in different orders, and JSON.stringify
+  // is sensitive to that in a way nobody means it to be.
+  const sameTotals =
+    Object.keys(GOLDEN.perTree).length === Object.keys(per).length &&
+    Object.entries(GOLDEN.perTree).every(([kind, n]) => per[kind] === n);
+  check("the points land where the build put them", sameTotals,
+        `${JSON.stringify(per)} vs ${JSON.stringify(GOLDEN.perTree)}`);
+
+  // The check that actually speaks to correctness: byte for byte, not merely self-consistent.
+  const again = S.encode({
+    spec: goldenSpec, trees: goldenTrees, points: decoded.points,
+    choices: decoded.choices, heroSubTreeId: decoded.heroSubTreeId,
+  });
+  check("re-encoding reproduces the game's string exactly", again === GOLDEN.text,
+        again.slice(0, 48));
+}
+
 const specSummary = summaries.find((t) => t.kind === "spec");
-const spec = await get(`/trees/${specSummary.key}`);
-const classTree = await get(
-  `/trees/${summaries.find((t) => t.kind === "class" && t.className === spec.className).key}`,
-);
-const heroTree = await get(
-  `/trees/${summaries.find((t) => t.kind === "hero" && t.className === spec.className
-    && t.specName === spec.specName).key}`,
-);
-const trees = [classTree, spec, heroTree];
+const trees = await treesFor(specSummary.className, specSummary.specName);
+const spec = trees.find((t) => t.kind === "spec");
+const classTree = trees.find((t) => t.kind === "class");
+const heroTree = trees.find((t) => t.kind === "hero");
 
 check("the spec tree carries a node order", (spec.fullNodeOrder?.length ?? 0) > 0,
       String(spec.fullNodeOrder?.length));
@@ -123,10 +186,11 @@ check("junk characters are refused",
       "accepted");
 check("an empty paste is refused", Boolean(rejects(() => S.decode("   ", spec, trees))));
 
-const otherSpec = await get(
-  `/trees/${summaries.find((t) => t.kind === "spec" && t.specName !== spec.specName
-    && t.className === spec.className).key}`,
-);
+const otherSpec = (await treesFor(
+  spec.className,
+  summaries.find((t) => t.kind === "spec" && t.className === spec.className
+    && t.specName !== spec.specName).specName,
+)).find((t) => t.kind === "spec");
 const foreign = S.encode({ spec: otherSpec, trees, points });
 const wrongSpec = rejects(() => S.decode(foreign, spec, trees));
 check("a string for a sibling specialisation is refused", Boolean(wrongSpec), "accepted");

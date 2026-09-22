@@ -137,6 +137,15 @@ export interface TreeDetail extends TreeSummary {
    * entry per id in this list, selected or not, so it cannot be rebuilt from the split trees.
    */
   fullNodeOrder: number[] | null;
+  /**
+   * The node recording *which* hero tree a loadout uses, and the sub-tree ids its choice
+   * index selects, in that index's order. Present on spec trees only.
+   *
+   * It is not a talent and appears in none of our trees — it is a chooser, written into the
+   * loadout string as a choice node. Without it a string round-trips every talent and still
+   * loses which hero tree they belong to.
+   */
+  subTreeSelector: { nodeId: number; subTreeIds: number[] } | null;
   nodes: TalentNode[];
 }
 

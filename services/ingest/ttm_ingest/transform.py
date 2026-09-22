@@ -101,6 +101,15 @@ def _entry(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _sub_tree_selector(spec: dict[str, Any]) -> dict[str, Any] | None:
+    """The hero-tree chooser node, as {nodeId, subTreeIds} in entry order."""
+    for node in spec.get("subTreeNodes") or []:
+        ids = [e.get("traitSubTreeId") for e in node.get("entries") or []]
+        if node.get("id") and all(i is not None for i in ids) and ids:
+            return {"nodeId": node["id"], "subTreeIds": ids}
+    return None
+
+
 def _icon_name(value: Any) -> str | None:
     if not value:
         return None
@@ -244,6 +253,15 @@ def _build_tree(
         # On the spec tree because that is what the string identifies: its header carries a
         # spec id, and a class tree alone does not name one.
         "fullNodeOrder": list(spec.get("fullNodeOrder") or []) if kind == "spec" else None,
+        # The node that records *which* hero tree a loadout uses.
+        #
+        # It is not a talent and does not appear in any of our trees -- it is a chooser, and
+        # the loadout string writes it as a choice node whose index selects a sub-tree. The
+        # ids are listed in entry order because that order *is* the index.
+        #
+        # Without it a talent string round-trips every talent and still loses which hero tree
+        # they belong to, which is not a build anyone could paste back.
+        "subTreeSelector": _sub_tree_selector(spec) if kind == "spec" else None,
         "source": source,
         "nodes": nodes,
     }

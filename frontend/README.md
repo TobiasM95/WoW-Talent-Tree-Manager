@@ -161,22 +161,32 @@ if any order can place a point, placing what is available now cannot prevent it.
 also what makes a refund cascade correctly -- re-place what remains and whatever no longer
 has a way in simply does not land.
 
-**The talent string is unconfirmed, so importing says no rather than guessing.** The
-layout -- a base64 bit stream over the class trait tree's `fullNodeOrder`, packed
-least-significant-bit first -- is the one every community tool implements and
-SimulationCraft parses, but nothing here has round-tripped a string the game produced.
-A round trip proves nothing on its own: encode and decode share a reading of the layout,
-so a wrong reading round-trips perfectly.
+**The talent string is verified against one the game exported.** A Feral Druid build --
+full spec tree, half-spent class tree, partly-spent hero tree -- decodes and re-encodes byte
+for byte. That single string caught three faults a round trip never could, because encode and
+decode shared the mistake each time:
 
-What protects a user is the validation. The header carries a version and a spec id, and
-a misread layout almost never yields a plausible spec id -- so a string for another
-specialisation, another class, a newer format version, a truncated one, or one whose
-ranks do not fit this tree is **refused with a reason**. A rejected paste is a far better
-outcome than a build that looks right and is not, which a person has no way to notice.
-The panel says so on screen too. One real string is all it takes to confirm the layout.
+- **A missing `purchased` bit.** Selected and purchased are separate: a *granted* talent is
+  selected without being purchased and reads no further bits. The real string had five, and
+  without that bit the stream desynchronised almost immediately -- a talent holding 24 of 1
+  points.
+- **The hero-tree selector.** One id in the node order is not a talent but a chooser, written
+  as a choice node whose index picks a sub-tree. Without it a string round-trips every talent
+  and still loses which hero tree they belong to.
+- **Class trees are per specialisation.** Which talents are granted differs between them, so
+  matching a class tree on class alone picked the wrong one -- which the app was doing too.
 
-The bit order is worth stating because it is the part a reimplementation gets backwards:
-bits pack least-significant-first *within* each 6-bit character.
+Importing still validates hard, because a string this tool cannot read must be refused rather
+than turned into a build that looks right and is not. A wrong specialisation, another class, a
+newer format version, a truncated string, or ranks that do not fit are each rejected with a
+message naming the problem. The bit order is worth stating because it is what a
+reimplementation gets backwards: bits pack least-significant-first *within* each 6-bit
+character.
+
+**Granted talents are free, and that has consequences everywhere.** The DP removes them from
+the graph entirely, so no build spends a point on one; the API refuses a constraint naming one
+rather than silently dropping it; and the spending rules will not let a point go into one. All
+three had to agree, and they did not before this.
 
 **`fullNodeOrder` belongs to the class, not the tree.** 206 entries for a Death Knight
 against 114 nodes across its three trees, because it also contains the other specs'

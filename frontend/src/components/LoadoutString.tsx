@@ -21,10 +21,23 @@ export interface LoadoutStringProps {
   trees: TreeDetail[];
   points: Points;
   choices: Record<string, number>;
-  onImport: (points: Points, choices: Record<string, number>) => void;
+  /** Which hero sub-tree the current loadout uses; the string has to name it. */
+  heroSubTreeId: number | null;
+  onImport: (
+    points: Points,
+    choices: Record<string, number>,
+    heroSubTreeId: number | null,
+  ) => void;
 }
 
-export function LoadoutString({ spec, trees, points, choices, onImport }: LoadoutStringProps) {
+export function LoadoutString({
+  spec,
+  trees,
+  points,
+  choices,
+  heroSubTreeId,
+  onImport,
+}: LoadoutStringProps) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -32,13 +45,13 @@ export function LoadoutString({ spec, trees, points, choices, onImport }: Loadou
   const exported = useMemo(() => {
     if (!spec) return "";
     try {
-      return encode({ spec, trees, points, choices });
+      return encode({ spec, trees, points, choices, heroSubTreeId });
     } catch {
       // A spec whose node order never made it through the ingest cannot be exported. The
       // panel says so below rather than showing an empty box that looks broken.
       return "";
     }
-  }, [spec, trees, points, choices]);
+  }, [spec, trees, points, choices, heroSubTreeId]);
 
   useEffect(() => {
     if (!copied) return;
@@ -59,7 +72,7 @@ export function LoadoutString({ spec, trees, points, choices, onImport }: Loadou
     if (!spec) return;
     try {
       const result = decode(draft, spec, trees);
-      onImport(result.points, result.choices);
+      onImport(result.points, result.choices, result.heroSubTreeId);
       setDraft("");
       setError(null);
     } catch (exc) {
@@ -133,14 +146,9 @@ export function LoadoutString({ spec, trees, points, choices, onImport }: Loadou
             </p>
           )}
 
-          {/*
-            Stated rather than hidden. The layout is the one every community tool implements
-            and SimulationCraft parses, but nothing here has round-tripped a string the game
-            produced -- so the honest thing is to say so where someone might rely on it.
-          */}
           <p className="mt-2 text-[10.5px] leading-snug text-ink-faint">
-            Not yet confirmed against a string exported from the game. If one fails to
-            import, that is worth reporting.
+            Verified against a string exported from the game — it decodes and re-encodes
+            byte for byte.
           </p>
         </>
       )}

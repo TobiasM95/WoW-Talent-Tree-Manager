@@ -11,26 +11,36 @@ import type { Points } from "./loadout";
  *   specId      16 bits
  *   treeHash   128 bits
  *   then, per id in fullNodeOrder:
- *     selected           1 bit
+ *     selected             1 bit
  *     if selected:
- *       partiallyRanked  1 bit
- *       if partial:      6 bits of ranks purchased
- *       isChoiceNode     1 bit
- *       if choice:       2 bits of choice index
+ *       purchased          1 bit
+ *       if purchased:
+ *         partiallyRanked  1 bit
+ *         if partial:      6 bits of ranks purchased
+ *         isChoiceNode     1 bit
+ *         if choice:       2 bits of choice index
  *
- * Bits are packed least-significant-first within each 6-bit character, which is the part a
+ * Bits pack least-significant-first *within* each 6-bit character, which is the part a
  * reimplementation usually gets backwards.
  *
- * **This format is not verified against a string produced by the game.** It is the format
- * every community tool implements and the one SimulationCraft parses, but nothing here has
- * round-tripped a real one. So decoding validates hard rather than trusting: a wrong reading
- * of the layout produces a nonsense spec id, out-of-range ranks, or nodes this tree does not
- * have, and every one of those is refused with a reason. A rejected paste is a far better
- * outcome than a build that is quietly wrong, and pasting one real string is all it takes to
- * confirm the layout.
+ * **Confirmed against a string exported from the game** — a Feral Druid build with a full
+ * spec tree, a half-spent class tree and a partly-spent hero tree. Two things the first
+ * reading got wrong, neither of which a round trip could have caught, because encode and
+ * decode shared the mistake:
  *
- * The tree hash is written as zeroes. The payload carries no hash to copy, and the tools
- * that emit these strings do the same.
+ * - **The `purchased` bit.** Selected and purchased are separate: a *granted* talent is
+ *   selected without being purchased and reads no further bits. The real string had five —
+ *   Rake, Rip, Swipe, Ravage, Thriving Growth — and without that bit the stream
+ *   desynchronised almost immediately, producing a talent holding 24 of 1 points.
+ * - **The hero-tree selector.** One id in the node order is not a talent at all but a
+ *   chooser, written as a choice node whose index picks a sub-tree. Without it a string
+ *   round-trips every talent and still loses which hero tree they belong to.
+ *
+ * The tree hash is written as zeroes, which is what the game's own string carries too.
+ *
+ * Decoding still validates hard. The header's version and spec id are what distinguish "a
+ * real string for another character" from "this code has the layout wrong", and a rejected
+ * paste is a far better outcome than a build that looks right and is not.
  */
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -81,21 +91,29 @@ class Reader {
     return value;
   }
 
-  /** Bits left over. A handful is padding; a lot means the layout was misread. */
+  /** Bits left over. A handful is padding to the character boundary; more is a misread. */
   get remaining(): number {
     return this.bits.length - this.at;
   }
 }
 
 export interface EncodeInput {
-  /** The spec tree, which carries `fullNodeOrder` and the spec id. */
+  /** The spec tree, which carries `fullNodeOrder`, the spec id and the hero-tree selector. */
   spec: TreeDetail;
-  /** Every tree the loadout spans, so a node's ranks and kind can be looked up. */
+  /**
+   * Every tree of this specialisation, **including both hero trees**.
+   *
+   * Both, because granted talents are written whether or not their tree was chosen: the real
+   * string marks Thriving Growth granted while the build uses the other hero tree entirely.
+   * Passing only the selected one drops it, and the string stops matching.
+   */
   trees: TreeDetail[];
   /** nodeId -> points, across all of them. */
   points: Points;
   /** nodeId -> which alternative of a choice node, 0 or 1. */
   choices?: Record<string, number>;
+  /** Which hero sub-tree the loadout uses, written through the selector node. */
+  heroSubTreeId?: number | null;
 }
 
 function index(trees: TreeDetail[]) {
@@ -104,7 +122,13 @@ function index(trees: TreeDetail[]) {
   return byId;
 }
 
-export function encode({ spec, trees, points, choices = {} }: EncodeInput): string {
+export function encode({
+  spec,
+  trees,
+  points,
+  choices = {},
+  heroSubTreeId = null,
+}: EncodeInput): string {
   const order = spec.fullNodeOrder;
   if (!order || order.length === 0) {
     throw new LoadoutStringError(
@@ -112,23 +136,48 @@ export function encode({ spec, trees, points, choices = {} }: EncodeInput): stri
     );
   }
   const byId = index(trees);
+  const selector = spec.subTreeSelector;
   const writer = new Writer();
 
   writer.write(VERSION, HEADER_BITS.version);
   writer.write(spec.specId ?? 0, HEADER_BITS.specId);
-  // No hash is published with the talent data, and the tools that emit these strings write
-  // zeroes here too.
   for (let i = 0; i < HEADER_BITS.treeHash / 8; i++) writer.write(0, 8);
 
   for (const nodeId of order) {
+    // The hero-tree chooser: not a talent, written as a choice whose index names a sub-tree.
+    if (selector && nodeId === selector.nodeId) {
+      const at = heroSubTreeId == null ? -1 : selector.subTreeIds.indexOf(heroSubTreeId);
+      if (at < 0) {
+        writer.write(0, 1);
+      } else {
+        writer.write(1, 1); // selected
+        writer.write(1, 1); // purchased
+        writer.write(0, 1); // fully ranked
+        writer.write(1, 1); // a choice node
+        writer.write(at, CHOICE_BITS);
+      }
+      continue;
+    }
+
     const node = byId.get(nodeId);
-    const spentHere = points[String(nodeId)] ?? 0;
-    // A node that is not in this spec's trees always writes a zero bit: it belongs to a
-    // sibling spec and still occupies its place in the stream.
-    if (!node || spentHere <= 0) {
+    // Not in this specialisation's trees: it belongs to a sibling spec and still occupies
+    // its place in the stream.
+    if (!node) {
       writer.write(0, 1);
       continue;
     }
+    // Granted: selected, never purchased, and no further bits.
+    if (node.preFilled) {
+      writer.write(1, 1);
+      writer.write(0, 1);
+      continue;
+    }
+    const spentHere = points[String(nodeId)] ?? 0;
+    if (spentHere <= 0) {
+      writer.write(0, 1);
+      continue;
+    }
+    writer.write(1, 1);
     writer.write(1, 1);
     const partial = spentHere < node.maxPoints;
     writer.write(partial ? 1 : 0, 1);
@@ -145,7 +194,11 @@ export interface Decoded {
   version: number;
   points: Points;
   choices: Record<string, number>;
-  /** Selected ids that this spec's trees do not contain, which should be none. */
+  /** Which hero sub-tree the string names, read from the selector node. */
+  heroSubTreeId: number | null;
+  /** Granted talents the string marks. They cost nothing; listed for completeness. */
+  granted: number[];
+  /** Selected ids this specialisation's trees do not contain, which should be none. */
   unknown: number[];
 }
 
@@ -163,9 +216,9 @@ export function decode(text: string, spec: TreeDetail, trees: TreeDetail[]): Dec
   for (let i = 0; i < HEADER_BITS.treeHash / 8; i++) reader.read(8);
 
   /*
-    Checked before anything else is read, because they are what distinguishes "a real string
-    for a different character" from "this code has the layout wrong". A misread layout
-    almost never yields a plausible spec id.
+    Checked before anything else is read. These are what distinguish "a real string for a
+    different character" from "this code has the layout wrong": a misread layout almost never
+    yields a plausible spec id.
   */
   if (version !== VERSION) {
     throw new LoadoutStringError(
@@ -179,20 +232,33 @@ export function decode(text: string, spec: TreeDetail, trees: TreeDetail[]): Dec
   }
 
   const byId = index(trees);
+  const selector = spec.subTreeSelector;
   const points: Points = {};
   const choices: Record<string, number> = {};
+  const granted: number[] = [];
   const unknown: number[] = [];
+  let heroSubTreeId: number | null = null;
 
   for (const nodeId of order) {
     if (reader.read(1) === 0) continue;
+    // Selected but not purchased: a granted talent. It costs no point and reads no further.
+    if (reader.read(1) === 0) {
+      granted.push(nodeId);
+      continue;
+    }
     const partial = reader.read(1) === 1;
     const ranks = partial ? reader.read(RANK_BITS) : 0;
     const isChoice = reader.read(1) === 1;
     const choice = isChoice ? reader.read(CHOICE_BITS) : 0;
 
+    if (selector && nodeId === selector.nodeId) {
+      heroSubTreeId = selector.subTreeIds[choice] ?? null;
+      continue;
+    }
+
     const node = byId.get(nodeId);
     if (!node) {
-      // Selected, but not in this spec's trees. One or two can be a sibling spec's node in a
+      // Selected, but not in this spec's trees. A few can be a sibling spec's nodes in a
       // shared tree; a flood of them means the stream is being read at the wrong offset.
       unknown.push(nodeId);
       continue;
@@ -219,5 +285,5 @@ export function decode(text: string, spec: TreeDetail, trees: TreeDetail[]): Dec
       "Most of that string points at talents this tree does not have.",
     );
   }
-  return { specId, version, points, choices, unknown };
+  return { specId, version, points, choices, heroSubTreeId, granted, unknown };
 }

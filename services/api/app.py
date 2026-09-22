@@ -121,6 +121,14 @@ def _dp_graph(tree_key: str, level_cap: int):
         "tree_id": rows[0]["id"], "revision": rows[0]["revision"],
         "meta": meta, "par": par, "chi": chi, "order": order,
         "slots": len(meta), "node_ids": ids,
+        # Which nodes the DP actually models, which is not every node in the tree.
+        #
+        # A pre-filled root is *granted*: the expansion removes it and promotes its children,
+        # so no build ever spends a point on it. Constraints naming one used to pass
+        # validation and then be silently dropped -- requiring Rake and excluding Rake both
+        # returned the unfiltered count, so a user who barred a talent got builds that all
+        # had it, with nothing to notice.
+        "modelled": {m["orig"] for m in meta.values()},
     }
 
 
@@ -361,6 +369,19 @@ def _validate(req: "CountRequest", graph: dict) -> None:
                 400, "a group constraint needs at least two nodes; use mustHave for one")
     if unknown:
         raise HTTPException(400, f"node id(s) {sorted(unknown)[:5]} are not in {req.treeKey!r}")
+    # Granted talents are not part of any build's point spend, so a constraint on one has no
+    # meaning. Refused rather than ignored: silently dropping it answers a question the user
+    # did not ask.
+    granted = (
+        (set(req.mustHave) | set(req.mustNotHave) | _group_nodes(req)
+         | {int(k) for k in req.choiceSides})
+        & graph["node_ids"]
+    ) - graph["modelled"]
+    if granted:
+        raise HTTPException(
+            400,
+            f"node id(s) {sorted(granted)[:5]} are granted automatically, so they cannot be "
+            "required, excluded or grouped")
     contradictory = set(req.mustHave) & set(req.mustNotHave)
     if contradictory:
         raise HTTPException(

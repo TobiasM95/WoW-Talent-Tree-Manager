@@ -181,9 +181,9 @@ Still to do in this phase:
 - **Loadout management**: multiple named builds, which needs somewhere to keep them — so it
   waits on Phase 4.
 - **Import/export**: the Blizzard talent string is done, in both directions -- paste the
-  build you are playing, change it, paste it back. The layout is unconfirmed against a
-  string the game produced, so importing validates hard and refuses what it cannot read;
-  one real string would settle it. SimC export builds on the same string and is next.
+  build you are playing, change it, paste it back. **Verified against a string the game
+  exported**, which decodes and re-encodes byte for byte. SimC export builds on the same
+  string and is next.
 - **`ttm1.` share codes** are superseded by the URL, which already carries the whole view.
 
 **Phase 3 exit criteria met.** A player can land on the site, build a spec across all three

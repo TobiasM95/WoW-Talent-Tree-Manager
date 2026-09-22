@@ -94,10 +94,16 @@ export default function App() {
   const c = useConstraints(active, SHARED);
 
   // --- which trees belong to the current spec -----------------------------
+  /*
+    A class tree belongs to a *specialisation*, not just to a class.
+
+    There is one per spec and they are not interchangeable: which talents are granted for
+    free differs between them -- Rake, Rip and Swipe come free to a Feral Druid and not to a
+    Balance one. Matching on class alone picked whichever came first in the listing, which
+    showed the wrong granted talents and produced a talent string the game would not accept.
+  */
   const group = useMemo(() => {
-    const mine = trees.filter(
-      (t) => t.className === className && (t.kind === "class" || t.specName === specName),
-    );
+    const mine = trees.filter((t) => t.className === className && t.specName === specName);
     return {
       class: mine.find((t) => t.kind === "class") ?? null,
       spec: mine.find((t) => t.kind === "spec") ?? null,
@@ -163,9 +169,14 @@ export default function App() {
   // --- tree definitions, fetched once each and kept -----------------------
   // Three trees are on screen and switching spec brings three more; caching by key means
   // flipping between specs does not refetch what has already been seen.
+  // Both hero trees, not just the shown one: a talent string writes granted talents whether
+  // or not their tree was chosen, so encoding one needs every tree of the specialisation.
   const wanted = useMemo(
-    () => [group.class?.key, group.spec?.key, heroKey].filter(Boolean) as string[],
-    [group.class, group.spec, heroKey],
+    () =>
+      [group.class?.key, group.spec?.key, ...group.heroes.map((h) => h.key)].filter(
+        Boolean,
+      ) as string[],
+    [group.class, group.spec, group.heroes],
   );
 
   useEffect(() => {
@@ -357,9 +368,19 @@ export default function App() {
    * dropped here rather than leaving the canvas in a state the counter disagrees with.
    */
   const onImportString = useCallback(
-    (points: loadout.Points, choices: Record<string, number>) => {
+    (
+      points: loadout.Points,
+      choices: Record<string, number>,
+      heroSubTreeId: number | null,
+    ) => {
+      // The string names its hero tree, so switch to it before splitting the points up --
+      // otherwise the hero points land in a tree the build does not use.
+      const target =
+        group.heroes.find((h) => h.subTreeId === heroSubTreeId) ?? group.heroes[0] ?? null;
+      if (target) setHeroKey(target.key);
+
       const next: Record<string, loadout.Points> = {};
-      for (const summary of [group.class, group.spec, hero]) {
+      for (const summary of [group.class, group.spec, target]) {
         if (!summary) continue;
         const tree = loaded[summary.key];
         if (!tree) continue;
@@ -375,7 +396,7 @@ export default function App() {
       setNote(null);
       setMode("build");
     },
-    [group.class, group.spec, hero, loaded, capOf],
+    [group.class, group.spec, group.heroes, loaded, capOf],
   );
 
   const onShowStats = useCallback((on: boolean) => {
@@ -805,14 +826,10 @@ export default function App() {
           {mode === "build" && (
             <LoadoutString
               spec={group.spec ? (loaded[group.spec.key] ?? null) : null}
-              trees={
-                [group.class?.key, group.spec?.key, heroKey]
-                  .filter(Boolean)
-                  .map((key) => loaded[key as string])
-                  .filter(Boolean) as TreeDetail[]
-              }
+              trees={wanted.map((key) => loaded[key]).filter(Boolean) as TreeDetail[]}
               points={Object.assign({}, ...Object.values(spent))}
               choices={picks}
+              heroSubTreeId={hero?.subTreeId ?? null}
               onImport={onImportString}
             />
           )}

@@ -19,8 +19,11 @@ import type { TalentNode, TreeDetail } from "./api";
  *      rank, so a two-rank talent gates its children until both points are in it.
  *      Later points in the same node need nothing further, since the ranks form a chain.
  *
- * A pre-filled root is granted rather than chosen: it costs no point and its children start
- * as roots. Modelled here by treating it as permanently satisfied.
+ * A pre-filled root is **granted**, not chosen. The DP removes it from the graph entirely and
+ * promotes its children to roots, so no build ever spends a point on it -- and the API refuses
+ * a constraint naming one, because there is nothing to constrain. It follows that a point must
+ * not be spendable on one here either: a loadout that spent one would cost a point the counter
+ * does not charge, and the two would disagree about what the build is.
  */
 
 export type Points = Record<string, number>;
@@ -93,6 +96,8 @@ export function place(tree: TreeDetail, wanted: Points, cap: number): Placement 
   while (progress && spent < cap) {
     progress = false;
     for (const node of tree.nodes) {
+      // Granted: already had, and never paid for.
+      if (granted.has(node.nodeId)) continue;
       const key = String(node.nodeId);
       const asked = Math.min(wanted[key] ?? 0, node.maxPoints);
       const current = points[key] ?? 0;
@@ -110,6 +115,7 @@ export function place(tree: TreeDetail, wanted: Points, cap: number): Placement 
 
   const dropped: Points = {};
   for (const [key, asked] of Object.entries(wanted)) {
+    if (granted.has(Number(key))) continue;
     const node = byId.get(Number(key));
     const capped = Math.min(asked, node?.maxPoints ?? 0);
     const lost = capped - (points[key] ?? 0);
@@ -147,6 +153,9 @@ export function add(
   const current = points[key] ?? 0;
   const spent = total(points);
 
+  if (grantedRoots(tree).has(node.nodeId)) {
+    return { points, reason: `${node.name} is granted automatically — it costs no point.` };
+  }
   if (current >= node.maxPoints) return { points, reason: `${node.name} is already maxed.` };
   if (spent >= cap) return { points, reason: `No points left — the cap is ${cap}.` };
   if (spent < node.pointsRequired) {
@@ -207,6 +216,7 @@ export function available(tree: TreeDetail, points: Points, cap: number): Set<nu
   };
 
   for (const node of tree.nodes) {
+    if (granted.has(node.nodeId)) continue;
     const current = have(node.nodeId);
     if (current >= node.maxPoints) continue;
     if (spent < node.pointsRequired) continue;

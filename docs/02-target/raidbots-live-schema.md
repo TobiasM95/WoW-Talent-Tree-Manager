@@ -109,6 +109,29 @@ Entry keys: `id`, `type`, `name` (always); `definitionId`, `maxRanks`, `spellId`
 (5307 of 5387); `visibleSpellId` (31); and on subtree entries only, `traitSubTreeId`,
 `traitTreeId`, `atlasMemberName`, `nodes`.
 
+### Granted talents, and why class trees are per specialisation
+
+Five nodes in a Feral Druid's trees carry `freeNode: true`: Rake, Rip, Swipe, Ravage and
+Thriving Growth. They are **granted**, not chosen -- the game gives them to you and they cost
+no talent point.
+
+Two consequences, both of which were got wrong before a real talent string exposed them:
+
+**A granted talent is not part of any build.** The counting DP removes a pre-filled root from
+the graph and promotes its children, so nothing ever spends a point on one. It follows that a
+constraint naming one has no meaning: requiring it and excluding it both returned the
+unfiltered count, so a user who barred a talent got back builds that all had it. The API now
+refuses such a constraint rather than dropping it silently.
+
+**Which talents are granted depends on the specialisation.** Rake, Rip and Swipe come free to
+a Feral Druid; a Balance Druid gets Starfire, Starsurge and Moonkin Form instead. The class
+tree is therefore ingested once *per spec* -- `retail/11/103/class` is not interchangeable
+with `retail/11/102/class`, even though every node and edge is the same. Only this flag
+differs, which makes it very easy to treat them as duplicates and pick whichever comes first.
+
+The loadout string encodes the distinction directly: a granted talent is written as
+*selected but not purchased*, and reads no further bits.
+
 ### Detached capstones: a node with no edges at all
 
 Every retail spec tree ends in a talent that has **no parents and no children**, unlocked
