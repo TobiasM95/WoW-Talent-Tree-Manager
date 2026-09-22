@@ -71,7 +71,10 @@ So the flow inverts into three stages:
 3. **Read the set** — per-talent statistics over every matching build: which talents the
    constraints have already decided, and where the choice actually is. Implemented; see
    [`../../services/api/README.md`](../../services/api/README.md).
-4. **Sim** — export as SimC profilesets, run, import results, rank. Not yet built.
+4. **Sim** — export as SimC profilesets, run, import results, rank. The export is built: one
+   profileset per matching build, each a whole character (the enumerated tree combined with a
+   fixed loadout in the other two), to paste into the profile a player already sims with. The
+   return leg — reading SimC's report back and ranking — is what remains.
 
 What each stage buys:
 

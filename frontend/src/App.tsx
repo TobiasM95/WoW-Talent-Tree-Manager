@@ -26,6 +26,7 @@ import { JobPanel } from "./components/JobPanel";
 import { LoadoutString } from "./components/LoadoutString";
 import { ResultsBrowser } from "./components/ResultsBrowser";
 import { ShareButton } from "./components/ShareButton";
+import { SimcExport } from "./components/SimcExport";
 import { SpecRail } from "./components/SpecRail";
 import { StatsPanel } from "./components/StatsPanel";
 import { TreePane } from "./components/TreePane";
@@ -821,6 +822,21 @@ export default function App() {
 
           {job && (job.state === "done" || job.state === "capped") && (
             <ResultsBrowser job={job} index={pick.index} onSelect={onPick} />
+          )}
+
+          {/* The end of the arc: count the space, narrow it, hand the survivors to the
+              thing that can rank them. Needs the hand-built loadout, because every exported
+              line is a whole character rather than one tree. */}
+          {job && (job.state === "done" || job.state === "capped") && (
+            <SimcExport
+              job={job}
+              spec={group.spec ? (loaded[group.spec.key] ?? null) : null}
+              trees={wanted.map((key) => loaded[key]).filter(Boolean) as TreeDetail[]}
+              varying={active}
+              base={Object.assign({}, ...Object.values(spent))}
+              choices={picks}
+              heroSubTreeId={hero?.subTreeId ?? null}
+            />
           )}
 
           {mode === "build" && (

@@ -1,6 +1,7 @@
 # Frontend
 
-React + Tailwind. One screen, two modes.
+React + Tailwind. One screen, two modes, and one arc: count the possibility space,
+narrow it to something simmable, then hand the survivors to SimulationCraft.
 
 **Build** spends points by hand across all three of a specialisation's trees, under the
 same rules the solver counts under. **Explore** paints constraints on the tree the solver
@@ -20,8 +21,9 @@ npm run shots                                 # both themes, desktop + phone
 npm run test:share                            # the share codec, no browser
 npm run test:loadout                          # spending rules, against the API
 npm run test:string                           # the Blizzard talent-string codec
+npm run test:simc                             # SimulationCraft export
 npm test                                      # drives the real interactions
-npm run test:all                              # all five
+npm run test:all                              # all six
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -94,7 +96,9 @@ game data the tool exists to display; everything around them is ours.
 | `lib/share.ts` | The whole view, encoded into the URL. |
 | `lib/loadout.ts` | Spending points by hand, under the solver's rules. |
 | `lib/loadoutString.ts` | Blizzard's talent string, in and out. |
+| `lib/simc.ts` | An enumerated result set as SimulationCraft profilesets. |
 | `components/LoadoutString.tsx` | Paste a build in, copy one out. |
+| `components/SimcExport.tsx` | Hand the matching builds to the sim. |
 | `lib/classes.ts` | Class colours, one value per theme. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
@@ -160,6 +164,30 @@ Placement is greedy, and exact because of it: taking a point never removes an op
 if any order can place a point, placing what is available now cannot prevent it. That is
 also what makes a refund cascade correctly -- re-place what remains and whatever no longer
 has a way in simply does not land.
+
+**The SimC export is profilesets, not a profile.** A talent comparison is only meaningful
+against real gear, a real rotation and a real fight length, none of which this tool knows. So
+the export is lines to paste into the profile a player already sims with:
+
+```
+profileset."ttm_001"+=talents=CoPAAAAAAAAA...
+```
+
+A minimal runnable profile is offered behind a checkbox, for someone who has none yet.
+
+**Every line is a whole character.** The solver varies one tree at a time, so each exported
+build is the enumerated tree's points combined with whatever the other two hold — the same
+"hold these fixed, vary this one" model the counting gate works in. That is why the panel
+refuses to export until a base loadout exists: without one it would produce a character with
+two empty trees, which sims happily and means nothing.
+
+Duplicates are collapsed. The enumerator works in *selections*, with choice-node sides
+unresolved, so two different selections can encode to the same talent string once a side is
+chosen — and simming the same character twice is wasted time.
+
+**The caps are human, not technical.** The counting gate already refused anything unbounded;
+50/200/1000 is what a person will actually wait for, since SimulationCraft runs each
+profileset as a full simulation.
 
 **The talent string is verified against one the game exported.** A Feral Druid build --
 full spec tree, half-spent class tree, partly-spent hero tree -- decodes and re-encodes byte

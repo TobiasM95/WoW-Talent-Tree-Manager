@@ -183,7 +183,8 @@ Still to do in this phase:
 - **Import/export**: the Blizzard talent string is done, in both directions -- paste the
   build you are playing, change it, paste it back. **Verified against a string the game
   exported**, which decodes and re-encodes byte for byte. SimC export builds on the same
-  string and is next.
+  string and is done too: an enumerated result set exports as profilesets, one line per
+  build, each a whole character rather than one tree.
 - **`ttm1.` share codes** are superseded by the URL, which already carries the whole view.
 
 **Phase 3 exit criteria met.** A player can land on the site, build a spec across all three
@@ -201,9 +202,11 @@ trees, solve it under constraints, and share a link — without signing in.
 Only now, once the foundation holds:
 
 - Tree Editor (custom/homebrew trees) — the native app's authoring surface.
-- Sim Analysis rebuilt on SimC's JSON report (open question Q9): export the filtered build set as
-  profilesets, import results back, and rank builds. Feasible precisely because the filter bounds
-  the set to something simmable. **Per-talent statistics over the set are already done** and did
+- Sim Analysis: **the export is done** — an enumerated result set becomes SimulationCraft
+  profilesets, one line per build, each a whole character rather than one tree. Feasible
+  precisely because the counting gate bounds the set to something simmable. What remains is
+  the return leg: reading SimC's JSON report back and ranking the builds by the number it
+  produced (open question Q9). **Per-talent statistics over the set are already done** and did
   not need SimC at all — they are a property of the enumeration, not of the sim.
 - Classic support (open question Q3).
 - Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.

@@ -511,6 +511,41 @@ if (shareUrl.includes("?")) {
   await fresh.close();
 }
 
+// --- SimulationCraft export --------------------------------------------------
+/*
+  The end of the arc: count, narrow, hand the survivors to the thing that can rank them.
+
+  What is checked is that each line is a *whole character* -- the enumerated tree's points
+  combined with whatever the other two hold. Exporting the varying tree alone would sim
+  happily and mean nothing, and nothing on screen would say so.
+*/
+const simc = page.locator('section:has(button:has-text("Export"))').last();
+check("a simulate panel appears for a finished job", (await simc.count()) === 1);
+
+if (await simc.count()) {
+  const before = await simc.innerText();
+  // With no hand-built loadout there is nothing to combine with, and the panel must say so
+  // rather than exporting two empty trees.
+  const hasBase = !/Spend points in Build first/i.test(before);
+  check("without a base loadout it explains why it cannot export", hasBase ? true :
+        /whole character/i.test(before), before.split("\n").slice(0, 3).join(" | "));
+
+  if (hasBase) {
+    await simc.getByRole("button", { name: /^Export/ }).click();
+    await page.waitForTimeout(3000);
+    const text = await simc.locator("textarea").inputValue();
+    const lines = text.trim().split("\n");
+    const sets = lines.filter((l) => l.startsWith("profileset."));
+    check("profileset lines are produced", sets.length > 1, `${sets.length} lines`);
+    check("each overrides only talents",
+          sets.every((l) => /^profileset\."[^"]+"\+=talents=[A-Za-z0-9+/]+$/.test(l)),
+          sets[0]);
+    check("the header says what to do with it",
+          lines[0].startsWith("#") && text.includes("your own profile"), lines[0]);
+    await page.screenshot({ path: `${outDir}/state-simc.png` });
+  }
+}
+
 // --- clearing ---------------------------------------------------------------
 /*
   Clear has to empty the *canvas*.
