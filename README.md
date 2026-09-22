@@ -60,7 +60,7 @@ cd frontend && npm install && npm run dev           # http://localhost:5173
 Or the production shape — Caddy serving the built frontend and proxying `/api`:
 
 ```bash
-docker compose --profile web up -d --build web      # http://localhost:8080
+docker compose --profile web up -d --build web      # http://localhost:8081
 ```
 
 The ingest fetches live talent data from Raidbots and derives point caps from DB2. The

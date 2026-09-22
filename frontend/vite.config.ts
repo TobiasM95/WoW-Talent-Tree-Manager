@@ -11,7 +11,7 @@ export default defineConfig({
     // there is no CORS configuration that exists only for development.
     proxy: {
       "/api": {
-        target: process.env.TTM_API_URL ?? "http://localhost:8000",
+        target: process.env.TTM_API_URL ?? "http://localhost:8001",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },

@@ -14,7 +14,7 @@ import sys
 import urllib.error
 import urllib.request
 
-BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://localhost:8000"
+BASE = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://localhost:8001"
 
 _failures: list[str] = []
 _run = 0
@@ -372,6 +372,52 @@ def t_results_are_not_served_before_they_exist():
         assert exc.code == 404, exc.code
 
 
+def t_every_filter_kind_reaches_the_engine():
+    """The gate and the engine must agree for *each* kind of constraint, not just some.
+
+    This is the regression test for a real wrong-answer bug: choice sides were honoured by
+    the counting DP and dropped entirely by the worker's filter string, so a request pinning
+    three sides was counted as 14,795 selections and enumerated as 58,738. The job failed
+    rather than serving the wrong number -- the worker's count check caught it -- but a user
+    saw a filter silently do nothing.
+
+    Every constraint kind is exercised separately, because "some filters work" is exactly
+    the state that produced the bug.
+    """
+    tree = get(f"/trees/{SPEC}")
+    plain = [n["nodeId"] for n in tree["nodes"] if n["kind"] != "choice"]
+    choices = [n["nodeId"] for n in tree["nodes"] if n["kind"] == "choice"]
+    assert choices, "this tree has no choice nodes to pin"
+
+    cases = {
+        "mustHave": {"mustHave": plain[3:5]},
+        "mustNotHave": {"mustNotHave": plain[-3:]},
+        "choiceSide a": {"choiceSides": {str(choices[0]): "a"}},
+        "choiceSide b": {"choiceSides": {str(choices[0]): "b"}},
+        "choiceSide none": {"choiceSides": {str(choices[0]): "none"}},
+        "several sides": {
+            "choiceSides": {str(c): side
+                            for c, side in zip(choices[:3], ["a", "b", "none"])},
+        },
+        "sides plus requires": {
+            "mustHave": plain[3:5],
+            "choiceSides": {str(choices[0]): "a"},
+        },
+        "atLeastOneOf": {"atLeastOneOf": [plain[6:9]]},
+        "exactlyOneOf": {"exactlyOneOf": [plain[6:8]]},
+    }
+
+    for label, extra in cases.items():
+        body = {"treeKey": SPEC, "points": 11, **extra}
+        predicted = post("/counts", body)["sets"]
+        if predicted == 0 or predicted > 2_000_000:
+            continue  # nothing to enumerate, or the gate would refuse it
+        job = post("/solve", body, expect=202)
+        done = _await_job(job["id"])
+        assert done["state"] == "done", (label, done["state"], done["error"])
+        assert done["resultCount"] == predicted, (label, done["resultCount"], predicted)
+
+
 def t_cancelling_a_finished_job_is_refused():
     """A job that already produced results cannot be un-produced."""
     tree = get(f"/trees/{SPEC}")
@@ -620,6 +666,10 @@ def main() -> int:
          t_stats_not_served_before_results_exist),
     ]:
         check(name, fn)
+
+    print("\nfilters reach the engine:")
+    check("every filter kind agrees between gate and engine",
+          t_every_filter_kind_reaches_the_engine)
 
     print("\ncancellation:")
     for name, fn in [

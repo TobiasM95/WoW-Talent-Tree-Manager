@@ -6,9 +6,9 @@ milliseconds, before any solve job exists.
 
 ```bash
 docker compose up -d api
-curl localhost:8000/health
+curl localhost:8001/health
 python services/api/test_api.py        # 28 tests, stdlib only
-open http://localhost:8000/docs        # generated OpenAPI
+open http://localhost:8001/docs        # generated OpenAPI
 ```
 
 ## Endpoints

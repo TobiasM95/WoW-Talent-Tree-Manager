@@ -141,7 +141,8 @@ def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, i
 
 def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[int],
                         at_least_one_of: list[list[int]] | None = None,
-                        exactly_one_of: list[list[int]] | None = None) -> str:
+                        exactly_one_of: list[list[int]] | None = None,
+                        choice_sides: dict[str, str] | None = None) -> str:
     """The engine's filter is positional over the tree's node order.
 
     Sentinel values, per Engine/src/TreeSolver.cpp:
@@ -152,6 +153,17 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
 
     Because a talent holds a single value, the engine supports one group of each kind --
     which is why the API refuses more than one before a job is ever created.
+
+    **Choice sides become take/skip here.** The engine enumerates *sets*, in which a choice
+    node's side is unresolved -- the side is what turns one set into two builds. So pinning
+    a side does not tell the engine which alternative to use; what it tells the engine is
+    that the node is taken at all. `"none"` is the opposite: the node is not taken.
+
+    That is exactly how the counting DP reads them, and it has to be, because the gate's
+    number and the engine's have to agree. They did not: sides were dropped entirely here,
+    so a request pinning three sides was counted as 14,795 sets and enumerated as 58,738.
+    The job failed rather than serving the wrong answer -- the count check caught it -- but
+    the filter was simply incomplete.
     """
     order = [n["nodeId"] for n in tree["nodes"]]
     values = ["0"] * len(order)
@@ -160,6 +172,8 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
         values[index_of[nid]] = "1"
     for nid in must_not_have:
         values[index_of[nid]] = "-1"
+    for nid, side in (choice_sides or {}).items():
+        values[index_of[int(nid)]] = "-1" if side == "none" else "1"
     for group in (at_least_one_of or []):
         for nid in group:
             values[index_of[nid]] = "-2"
@@ -242,6 +256,7 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str,
     must_not_have = [int(x) for x in request.get("mustNotHave", [])]
     at_least_one_of = [[int(x) for x in g] for g in request.get("atLeastOneOf", [])]
     exactly_one_of = [[int(x) for x in g] for g in request.get("exactlyOneOf", [])]
+    choice_sides = {str(k): str(v) for k, v in (request.get("choiceSides") or {}).items()}
     time_budget = min(int(request.get("timeBudgetMs", DEFAULT_TIME_BUDGET_MS)),
                       DEFAULT_TIME_BUDGET_MS)
     max_results = min(int(request.get("maxResults", DEFAULT_MAX_RESULTS)),
@@ -263,9 +278,10 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str,
     ]
     if on_progress is not None:
         args += ["--progress", "--progress-interval-ms", str(PROGRESS_INTERVAL_MS)]
-    if must_have or must_not_have or at_least_one_of or exactly_one_of:
+    if must_have or must_not_have or at_least_one_of or exactly_one_of or choice_sides:
         args += ["--filter", build_filter_string(tree, must_have, must_not_have,
-                                                 at_least_one_of, exactly_one_of)]
+                                                 at_least_one_of, exactly_one_of,
+                                                 choice_sides)]
 
     hard_timeout = (time_budget / 1000) + 60
     started = time.monotonic()

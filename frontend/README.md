@@ -21,7 +21,7 @@ npm run test:all                              # all three
 Production is Caddy serving the built assets and proxying `/api`:
 
 ```bash
-docker compose --profile web up -d --build web   # http://localhost:8080
+docker compose --profile web up -d --build web   # http://localhost:8081
 ```
 
 ## Design
@@ -126,7 +126,7 @@ oversized listing, and a real enumeration must complete. Both scripts take a URL
 run against the dev server or the production container:
 
 ```bash
-npm test http://localhost:8080
+npm test http://localhost:8081
 ```
 
 Two things that suite has to handle, which are properties of the system rather than

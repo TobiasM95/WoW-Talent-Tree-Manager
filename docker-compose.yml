@@ -101,7 +101,10 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://ttm:ttm_dev_only@postgres:5432/ttm}
     ports:
-      - "${API_PORT:-8000}:8000"
+      # 8001, not 8000: 8000 is the most contended port on a developer machine, and
+      # a clash here looks like the API being down. The container still listens on
+      # 8000 -- only the published port moved.
+      - "${API_PORT:-8001}:8000"
     volumes:
       - ./services:/app/services
       - ./tools:/app/tools
@@ -115,7 +118,7 @@ services:
   # default: `docker compose up -d` is the development stack, where Vite serves the frontend
   # with hot reload and proxies /api itself.
   #
-  #   docker compose --profile web up -d --build web   ->  http://localhost:8080
+  #   docker compose --profile web up -d --build web   ->  http://localhost:8081
   web:
     build:
       context: .
@@ -125,7 +128,7 @@ services:
     environment:
       TTM_SITE_ADDRESS: ${TTM_SITE_ADDRESS:-:80}
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-8081}:80"
     profiles: ["web"]
 
   # Claims solve jobs and execs the C++ engine. Scale with --scale worker=N; the queue
