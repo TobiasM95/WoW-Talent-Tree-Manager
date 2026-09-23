@@ -2,7 +2,13 @@
   "name": "ttm-frontend",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.1.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
   "scripts": {
+    "preinstall": "node -e \"const ua=process.env.npm_config_user_agent||'';if(!ua.startsWith('pnpm')){console.error('This project uses pnpm. Run: corepack enable && pnpm install');process.exit(1)}\"",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -10,7 +16,7 @@
     "shots": "node shot.mjs",
     "test": "node interact.mjs",
     "test:share": "node share.test.mjs",
-    "test:all": "npm run typecheck && npm run test:share && npm run test:loadout && npm run test:string && npm run test:simc && npm test && npm run test:bugs && npm run test:bridge && npm run test:report && npm run test:round",
+    "test:all": "pnpm run typecheck && pnpm run test:share && pnpm run test:loadout && pnpm run test:string && pnpm run test:simc && pnpm test && pnpm run test:bugs && pnpm run test:bridge && pnpm run test:report && pnpm run test:round",
     "test:loadout": "node loadout.test.mjs",
     "test:string": "node loadoutString.test.mjs",
     "test:simc": "node simc.test.mjs",

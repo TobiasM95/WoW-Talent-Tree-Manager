@@ -38,21 +38,25 @@ only path that crosses between the modes, and `bridge.test.mjs` walks it end to 
 
 ```bash
 docker compose up -d postgres api worker      # the services it talks to
-npm install
-npm run dev                                   # http://localhost:5173
 
-npm run typecheck
-npm run shots                                 # both themes, desktop + phone
-npm run test:share                            # the share codec, no browser
-npm run test:loadout                          # spending rules, against the API
-npm run test:string                           # the Blizzard talent-string codec
-npm run test:simc                             # SimulationCraft export
-npm test                                      # drives the real interactions
-npm run test:bugs                             # shapes, constraint colours, mode ownership
-npm run test:bridge                           # an enumerated build taken into the loadout
-npm run test:report                           # the SimC report reader, against a real report
-npm run test:round                            # export -> SimulationCraft -> import, for real
-npm run test:all                              # all ten
+# pnpm only, at the version package.json pins. A `preinstall` guard refuses npm and yarn
+# rather than letting a second lockfile appear.
+corepack enable
+pnpm install
+pnpm run dev                                   # http://localhost:5173
+
+pnpm run typecheck
+pnpm run shots                                 # both themes, desktop + phone
+pnpm run test:share                            # the share codec, no browser
+pnpm run test:loadout                          # spending rules, against the API
+pnpm run test:string                           # the Blizzard talent-string codec
+pnpm run test:simc                             # SimulationCraft export
+pnpm test                                      # drives the real interactions
+pnpm run test:bugs                             # shapes, constraint colours, mode ownership
+pnpm run test:bridge                           # an enumerated build taken into the loadout
+pnpm run test:report                           # the SimC report reader, against a real report
+pnpm run test:round                            # export -> SimulationCraft -> import, for real
+pnpm run test:all                              # all ten
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -60,6 +64,11 @@ Production is Caddy serving the built assets and proxying `/api`:
 ```bash
 docker compose --profile web up -d --build web   # http://localhost:8081
 ```
+
+That one command is enough: `postgres`, `api` and `worker` come up as dependencies. Drop
+`--build` to start what is already built. **The browser suites default to 8081**, this
+container, rather than the dev server — a suite that fails because nothing happens to be
+running on 5173 has said nothing about the app.
 
 ## Design
 
@@ -194,7 +203,7 @@ after asking for every build matching their constraints. Pages of 100, because "
 matching build" reaches two million.
 
 **A hand-built loadout must be one the counter counts.** That is the property the
-spending rules exist to hold, and `npm run test:loadout` asserts it by building real
+spending rules exist to hold, and `pnpm run test:loadout` asserts it by building real
 loadouts on real trees and asking the API to count them. If the two ever disagree the
 tool is telling a player they have made something it also says does not exist -- the kind
 of quiet contradiction nobody notices until it has shipped for months. So the rules are
@@ -301,7 +310,7 @@ because that is what the string's header identifies.
 and no children, opened purely by the final point gate. The spending rules reach it
 because rule 3 exempts a node with no parents, not because anything special was written
 for it — but it is the shape most likely to be handled by accident, so
-`npm run test:loadout` checks that it is closed before its gate and open on the gate
+`pnpm run test:loadout` checks that it is closed before its gate and open on the gate
 alone. See [`../docs/02-target/raidbots-live-schema.md`](../docs/02-target/raidbots-live-schema.md).
 
 **Refunds cascade rather than refusing.** Taking a point out of the middle of a tree can
@@ -350,17 +359,17 @@ a hatched fill and the node still reads as a talent.
 
 ## Checking it
 
-`npm run shots` captures both themes at desktop and phone width and **fails on any console
+`pnpm run shots` captures both themes at desktop and phone width and **fails on any console
 error** — a blank-looking panel and a thrown exception are indistinguishable in a still
 image.
 
-`npm test` drives the real thing against the real stack: clicking a talent must move the
+`pnpm test` drives the real thing against the real stack: clicking a talent must move the
 count, clicking again must bar it, the tooltip must land on screen, the gate must refuse an
 oversized listing, and a real enumeration must complete. Both scripts take a URL, so they
 run against the dev server or the production container:
 
 ```bash
-npm test http://localhost:8081
+pnpm test http://localhost:8081
 ```
 
 Two things that suite has to handle, which are properties of the system rather than
@@ -376,10 +385,10 @@ awkwardness:
 - **Every build spends the whole budget.** So the *number* of lit talents is not a signal
   that stepping to the next build did anything — the test compares which talents are lit.
 
-Share links get a suite of their own (`npm run test:share`) because that is where a mistake
+Share links get a suite of their own (`pnpm run test:share`) because that is where a mistake
 is silent: a link that loses a constraint still opens, shows a plausible tree and gives the
 wrong answer, with nothing for a person to notice. It round-trips every field, checks that
 multi-rank point counts are not flattened to 1, and feeds in mangled query strings — links
 get truncated and hand-edited in chat clients, and garbage has to produce an empty view
-rather than a wrong one. `npm test` then opens a real link in a fresh page and checks the
+rather than a wrong one. `pnpm test` then opens a real link in a fresh page and checks the
 same talents light up.

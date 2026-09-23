@@ -54,7 +54,7 @@ docker compose run --rm loader                      # trees + precomputed counts
 docker compose run --rm sync-icons                  # optional; see docs/02-target/icons.md
 docker compose up -d api worker
 
-cd frontend && npm install && npm run dev           # http://localhost:5173
+cd frontend && corepack enable && pnpm install && pnpm run dev   # http://localhost:5173
 ```
 
 Or the production shape — Caddy serving the built frontend and proxying `/api`:
@@ -80,7 +80,7 @@ dataset with a blank one.
 | `services/worker/test_worker.py` | Decoding, progress parsing, the watchdog |
 | `services/worker/test_queue.py` | The lease sweeper |
 | `bash services/db/smoke_test.sh` | End to end, and that the constraints bite |
-| `cd frontend && npm test` | The real interactions in a real browser |
+| `cd frontend && pnpm test` | The real interactions in a real browser |
 
 ## Repository layout
 

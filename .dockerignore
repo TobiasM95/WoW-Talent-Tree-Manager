@@ -1,0 +1,29 @@
+# What never belongs in a build context.
+#
+# There was no such file, and it mattered more than it looks: `COPY frontend/ ./` in the
+# frontend image was copying the host's node_modules in on top of the one the image had just
+# installed. With npm that was merely slow -- real directories landing on real directories.
+# With pnpm the host tree is a farm of symlinks into a store that does not exist inside the
+# container, so the build died on a missing tsc that was right there a layer earlier.
+
+**/node_modules
+**/.pnpm-store
+**/dist
+**/.venv
+**/__pycache__
+**/*.pyc
+.git
+.github
+
+# Build output and scratch from the native engine and its tooling.
+Engine/x64
+CLI/x64
+GUI/x64
+**/build
+**/*.o
+**/*.obj
+
+# Test artefacts: screenshots and reports are written by the suites, never read by an image.
+frontend/shots
+frontend/test-results
+**/*.log
