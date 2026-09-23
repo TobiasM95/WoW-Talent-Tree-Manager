@@ -23,6 +23,8 @@ export interface TreeCanvasProps {
   build?: Record<string, number> | null;
   /** nodeId -> share of the result set, when statistics are being shown. */
   shares?: Map<number, number> | null;
+  /** Per-node sim impact, -1..1, scaled to the widest swing in the set. */
+  impacts?: Map<number, number> | null;
   /** Build mode: which nodes can take another point right now. */
   reachable?: Set<number> | null;
   /** True while points are being spent by hand. */
@@ -108,6 +110,7 @@ export function TreeCanvas({
   stale,
   build,
   shares,
+  impacts,
   reachable,
   editing,
   onActivate,
@@ -260,6 +263,7 @@ export function TreeCanvas({
             stale={stale}
             spent={build ? (build[String(node.nodeId)] ?? 0) : undefined}
             share={shares ? (shares.get(node.nodeId) ?? 0) : undefined}
+            impact={impacts?.get(node.nodeId)}
             reachable={reachable ? reachable.has(node.nodeId) : undefined}
             editing={editing}
             onActivate={onActivate}

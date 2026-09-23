@@ -418,6 +418,47 @@
   border-color: var(--taken);
 }
 
+/* --- what the sim said ------------------------------------------------------
+   A diverging scale, because this value is signed and the others are not. Frequency across a
+   result set answers "how often", and one end of it is simply nothing; sim impact answers
+   "better or worse than the alternatives", and its middle is the interesting part -- a
+   talent at zero is one the sim could not separate from its alternatives, which is a real
+   finding rather than an absence.
+
+   So: green out to the best swing in the set, red out to the worst, and the band fades
+   toward the neutral rim in between rather than toward transparent. --impact arrives as a
+   magnitude from 0 to 1 and the sign rides on data-impact, since CSS cannot branch on a
+   number. */
+
+.ttm-node[data-impact] {
+  --band: color-mix(in srgb, var(--node-rim) 100%, transparent);
+}
+
+.ttm-node[data-impact="good"] {
+  --band: color-mix(in srgb, var(--must) calc(var(--impact, 0) * 100%), var(--node-rim));
+  --glow: drop-shadow(
+    0 0 calc(var(--node-glow) * var(--impact, 0))
+      color-mix(in srgb, var(--must) calc(var(--impact, 0) * 55%), transparent)
+  );
+}
+
+.ttm-node[data-impact="bad"] {
+  --band: color-mix(in srgb, var(--barred) calc(var(--impact, 0) * 100%), var(--node-rim));
+  --glow: drop-shadow(
+    0 0 calc(var(--node-glow) * var(--impact, 0))
+      color-mix(in srgb, var(--barred) calc(var(--impact, 0) * 45%), transparent)
+  );
+}
+
+/* The further from zero, the more the talent has to say, so the artwork comes up with it. */
+.ttm-node[data-impact] .ttm-node-face {
+  opacity: calc(0.45 + 0.55 * var(--impact, 0));
+}
+
+.ttm-node[data-impact] .ttm-node-ranks {
+  border-color: color-mix(in srgb, var(--brass) 45%, transparent);
+}
+
 /* --- legend swatches --------------------------------------------------------
    The same sandwich the canvas uses, at 12px: keyline, band, keyline. Built from the node
    custom properties so a swatch cannot say one thing while the tree says another. */

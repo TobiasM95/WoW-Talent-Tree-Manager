@@ -10,12 +10,14 @@
     "shots": "node shot.mjs",
     "test": "node interact.mjs",
     "test:share": "node share.test.mjs",
-    "test:all": "npm run typecheck && npm run test:share && npm run test:loadout && npm run test:string && npm run test:simc && npm test && npm run test:bugs && npm run test:bridge",
+    "test:all": "npm run typecheck && npm run test:share && npm run test:loadout && npm run test:string && npm run test:simc && npm test && npm run test:bugs && npm run test:bridge && npm run test:report && npm run test:round",
     "test:loadout": "node loadout.test.mjs",
     "test:string": "node loadoutString.test.mjs",
     "test:simc": "node simc.test.mjs",
     "test:bugs": "node bugs.test.mjs",
-    "test:bridge": "node bridge.test.mjs"
+    "test:bridge": "node bridge.test.mjs",
+    "test:report": "node simcReport.test.mjs",
+    "test:round": "node simcround.test.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

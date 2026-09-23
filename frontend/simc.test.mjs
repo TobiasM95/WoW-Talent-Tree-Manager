@@ -44,9 +44,9 @@ const classTree = trees.find((t) => t.kind === "class");
 const heroTree = trees.find((t) => t.kind === "hero");
 const capOf = (t) => t.pointCap ?? t.maxPointsInTree;
 
-check("class and spec tokens are SimC-shaped",
-      SIMC.token("Death Knight") === "death_knight" && SIMC.token("Beast Mastery") === "beast_mastery",
-      `${SIMC.token("Death Knight")} / ${SIMC.token("Beast Mastery")}`);
+check("the sample-profile hint names the file SimC actually ships",
+      SIMC.profilesets(["X"], { className: "Death Knight", specName: "Blood" })
+        .includes("_Death_Knight_Blood.simc"));
 
 // --- a base loadout across all three trees ---------------------------------
 const build = (tree, cap, seed) => {
@@ -159,14 +159,20 @@ check("names are zero-padded so they sort in enumeration order",
 check("the header explains what to do with it",
       lines[0].startsWith("#") && text.includes("your own profile"), lines[0]);
 
-const runnable = SIMC.profilesets(strings, {
-  className: spec.className, specName: spec.specName, withProfile: true,
-});
-check("a runnable profile names the class and spec",
-      runnable.includes(`${SIMC.token(spec.className)}="TTM_`) &&
-        runnable.includes(`spec=${SIMC.token(spec.specName)}`),
-      runnable.split("\n").find((l) => l.startsWith("spec=")));
-check("and it sets a talent string", /^talents=[A-Za-z0-9+/]+$/m.test(runnable));
+/*
+  The file is only profilesets, and says where to get a character to run them against.
+
+  There was a "minimal runnable profile" option here. Running the export through
+  SimulationCraft 1210-01 showed it did not run: `death_knight=` is not an option SimC knows
+  (it wants `deathknight=`), and once that was fixed it failed initialisation anyway --
+  "no weapon equipped in the Main-Hand slot". A naked level-80 body also sims a number that
+  means nothing. SimC ships a real character per specialisation, so the header points there.
+*/
+const preamble = text.split("profileset.")[0];
+const settings = preamble.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
+check("the file carries no profile of its own", settings.length === 0, settings[0] ?? "");
+check("it says how to run it against one SimC ships",
+      text.includes("profiles/") && text.includes("json2=report.json"));
 
 // Duplicates are collapsed: the same character twice is wasted sim time.
 const dupes = SIMC.buildStrings({

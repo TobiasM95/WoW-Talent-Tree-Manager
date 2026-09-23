@@ -39,10 +39,6 @@ export interface SimcInput {
   builds: Points[];
 }
 
-/** SimC spells class and spec as lowercase tokens: "Death Knight" -> death_knight. */
-export const token = (name: string): string =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
-
 /**
  * The talent strings for a set of enumerated builds.
  *
@@ -51,7 +47,30 @@ export const token = (name: string): string =>
  * pick can collapse two of them together. Simming the same character twice is wasted time,
  * so they are merged and the count is reported.
  */
-export function buildStrings(input: SimcInput): { strings: string[]; collapsed: number } {
+export interface BuiltStrings {
+  strings: string[];
+  collapsed: number;
+  /**
+   * The varying tree's points behind each line, parallel to `strings`.
+   *
+   * Kept because the export is only half the round trip: a report comes back naming
+   * `ttm_07`, and turning that into "these talents scored this" needs to know which build
+   * line 7 was. Duplicates collapse to one line, and they collapse precisely because they
+   * are the same character, so the first of them stands for all.
+   */
+  points: Points[];
+  /**
+   * The 1-based line each *input* build ended up on, parallel to `builds`.
+   *
+   * Not the same as the line number, and that is the whole point of carrying it: the results
+   * browser steps through the job's builds while a report names export lines, and the two
+   * indices drift apart the moment two selections collapse onto one talent string. Without
+   * this, build 40 would be shown the score of a different build.
+   */
+  lineOf: number[];
+}
+
+export function buildStrings(input: SimcInput): BuiltStrings {
   const { spec, trees, varying, base, choices, heroSubTreeId, builds } = input;
   const varyingIds = new Set(varying.nodes.map((n) => n.nodeId));
 
@@ -61,8 +80,10 @@ export function buildStrings(input: SimcInput): { strings: string[]; collapsed: 
     if (!varyingIds.has(Number(id))) fixed[id] = points;
   }
 
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const strings: string[] = [];
+  const points: Points[] = [];
+  const lineOf: number[] = [];
   for (const build of builds) {
     const text = encode({
       spec,
@@ -71,18 +92,22 @@ export function buildStrings(input: SimcInput): { strings: string[]; collapsed: 
       choices,
       heroSubTreeId,
     });
-    if (seen.has(text)) continue;
-    seen.add(text);
+    const already = seen.get(text);
+    if (already !== undefined) {
+      lineOf.push(already);
+      continue;
+    }
     strings.push(text);
+    points.push(build);
+    seen.set(text, strings.length);
+    lineOf.push(strings.length);
   }
-  return { strings, collapsed: builds.length - strings.length };
+  return { strings, collapsed: builds.length - strings.length, points, lineOf };
 }
 
 export interface ProfilesetOptions {
   /** Prefixed to each profileset name, so several exports can share one file. */
   label?: string;
-  /** Include a minimal runnable profile above the profilesets. */
-  withProfile?: boolean;
   className: string;
   specName: string;
   /** What the enumeration was, for the comment at the top. */
@@ -94,30 +119,33 @@ export interface ProfilesetOptions {
  *
  * Names are zero-padded so they sort in the order they were enumerated, which is the order
  * the results browser shows them in -- otherwise "build 10" lands between 1 and 2 in SimC's
- * report and the two views stop agreeing.
+ * report and the two views stop agreeing. It is also what lets the report be read back:
+ * `ttm_07` is line 7 whatever order the results come in, and they do come back unordered.
+ *
+ * There is no "minimal profile" option any more. There was one, and it did not run: a
+ * character with no weapon fails initialisation outright, and even past that, talents simmed
+ * on a naked level-80 body produce a number that means nothing. SimulationCraft ships a
+ * sample profile per specialisation, which is a real character -- so the file says to use
+ * one rather than pretending to be one.
  */
 export function profilesets(strings: string[], options: ProfilesetOptions): string {
-  const { label = "ttm", withProfile = false, className, specName, note } = options;
+  const { label = "ttm", className, specName, note } = options;
   const width = String(strings.length).length;
   const lines: string[] = [];
 
   lines.push(`# ${strings.length} talent builds from WoW Talent Tree Manager`);
-  lines.push(`# ${className} — ${specName}`);
+  lines.push(`# ${className} - ${specName}`);
   if (note) lines.push(`# ${note}`);
   lines.push("#");
   lines.push("# Paste below your own profile: these lines change nothing but the talents,");
   lines.push("# so the gear, rotation and fight length stay yours.");
+  lines.push("#");
+  lines.push("# No profile of your own? SimulationCraft ships one per specialisation. From");
+  lines.push("# the folder simc runs in:");
+  lines.push(`#   simc profiles/<latest>/..._${className.replace(/ /g, "_")}_${specName.replace(/ /g, "_")}.simc this-file.simc`);
+  lines.push("#");
+  lines.push("# Then read the report back here: add json2=report.json to that command.");
   lines.push("");
-
-  if (withProfile) {
-    // Enough to run, and no more. Anything else here would be a guess about a character
-    // this tool has never seen.
-    lines.push(`${token(className)}="TTM_${token(specName)}"`);
-    lines.push("level=80");
-    lines.push(`spec=${token(specName)}`);
-    lines.push(`talents=${strings[0] ?? ""}`);
-    lines.push("");
-  }
 
   strings.forEach((text, i) => {
     lines.push(`profileset."${label}_${String(i + 1).padStart(width, "0")}"+=talents=${text}`);

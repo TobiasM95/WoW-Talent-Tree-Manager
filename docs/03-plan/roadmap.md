@@ -202,12 +202,21 @@ trees, solve it under constraints, and share a link — without signing in.
 Only now, once the foundation holds:
 
 - Tree Editor (custom/homebrew trees) — the native app's authoring surface.
-- Sim Analysis: **the export is done** — an enumerated result set becomes SimulationCraft
-  profilesets, one line per build, each a whole character rather than one tree. Feasible
-  precisely because the counting gate bounds the set to something simmable. What remains is
-  the return leg: reading SimC's JSON report back and ranking the builds by the number it
-  produced (open question Q9). **Per-talent statistics over the set are already done** and did
-  not need SimC at all — they are a property of the enumeration, not of the sim.
+- Sim Analysis: **done, both legs.** An enumerated result set becomes SimulationCraft
+  profilesets, one line per build, each a whole character rather than one tree -- feasible
+  precisely because the counting gate bounds the set to something simmable. SimC's JSON
+  report then reads back in the browser, ranks the builds, and attributes a value to each
+  talent: the mean of the builds taking it against the mean of those that do not. That last
+  number is the one the whole arc exists to produce, and it answers Q9 -- a sim ranks whole
+  characters, so a single talent's worth only appears across a controlled set of builds,
+  which is exactly what an enumeration under constraints is.
+  Built against a report SimulationCraft actually wrote rather than against a reading of its
+  schema, and `test:round` re-runs the entire loop -- export, sim, import -- wherever the
+  SimC container is available. The UI states both limits beside the numbers: differences
+  smaller than the sim's own error bar are ties rather than an order, and talents the tree
+  never separates share a score.
+  **Per-talent frequency statistics** are a separate thing and did not need SimC at all --
+  they are a property of the enumeration, not of the sim.
 - Classic support (open question Q3).
 - Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.
 - Engine improvements, which are far easier once it is under test in CI with a stable contract.

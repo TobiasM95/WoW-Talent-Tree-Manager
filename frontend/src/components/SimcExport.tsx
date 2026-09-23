@@ -15,6 +15,10 @@ import { buildStrings, profilesets } from "../lib/simc";
  * Each line is a whole character. The solver varies one tree at a time, so every build is the
  * enumerated tree's points combined with whatever the other two hold, which is why a base
  * loadout has to exist first.
+ *
+ * The export also hands its mapping upward, because the round trip is not finished here.
+ * A report comes back naming `ttm_07`, and turning that into "these talents scored this"
+ * needs to know which build line 7 was.
  */
 
 export interface SimcExportProps {
@@ -27,6 +31,19 @@ export interface SimcExportProps {
   base: Points;
   choices: Record<string, number>;
   heroSubTreeId: number | null;
+  /** Publishes what was exported, so a report can be read back against it. */
+  onExport?: (exported: Exported | null) => void;
+}
+
+export interface Exported {
+  /** Profileset name prefix, which is how a report row finds its line. */
+  label: string;
+  /** The varying tree's points behind each line, indexed from 0 for line 1. */
+  points: Points[];
+  /** The 1-based export line each browsed build sits on, parallel to the job's results. */
+  lineOf: number[];
+  /** Which job produced them, so a stale export is noticed rather than mismatched. */
+  jobId: string;
 }
 
 /*
@@ -47,9 +64,9 @@ export function SimcExport({
   base,
   choices,
   heroSubTreeId,
+  onExport,
 }: SimcExportProps) {
   const [count, setCount] = useState<number>(SIZES[1]);
-  const [withProfile, setWithProfile] = useState(false);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ text: string; lines: number; collapsed: number } | null>(
     null,
@@ -72,7 +89,7 @@ export function SimcExport({
         builds.push(...page.builds);
         if (page.builds.length === 0) break;
       }
-      const { strings, collapsed } = buildStrings({
+      const { strings, collapsed, points, lineOf } = buildStrings({
         spec,
         trees,
         varying,
@@ -84,18 +101,18 @@ export function SimcExport({
       const text = profilesets(strings, {
         className: spec.className,
         specName: spec.specName ?? "",
-        withProfile,
         note: `${varying.kind} tree at ${job.points} points, ${
           (job.resultCount ?? 0).toLocaleString("en-US")
         } matching selections`,
       });
       setResult({ text, lines: strings.length, collapsed });
+      onExport?.({ label: "ttm", points, lineOf, jobId: job.id });
     } catch (exc) {
       setError(exc instanceof Error ? exc.message : String(exc));
     } finally {
       setBusy(false);
     }
-  }, [job, spec, trees, varying, base, choices, heroSubTreeId, available, withProfile]);
+  }, [job, spec, trees, varying, base, choices, heroSubTreeId, available, onExport]);
 
   const download = useCallback(() => {
     if (!result) return;
@@ -145,18 +162,6 @@ export function SimcExport({
                 {size.toLocaleString("en-US")}
               </button>
             ))}
-            <label className="ml-auto flex items-center gap-1 text-[11px] text-ink-faint">
-              <input
-                type="checkbox"
-                checked={withProfile}
-                onChange={(event) => {
-                  setWithProfile(event.target.checked);
-                  setResult(null);
-                }}
-                style={{ accentColor: "var(--star)" }}
-              />
-              runnable
-            </label>
           </div>
 
           <button

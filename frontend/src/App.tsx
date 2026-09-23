@@ -27,7 +27,10 @@ import { ConstraintLegend, ShapeKey } from "./components/Legend";
 import { LoadoutString } from "./components/LoadoutString";
 import { ResultsBrowser } from "./components/ResultsBrowser";
 import { ShareButton } from "./components/ShareButton";
-import { SimcExport } from "./components/SimcExport";
+import { SimcExport, type Exported } from "./components/SimcExport";
+import { SimcImport } from "./components/SimcImport";
+import { TalentImpactPanel } from "./components/TalentImpact";
+import type { Ranking } from "./lib/simcReport";
 import { SpecRail } from "./components/SpecRail";
 import { StatsPanel } from "./components/StatsPanel";
 import { TreePane } from "./components/TreePane";
@@ -65,6 +68,16 @@ export default function App() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [stats, setStats] = useState<JobStats | null>(null);
   const [showStats, setShowStats] = useState(true);
+  /*
+    The sim round trip. `exported` is what was handed to SimulationCraft and `ranking` is
+    what came back, and both belong to one job: a report read against a different
+    enumeration would line up by name and mean nothing, so they are dropped together
+    whenever the job changes.
+  */
+  const [exported, setExported] = useState<Exported | null>(null);
+  const [ranking, setRanking] = useState<Ranking | null>(null);
+  /** Per-node sim impact painted on the canvas, published by the talent-value panel. */
+  const [impactHeat, setImpactHeat] = useState<Map<number, number> | null>(null);
   const [pick, setPick] = useState<{ index: number; build: Record<string, number> | null }>({
     index: 0,
     build: null,
@@ -227,6 +240,8 @@ export default function App() {
       setActiveKey(key);
       setJob(null);
       setStats(null);
+      setExported(null);
+      setRanking(null);
       setPick({ index: 0, build: null });
       c.adopt(saved.current.get(key) ?? EMPTY);
     },
@@ -430,6 +445,8 @@ export default function App() {
   const onSolve = useCallback(() => {
     if (!active) return;
     setStats(null);
+    setExported(null);
+    setRanking(null);
     setPick({ index: 0, build: null });
     void submitSolve(active.key, c.payload)
       .then(setJob)
@@ -501,9 +518,11 @@ export default function App() {
     [mode, spent, capOf],
   );
   const shares = useMemo(() => {
-    if (!stats || !showStats || shownBuild) return null;
+    // One scale on the canvas at a time. Frequency and sim impact are different questions
+    // with different colour meanings, and a tree wearing both is a tree saying neither.
+    if (!stats || !showStats || shownBuild || impactHeat) return null;
     return new Map(stats.talents.map((t) => [t.nodeId, t.share]));
-  }, [stats, showStats, shownBuild]);
+  }, [stats, showStats, shownBuild, impactHeat]);
 
   // Keep the address bar current so it can be copied at any moment. Replaced rather than
   // pushed: painting constraints is a dozen clicks and nobody calls that navigation.
@@ -622,6 +641,7 @@ export default function App() {
           sides={mode === "build" ? buildSides : c.sides}
           stale={counting}
           shares={shares}
+          impacts={impactHeat}
           onNode={
             mode === "build"
               ? (node, refund) =>
@@ -647,6 +667,7 @@ export default function App() {
           sides={mode === "build" ? buildSides : c.sides}
           stale={counting}
           shares={shares}
+          impacts={impactHeat}
           onNode={
             mode === "build"
               ? (node, refund) =>
@@ -672,6 +693,7 @@ export default function App() {
           sides={mode === "build" ? buildSides : c.sides}
           stale={counting}
           shares={shares}
+          impacts={impactHeat}
           onNode={
             mode === "build"
               ? (node, refund) => hero && onSpend(hero.key, hero, node, refund)
@@ -871,7 +893,15 @@ export default function App() {
               somebody is building by hand put generated builds in a mode that generates
               nothing, which is why the Build tab appeared to have results from nowhere. */}
           {explore && job && (
-            <JobPanel job={job} onCancel={onCancel} onDismiss={() => setJob(null)} />
+            <JobPanel
+              job={job}
+              onCancel={onCancel}
+              onDismiss={() => {
+                setJob(null);
+                setExported(null);
+                setRanking(null);
+              }}
+            />
           )}
 
           {explore && job && active && (job.state === "done" || job.state === "capped") && (
@@ -891,6 +921,8 @@ export default function App() {
               onSelect={onPick}
               onTake={pick.build ? takeIntoLoadout : null}
               takeLabel={`Use as my ${paneName(activeKey, group, hero)} tree`}
+              ranking={ranking}
+              lineOf={exported?.lineOf ?? null}
             />
           )}
 
@@ -906,6 +938,21 @@ export default function App() {
               base={Object.assign({}, ...Object.values(spent))}
               choices={picks}
               heroSubTreeId={hero?.subTreeId ?? null}
+              onExport={setExported}
+            />
+          )}
+
+          {/* The return leg: SimC's own numbers, put back on the builds they came from. */}
+          {explore && job && (
+            <SimcImport exported={exported} ranking={ranking} onRanking={setRanking} />
+          )}
+
+          {explore && ranking && exported && active && (
+            <TalentImpactPanel
+              ranking={ranking}
+              exported={exported}
+              tree={active}
+              onHighlight={setImpactHeat}
             />
           )}
 

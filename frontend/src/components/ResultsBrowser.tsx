@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getResults, type Job, type ResultPage } from "../lib/api";
+import type { Ranking } from "../lib/simcReport";
 
 /**
  * Stepping through the builds an enumeration produced.
@@ -25,6 +26,9 @@ export interface ResultsBrowserProps {
   /** Adopt the shown build into the hand-built loadout. Null while none is in hand. */
   onTake?: (() => void) | null;
   takeLabel?: string;
+  /** A sim report read back, if there is one, and the export line each build sits on. */
+  ranking?: Ranking | null;
+  lineOf?: number[] | null;
 }
 
 const PAGE = 100;
@@ -36,6 +40,8 @@ export function ResultsBrowser({
   onSelect,
   onTake = null,
   takeLabel = "Use this build",
+  ranking = null,
+  lineOf = null,
 }: ResultsBrowserProps) {
   const [page, setPage] = useState<ResultPage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +66,20 @@ export function ResultsBrowser({
   }, [job.id, pageStart]);
 
   const total = page?.total ?? job.resultCount ?? 0;
+
+  /*
+    What the sim said about *this* build.
+
+    Via the export line rather than the build index, because the two are not the same number:
+    identical talent strings collapse onto one profileset, so build 40 and build 51 can share
+    a score. Looking it up by index would quietly show one build the other's result.
+  */
+  const scored = ranking && lineOf ? (ranking.byLine.get(lineOf[index] ?? -1) ?? null) : null;
+  const jumpToBest = useCallback(() => {
+    if (!ranking || !lineOf) return;
+    const at = lineOf.indexOf(ranking.best.line);
+    if (at >= 0) onSelect(at, null);
+  }, [ranking, lineOf, onSelect]);
   const build = page?.builds[index - pageStart] ?? null;
 
   // Report the selected build upward whenever it resolves, including after a page load.
@@ -160,6 +180,33 @@ export function ResultsBrowser({
                 )} points — shown on the tree.`
               : "Loading this build…"}
           </p>
+
+          {scored && ranking && (
+            <div className="mt-2 flex items-baseline justify-between gap-2 text-[12px]">
+              <span className="num text-ink">
+                {Math.round(scored.mean).toLocaleString("en-US")}
+                <span className="text-ink-faint">
+                  {" "}
+                  ±{Math.round(scored.error).toLocaleString("en-US")}
+                </span>
+              </span>
+              <span className="num text-[11px] text-ink-faint">
+                #{scored.rank + 1} of {ranking.builds.length}
+                {scored.rank > 0 && ` · ${(scored.behind * 100).toFixed(1)}%`}
+              </span>
+            </div>
+          )}
+
+          {ranking && lineOf && (
+            <button
+              type="button"
+              className="btn mt-1.5 w-full"
+              onClick={jumpToBest}
+              disabled={scored?.rank === 0}
+            >
+              {scored?.rank === 0 ? "This is the best build" : "Go to the best build"}
+            </button>
+          )}
 
           <button
             type="button"

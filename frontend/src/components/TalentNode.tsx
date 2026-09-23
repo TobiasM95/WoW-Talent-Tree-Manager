@@ -42,6 +42,12 @@ export interface TalentNodeProps {
    */
   share?: number;
   /**
+   * What the sim said this talent is worth, from -1 to 1, scaled to the widest swing in the
+   * set. Signed, so it needs a diverging treatment rather than the one-ended heat `share`
+   * uses: "this talent costs you damage" is a different statement from "few builds take it".
+   */
+  impact?: number;
+  /**
    * Build mode: `spent` is what this node holds, and `reachable` says whether another point
    * could go in right now. Out-of-reach talents recede rather than disappear -- a player is
    * choosing *where to go next*, and a tree with the unreachable parts hidden cannot answer
@@ -134,6 +140,7 @@ export const TalentNode = memo(function TalentNode({
   stale,
   spent,
   share,
+  impact,
   reachable,
   editing,
   onActivate,
@@ -153,6 +160,7 @@ export const TalentNode = memo(function TalentNode({
       data-share={
         share === undefined ? undefined : share >= 0.999 ? "all" : share > 0 ? "some" : "none"
       }
+      data-impact={impact === undefined ? undefined : impact >= 0 ? "good" : "bad"}
       data-reachable={reachable === undefined ? undefined : reachable ? "yes" : "no"}
       data-editing={editing ? "" : undefined}
       data-side={side ?? undefined}
@@ -161,6 +169,7 @@ export const TalentNode = memo(function TalentNode({
         // The share rides along as a custom property so the stylesheet can interpolate the
         // heat, rather than this component deciding what a frequency looks like.
         ...(share === undefined ? {} : { "--share": String(share) }),
+        ...(impact === undefined ? {} : { "--impact": String(Math.abs(impact)) }),
         left: x,
         top: y,
         width: SIZE,

@@ -24,6 +24,7 @@ export interface TreePaneProps {
   stale?: boolean;
   build?: Record<string, number> | null;
   shares?: Map<number, number> | null;
+  impacts?: Map<number, number> | null;
   reachable?: Set<number> | null;
   editing?: boolean;
   /** Points spent by hand in this tree, shown beside the heading in build mode. */
@@ -49,6 +50,7 @@ export function TreePane({
   stale,
   build,
   shares,
+  impacts,
   reachable,
   editing,
   budget,
@@ -101,6 +103,7 @@ export function TreePane({
             stale={active ? stale : false}
             build={build}
             shares={active ? shares : null}
+            impacts={active ? impacts : null}
             reachable={reachable}
             editing={editing}
             // In build mode every tree is editable, because a loadout spans all three.

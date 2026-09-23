@@ -255,3 +255,20 @@ rebuilding on SimC's JSON report.
 Recommendation: defer past the first release, then reassess against actual user demand. Flagged
 because it is a large piece of the native app's surface that the parity checklist should not
 silently assume.
+
+**Answered: yes, and it turned out to be the point rather than a side feature.**
+
+Both legs are built. The export hands SimulationCraft one profileset per enumerated build;
+the report reads back in the browser and is put on the builds it came from. What makes it
+worth having is the third thing, which the native app never had: with a *set* of builds that
+differ in a controlled way, the value of a single talent falls out of the ranking as the mean
+of the builds taking it against the mean of those that do not. SimC cannot report that on its
+own -- it ranks whole characters -- and no other tool produces the set to ask it over.
+
+That also settles the shape of the revival. Counting, filtering and enumerating are not three
+features; they are the machinery that makes this one question answerable, which is why the
+sim work landed as soon as the arc before it was complete rather than being deferred.
+
+The rebuild is on SimC's JSON report as recommended, verified against a report SimulationCraft
+actually wrote rather than against its schema -- and the schema file SimC ships is a stub, so
+that was the only way to know.

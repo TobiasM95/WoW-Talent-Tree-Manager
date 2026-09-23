@@ -11,7 +11,14 @@
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 
-const url = process.argv[2] ?? "http://localhost:5173";
+/*
+  Defaults to the built container rather than the dev server.
+
+  `npm run test:all` used to fail here whenever nothing happened to be running on 5173,
+  which says nothing about the app. 8081 is what the compose file serves and what every
+  verification in this repo runs against; pass a URL to point somewhere else.
+*/
+const url = process.argv[2] ?? "http://localhost:8081";
 const outDir = process.argv[3] ?? "shots";
 await mkdir(outDir, { recursive: true });
 

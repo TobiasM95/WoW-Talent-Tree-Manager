@@ -50,7 +50,9 @@ npm run test:simc                             # SimulationCraft export
 npm test                                      # drives the real interactions
 npm run test:bugs                             # shapes, constraint colours, mode ownership
 npm run test:bridge                           # an enumerated build taken into the loadout
-npm run test:all                              # all eight
+npm run test:report                           # the SimC report reader, against a real report
+npm run test:round                            # export -> SimulationCraft -> import, for real
+npm run test:all                              # all ten
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -137,8 +139,11 @@ game data the tool exists to display; everything around them is ours.
 | `lib/loadout.ts` | Spending points by hand, under the solver's rules. |
 | `lib/loadoutString.ts` | Blizzard's talent string, in and out. |
 | `lib/simc.ts` | An enumerated result set as SimulationCraft profilesets. |
+| `lib/simcReport.ts` | SimulationCraft's JSON report, ranked and attributed to talents. |
 | `components/LoadoutString.tsx` | Paste a build in, copy one out. |
 | `components/SimcExport.tsx` | Hand the matching builds to the sim. |
+| `components/SimcImport.tsx` | Read the sim's report back and rank them. |
+| `components/TalentImpact.tsx` | What each talent was worth across the simmed set. |
 | `lib/classes.ts` | Class colours, one value per theme. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
@@ -230,7 +235,35 @@ chosen — and simming the same character twice is wasted time.
 50/200/1000 is what a person will actually wait for, since SimulationCraft runs each
 profileset as a full simulation.
 
-**The talent string is verified against one the game exported.** A Feral Druid build --
+**The talent string is verified against one the game exported.**
+
+**The return leg is done.** SimulationCraft writes a JSON report with `json2=report.json`;
+drop that file on the Sim results panel and every profileset lands back on the build it came
+from. The file is parsed in the browser and never uploaded — a sim report describes somebody's
+character and gear, which is not this tool's business.
+
+What comes out of it:
+
+- **A ranking.** Best, worst, how far behind, and each build's own number while stepping
+  through them. One click jumps to the best.
+- **What each talent was worth** — the mean of the builds taking it against the mean of those
+  that do not, painted on the tree as a diverging scale and listed in a panel. This is the
+  number the whole arc exists to produce: a sim ranks whole characters, so a single talent's
+  value only appears once a *set* of builds that differ in a controlled way has been simmed,
+  and producing exactly that set is what counting, filtering and enumerating were for.
+
+**Both limits are stated in the UI, next to the numbers.** The sim reports a mean with an
+error bar, and across a set of similar builds the intervals overlap — in the run this was
+built against, the 67-build set spans 5.9% while each mean carries ±0.8%, so the top build is
+ahead of the field and builds four and five are a tie. And the comparison is observational:
+talents the tree never separates share a score, because nothing in the data can tell them
+apart.
+
+**The reader was built against a report SimulationCraft actually wrote.** Reading its source
+(`report_json.cpp`) gave the key names; running it gave the rest — that results come back
+unordered, that a zero-mean profileset is dropped rather than reported, and that the metric is
+a sentence rather than a token. `fixtures/simc-report.json` is that run, and `test:round`
+re-runs the whole loop through Docker when the SimC image is present. A Feral Druid build --
 full spec tree, half-spent class tree, partly-spent hero tree -- decodes and re-encodes byte
 for byte. That single string caught three faults a round trip never could, because encode and
 decode shared the mistake each time:
