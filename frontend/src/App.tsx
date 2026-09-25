@@ -117,8 +117,6 @@ export default function App() {
   const [game, setGame] = useState<Game>(STARTING_GAME);
   const forever = game === "forever";
   const custom = game === "custom";
-  /** Forever and custom trees are tabs: a set of trees taking the three panes in order. */
-  const tabbed = game !== "retail";
 
   /*
     Custom projects: the player's own trees, designed in the editor. The list and every draft
@@ -148,6 +146,13 @@ export default function App() {
   }, []);
   const [health, setHealth] = useState<Health | null>(null);
   const [trees, setTrees] = useState<TreeSummary[]>([]);
+  /*
+    Forever and classic custom projects are tabs: a set of trees taking the three panes in
+    order. A retail-style custom project is served as retail's own kinds, so it plans exactly
+    as a real spec does: pick a spec, get its class, spec and hero trees.
+  */
+  const customRetail = custom && trees.some((t) => t.kind !== "tab");
+  const tabbed = forever || (custom && !customRetail);
   const [className, setClassName] = useState<string | null>(null);
   const [specName, setSpecName] = useState<string | null>(null);
   const [heroKey, setHeroKey] = useState<string | null>(SHARED.hero);
@@ -188,6 +193,14 @@ export default function App() {
         .filter((t) => t.kind === "tab" && (custom || t.className === className))
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       return { class: tabs[0] ?? null, spec: tabs[1] ?? null, heroes: tabs[2] ? [tabs[2]] : [] };
+    }
+    if (custom) {
+      // One class tree for every spec; a hero tree names the specs that may take it.
+      return {
+        class: trees.find((t) => t.kind === "class") ?? null,
+        spec: trees.find((t) => t.kind === "spec" && t.specName === specName) ?? null,
+        heroes: trees.filter((t) => t.kind === "hero" && specName !== null && (t.heroSpecs ?? []).includes(specName)),
+      };
     }
     const mine = trees.filter((t) => t.className === className && t.specName === specName);
     return {
@@ -280,7 +293,11 @@ export default function App() {
         if (cancelled) return;
         setTrees(saved.trees);
         setClassName(saved.name);
-        setSpecName(null);
+        // A retail-style project opens on the spec its link names, or its first.
+        const specs = saved.trees.filter((t) => t.kind === "spec");
+        setSpecName(
+          (specs.find((t) => t.key === SHARED.spec) ?? specs[0])?.specName ?? null,
+        );
       })
       .catch((error: unknown) => {
         if (!cancelled) setNote(`Could not load the saved project: ${error instanceof Error ? error.message : String(error)}`);
@@ -462,8 +479,8 @@ export default function App() {
     [allowance],
   );
   const labelOf = useCallback(
-    (role: Role, summary: TreeSummary) => (tabbed ? summary.name : LABEL[role]),
-    [tabbed],
+    (role: Role, summary: TreeSummary) => (tabbed || custom ? summary.name : LABEL[role]),
+    [tabbed, custom],
   );
 
   // --- per-tree counts ----------------------------------------------------
@@ -729,6 +746,7 @@ export default function App() {
     return map;
   }, [members, loaded, labelOf]);
   const allTrees = wanted.map((k) => loaded[k]).filter(Boolean) as TreeDetail[];
+  const copyable = [group.class, group.spec, ...group.heroes].filter(Boolean) as TreeSummary[];
   const specTree = group.spec ? (loaded[group.spec.key] ?? null) : null;
 
   // --- the link -----------------------------------------------------------
@@ -830,7 +848,7 @@ export default function App() {
         key={summary.key}
         tree={tree}
         title={labelOf(role, summary)}
-        subtitle={tabbed ? null : role === "class" ? className : role === "spec" ? specName : null}
+        subtitle={tabbed || custom ? null : role === "class" ? className : role === "spec" ? specName : null}
         mode={w.mode}
         onMode={(m) => onMode(summary.key, m)}
         points={{ value: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, cap), cap, shared: forever }}
@@ -899,6 +917,12 @@ export default function App() {
           <ProjectRail
             projects={projects}
             current={projectId}
+            specs={customRetail ? trees.filter((t) => t.kind === "spec").map((t) => t.specName ?? t.name) : []}
+            spec={specName}
+            onSpec={(name) => {
+              setSpecName(name);
+              setStep("narrow");
+            }}
             onSelect={(id) => {
               setProjectId(id);
               setPicking(false);
@@ -969,8 +993,8 @@ export default function App() {
       {step === "design" && custom && picking && (
         <div className="min-h-0 flex-1 overflow-auto p-2">
           <TemplatePicker
-            room={3}
-            purpose="project"
+            target={{ kind: "project" }}
+            room={0}
             onPick={(design) => {
               addProject(design.name === "New project" ? { ...design, name: `Project ${projects.length + 1}` } : design);
               setPicking(false);
@@ -1083,7 +1107,7 @@ export default function App() {
               </p>
             )}
 
-            {!tabbed && group.spec && (
+            {!tabbed && !custom && group.spec && (
               <PopularPanel
                 specKey={group.spec.key}
                 heroName={(key) => trees.find((t) => t.key === key)?.name ?? "No hero tree"}
@@ -1105,7 +1129,7 @@ export default function App() {
               counts={paintCounts}
             />
 
-            {!tabbed && (
+            {!tabbed && !custom && (
             <LoadoutString
               spec={specTree}
               trees={allTrees}
@@ -1124,7 +1148,7 @@ export default function App() {
               onOpen={openSaved}
             />
 
-            {!custom && roles.every(([, s]) => loaded[s.key]) && (
+            {!custom && copyable.every((s) => loaded[s.key]) && (
               <button
                 type="button"
                 className="btn"
@@ -1132,7 +1156,7 @@ export default function App() {
                 onClick={() => {
                   const copy = fromTrees(
                     forever ? `${className} (copy)` : `${specName} ${className} (copy)`,
-                    roles.map(([, s]) => loaded[s.key]!),
+                    copyable.map((s) => loaded[s.key]!),
                     pool,
                   );
                   addProject(copy);

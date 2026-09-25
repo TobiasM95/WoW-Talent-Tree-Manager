@@ -188,6 +188,14 @@ design itself is stored beside the derived trees and is the source of truth (mig
 first version rebuilt it from the trees, which made the derivation part of the identity, so an
 opened project saved back as a different one.
 
+A project has one `style`. **Classic** (the default, and every project made before styles
+existed): one to three tabs, `pointsPerRow` gates, optionally a `sharedPointCap`. **Retail**:
+trees with a `role` -- one `class` first, then one to four `spec`, then up to six `hero`, each
+hero naming the specs that take it (`specs`, by place) -- served as retail's own kinds with a
+`specName` or `heroSpecs`, so the planner takes a custom project exactly as it takes a real spec.
+Retail takes no pool and no per-row gates, classic no barriers; mixing is refused (migration 012
+lets a project hold the eleven trees retail's shape allows).
+
 A tree's gates come from, in order: a talent's own `pointsRequired`; else the highest
 **barrier** (`barriers: [{row, points}]`, retail's lines, which must rise going down) at or
 above its row; and `pointsPerRow` times its row, whichever is higher. A talent marked

@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { iconUrl, request } from "../lib/api";
 import {
   addNode,
-  blankTree,
   deleteNode,
   gateOf,
+  insertTrees,
   LIMITS,
   moveNode,
   problems,
+  removeTree,
   renameNode,
+  roomFor,
   rowGate,
   setBarrier,
   setKind,
@@ -19,8 +21,11 @@ import {
   type DesignEntry,
   type DesignNode,
   type DesignTree,
+  type TreeRole,
 } from "../lib/design";
-import { appendTrees, TemplatePicker } from "./TemplatePicker";
+import { TemplatePicker } from "./TemplatePicker";
+
+const ROLE_LABEL: Record<TreeRole, string> = { class: "class", spec: "spec", hero: "hero" };
 
 /**
  * The tree editor: design talent trees of your own, then plan and count them like any other.
@@ -64,8 +69,8 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
   const [source, setSource] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  // Choosing what an added tree starts from.
-  const [adding, setAdding] = useState(false);
+  // Choosing what an added tree starts from: a classic tab, or a retail spec or hero tree.
+  const [adding, setAdding] = useState<TreeRole | "tab" | null>(null);
   const [result, setResult] = useState<{ ok: boolean; message: string; warnings?: string[] } | null>(null);
   const past = useRef<Design[]>([]);
   const future = useRef<Design[]>([]);
@@ -131,7 +136,8 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
   }, [undo, redo, commit, draft, at, selected]);
 
   // Retail trees are wide and gated by barriers; classic ones are four columns gated by row.
-  const retail = styleOf(tree) === "retail";
+  const retail = styleOf(draft) === "retail";
+  const specNames = draft.trees.filter((t) => t.role === "spec").map((t) => t.name);
   const rows = Math.min(LIMITS.rows + 1, Math.max(retail ? 10 : 8, ...tree.nodes.map((n) => n.row + 3)));
   const cols = Math.min(LIMITS.cols + 1, Math.max(retail ? 9 : 4, ...tree.nodes.map((n) => n.col + 2)));
   const cellOf = (row: number, col: number) => tree.nodes.find((n) => n.row === row && n.col === col);
@@ -183,13 +189,15 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
     if (points === undefined) setMessage(BARRIER_RULE);
     else barrierAt(row, points);
   };
-  const setStyle = (style: "retail" | "classic") =>
-    setTree((t) => {
-      const blank = blankTree(t.name, style);
-      return style === "retail"
-        ? { ...t, pointsPerRow: null, barriers: t.barriers?.length ? t.barriers : blank.barriers }
-        : { ...t, pointsPerRow: blank.pointsPerRow, barriers: [] };
-    });
+  const removable = retail
+    ? tree.role === "hero" || (tree.role === "spec" && specNames.length > 1)
+    : draft.trees.length > 1;
+  const adders: [TreeRole | "tab", string][] = retail
+    ? [
+        ["spec", "+ spec"],
+        ["hero", "+ hero"],
+      ]
+    : [["tab", "+ tree"]];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 md:p-2.5">
@@ -207,6 +215,13 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
           />
         </label>
 
+        <span className="chip" data-style={retail ? "retail" : "classic"} title={retail
+          ? "A class tree, one to four specs and their hero trees, each with its own budget, gated by barriers"
+          : "One to three tabs gated by row, like WoW Forever"}>
+          {retail ? "Retail style" : "Classic style"}
+        </span>
+
+        {!retail && (
         <label className="flex items-center gap-1.5 text-[12px] text-ink-soft" title="All trees draw on one pool, like WoW Forever's 51">
           <input
             type="checkbox"
@@ -226,6 +241,7 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
             />
           )}
         </label>
+        )}
 
         <div className="seg" role="tablist" aria-label="Trees">
           {draft.trees.map((t, i) => (
@@ -241,21 +257,27 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
                 setSource(null);
               }}
             >
+              {t.role && t.role !== "class" && (
+                <span className="mr-1 text-[9.5px] uppercase tracking-wider text-ink-faint">{ROLE_LABEL[t.role]}</span>
+              )}
               {t.name || `Tree ${i + 1}`}
             </button>
           ))}
-          {draft.trees.length < LIMITS.trees && (
-            <button
-              type="button"
-              aria-pressed={adding}
-              onClick={() => {
-                setAdding(true);
-                setSelected(null);
-              }}
-              title="Add a tree to the project"
-            >
-              + tree
-            </button>
+          {adders.map(([role, label]) =>
+            roomFor(draft, role === "tab" ? undefined : role) > 0 ? (
+              <button
+                key={role}
+                type="button"
+                aria-pressed={adding === role}
+                onClick={() => {
+                  setAdding(role);
+                  setSelected(null);
+                }}
+                title={role === "tab" ? "Add a tree to the project" : `Add a ${role} tree to the project`}
+              >
+                {label}
+              </button>
+            ) : null,
           )}
         </div>
 
@@ -287,16 +309,19 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
       {adding ? (
         <div className="min-h-0 flex-1 overflow-auto">
           <TemplatePicker
-            room={LIMITS.trees - draft.trees.length}
-            purpose="tree"
+            target={{ kind: "tree", style: retail ? "retail" : "classic", role: adding === "tab" ? undefined : adding }}
+            room={roomFor(draft, adding === "tab" ? undefined : adding)}
             onPick={(picked) => {
+              // A blank tree is named for its place: the next spec, hero tree or tab.
               const blank = picked.trees.length === 1 && picked.trees[0]!.nodes.length === 0;
-              const extra = blank ? [{ ...picked.trees[0]!, name: `Tree ${draft.trees.length + 1}` }] : picked.trees;
-              commit(appendTrees(draft, extra));
-              setAt(draft.trees.length);
-              setAdding(false);
+              const same = draft.trees.filter((t) => (t.role ?? "tab") === adding).length;
+              const named = adding === "spec" ? `Spec ${same + 1}` : adding === "hero" ? `Hero ${same + 1}` : `Tree ${same + 1}`;
+              const placed = insertTrees(draft, blank ? [{ ...picked.trees[0]!, name: named }] : picked.trees);
+              commit(placed.design);
+              setAt(placed.at);
+              setAdding(null);
             }}
-            onCancel={() => setAdding(false)}
+            onCancel={() => setAdding(null)}
           />
         </div>
       ) : (
@@ -545,15 +570,30 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
                 }
                 aria-label="Point budget"
               />
-              <span className="text-ink-soft">Gates</span>
-              <div className="seg" role="group" aria-label="Tree style">
-                <button type="button" className="flex-1" aria-pressed={retail} onClick={() => setStyle("retail")} title="Lines between rows, crossed once enough is spent">
-                  Barriers
-                </button>
-                <button type="button" className="flex-1" aria-pressed={!retail} onClick={() => setStyle("classic")} title="Every row opens a fixed number of points after the last">
-                  Per row
-                </button>
-              </div>
+              {tree.role === "hero" && (
+                <>
+                  <span className="text-ink-soft" title="The specs that may take this hero tree">Taken by</span>
+                  <div className="flex flex-wrap gap-x-2.5 gap-y-1" role="group" aria-label="Specs that take this hero tree">
+                    {specNames.map((name, i) => (
+                      <label key={i} className="flex items-center gap-1 text-ink-soft">
+                        <input
+                          type="checkbox"
+                          checked={(tree.specs ?? []).includes(i)}
+                          onChange={(event) =>
+                            setTree((t) => ({
+                              ...t,
+                              specs: event.target.checked
+                                ? [...(t.specs ?? []), i].sort((a, b) => a - b)
+                                : (t.specs ?? []).filter((s) => s !== i),
+                            }))
+                          }
+                        />
+                        {name || `Spec ${i + 1}`}
+                      </label>
+                    ))}
+                  </div>
+                </>
+              )}
               {!retail && (
                 <>
                   <span className="text-ink-soft" title="Points spent in the rows above that open each row">Points per row</span>
@@ -577,12 +617,12 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
                 sets the points, × removes it. A talent can still override its own gate.
               </p>
             )}
-            {draft.trees.length > 1 && (
+            {removable && (
               <button
                 type="button"
                 className="btn mt-3 w-full"
                 onClick={() => {
-                  commit({ ...draft, trees: draft.trees.filter((_, i) => i !== at) });
+                  commit(removeTree(draft, at));
                   setAt(0);
                   setSelected(null);
                 }}

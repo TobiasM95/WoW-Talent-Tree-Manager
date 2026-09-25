@@ -43,15 +43,23 @@ require another), then Plan with it: the same planner, counter and share links a
 games. "Edit a copy in the tree editor" brings any retail or Forever trees in, for the what-if
 nobody else can answer -- and a copy is checked to count *exactly* like its original.
 
-A tree gates one of two ways. **Barriers**, retail's way: dashed lines between rows, crossed
-once enough is spent (a blank one starts with 8 and 20), on a wide grid with free connections --
-+ in the margin adds a barrier, its number edits it, × removes it. **Per row**, the classic way:
-four columns, each row opening a fixed number of points after the last. Any talent can still
-override its own gate, and any can be **granted** -- free and always taken, like retail's
-starting talents. A new project, or a tree added to one, starts blank in either style or as a
-copy of any retail spec's trees or Forever class's tabs; a retail copy brings its gates back as
-barriers and its granted talents as granted, and `test:editor` checks Blood's class and spec
-trees count the same as the originals at every budget tried.
+A project has one style, as the games do. **Retail style**: one class tree, one to four spec
+trees and up to six hero trees, each with its own budget, on wide grids with free connections,
+gated by **barriers** -- dashed lines between rows, crossed once enough is spent (a blank tree
+starts with 8 and 20; + in the margin adds one, its number edits it, × removes it). Each hero
+tree says which specs take it, and planning one works as retail does: pick a spec in the rail,
+get its class, spec and hero trees. **Classic style**: one to three tabs of four columns, each
+row opening a fixed number of points after the last, optionally sharing one pool -- Forever's
+shape. Any talent can still override its own gate, and any can be **granted**: free and always
+taken, like retail's starting talents.
+
+A new project starts blank in either style or as a copy: a Forever class's tabs, or a retail
+class with any of its specs and their hero trees (each hero tree once, taken by the specs it
+had). "+ spec", "+ hero" or "+ tree" add one of a kind to a project, blank or copied, and only
+ever of the project's own style. A retail copy keeps its gates as barriers and its granted
+talents granted; `test:editor` checks a Blood + Frost copy counts exactly like the originals --
+class, both specs and a hero tree, at every budget tried. One class tree serves every spec, so a
+second spec plans on the first spec's class tree, whose granted talents can differ slightly.
 
 Edits that could never be saved are refused as they are made (a requirement that would loop is
 not drawn), and everything is undoable. Drafts and the project list live in this browser; a
@@ -204,7 +212,7 @@ game data the tool exists to display; everything around them is ours.
 | `lib/classes.ts`, `lib/theme.ts` | Class colours per theme; the theme on `<html data-theme>`. |
 | `components/TreePane.tsx` | One tree, with its fixed/open switch, budget and count. |
 | `components/EditorView.tsx` | The tree editor: grid, connections, barriers, inspector, icon picker. |
-| `components/TemplatePicker.tsx` | What a project or tree starts from: blank retail or classic, or a copy of a real tree. |
+| `components/TemplatePicker.tsx` | What a project, or a tree added to one, starts from: blank, or a copy of real trees. |
 | `components/ProjectRail.tsx` | Your custom projects, in place of the class rail. |
 | `components/PoolCard.tsx` | A shared point pool's split, for Forever and pooled projects. |
 | `components/PopularPanel.tsx` | What top players run, and three things to do with it. |

@@ -1,8 +1,9 @@
 """Player-designed trees: validate a project from the editor and build it into tree records.
 
-A project is one to three trees designed together, each with its own point budget or all
-sharing one pool -- so it can be shaped like retail (separate budgets) or like WoW Forever (a
-shared 51). The output is the same tree format both ingests write, so the counting DP, the
+A project has one style, as the games do. **Classic**: one to three tabs gated by row, each
+with its own budget or all sharing one pool, like WoW Forever's 51. **Retail**: one class
+tree, one to four spec trees and up to six hero trees, each with its own budget and gated by
+barriers; a hero tree names the specs that may take it. The output is the same tree format both ingests write, so the counting DP, the
 solver, the worker and the canvas take custom trees without a special case.
 
 **Content-addressed.** A project's id is the hash of its canonical form, so the same design
@@ -28,7 +29,9 @@ from typing import Any
 
 from .transform import SCHEMA_VERSION, TTM_NAMESPACE
 
-MAX_TREES = 3
+MAX_TREES = 3  # classic: vanilla's three tabs
+MAX_SPECS = 4  # retail: Druid's four
+MAX_HEROES = 6
 MAX_NODES = 150
 MAX_RANKS = 9
 MAX_ROW = 30
@@ -92,12 +95,22 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(project, dict):
         raise CustomTreeError("a project is an object with a name and trees")
     name = _text(project.get("name"), "The project", limit=60)
+    style = project.get("style", "classic")
+    if style not in ("classic", "retail"):
+        raise CustomTreeError("a project's style is retail or classic")
+    retail = style == "retail"
     pool = project.get("sharedPointCap")
     if pool is not None:
+        if retail:
+            raise CustomTreeError("a retail-style project gives each tree its own budget, not a shared pool")
         pool = _int(pool, "The shared point pool", 1, MAX_POOL)
     trees_in = project.get("trees")
-    if not isinstance(trees_in, list) or not 1 <= len(trees_in) <= MAX_TREES:
-        raise CustomTreeError(f"a project has one to {MAX_TREES} trees")
+    if not isinstance(trees_in, list):
+        raise CustomTreeError("a project's trees are a list")
+    roles = _roles(trees_in) if retail else []
+    if not retail and not 1 <= len(trees_in) <= MAX_TREES:
+        raise CustomTreeError(f"a classic project has one to {MAX_TREES} trees")
+    spec_count = roles.count("spec")
 
     seen_ids: set[int] = set()
     trees: list[dict[str, Any]] = []
@@ -107,8 +120,12 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
         tree_name = _text(raw_tree.get("name"), f"Tree {t_index + 1}", limit=60)
         per_row = raw_tree.get("pointsPerRow")
         if per_row is not None:
+            if retail:
+                raise CustomTreeError(f"{tree_name}: a retail-style tree gates with barriers, not points per row")
             per_row = _int(per_row, f"{tree_name}: points per row", 0, 50)
         barriers = _barriers(raw_tree.get("barriers"), tree_name)
+        if barriers and not retail:
+            raise CustomTreeError(f"{tree_name}: a classic tree gates by row, not with barriers")
         raw_nodes = raw_tree.get("nodes")
         if not isinstance(raw_nodes, list) or not 1 <= len(raw_nodes) <= MAX_NODES:
             raise CustomTreeError(f"{tree_name} has 1 to {MAX_NODES} talents")
@@ -187,9 +204,46 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
         if barriers:
             # Only when present, so a project saved before barriers existed keeps its id.
             tree["barriers"] = barriers
+        if retail:
+            tree["role"] = roles[t_index]
+            if roles[t_index] == "hero":
+                tree["specs"] = _hero_specs(raw_tree.get("specs"), spec_count, tree_name)
         trees.append(tree)
 
+    if retail:
+        spec_names = [t["name"] for t in trees if t["role"] == "spec"]
+        if len(set(spec_names)) != len(spec_names):
+            raise CustomTreeError("each spec tree needs its own name: the planner picks a spec by it")
+        # Classic stays unmarked, so every project saved before styles existed keeps its id.
+        return {"name": name, "style": "retail", "sharedPointCap": None, "trees": trees}
     return {"name": name, "sharedPointCap": pool, "trees": trees}
+
+
+def _roles(trees_in: list[Any]) -> list[str]:
+    """Retail's shape, in order: one class tree, one to four specs, up to six hero trees."""
+    roles = [t.get("role") if isinstance(t, dict) else None for t in trees_in]
+    if any(r not in ("class", "spec", "hero") for r in roles):
+        raise CustomTreeError("each tree of a retail-style project is a class, spec or hero tree")
+    if roles.count("class") != 1 or roles[0] != "class":
+        raise CustomTreeError("a retail-style project has exactly one class tree, first")
+    specs, heroes = roles.count("spec"), roles.count("hero")
+    if not 1 <= specs <= MAX_SPECS:
+        raise CustomTreeError(f"a retail-style project has one to {MAX_SPECS} spec trees")
+    if heroes > MAX_HEROES:
+        raise CustomTreeError(f"a retail-style project has at most {MAX_HEROES} hero trees")
+    if roles != ["class"] + ["spec"] * specs + ["hero"] * heroes:
+        raise CustomTreeError("a retail-style project lists its class tree, then its specs, then its hero trees")
+    return roles
+
+
+def _hero_specs(raw: Any, spec_count: int, tree_name: str) -> list[int]:
+    """Which specs may take a hero tree, by their place among the spec trees. Default: all."""
+    if raw is None:
+        return list(range(spec_count))
+    if not isinstance(raw, list) or not raw:
+        raise CustomTreeError(f"{tree_name}: a hero tree belongs to at least one spec")
+    out = sorted({_int(s, f"{tree_name}: a spec", 0, spec_count - 1) for s in raw})
+    return out
 
 
 def _barriers(raw: Any, tree_name: str) -> list[dict[str, int]]:
@@ -251,7 +305,12 @@ def build(canon: dict[str, Any]) -> tuple[str, list[dict[str, Any]], list[str]]:
     pid = project_id(canon)
     warnings: list[str] = []
     out: list[dict[str, Any]] = []
+    spec_names = [t["name"] for t in canon["trees"] if t.get("role") == "spec"]
     for order, t in enumerate(canon["trees"]):
+        # Retail-style trees are served as retail's own kinds, so the planner takes a custom
+        # project exactly as it takes a real spec: choose a spec, get its class, spec and
+        # hero trees. A hero tree names the specs that may take it.
+        role = t.get("role")
         children: dict[int, list[int]] = {n["nodeId"]: [] for n in t["nodes"]}
         for n in t["nodes"]:
             for p in n["parents"]:
@@ -305,16 +364,18 @@ def build(canon: dict[str, Any]) -> tuple[str, list[dict[str, Any]], list[str]]:
             "schemaVersion": SCHEMA_VERSION,
             "id": str(uuid.uuid5(TTM_NAMESPACE, key)),
             "key": key,
-            "kind": "tab",
+            "kind": role or "tab",
             "game": "custom",
             "name": t["name"],
             "description": "",
             "classId": None,
             "className": canon["name"],
             "specId": None,
-            "specName": None,
+            "specName": t["name"] if role == "spec" else None,
+            "heroSpecs": [spec_names[i] for i in t["specs"]] if role == "hero" else None,
             "traitTreeId": None,
-            "subTreeId": None,
+            # Hero trees are told apart by sub-tree id throughout; a project's own will do.
+            "subTreeId": order + 1 if role == "hero" else None,
             "gating": "reqPoints",
             "pointCap": t["pointCap"] if canon["sharedPointCap"] is None else min(t["pointCap"], canon["sharedPointCap"]),
             "maxPointsInTree": slots,
@@ -334,11 +395,16 @@ def build(canon: dict[str, Any]) -> tuple[str, list[dict[str, Any]], list[str]]:
 
 def editable(canon_tree_records: list[dict[str, Any]], name: str, pool: int | None) -> dict[str, Any]:
     """A stored project back in the editor's shape, so a saved version can be edited again."""
+    retail = any(t.get("kind", "tab") != "tab" for t in canon_tree_records)
+    spec_names = [t["name"] for t in sorted(canon_tree_records, key=lambda t: t["order"]) if t.get("kind") == "spec"]
     return {
         "name": name,
+        **({"style": "retail"} if retail else {}),
         "sharedPointCap": pool,
         "trees": [
             {
+                **({"role": t["kind"]} if retail else {}),
+                **({"specs": [spec_names.index(s) for s in t.get("heroSpecs") or []]} if t.get("kind") == "hero" else {}),
                 "name": t["name"],
                 "pointCap": t["pointCap"],
                 "pointsPerRow": t.get("pointsPerRow"),

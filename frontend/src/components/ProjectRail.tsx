@@ -13,9 +13,13 @@ export interface ProjectRailProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onRemove: (id: string) => void;
+  /** A saved retail-style project's specs, to plan one at a time as retail does. */
+  specs: string[];
+  spec: string | null;
+  onSpec: (name: string) => void;
 }
 
-export function ProjectRail({ projects, current, onSelect, onNew, onRemove }: ProjectRailProps) {
+export function ProjectRail({ projects, current, onSelect, onNew, onRemove, specs, spec, onSpec }: ProjectRailProps) {
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-0.5 gap-y-0.5" role="group" aria-label="Projects">
       {projects.map((p) => (
@@ -40,6 +44,21 @@ export function ProjectRail({ projects, current, onSelect, onNew, onRemove }: Pr
             >
               ×
             </button>
+          )}
+          {p.id === current && specs.length > 0 && (
+            <span className="ml-1 inline-flex items-center gap-0.5 border-l border-[color-mix(in_srgb,var(--brass)_25%,transparent)] pl-1.5" role="group" aria-label="Specs">
+              {specs.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className="rail-item !text-[11px]"
+                  aria-pressed={name === spec}
+                  onClick={() => onSpec(name)}
+                >
+                  {name}
+                </button>
+              ))}
+            </span>
           )}
         </span>
       ))}

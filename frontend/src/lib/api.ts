@@ -74,6 +74,8 @@ export interface TreeSummary {
   pointCap: number | null;
   /** A classic tab's place among its class's three; null for retail trees. */
   order?: number | null;
+  /** A custom retail-style hero tree: the specs that may take it. */
+  heroSpecs?: string[] | null;
 }
 
 export type NodeKind = "single" | "choice" | "tiered" | "subtree";

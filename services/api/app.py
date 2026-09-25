@@ -785,8 +785,9 @@ CUSTOM_BODY_LIMIT = 400_000
 def _summary(t: dict) -> dict[str, Any]:
     return {
         "key": t["key"], "kind": t["kind"], "name": t["name"], "className": t["className"],
-        "specName": None, "subTreeId": None, "nodeCount": t["nodeCount"],
+        "specName": t.get("specName"), "subTreeId": t.get("subTreeId"), "nodeCount": t["nodeCount"],
         "maxPointsInTree": t["maxPointsInTree"], "pointCap": t["pointCap"], "order": t["order"],
+        "heroSpecs": t.get("heroSpecs"),
     }
 
 
@@ -825,9 +826,11 @@ async def save_custom_project(request: Request) -> dict[str, Any]:
                     id, revision, key, kind, game, gating, class_id, spec_id, class_name,
                     spec_name, sub_tree_id, name, definition, point_cap, max_points_in_tree,
                     node_count
-                ) VALUES (%s, %s, %s, 'tab', 'custom', 'reqPoints', NULL, NULL, %s, NULL, NULL,
+                ) VALUES (%s, %s, %s, %s, 'custom', 'reqPoints', NULL, NULL, %s, %s, %s,
                           %s, %s, %s, %s, %s)
                 ON CONFLICT (id, revision) DO UPDATE SET
+                    kind = EXCLUDED.kind, spec_name = EXCLUDED.spec_name,
+                    sub_tree_id = EXCLUDED.sub_tree_id,
                     definition = EXCLUDED.definition, point_cap = EXCLUDED.point_cap,
                     max_points_in_tree = EXCLUDED.max_points_in_tree,
                     node_count = EXCLUDED.node_count
@@ -835,8 +838,9 @@ async def save_custom_project(request: Request) -> dict[str, Any]:
                 # Same id means same design, so refreshing the derived record is always safe
                 # -- and it is how a change to the derivation reaches trees saved before it.
                 [
-                    (t["id"], CUSTOM_REVISION, t["key"], t["className"], t["name"],
-                     json.dumps(t), t["pointCap"], t["maxPointsInTree"], t["nodeCount"])
+                    (t["id"], CUSTOM_REVISION, t["key"], t["kind"], t["className"], t["specName"],
+                     t["subTreeId"], t["name"], json.dumps(t), t["pointCap"], t["maxPointsInTree"],
+                     t["nodeCount"])
                     for t in trees
                 ],
             )
@@ -863,7 +867,8 @@ def get_custom_project(project: str) -> dict[str, Any]:
         "SELECT definition FROM current_trees WHERE game = 'custom' AND key LIKE %s ORDER BY key",
         (f"custom/{project}/%",),
     )
-    trees = [r["definition"] for r in rows]
+    # By place, not by key: as text, tree 10 of a retail project sorts before tree 2.
+    trees = sorted((r["definition"] for r in rows), key=lambda t: t["order"])
     return {
         "project": project,
         "name": head[0]["name"],

@@ -734,8 +734,10 @@ def t_custom_barriers_and_granted_talents():
     of the pair below the barrier."""
     design = {
         "name": "Barriers",
+        "style": "retail",
         "trees": [{
             "name": "Retail-like",
+            "role": "class",
             "pointsPerRow": None,
             "barriers": [{"row": 2, "points": 2}],
             "nodes": [
@@ -745,6 +747,9 @@ def t_custom_barriers_and_granted_talents():
                 {"nodeId": 4, "name": "C", "maxPoints": 1, "row": 2, "col": 0, "parents": [2]},
                 {"nodeId": 5, "name": "D", "maxPoints": 1, "row": 2, "col": 2, "parents": [3]},
             ],
+        }, {
+            "name": "Spec", "role": "spec", "pointsPerRow": None,
+            "nodes": [{"nodeId": 6, "name": "S", "maxPoints": 1, "row": 0, "col": 0}],
         }],
     }
     saved = post("/custom-trees", design, expect=201)
@@ -760,9 +765,60 @@ def t_custom_barriers_and_granted_talents():
     assert back["trees"][0]["barriers"] == [{"row": 2, "points": 2}], back["trees"][0]
     assert post("/custom-trees", back, expect=201)["project"] == saved["project"]
     # A barrier lower down must ask for more.
-    design["trees"][0]["barriers"] = [{"row": 1, "points": 3}, {"row": 2, "points": 2}]
-    r = post("/custom-trees", design, expect=400)
+    import copy
+    falling = copy.deepcopy(design)
+    falling["trees"][0]["barriers"] = [{"row": 1, "points": 3}, {"row": 2, "points": 2}]
+    r = post("/custom-trees", falling, expect=400)
     assert "must ask for more" in str(r.get("detail", "")), r
+
+
+def t_custom_projects_keep_one_style():
+    """A project is retail or classic throughout, and retail's is retail's shape.
+
+    Retail: one class tree first, one to four specs, up to six hero trees, each hero tree
+    naming its specs, served as retail's own kinds so the planner picks a spec. Classic: up to
+    three tabs gated by row. Mixing the two is refused, whichever way round."""
+    import copy
+
+    node = lambda i: {"nodeId": i, "name": f"T{i}", "maxPoints": 1, "row": 0, "col": 0}
+    retail = {
+        "name": "Shape", "style": "retail",
+        "trees": [
+            {"name": "Class", "role": "class", "nodes": [node(1)]},
+            *({"name": f"Spec {i}", "role": "spec", "nodes": [node(10 + i)]} for i in range(4)),
+            {"name": "Hero A", "role": "hero", "specs": [0, 2], "nodes": [node(30)]},
+            *({"name": f"Hero {i}", "role": "hero", "nodes": [node(40 + i)]} for i in range(5)),
+        ],
+    }
+    saved = post("/custom-trees", retail, expect=201)
+    kinds = [t["kind"] for t in saved["trees"]]
+    assert kinds == ["class"] + ["spec"] * 4 + ["hero"] * 6, kinds
+    back = get(f"/custom-trees/{saved['project']}")
+    hero_a = next(t for t in back["trees"] if t["name"] == "Hero A")
+    assert hero_a["heroSpecs"] == ["Spec 0", "Spec 2"], hero_a
+    assert [t["name"] for t in back["trees"]][-1] == "Hero 4", "trees come back in their order"
+
+    cases = []
+    five = copy.deepcopy(retail)
+    five["trees"].insert(1, {"name": "Spec 9", "role": "spec", "nodes": [node(99)]})
+    cases.append((five, "one to 4 spec trees"))
+    pooled = copy.deepcopy(retail)
+    pooled["sharedPointCap"] = 40
+    cases.append((pooled, "not a shared pool"))
+    per_row = copy.deepcopy(retail)
+    per_row["trees"][1]["pointsPerRow"] = 5
+    cases.append((per_row, "not points per row"))
+    twins = copy.deepcopy(retail)
+    twins["trees"][2]["name"] = "Spec 0"
+    cases.append((twins, "its own name"))
+    classic_barrier = {"name": "Mixed", "trees": [
+        {"name": "Tab", "pointsPerRow": 5, "nodes": [node(1)]},
+        {"name": "Tab 2", "barriers": [{"row": 2, "points": 8}], "nodes": [node(2)]},
+    ]}
+    cases.append((classic_barrier, "not with barriers"))
+    for body, words in cases:
+        r = post("/custom-trees", body, expect=400)
+        assert words in str(r.get("detail", "")), (words, r)
 
 
 def t_top_players_builds_are_legal_here():
@@ -1133,6 +1189,8 @@ def main() -> int:
           t_custom_projects_refuse_broken_designs)
     check("retail-style barriers gate what is below them, and granted talents are free",
           t_custom_barriers_and_granted_talents)
+    check("a project keeps one style, and retail's has retail's shape",
+          t_custom_projects_keep_one_style)
 
     print("\nWoW Forever:")
     check("both games are served side by side", t_both_games_are_served)

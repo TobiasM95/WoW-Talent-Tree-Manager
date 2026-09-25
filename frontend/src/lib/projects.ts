@@ -1,4 +1,4 @@
-import type { Design } from "./design";
+import { normalise, type Design } from "./design";
 import { request, type TreeSummary } from "./api";
 
 /**
@@ -29,7 +29,11 @@ export function readProjects(): Project[] {
   try {
     const raw = window.localStorage.getItem(KEY);
     const list = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(list) ? (list as Project[]).filter((p) => p && typeof p.id === "string" && p.draft) : [];
+    return Array.isArray(list)
+      ? (list as Project[])
+          .filter((p) => p && typeof p.id === "string" && p.draft)
+          .map((p) => ({ ...p, draft: normalise(p.draft) }))
+      : [];
   } catch {
     return [];
   }

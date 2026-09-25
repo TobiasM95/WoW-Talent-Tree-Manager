@@ -166,52 +166,88 @@ if (saved) {
   check("the copy counts exactly like the original, every tab and budget", same === 12, `${same} of 12`);
 }
 
-// Retail: a new project copied from a real spec. Barriers come across as barriers, granted
-// talents stay granted, and the copy counts exactly like the original.
+// Retail: a project copied from two real specs. One style per project: a class tree, the
+// specs, their hero trees once each; barriers, granted talents, and counts like the originals.
 await page.locator('button:text-is("Custom")').click();
 await page.locator('[aria-label="Projects"] button:has-text("New project")').click();
 const picker = page.locator('section[aria-label="Start from"]');
 await picker.locator('button:text-is("Retail")').click();
 await picker.locator('select[aria-label="Template class"]').selectOption("Death Knight");
-await picker.locator('select[aria-label="Template spec"]').selectOption("Blood");
-await picker.locator('button:has-text("Copy 2 trees")').click();
+await picker.locator('label:has-text("Frost") input').check();
+await picker.locator('button:has-text("Copy 2 specs")').click();
 await page.waitForSelector('section[aria-label="Tree grid"] .editor-node');
 const retailTabs = await page.locator('[aria-label="Trees"] [role="tab"]').allInnerTexts();
-check("a retail template brings its class and spec trees", retailTabs.length === 2, retailTabs.join());
+check("a retail copy brings the class tree, both specs and each hero tree once",
+  retailTabs.length === 6 && retailTabs.filter((t) => /Deathbringer/.test(t)).length === 1, retailTabs.join(" | "));
+check("the project is one style throughout", (await page.locator('[data-style="retail"]').count()) === 1);
+check("with no classic controls: no shared pool, no plain + tree",
+  (await page.getByText("one shared point pool").count()) === 0 &&
+  (await page.locator('[aria-label="Trees"] button:text-is("+ tree")').count()) === 0 &&
+  (await page.locator('[aria-label="Trees"] button:text-is("+ spec")').count()) === 1);
 check("with retail's gates as barriers", (await page.locator("[data-barrier]").count()) >= 2);
 check("and its granted talents still free", (await page.locator(".editor-node[data-granted]").count()) >= 1);
-check("on a retail-width grid", (await page.locator('[data-cell^="9,"], .editor-node').count()) > 0 &&
-  (await page.evaluate(() => Math.max(...[...document.querySelectorAll("[data-cell]")].map((e) => Number(e.dataset.cell.split(",")[1]))))) >= 8);
+await page.locator('[aria-label="Trees"] [role="tab"]:has-text("Deathbringer")').click();
+const takers = await page.locator('[aria-label="Specs that take this hero tree"] label').evaluateAll((els) =>
+  els.filter((e) => e.querySelector("input").checked).map((e) => e.textContent.trim()));
+check("a hero tree two specs share is taken by both", takers.join() === "Blood,Frost", takers.join());
 
-// A blank retail tree beside them: two barriers to start, and one more from the margin.
-await page.locator('[aria-label="Trees"] button:text-is("+ tree")').click();
-await picker.locator('button:has-text("Retail style")').click();
-await page.waitForSelector('[aria-label="Tree style"]');
-check("a blank retail tree starts with two barriers", (await page.locator("[data-barrier]").count()) === 2);
+// A blank spec: barriers to start, one more from the margin; then it goes again.
+await page.locator('[aria-label="Trees"] button:text-is("+ spec")').click();
+await picker.locator('button:text-is("Blank spec tree")').click();
+await page.waitForSelector('[aria-label="Tree grid"] [data-cell]');
+check("a blank spec tree starts with two barriers", (await page.locator("[data-barrier]").count()) === 2);
+check("on a retail-width grid",
+  (await page.evaluate(() => Math.max(...[...document.querySelectorAll("[data-cell]")].map((e) => Number(e.dataset.cell.split(",")[1]))))) >= 8);
 await page.locator('button[aria-label="Add a barrier above row 2"]').click();
 const added = await page.locator('input[aria-label="Points to pass the barrier above row 2"]').inputValue();
 check("the margin adds a barrier below the first", (await page.locator("[data-barrier]").count()) === 3 && added === "5", added);
 await page.locator('button:text-is("Remove this tree")').click();
+check("and the spec is removed", (await page.locator('[aria-label="Trees"] [role="tab"]').count()) === 6);
 await page.screenshot({ path: "shots/editor-retail.png" });
 
 await page.locator('button:text-is("Save")').click();
-await page.waitForSelector('[data-save-state="saved"]', { timeout: 20000 });
+// On a refusal, say why rather than only that it timed out.
+await page.waitForSelector('[data-save-state="saved"]', { timeout: 20000 }).catch(async () => {
+  await page.screenshot({ path: "shots/editor-save-failed.png" });
+  const button = await page.locator('button:text-is("Save"), button:text-is("Saving…")').first().evaluate((b) => `${b.textContent} disabled=${b.disabled} title=${b.title}`);
+  throw new Error(`the retail project did not save (${button}): ${await page.locator("aside").innerText()}`);
+});
 const rpid = /Saved as ([0-9a-f]{8})/.exec(await page.locator("aside").innerText())?.[1];
 const rsaved = (await page.evaluate(() => JSON.parse(localStorage.getItem("ttm.projects.v1") || "[]")))
   .find((p) => p.savedAs?.startsWith(rpid ?? "-"))?.savedAs;
-check("the retail copy saves", Boolean(rsaved), String(rpid));
+check("the retail project saves", Boolean(rsaved), String(rpid));
+
+// Planned as retail plans: pick a spec, get its class, spec and hero trees.
+await page.locator('button:has-text("Plan with it")').click();
+await page.waitForSelector("section.ttm-tree .ttm-node", { timeout: 15000 });
+const specsOffered = await page.locator('[aria-label="Specs"] button').allInnerTexts();
+check("planning offers the project's specs", specsOffered.join() === "Blood,Frost", specsOffered.join());
+const heroesFor = async () => page.locator("section.ttm-tree button.rail-item").allInnerTexts();
+check("Blood plans with its own hero trees", (await heroesFor()).sort().join() === "Deathbringer,San'layn", (await heroesFor()).join());
+await page.locator('[aria-label="Specs"] button:text-is("Frost")').click();
+await page.waitForTimeout(600);
+check("Frost with its own", (await heroesFor()).sort().join() === "Deathbringer,Rider of the Apocalypse", (await heroesFor()).join());
+await page.screenshot({ path: "shots/editor-retail-plan.png" });
+
 if (rsaved) {
+  const saved = await api(`/custom-trees/${rsaved}`);
+  const keyOf = (name) => saved.trees.find((t) => t.name === name)?.key;
+  const pairs = [
+    ["retail/6/250/class", keyOf("Class")],
+    ["retail/6/250/spec", keyOf("Blood")],
+    ["retail/6/251/spec", keyOf("Frost")],
+    ["retail/6/250/hero/31", keyOf("San'layn")],
+  ];
   let same = 0;
-  const budgets = [8, 15, 25, 34];
-  for (const [i, key] of ["retail/6/250/class", "retail/6/250/spec"].entries()) {
-    for (const points of budgets) {
-      const a = await api("/counts", { treeKey: key, points });
-      const b = await api("/counts", { treeKey: `custom/${rsaved}/${i}`, points });
+  for (const [original, copy] of pairs) {
+    for (const points of [8, 13, 25, 34]) {
+      const a = await api("/counts", { treeKey: original, points });
+      const b = await api("/counts", { treeKey: copy, points });
       if (a.sets === b.sets && a.builds === b.builds) same++;
-      else console.log(`   ${key} at ${points}: original ${a.sets}/${a.builds}, copy ${b.sets}/${b.builds}`);
+      else console.log(`   ${original} at ${points}: original ${a.sets}/${a.builds}, copy ${b.sets}/${b.builds}`);
     }
   }
-  check("the retail copy counts exactly like the original, both trees and every budget", same === 8, `${same} of 8`);
+  check("the retail copy counts exactly like the originals: class, both specs, a hero tree", same === 16, `${same} of 16`);
 }
 
 await browser.close();

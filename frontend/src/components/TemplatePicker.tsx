@@ -1,43 +1,56 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiError, getTree, listTrees, type TreeSummary } from "../lib/api";
-import { blankTree, fromTrees, LIMITS, type Design, type DesignTree, type TreeStyle } from "../lib/design";
+import {
+  blankTree,
+  copyTree,
+  emptyDesign,
+  fromTrees,
+  LIMITS,
+  type Design,
+  type TreeRole,
+  type TreeStyle,
+} from "../lib/design";
 
 /**
- * Where a design starts: a blank tree of either style, or a copy of a real one.
+ * Where a design starts: blank, or a copy of real trees.
  *
  * Most custom trees are "what if Blizzard changed this", so copying is as near as starting
- * blank: pick a game, a class, and which of its trees to bring. Retail gates come across as
- * barriers and Forever's as points per row, so the copy edits the way the original works.
+ * blank. The style follows the source, as the games do: retail's trees make a retail-style
+ * project (a class tree, the specs chosen, and their hero trees, gated by barriers), Forever's
+ * tabs a classic one.
  *
- * Used twice: for a new project (up to three trees) and for adding a tree to one (as many as
- * the project still has room for).
+ * Used for a new project, and for adding one tree of a kind to a project -- where only trees
+ * of the project's own style and that kind are offered, so a project never mixes the two.
  */
 
+export type PickerTarget = { kind: "project" } | { kind: "tree"; style: TreeStyle; role?: TreeRole };
+
 export interface TemplatePickerProps {
-  /** How many trees can still be taken. */
+  target: PickerTarget;
+  /** How many trees of the kind being added can still be taken. Ignored for a new project. */
   room: number;
-  /** What is being made, for the heading. */
-  purpose: "project" | "tree";
   onPick: (design: Design) => void;
   onCancel: (() => void) | null;
 }
 
 type Source = "retail" | "forever";
 
-const kindOrder: Record<string, number> = { class: 0, spec: 1, hero: 2, tab: 0 };
+const byOrder = (a: TreeSummary, b: TreeSummary) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name);
 
-const labelOf = (t: TreeSummary) =>
-  t.kind === "class" ? "Class tree" : t.kind === "spec" ? `${t.specName} spec tree` : t.kind === "hero" ? `${t.name} (hero)` : t.name;
-
-export function TemplatePicker({ room, purpose, onPick, onCancel }: TemplatePickerProps) {
-  const [source, setSource] = useState<Source>("retail");
+export function TemplatePicker({ target, room, onPick, onCancel }: TemplatePickerProps) {
+  const project = target.kind === "project";
+  const role = target.kind === "tree" ? target.role : undefined;
+  // A tree added to a project comes from a game of the project's style.
+  const fixed: Source | null = target.kind === "tree" ? (target.style === "retail" ? "retail" : "forever") : null;
+  const [source, setSource] = useState<Source>(fixed ?? "retail");
   const [list, setList] = useState<TreeSummary[]>([]);
   const [className, setClassName] = useState("");
-  // Retail's class and hero trees differ by spec, so a spec is chosen too.
-  const [specName, setSpecName] = useState("");
   const [chosen, setChosen] = useState<string[]>([]);
+  const [withHeroes, setWithHeroes] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A new project takes a class's three tabs, or up to four of its specs.
+  const cap = project ? (source === "forever" ? LIMITS.trees : LIMITS.specs) : room;
 
   useEffect(() => {
     setList([]);
@@ -51,44 +64,82 @@ export function TemplatePicker({ room, purpose, onPick, onCancel }: TemplatePick
   }, [source]);
 
   const classes = useMemo(() => [...new Set(list.map((t) => t.className))].sort(), [list]);
-  const specs = useMemo(
-    () => [...new Set(list.filter((t) => t.className === className && t.specName).map((t) => t.specName!))].sort(),
-    [list, className],
-  );
-  useEffect(() => setSpecName(specs[0] ?? ""), [specs]);
-  const ofClass = useMemo(
-    () =>
-      list
-        .filter((t) => t.className === className && (source === "forever" || t.specName === specName))
-        .sort((a, b) => kindOrder[a.kind]! - kindOrder[b.kind]! || (a.order ?? 0) - (b.order ?? 0) || labelOf(a).localeCompare(labelOf(b))),
-    [list, className, specName, source],
-  );
 
-  // A sensible first choice: a class's three Forever tabs, or retail's class tree and first spec.
+  /*
+    What can be ticked. Forever: the class's tabs. Retail: its specs -- for a project, or a
+    spec tree added to one -- or its hero trees, once each, since retail lists a hero tree
+    under every spec that can take it.
+  */
+  const options = useMemo(() => {
+    const mine = list.filter((t) => t.className === className);
+    if (source === "forever") return mine.filter((t) => t.kind === "tab").sort(byOrder);
+    if (role === "hero") {
+      const seen = new Set<number | null>();
+      return mine
+        .filter((t) => t.kind === "hero" && !seen.has(t.subTreeId) && seen.add(t.subTreeId))
+        .sort(byOrder);
+    }
+    return mine.filter((t) => t.kind === "spec").sort((a, b) => (a.specName ?? "").localeCompare(b.specName ?? ""));
+  }, [list, className, source, role]);
+
+  // A sensible first choice: a class's tabs, or its first spec.
   useEffect(() => {
-    const first =
-      source === "forever"
-        ? ofClass.map((t) => t.key)
-        : [ofClass.find((t) => t.kind === "class")?.key, ofClass.find((t) => t.kind === "spec")?.key].filter(
-            (k): k is string => Boolean(k),
-          );
-    setChosen(first.slice(0, room));
-  }, [ofClass, source, room]);
+    setChosen(options.slice(0, source === "forever" ? cap : 1).map((t) => t.key));
+  }, [options, source, cap]);
 
   const toggle = (key: string) =>
-    setChosen((c) => (c.includes(key) ? c.filter((k) => k !== key) : c.length < room ? [...c, key] : c));
+    setChosen((c) => (c.includes(key) ? c.filter((k) => k !== key) : c.length < cap ? [...c, key] : c));
+
+  const labelOf = (t: TreeSummary) => (t.kind === "spec" ? (t.specName ?? t.name) : t.name);
 
   const blank = (style: TreeStyle) =>
-    onPick({ name: "New project", sharedPointCap: null, trees: [blankTree("Tree 1", style)] });
+    onPick(
+      project
+        ? emptyDesign("New project", style)
+        : { name: "", style, sharedPointCap: null, trees: [blankTree("", style, role)] },
+    );
 
   const copy = async () => {
     setBusy(true);
     setError(null);
     try {
-      const details = await Promise.all(chosen.map((k) => getTree(k)));
-      const pool = source === "forever" ? (details[0]?.sharedPointCap ?? null) : null;
-      const name = source === "forever" ? className : `${specName} ${className}`;
-      onPick(fromTrees(`${name} (copy)`, details, pool));
+      const picked = options.filter((t) => chosen.includes(t.key));
+      if (target.kind === "tree") {
+        // Single trees into a project: their role is the one being added.
+        const details = await Promise.all(picked.map((t) => getTree(t.key)));
+        onPick({
+          name: "",
+          style: target.style,
+          sharedPointCap: null,
+          trees: details.map((d) => ({
+            ...copyTree(d),
+            ...(role ? { role } : {}),
+            ...(role === "spec" ? { name: (d.specName ?? d.name).slice(0, 60) } : {}),
+          })),
+        });
+        return;
+      }
+      if (source === "forever") {
+        const details = await Promise.all(picked.map((t) => getTree(t.key)));
+        onPick(fromTrees(`${className} (copy)`, details, details[0]?.sharedPointCap ?? null));
+        return;
+      }
+      // Retail: the class tree of the first spec chosen, every spec chosen, and their heroes.
+      const specs = picked.map((t) => t.specName);
+      const keys = list
+        .filter(
+          (t) =>
+            t.className === className &&
+            specs.includes(t.specName) &&
+            (t.kind === "spec" ||
+              (t.kind === "class" && t.specName === specs[0]) ||
+              (t.kind === "hero" && withHeroes)),
+        )
+        .map((t) => t.key);
+      const details = await Promise.all(keys.map((k) => getTree(k)));
+      details.sort((a, b) => specs.indexOf(a.specName) - specs.indexOf(b.specName));
+      const name = specs.length === 1 ? `${specs[0]} ${className} (copy)` : `${className} (copy)`;
+      onPick(fromTrees(name, details, null));
     } catch (exc) {
       setError(exc instanceof ApiError ? exc.detail : String(exc));
     } finally {
@@ -96,12 +147,13 @@ export function TemplatePicker({ room, purpose, onPick, onCancel }: TemplatePick
     }
   };
 
+  const what = role === "hero" ? "hero tree" : role === "spec" ? "spec tree" : project ? "project" : "tree";
+  const unit = source === "forever" ? "tab" : role === "hero" ? "hero tree" : "spec";
+
   return (
     <section className="panel mx-auto my-4 w-full max-w-2xl p-4" aria-label="Start from">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="display text-[20px] leading-tight">
-          {purpose === "project" ? "Start a new project" : "Add a tree"}
-        </h2>
+        <h2 className="display text-[20px] leading-tight">{project ? "Start a new project" : `Add a ${what}`}</h2>
         {onCancel && (
           <button type="button" className="text-[12px] text-ink-faint underline" onClick={onCancel}>
             cancel
@@ -110,33 +162,43 @@ export function TemplatePicker({ room, purpose, onPick, onCancel }: TemplatePick
       </div>
 
       <span className="label mt-3 block">Blank</span>
-      <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
-        <button type="button" className="btn !h-auto flex-col !items-start !py-2 text-left" onClick={() => blank("retail")}>
-          <span className="text-ink">Retail style</span>
-          <span className="text-[11px] font-normal text-ink-faint">
-            Wide grid, free connections, barriers between rows (8 and 20 to start).
-          </span>
-        </button>
-        <button type="button" className="btn !h-auto flex-col !items-start !py-2 text-left" onClick={() => blank("classic")}>
-          <span className="text-ink">Classic style</span>
-          <span className="text-[11px] font-normal text-ink-faint">
-            Four columns, each row opening 5 points after the last — like WoW Forever.
-          </span>
-        </button>
-      </div>
-
-      <span className="label mt-4 block">Copy an existing tree</span>
-      <div className="mt-1.5 flex flex-wrap gap-2">
-        <div className="seg" role="group" aria-label="Template game">
-          {([
-            ["retail", "Retail"],
-            ["forever", "WoW Forever"],
-          ] as const).map(([id, label]) => (
-            <button key={id} type="button" aria-pressed={source === id} onClick={() => setSource(id)}>
-              {label}
-            </button>
-          ))}
+      {target.kind === "project" ? (
+        <div className="mt-1.5 grid gap-2 sm:grid-cols-2">
+          <button type="button" className="btn !h-auto flex-col !items-start !py-2 text-left" onClick={() => blank("retail")}>
+            <span className="text-ink">Retail style</span>
+            <span className="text-[11px] font-normal text-ink-faint">
+              A class tree, up to {LIMITS.specs} specs and {LIMITS.heroes} hero trees, each with its own budget. Wide
+              grids, free connections, barriers between rows.
+            </span>
+          </button>
+          <button type="button" className="btn !h-auto flex-col !items-start !py-2 text-left" onClick={() => blank("classic")}>
+            <span className="text-ink">Classic style</span>
+            <span className="text-[11px] font-normal text-ink-faint">
+              Up to {LIMITS.trees} tabs of four columns, each row opening 5 points after the last, optionally one shared
+              pool — like WoW Forever.
+            </span>
+          </button>
         </div>
+      ) : (
+        <button type="button" className="btn mt-1.5" onClick={() => blank(target.style)}>
+          Blank {what}
+        </button>
+      )}
+
+      <span className="label mt-4 block">Copy {project ? "existing trees" : `an existing ${what}`}</span>
+      <div className="mt-1.5 flex flex-wrap gap-2">
+        {!fixed && (
+          <div className="seg" role="group" aria-label="Template game">
+            {([
+              ["retail", "Retail"],
+              ["forever", "WoW Forever"],
+            ] as const).map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={source === id} onClick={() => setSource(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <select
           className="field min-w-40"
           value={className}
@@ -149,40 +211,35 @@ export function TemplatePicker({ room, purpose, onPick, onCancel }: TemplatePick
             </option>
           ))}
         </select>
-        {source === "retail" && (
-          <select
-            className="field min-w-32"
-            value={specName}
-            onChange={(event) => setSpecName(event.target.value)}
-            aria-label="Template spec"
-          >
-            {specs.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        )}
       </div>
 
       <ul className="mt-2 grid gap-x-3 gap-y-1 sm:grid-cols-2" aria-label="Template trees">
-        {ofClass.map((t) => (
+        {options.map((t) => (
           <li key={t.key}>
             <label className="flex items-center gap-1.5 text-[12px] text-ink-soft">
               <input
                 type="checkbox"
                 checked={chosen.includes(t.key)}
-                disabled={!chosen.includes(t.key) && chosen.length >= room}
+                disabled={!chosen.includes(t.key) && chosen.length >= cap}
                 onChange={() => toggle(t.key)}
               />
               {labelOf(t)}
-              <span className="num text-[10.5px] text-ink-faint">{t.nodeCount}</span>
             </label>
           </li>
         ))}
       </ul>
+      {project && source === "retail" && (
+        <label className="mt-2 flex items-center gap-1.5 text-[12px] text-ink-soft">
+          <input type="checkbox" checked={withHeroes} onChange={(event) => setWithHeroes(event.target.checked)} />
+          with their hero trees
+        </label>
+      )}
       <p className="mt-1.5 text-[11px] text-ink-faint">
-        Up to {room} tree{room === 1 ? "" : "s"}. Talents, icons, arrows, gates and budgets all come across.
+        Up to {cap} {unit}
+        {cap === 1 ? "" : "s"}.{" "}
+        {project && source === "retail"
+          ? "The class tree comes with the first spec ticked; each hero tree is taken by the specs it had."
+          : "Talents, icons, arrows, gates and budgets all come across."}
       </p>
 
       {error && (
@@ -196,21 +253,8 @@ export function TemplatePicker({ room, purpose, onPick, onCancel }: TemplatePick
         disabled={busy || chosen.length === 0}
         onClick={() => void copy()}
       >
-        {busy ? "Copying…" : `Copy ${chosen.length} tree${chosen.length === 1 ? "" : "s"} →`}
+        {busy ? "Copying…" : `Copy ${chosen.length} ${unit}${chosen.length === 1 ? "" : "s"} →`}
       </button>
     </section>
   );
-}
-
-/** Add a picked design's trees to a project, renumbering talents so ids stay unique within it. */
-export function appendTrees(design: Design, extra: DesignTree[]): Design {
-  let next = 1 + Math.max(0, ...design.trees.flatMap((t) => t.nodes.map((n) => n.nodeId)));
-  const trees = extra.slice(0, LIMITS.trees - design.trees.length).map((t) => {
-    const ids = new Map(t.nodes.map((n) => [n.nodeId, next++]));
-    return {
-      ...t,
-      nodes: t.nodes.map((n) => ({ ...n, nodeId: ids.get(n.nodeId)!, parents: n.parents.map((p) => ids.get(p)!) })),
-    };
-  });
-  return { ...design, trees: [...design.trees, ...trees] };
 }
