@@ -166,6 +166,32 @@ if (saved) {
   check("the copy counts exactly like the original, every tab and budget", same === 12, `${same} of 12`);
 }
 
+// Planned, the copy's tabs share its pool of 51 as Forever's do: one search, every split.
+// The expected number is worked out here from the *original* tabs' per-points counts.
+await page.locator('button:has-text("Plan with it")').click();
+await page.waitForSelector("section.ttm-tree .ttm-node", { timeout: 15000 });
+await page.locator('[aria-label="Class mode"] button:text-is("Open search")').click();
+await page.waitForTimeout(2000);
+const pooledCopy = Number(await page.locator("[data-total]").getAttribute("data-total"));
+const perPoints = async (key) => {
+  const out = [1];
+  for (let k = 1; k <= 64; k++) {
+    const r = await fetch(`${url}/api/counts`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ treeKey: key, points: k }) });
+    if (r.status !== 200) break;
+    out.push((await r.json()).builds);
+  }
+  return out;
+};
+const [va, vb, vc] = await Promise.all(["arms", "fury", "protection"].map((t) => perPoints(`forever/warrior/${t}`)));
+let pooledOriginal = 0n;
+for (let x = 0; x < va.length && x <= 51; x++)
+  for (let y = 0; y < vb.length && x + y <= 51; y++)
+    if (51 - x - y < vc.length) pooledOriginal += BigInt(va[x]) * BigInt(vb[y]) * BigInt(vc[51 - x - y]);
+check("a pooled custom project counts every split, exactly as its original would",
+  pooledCopy === Number(pooledOriginal), `${pooledCopy} vs ${pooledOriginal}`);
+await page.locator('button:text-is("Custom")').click().catch(() => {});
+
 // Retail: a project copied from two real specs. One style per project: a class tree, the
 // specs, their hero trees once each; barriers, granted talents, and counts like the originals.
 await page.locator('button:text-is("Custom")').click();

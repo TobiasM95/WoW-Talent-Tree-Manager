@@ -35,6 +35,7 @@ export interface TreePaneProps {
   count?: { builds: number | null; stale: boolean; error: string | null };
   states?: Map<number, NodeState>;
   sides?: Map<number, "a" | "b" | "none">;
+  ranges?: Map<number, { min: number; max: number }>;
   build?: Record<string, number> | null;
   impacts?: Map<number, number> | null;
   /** nodeId -> share, painted as heat: how often something takes each talent. */
@@ -64,6 +65,7 @@ export function TreePane({
   count,
   states,
   sides,
+  ranges,
   build,
   impacts,
   shares,
@@ -198,6 +200,7 @@ export function TreePane({
             tree={tree}
             states={states ?? EMPTY_STATES}
             sides={sides ?? EMPTY_SIDES}
+            ranges={ranges}
             stale={count?.stale}
             build={build}
             impacts={impacts}

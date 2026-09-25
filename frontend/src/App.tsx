@@ -32,6 +32,7 @@ import {
   payloadOf,
   pendingOf,
   sidesOf,
+  rangesOf,
   spend,
   statesOf,
   type Tool,
@@ -877,9 +878,10 @@ export default function App() {
       acc.excluded += w.search.excluded.length;
       acc.anyOf += w.search.atLeastOne.length;
       acc.oneOf += w.search.exactlyOne.length;
+      acc.ranks += Object.keys(w.search.ranks ?? {}).length;
       return acc;
     },
-    { required: 0, excluded: 0, anyOf: 0, oneOf: 0 },
+    { required: 0, excluded: 0, anyOf: 0, oneOf: 0, ranks: 0 },
   );
   const anyConstraint = roles.some(([, s]) => workOf(s.key).mode === "open" && constraintCount(workOf(s.key)) > 0);
 
@@ -941,6 +943,7 @@ export default function App() {
         }
         states={popularHeat ? undefined : statesOf(w)}
         sides={popularHeat ? undefined : sidesOf(w)}
+        ranges={popularHeat ? undefined : rangesOf(w, tree)}
         shares={
           popularHeat && tree
             ? new Map(tree.nodes.map((n) => [n.nodeId, popularHeat.pickRates[String(n.nodeId)]?.share ?? 0]))

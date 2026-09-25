@@ -18,6 +18,8 @@ export interface TreeCanvasProps {
   tree: TreeDetail;
   states: Map<number, NodeState>;
   sides: Map<number, "a" | "b" | "none">;
+  /** A search's rank limits on multi-rank talents. */
+  ranges?: Map<number, { min: number; max: number }>;
   stale?: boolean;
   /** nodeId -> points, for the build currently being inspected. */
   build?: Record<string, number> | null;
@@ -110,6 +112,7 @@ export function TreeCanvas({
   tree,
   states,
   sides,
+  ranges,
   stale,
   build,
   shares,
@@ -240,11 +243,23 @@ export function TreeCanvas({
               if (!from || !to) return null;
               // A jump in pointsRequired means this edge crosses a gate.
               const gate = (gateOf.get(parentId) ?? 0) < node.pointsRequired;
+              // The planner's path: gold where a build runs through (parent maxed, child
+              // spent), green where it could go next (parent maxed, child open to a point).
+              const parent = tree.nodes.find((n) => n.nodeId === parentId);
+              const full = build && parent ? (build[String(parentId)] ?? 0) >= parent.maxPoints : false;
+              const flow = !full
+                ? undefined
+                : (build?.[String(node.nodeId)] ?? 0) > 0
+                  ? "taken"
+                  : editing && reachable?.has(node.nodeId)
+                    ? "open"
+                    : undefined;
               return (
                 <line
                   key={`${parentId}-${node.nodeId}`}
                   className="ttm-edge"
                   data-gate={gate ? "" : undefined}
+                  data-flow={flow}
                   x1={from.x}
                   y1={from.y}
                   x2={to.x}
@@ -269,6 +284,7 @@ export function TreeCanvas({
             impact={impacts?.get(node.nodeId)}
             reachable={reachable ? reachable.has(node.nodeId) : undefined}
             editing={editing}
+            range={ranges?.get(node.nodeId)}
             onActivate={onActivate}
             onHover={onHover}
           />

@@ -597,3 +597,61 @@
 .canvas-hint {
   background: linear-gradient(to top, var(--panel-sunken) 35%, transparent);
 }
+
+/* --- ranks ------------------------------------------------------------------
+   A multi-rank talent's ring, split into one arc per rank. In a search it shows the limits
+   painted on it -- green up to the minimum, red past the cap, faint between -- and in the
+   planner the ranks spent, in gold. Round caps and a gap per rank, so the count of arcs is
+   the count of ranks. */
+.ttm-rank-arcs {
+  position: absolute;
+  z-index: 3;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.ttm-rank-arc {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.ttm-rank-arc[data-kind="must"] {
+  stroke: var(--must);
+}
+
+.ttm-rank-arc[data-kind="barred"] {
+  stroke: var(--barred);
+}
+
+.ttm-rank-arc[data-kind="free"] {
+  stroke: color-mix(in srgb, var(--ink-faint) 30%, transparent);
+}
+
+/* An unspent rank in the planner: there, so the ranks can be counted, but quiet. */
+.ttm-rank-arc[data-kind="empty"] {
+  stroke: color-mix(in srgb, var(--ink-faint) 16%, transparent);
+}
+
+.ttm-rank-arc[data-kind="spent"] {
+  stroke: var(--brass-bright);
+}
+
+/* A range badge speaks the limit, "2+" or "=2", in the colour of what it asks. */
+.ttm-node-ranks[data-limit] {
+  color: var(--must);
+  border-color: color-mix(in srgb, var(--must) 60%, transparent);
+}
+
+/* The planner's path: gold where the build runs, green where it can go next. */
+.ttm-edge[data-flow="taken"] {
+  stroke: var(--brass-bright);
+  stroke-width: 2.25;
+  stroke-dasharray: none;
+}
+
+.ttm-edge[data-flow="open"] {
+  stroke: color-mix(in srgb, var(--must) 70%, transparent);
+  stroke-width: 1.75;
+  stroke-dasharray: none;
+}

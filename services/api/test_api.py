@@ -412,6 +412,21 @@ def t_every_filter_kind_reaches_the_engine():
         "atLeastOneOf": {"atLeastOneOf": [plain[6:9]]},
         "exactlyOneOf": {"exactlyOneOf": [plain[6:8]]},
     }
+    # Per-rank limits, on the shallowest multi-rank talents -- and "exactly one of" with a
+    # multi-rank member, where the engine used to demand the member maxed and the DP only
+    # taken, so the two disagreed.
+    multi = sorted((n for n in tree["nodes"] if n["maxPoints"] >= 2 and not n["preFilled"]
+                    and n["kind"] != "choice"), key=lambda n: (n["pointsRequired"], n["row"]))
+    assert len(multi) >= 2, "this tree has no multi-rank talents to limit"
+    m0, m1 = str(multi[0]["nodeId"]), str(multi[1]["nodeId"])
+    cases.update({
+        "rank at least 2": {"rankMin": {m0: 2}},
+        "rank at most 1": {"rankMax": {m0: 1}},
+        "rank exactly 1": {"rankMin": {m0: 1}, "rankMax": {m0: 1}},
+        "ranks on two talents": {"rankMin": {m0: 2}, "rankMax": {m1: 1}},
+        "exactlyOneOf, multi-rank member": {"exactlyOneOf": [[int(m0), plain[7]]]},
+    })
+    ran = set()
 
     for label, extra in cases.items():
         body = {"treeKey": SPEC, "points": 11, **extra}
@@ -422,6 +437,32 @@ def t_every_filter_kind_reaches_the_engine():
         done = _await_job(job["id"])
         assert done["state"] == "done", (label, done["state"], done["error"])
         assert done["resultCount"] == predicted, (label, done["resultCount"], predicted)
+        ran.add(label)
+    assert {"rank at least 2", "rank at most 1", "rank exactly 1"} <= ran, f"rank cases not exercised: {ran}"
+
+
+def t_rank_limits_partition_the_builds():
+    """Exactly 0, exactly 1, ... exactly all of a talent's ranks are every build, once each.
+
+    The check needs no second implementation: whatever the rank limits do, the builds holding
+    each possible rank count of one talent must add up to all the builds. A limit that lost or
+    doubled a case would break the sum."""
+    tree = get(f"/trees/{SPEC}")
+    for node in [n for n in tree["nodes"] if n["maxPoints"] >= 3 and not n["preFilled"]][:2]:
+        key = str(node["nodeId"])
+        points = 20
+        whole = post("/counts", {"treeKey": SPEC, "points": points})["builds"]
+        parts = []
+        for k in range(node["maxPoints"] + 1):
+            limits = {"rankMax": {key: k}} if k == 0 else {"rankMin": {key: k}, "rankMax": {key: k}}                 if k < node["maxPoints"] else {"rankMin": {key: k}}
+            parts.append(post("/counts", {"treeKey": SPEC, "points": points, **limits})["builds"])
+        assert sum(parts) == whole, (node["name"], parts, whole)
+        assert parts[0] == post("/counts", {"treeKey": SPEC, "points": points, "mustNotHave": [node["nodeId"]]})["builds"]
+    # Limits that cannot hold are refused in words.
+    r = post("/counts", {"treeKey": SPEC, "points": 10, "rankMin": {key: 2}, "rankMax": {key: 1}}, expect=400)
+    assert "contradict" in str(r.get("detail", "")), r
+    r = post("/counts", {"treeKey": SPEC, "points": 10, "rankMin": {key: 9}}, expect=400)
+    assert "rank" in str(r.get("detail", "")), r
 
 
 def t_granted_talents_cannot_be_constrained():
@@ -1221,6 +1262,8 @@ def main() -> int:
     print("\nfilters reach the engine:")
     check("every filter kind agrees between gate and engine",
           t_every_filter_kind_reaches_the_engine)
+    check("rank limits split a talent's builds exactly, and refuse the impossible",
+          t_rank_limits_partition_the_builds)
 
     print("\ncancellation:")
     for name, fn in [

@@ -142,7 +142,9 @@ def decode_results(output_path: str, tree: dict, limit: int) -> list[dict[str, i
 def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[int],
                         at_least_one_of: list[list[int]] | None = None,
                         exactly_one_of: list[list[int]] | None = None,
-                        choice_sides: dict[str, str] | None = None) -> str:
+                        choice_sides: dict[str, str] | None = None,
+                        rank_min: dict[str, int] | None = None,
+                        rank_max: dict[str, int] | None = None) -> str:
     """The engine's filter is positional over the tree's node order.
 
     Sentinel values, per Engine/src/TreeSolver.cpp:
@@ -150,6 +152,9 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
         -1  must have none
         -2  member of the "at least one of these" group
         -3  member of the "exactly one of these" group
+
+    A value can carry a rank cap after a slash -- "2/2" is exactly two ranks, "1/1" a one-point
+    dip, "0/1" at most one. `rank_min` raises a talent's value to that many ranks.
 
     Because a talent holds a single value, the engine supports one group of each kind --
     which is why the API refuses more than one before a job is ever created.
@@ -180,6 +185,10 @@ def build_filter_string(tree: dict, must_have: list[int], must_not_have: list[in
     for group in (exactly_one_of or []):
         for nid in group:
             values[index_of[nid]] = "-3"
+    for nid, low in (rank_min or {}).items():
+        values[index_of[int(nid)]] = str(low)
+    for nid, high in (rank_max or {}).items():
+        values[index_of[int(nid)]] += f"/{high}"
     return ":".join(values)
 
 
@@ -257,6 +266,8 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str,
     at_least_one_of = [[int(x) for x in g] for g in request.get("atLeastOneOf", [])]
     exactly_one_of = [[int(x) for x in g] for g in request.get("exactlyOneOf", [])]
     choice_sides = {str(k): str(v) for k, v in (request.get("choiceSides") or {}).items()}
+    rank_min = {str(k): int(v) for k, v in (request.get("rankMin") or {}).items()}
+    rank_max = {str(k): int(v) for k, v in (request.get("rankMax") or {}).items()}
     time_budget = min(int(request.get("timeBudgetMs", DEFAULT_TIME_BUDGET_MS)),
                       DEFAULT_TIME_BUDGET_MS)
     max_results = min(int(request.get("maxResults", DEFAULT_MAX_RESULTS)),
@@ -278,10 +289,10 @@ def run_solve(solver: str, tree: dict, request: dict, workdir: str,
     ]
     if on_progress is not None:
         args += ["--progress", "--progress-interval-ms", str(PROGRESS_INTERVAL_MS)]
-    if must_have or must_not_have or at_least_one_of or exactly_one_of or choice_sides:
+    if must_have or must_not_have or at_least_one_of or exactly_one_of or choice_sides or rank_min or rank_max:
         args += ["--filter", build_filter_string(tree, must_have, must_not_have,
                                                  at_least_one_of, exactly_one_of,
-                                                 choice_sides)]
+                                                 choice_sides, rank_min, rank_max)]
 
     hard_timeout = (time_budget / 1000) + 60
     started = time.monotonic()

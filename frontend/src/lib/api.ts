@@ -204,6 +204,9 @@ export interface Constraints {
   choiceSides?: Record<string, ChoiceSide>;
   atLeastOneOf?: number[][];
   exactlyOneOf?: number[][];
+  /** Multi-rank talents: at least / at most so many ranks. */
+  rankMin?: Record<string, number>;
+  rankMax?: Record<string, number>;
 }
 
 export interface CountResult {

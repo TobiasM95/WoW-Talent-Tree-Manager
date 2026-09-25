@@ -82,6 +82,12 @@ namespace Engine {
     struct TalentSkillset {
         std::string name;
         std::map<int, int> assignedSkillPoints;
+        /*
+        Filters only: the most ranks a talent may have, when fewer than its maximum. A cap of k
+        excludes the talent's (k+1)-th rank, which the rank chain makes the same as excluding
+        every rank above k. Absent means no cap.
+        */
+        std::map<int, int> maxSkillPoints;
         int talentPointsSpent = 0;
         int levelCap = 70;
         bool useLevelCap = true;

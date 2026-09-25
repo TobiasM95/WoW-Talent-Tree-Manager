@@ -27,6 +27,7 @@ import { EMPTY_SEARCH, emptyWork, type Search, type TreeWork } from "./workspace
  *   ?p  the search's point budget  ?r ?x  required, barred      pp  a shared pool's points
  *       (a tab sharing a pool: the points it must hold)
  *   ?s  pinned choice sides        ?o ?e  at-least-one, exactly-one groups
+ *   ?n  rank limits on multi-rank talents: id~min~max
  */
 
 /** `hero2` is the hero tree not currently shown -- kept, since both can be simmed at once. */
@@ -86,6 +87,26 @@ const parsePairs = (text: string | null, keepZero = false): Record<string, numbe
   return out;
 };
 
+/**
+ * Rank limits: `<base36 id>~<min>~<max>`, joined by `-`; an empty max is no cap. "~" because
+ * a digit fused to the id, as build pairs are, cannot carry two numbers.
+ */
+const rankTokens = (ranks: Search["ranks"]) =>
+  Object.entries(ranks ?? {})
+    .map(([id, r]) => `${b36(Number(id))}~${r.min}~${r.max ?? ""}`)
+    .join("-");
+
+const parseRanks = (text: string | null): NonNullable<Search["ranks"]> => {
+  const out: NonNullable<Search["ranks"]> = {};
+  for (const token of (text ?? "").split("-")) {
+    const [id36, min, max] = token.split("~");
+    const id = unb36(id36 ?? "");
+    if (!Number.isFinite(id) || id <= 0 || min === undefined) continue;
+    out[String(id)] = { min: Number(min) || 0, max: max ? Number(max) : null };
+  }
+  return out;
+};
+
 const sidePairs = (sides: Search["sides"]) =>
   Object.entries(sides)
     .map(([id, side]) => `${b36(Number(id))}${side}`)
@@ -121,12 +142,14 @@ export function encode(state: Shared): string {
     params.set(`${p}m`, work.mode === "fixed" ? "f" : "o");
     if (Object.keys(work.points).length) params.set(`${p}b`, pairs(work.points));
     if (Object.keys(work.picks).length) params.set(`${p}k`, pairs(work.picks));
-    if (s.budget) params.set(`${p}p`, String(s.budget));
+    // Zero is a real budget for a tab sharing a pool: "exactly 0 in Protection" is 31/20/0.
+    if (s.budget !== null) params.set(`${p}p`, String(s.budget));
     if (s.required.length) params.set(`${p}r`, ids(s.required));
     if (s.excluded.length) params.set(`${p}x`, ids(s.excluded));
     if (Object.keys(s.sides).length) params.set(`${p}s`, sidePairs(s.sides));
     if (s.atLeastOne.length) params.set(`${p}o`, ids(s.atLeastOne));
     if (s.exactlyOne.length) params.set(`${p}e`, ids(s.exactlyOne));
+    if (Object.keys(s.ranks ?? {}).length) params.set(`${p}n`, rankTokens(s.ranks));
   }
 
   const text = params.toString();
@@ -160,20 +183,21 @@ export function decode(search: string): Shared {
 
   for (const role of ROLES) {
     const p = PREFIX[role];
-    const has = [..."mbkprxsoe"].some((k) => params.has(`${p}${k}`));
+    const has = [..."mbkprxsoen"].some((k) => params.has(`${p}${k}`));
     if (!has) continue;
-    const budget = Number(params.get(`${p}p`));
+    const budget = params.has(`${p}p`) ? Number(params.get(`${p}p`)) : NaN;
     out.work[role] = {
       mode: params.get(`${p}m`) === "f" ? "fixed" : "open",
       points: parsePairs(params.get(`${p}b`)),
       picks: parsePairs(params.get(`${p}k`), true),
       search: {
-        budget: Number.isFinite(budget) && budget > 0 ? budget : null,
+        budget: Number.isFinite(budget) && budget >= 0 ? budget : null,
         required: parseIds(params.get(`${p}r`)),
         excluded: parseIds(params.get(`${p}x`)),
         sides: parseSides(params.get(`${p}s`)),
         atLeastOne: parseIds(params.get(`${p}o`)),
         exactlyOne: parseIds(params.get(`${p}e`)),
+        ranks: parseRanks(params.get(`${p}n`)),
       },
     };
   }

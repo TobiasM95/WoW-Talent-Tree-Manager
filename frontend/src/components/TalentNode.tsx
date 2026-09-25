@@ -64,11 +64,60 @@ export interface TalentNodeProps {
    * so they are distinguished here rather than sharing one attribute and one set of rules.
    */
   editing?: boolean;
+  /**
+   * A search's rank limits on a multi-rank talent: at least `min`, at most `max`. Drawn as the
+   * ring split into one arc per rank -- green up to the minimum, red past the cap -- so
+   * "exactly 2 of 3" reads as two green arcs and a red one without a word.
+   */
+  range?: { min: number; max: number };
   onActivate: (node: NodeData, alternate: boolean) => void;
   onHover: (node: NodeData | null, element: HTMLElement | null) => void;
 }
 
 const SIZE = 44;
+const ARC_R = 27;
+const ARC_BOX = (ARC_R + 3) * 2;
+
+/** "2+", "=2", "≤1", "1–2": a rank range in the fewest characters that say it. */
+export function rangeLabel(min: number, max: number, top: number): string {
+  if (max <= 0) return "";
+  if (min === max) return `=${min}`;
+  if (max < top) return min > 0 ? `${min}–${max}` : `≤${max}`;
+  return `${min}+`;
+}
+
+/** Arc i of n around the node, clockwise from the top, with a gap between ranks. */
+function arcPath(i: number, n: number): string {
+  const gap = n > 1 ? 14 : 0;
+  const c = ARC_BOX / 2;
+  const angle = (deg: number) => ((deg - 90) * Math.PI) / 180;
+  const a0 = angle((i * 360) / n + gap / 2);
+  const a1 = angle(((i + 1) * 360) / n - gap / 2);
+  const large = a1 - a0 > Math.PI ? 1 : 0;
+  const p = (a: number) => `${(c + ARC_R * Math.cos(a)).toFixed(2)} ${(c + ARC_R * Math.sin(a)).toFixed(2)}`;
+  return `M ${p(a0)} A ${ARC_R} ${ARC_R} 0 ${large} 1 ${p(a1)}`;
+}
+
+/**
+ * One arc per rank of a multi-rank talent. In a search: green to the minimum, red past the
+ * cap, faint between. In the planner: gold for every rank spent -- a partly filled talent
+ * reads as partly filled.
+ */
+function RankArcs({ kinds }: { kinds: ("must" | "barred" | "free" | "spent" | "empty")[] }) {
+  return (
+    <svg
+      className="ttm-rank-arcs"
+      width={ARC_BOX}
+      height={ARC_BOX}
+      style={{ left: (SIZE - ARC_BOX) / 2, top: (SIZE - ARC_BOX) / 2 }}
+      aria-hidden="true"
+    >
+      {kinds.map((kind, i) => (
+        <path key={i} className="ttm-rank-arc" data-kind={kind} d={arcPath(i, kinds.length)} />
+      ))}
+    </svg>
+  );
+}
 
 /** A constraint state read aloud. "anyOf" is a variable name, not a sentence. */
 const SPOKEN: Record<NodeState, string> = {
@@ -143,11 +192,23 @@ export const TalentNode = memo(function TalentNode({
   impact,
   reachable,
   editing,
+  range,
   onActivate,
   onHover,
 }: TalentNodeProps) {
   const entries = node.entries;
   const isChoice = node.kind === "choice" && entries.length >= 2;
+  const top = node.maxPoints;
+  const multi = !isChoice && top > 1 && node.kind !== "subtree";
+  // Arcs: the search's limits when it has any here, else the ranks a build spends.
+  const arcs = !multi
+    ? null
+    : range
+      ? Array.from({ length: top }, (_, i) => (i < range.min ? "must" : i >= range.max ? "barred" : "free") as "must" | "barred" | "free")
+      : spent !== undefined && share === undefined && impact === undefined
+        ? Array.from({ length: top }, (_, i) => (i < spent ? "spent" : "empty") as "spent" | "empty")
+        : null;
+  const limit = range && multi ? rangeLabel(range.min, range.max, top) : "";
 
   return (
     <button
@@ -165,6 +226,7 @@ export const TalentNode = memo(function TalentNode({
       data-reachable={reachable === undefined ? undefined : reachable ? "yes" : "no"}
       data-editing={editing ? "" : undefined}
       data-side={side ?? undefined}
+      data-range={range && multi ? `${range.min}-${range.max}` : undefined}
       data-stale={stale ? "" : undefined}
       style={{
         // The share rides along as a custom property so the stylesheet can interpolate the
@@ -192,7 +254,7 @@ export const TalentNode = memo(function TalentNode({
       onBlur={() => onHover(null, null)}
       aria-label={`${node.name}${
         state === "neutral" ? "" : `, ${SPOKEN[state]}`
-      }. ${node.maxPoints} point${node.maxPoints === 1 ? "" : "s"}.`}
+      }${limit ? `, ranks ${limit}` : ""}. ${node.maxPoints} point${node.maxPoints === 1 ? "" : "s"}.`}
       aria-pressed={state !== "neutral"}
     >
       {/* Three layers, one silhouette: keyline, state colour, artwork. The stylesheet
@@ -218,7 +280,13 @@ export const TalentNode = memo(function TalentNode({
           one-point talent does not need "1/1". */}
       {/* A talent no matching build takes is already invisible on the canvas; labelling it
           "0%" adds a row of noise across the unreachable bottom of the tree. */}
-      {share !== undefined ? (
+      {arcs && <RankArcs kinds={arcs} />}
+
+      {limit ? (
+        <span className="ttm-node-ranks" data-limit="" aria-hidden="true">
+          {limit}
+        </span>
+      ) : share !== undefined ? (
         share > 0 ? (
           <span className="ttm-node-ranks" aria-hidden="true">
             {share >= 0.999 ? "all" : `${Math.round(share * 100)}%`}

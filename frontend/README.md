@@ -17,6 +17,17 @@ The typical path: paste the talent string you play, which fixes all three trees;
 one you want to explore; paint until the count fits; simulate; read the answer; "use this
 build" to fix the trees to it and go round again.
 
+**Ranks.** A multi-rank talent is painted a rank at a time. *Require / bar* steps its
+minimum -- at least 1, at least 2, ... maxed, then barred -- and *At most* lowers its cap, so
+"exactly 2 of 3" is two clicks and one, and a one-point dip is a cap of 1 on a free talent. The
+ring shows it: one arc per rank, green up to the minimum, red past the cap, with a badge (`2+`,
+`=2`, `≤1`, `1–2`). In the planner the same arcs fill gold as ranks are spent, and the arrows a
+build runs along turn gold, the ones it could take next green. The counter and the engine both
+already treat each rank as its own step, so a limit costs nothing to count and reaches the
+listed builds -- the API suite checks the two agree on every kind of rank limit, and that the
+exact-rank counts of a talent add up to all its builds. `test:ranks` paints them in the browser
+against counts asked of the API directly.
+
 **Top players.** In retail's Narrow, a panel reads what the top-ranked players of the spec
 run, from WarcraftLogs -- a raid on Mythic or Heroic, one boss or all, or a Mythic+ season. It
 shows the hero-tree split and each talent's pick rate on the trees, and offers three things to
@@ -122,6 +133,7 @@ pnpm run test:report                           # the SimC report reader, against
 pnpm run test:canvas                           # shapes, keylines, four colours, both themes
 pnpm run test:forever                          # WoW Forever: three tabs, one pool of 51
 pnpm run test:editor                           # design, connect, undo, save, plan, share, copy
+pnpm run test:ranks                            # rank limits: at least, exactly, a dip; planner arcs
 pnpm run test:popular                          # top players: see, use, narrow, sim them for real
 pnpm test                                      # the whole workflow, with a live SimulationCraft run
 pnpm run test:all                              # all of it

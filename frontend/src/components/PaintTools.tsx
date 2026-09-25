@@ -24,7 +24,13 @@ const TOOLS: { tool: Tool; label: string; how: string }[] = [
   {
     tool: "toggle",
     label: "Require / bar",
-    how: "Click a talent to require it, again to bar it. Choice nodes cycle left, right, barred.",
+    how:
+      "Click a talent to require it, again to bar it. A multi-rank talent steps up a rank at a time first: at least 1, at least 2, … maxed. Choice nodes cycle left, right, barred.",
+  },
+  {
+    tool: "atMost",
+    label: "At most",
+    how: "Click a multi-rank talent to cap its ranks, one fewer each click. With a minimum that makes exactly N, or a one-point dip. A one-rank talent is barred.",
   },
   {
     tool: "atLeastOne",
@@ -57,18 +63,23 @@ export function PaintTools({ tool, onTool, anyOpen, onClear, clearable, counts }
 
       {anyOpen ? (
         <>
-          <div className="seg mt-2 w-full" role="group" aria-label="Paint tool">
-            {TOOLS.map((t) => (
-              <button
-                key={t.tool}
-                type="button"
-                className="flex-1 whitespace-nowrap !px-1.5"
-                aria-pressed={tool === t.tool}
-                onClick={() => onTool(t.tool)}
-                title={t.how}
-              >
-                {t.label}
-              </button>
+          {/* Two rows of two: what a talent must have, then groups across talents. */}
+          <div className="mt-2 flex flex-col gap-1" role="group" aria-label="Paint tool">
+            {[TOOLS.slice(0, 2), TOOLS.slice(2)].map((row, i) => (
+              <div key={i} className="seg w-full">
+                {row.map((t) => (
+                  <button
+                    key={t.tool}
+                    type="button"
+                    className="flex-1 whitespace-nowrap !px-1.5"
+                    aria-pressed={tool === t.tool}
+                    onClick={() => onTool(t.tool)}
+                    title={t.how}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
           <p className="mt-2 text-[11.5px] leading-snug text-ink-soft">

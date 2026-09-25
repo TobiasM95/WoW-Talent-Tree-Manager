@@ -91,7 +91,7 @@ def query(sql: str, params: tuple = ()) -> list[dict[str, Any]]:
 #   2  result bits name talents by rank over the whole tree, granted roots included --
 #      version 1 ranked only the solved DAG and mislabelled every talent after a granted
 #      root (migration 007 drops those rows).
-SOLVE_CONTRACT = 2
+SOLVE_CONTRACT = 3
 
 
 @functools.lru_cache(maxsize=256)
@@ -131,6 +131,7 @@ def _dp_graph(tree_key: str, level_cap: int):
         "tree_id": rows[0]["id"], "revision": rows[0]["revision"],
         "meta": meta, "par": par, "chi": chi, "order": order,
         "slots": len(meta), "node_ids": ids,
+        "ranks": {i: n["maxPoints"] for i, n in nodes.items()},
         # Which nodes the DP actually models, which is not every node in the tree.
         #
         # A pre-filled root is *granted*: the expansion removes it and promotes its children,
@@ -179,6 +180,10 @@ class CountRequest(BaseModel):
     # Groups of node ids. "at least one of these" / "exactly one of these".
     atLeastOneOf: list[list[int]] = Field(default_factory=list)
     exactlyOneOf: list[list[int]] = Field(default_factory=list)
+    # Per-rank refinement of a multi-rank talent: {"88209": 2} -- at least / at most so many
+    # ranks. Both together say "exactly"; a cap of 1 is a one-point dip.
+    rankMin: dict[str, int] = Field(default_factory=dict)
+    rankMax: dict[str, int] = Field(default_factory=dict)
 
     @field_validator("mustHave", "mustNotHave")
     @classmethod
@@ -390,6 +395,7 @@ def _group_nodes(req: "CountRequest") -> set[int]:
 def _validate(req: "CountRequest", graph: dict) -> None:
     unknown = (set(req.mustHave) | set(req.mustNotHave)) - graph["node_ids"]
     unknown |= {int(k) for k in req.choiceSides} - graph["node_ids"]
+    unknown |= {int(k) for k in (*req.rankMin, *req.rankMax)} - graph["node_ids"]
     unknown |= _group_nodes(req) - graph["node_ids"]
     for group in req.atLeastOneOf + req.exactlyOneOf:
         if len(group) < 2:
@@ -402,7 +408,7 @@ def _validate(req: "CountRequest", graph: dict) -> None:
     # did not ask.
     granted = (
         (set(req.mustHave) | set(req.mustNotHave) | _group_nodes(req)
-         | {int(k) for k in req.choiceSides})
+         | {int(k) for k in req.choiceSides} | {int(k) for k in (*req.rankMin, *req.rankMax)})
         & graph["node_ids"]
     ) - graph["modelled"]
     if granted:
@@ -414,6 +420,18 @@ def _validate(req: "CountRequest", graph: dict) -> None:
     if contradictory:
         raise HTTPException(
             400, f"node id(s) {sorted(contradictory)} are both required and excluded")
+    for key, low in req.rankMin.items():
+        ranks = graph["ranks"].get(int(key), 1)
+        if not 1 <= low <= ranks:
+            raise HTTPException(400, f"node {key} has {ranks} rank(s); at least {low} cannot be asked")
+        if key in req.rankMax and req.rankMax[key] < low:
+            raise HTTPException(400, f"node {key}: at least {low} and at most {req.rankMax[key]} ranks contradict")
+        if int(key) in set(req.mustNotHave):
+            raise HTTPException(400, f"node {key} is both excluded and given a minimum rank")
+    for key, high in req.rankMax.items():
+        ranks = graph["ranks"].get(int(key), 1)
+        if not 0 <= high < ranks:
+            raise HTTPException(400, f"node {key} has {ranks} rank(s); a cap must be below that, from 0")
     if req.points > graph["slots"]:
         raise HTTPException(
             400,
@@ -425,7 +443,7 @@ def _count_for(req: "CountRequest", graph: dict):
     """Shared by the gate and by job submission, so the number a user is shown is exactly
     the number the job is created against."""
     filtered = bool(req.mustHave or req.mustNotHave or req.choiceSides
-                    or req.atLeastOneOf or req.exactlyOneOf)
+                    or req.atLeastOneOf or req.exactlyOneOf or req.rankMin or req.rankMax)
     if not filtered:
         rows = query(
             """
@@ -444,6 +462,8 @@ def _count_for(req: "CountRequest", graph: dict):
         require=set(req.mustHave), exclude=set(req.mustNotHave),
         choice_sides={int(k): v for k, v in req.choiceSides.items()},
         at_least_one_of=req.atLeastOneOf, exactly_one_of=req.exactlyOneOf,
+        rank_min={int(k): v for k, v in req.rankMin.items()},
+        rank_max={int(k): v for k, v in req.rankMax.items()},
     )
     args = (graph["meta"], graph["par"], graph["chi"], graph["order"], req.points)
     sets = count_with_groups(*args, **common)
@@ -509,6 +529,11 @@ def submit_solve(req: SolveRequest) -> "JobResponse":
         "exactlyOneOf": [sorted(g) for g in req.exactlyOneOf],
         "maxResults": req.maxResults, "timeBudgetMs": req.timeBudgetMs,
     }
+    # Only when used, so a request without rank limits hashes as it did.
+    if req.rankMin:
+        payload["rankMin"] = {str(k): v for k, v in sorted(req.rankMin.items())}
+    if req.rankMax:
+        payload["rankMax"] = {str(k): v for k, v in sorted(req.rankMax.items())}
     # Dedup and cache are the same mechanism. The hash covers the exact tree revision, so
     # a new ingest revision correctly yields a different job rather than a stale hit -- and
     # the solver contract, so a change to what a stored result *means* does too.
@@ -1014,6 +1039,8 @@ def count_spread(req: CountRequest) -> SpreadResponse:
         require=set(req.mustHave), exclude=set(req.mustNotHave),
         choice_sides={int(k): v for k, v in req.choiceSides.items()},
         at_least_one_of=req.atLeastOneOf, exactly_one_of=req.exactlyOneOf,
+        rank_min={int(k): v for k, v in req.rankMin.items()},
+        rank_max={int(k): v for k, v in req.rankMax.items()},
     )
     return SpreadResponse(
         treeKey=req.treeKey, levelCap=req.levelCap,
@@ -1034,7 +1061,7 @@ def count_builds(req: CountRequest) -> CountResponse:
     graph = _dp_graph(req.treeKey, req.levelCap)
     _validate(req, graph)
     filtered = bool(req.mustHave or req.mustNotHave or req.choiceSides
-                    or req.atLeastOneOf or req.exactlyOneOf)
+                    or req.atLeastOneOf or req.exactlyOneOf or req.rankMin or req.rankMax)
     sets, builds, source = _count_for(req, graph)
 
     return CountResponse(

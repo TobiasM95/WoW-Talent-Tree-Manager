@@ -102,6 +102,9 @@ def test_filter_string():
           worker.build_filter_string(tree, [], [], [], [[10, 20]]) == "-3:-3:0:0")
     check("unconstrained is all zeroes",
           worker.build_filter_string(tree, [], []) == "0:0:0:0")
+    check("rank limits: at least, at most, exactly",
+          worker.build_filter_string(tree, [], [], rank_min={"10": 2}, rank_max={"20": 1, "30": 2})
+          == "2:0/1:0/2:0")
 
 
 # ---------------------------------------------------------------------------

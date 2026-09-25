@@ -32,6 +32,7 @@ const specWork = {
     sides: { 96220: "b", 96221: "a" },
     atLeastOne: [96230, 96231],
     exactlyOne: [96240, 96241, 96242],
+    ranks: { 96200: { min: 2, max: null }, 96250: { min: 0, max: 1 } },
   },
 };
 const heroWork = { ...W.emptyWork("open"), search: { ...W.EMPTY_SEARCH, budget: 8 } };
@@ -122,6 +123,44 @@ check("adding to a group clears the talent's own constraint", same(g.search.atLe
 check("a group of one is pending, not sent", W.pendingOf(g).length === 1 && !W.payloadOf(g, 30).atLeastOneOf);
 g = W.paint(g, node(8), "atLeastOne", false);
 check("a group of two is sent", same(W.payloadOf(g, 30).atLeastOneOf, [[7, 8]]));
+
+/* --- rank limits on multi-rank talents ----------------------------------- */
+
+const three = { ...node(9), maxPoints: 3 };
+const stepThrough = [];
+let r = W.emptyWork("open");
+for (let i = 0; i < 5; i++) {
+  r = W.paint(r, three, "toggle", false);
+  stepThrough.push(W.rangeOf(r.search, three).join("-"));
+}
+check("a 3-rank talent steps its minimum: 1+, 2+, maxed, barred, free",
+  same(stepThrough, ["1-3", "2-3", "3-3", "0-0", "0-3"]), stepThrough.join(" "));
+check("and 1+ is plain 'required', with no range written",
+  (() => { const one = W.paint(W.emptyWork("open"), three, "toggle", false); return same(one.search.required, [9]) && !Object.keys(one.search.ranks).length; })());
+
+let cap = W.paint(W.emptyWork("open"), three, "toggle", false);
+cap = W.paint(cap, three, "toggle", false); // at least 2
+cap = W.paint(cap, three, "atMost", false); // at most 2 -> exactly 2
+check("At most on a 2+ talent makes exactly 2", W.rangeOf(cap.search, three).join("-") === "2-2");
+check("sent as a minimum and a cap", same(W.payloadOf(cap, 30).rankMin, { 9: 2 }) && same(W.payloadOf(cap, 30).rankMax, { 9: 2 })
+  && same(W.payloadOf(cap, 30).mustHave, [9]));
+cap = W.paint(cap, three, "atMost", false); // at most 1: the minimum comes down with it
+check("a lower cap pulls the minimum down with it", W.rangeOf(cap.search, three).join("-") === "1-1");
+cap = W.paint(cap, three, "atMost", false); // back to no cap
+check("and the cap cycles back to none", W.rangeOf(cap.search, three).join("-") === "1-3" && !W.payloadOf(cap, 30).rankMax);
+
+let dip = W.paint(W.emptyWork("open"), three, "atMost", false);
+dip = W.paint(dip, three, "atMost", false);
+check("a free talent capped at 1: a one-point dip or nothing", W.rangeOf(dip.search, three).join("-") === "0-1"
+  && same(W.payloadOf(dip, 30).rankMax, { 9: 1 }) && !W.payloadOf(dip, 30).mustHave);
+check("At most on a one-rank talent bars it", same(W.paint(W.emptyWork("open"), node(4), "atMost", false).search.excluded, [4]));
+check("a group tool clears a range", !Object.keys(W.paint(cap, three, "atLeastOne", false).search.ranks).length);
+
+const ranked = { ...W.emptyWork("open"), search: { ...cap.search, ranks: { 9: { min: 2, max: 2 }, 77: { min: 0, max: 1 } }, budget: 0 } };
+const rt = S.decode(S.encode({ ...S.NOTHING, spec: "retail/6/250/spec", work: { spec: ranked } }));
+check("rank limits survive a link", same(rt.work.spec.search.ranks, { 9: { min: 2, max: 2 }, 77: { min: 0, max: 1 } }),
+  JSON.stringify(rt.work.spec.search.ranks));
+check("and so does a budget of 0 -- a pooled tab held empty", rt.work.spec.search.budget === 0);
 
 const budget = W.payloadOf({ ...W.emptyWork(), search: { ...W.EMPTY_SEARCH, budget: 40 } }, 34);
 check("a budget above the cap is clamped to it", budget.points === 34);

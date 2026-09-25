@@ -28,6 +28,19 @@
 #include <atomic>
 #include <algorithm>
 
+/*
+    One talent's filter token: "value", or "value/cap". The value keeps its meaning (>0 at least
+    that many ranks, -1 none, -2/-3 group membership); the cap is the most ranks it may have,
+    which lets a filter say "exactly 2 of 3" ("2/2") or "a one-point dip" ("1/1").
+*/
+static void applyFilterToken(Engine::TalentSkillset& skillset, int index, const std::string& token) {
+    size_t slash = token.find('/');
+    skillset.assignedSkillPoints[index] = std::stoi(token.substr(0, slash));
+    if (slash != std::string::npos) {
+        skillset.maxSkillPoints[index] = std::stoi(token.substr(slash + 1));
+    }
+}
+
 int main(int argc, char** argv)
 {
     CLI::CLSettings settings = CLI::processCommandLine(argc, argv);
@@ -232,7 +245,7 @@ namespace CLI {
                         for (int i = 0; i < static_cast<int>(filterParts.size()); i++) {
                             auto& skillsetPart = filterParts[i];
                             int presetIndex = positionalToPresetIndexMap[i];
-                            skillset.assignedSkillPoints[presetIndex] = std::stoi(skillsetPart);
+                            applyFilterToken(skillset, presetIndex, skillsetPart);
                         }
                         allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
                     }
@@ -249,7 +262,7 @@ namespace CLI {
                         int skillsetPartIndex = 1;
                         for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
                             auto& skillsetPart = filterParts[skillsetPartIndex];
-                            skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
+                            applyFilterToken(skillset, indexTalentPair.first, skillsetPart);
                             skillsetPartIndex++;
                         }
                         allRunDetails[i].filter = std::make_shared<Engine::TalentSkillset>(skillset);
@@ -284,7 +297,7 @@ namespace CLI {
                         int skillsetPartIndex = 1;
                         for (auto& indexTalentPair : allRunDetails[treeIndex].tree.orderedTalents) {
                             auto& skillsetPart = skillsetParts[skillsetPartIndex];
-                            skillset.assignedSkillPoints[indexTalentPair.first] = std::stoi(skillsetPart);
+                            applyFilterToken(skillset, indexTalentPair.first, skillsetPart);
                             skillsetPartIndex++;
                         }
 

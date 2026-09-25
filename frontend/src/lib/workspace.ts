@@ -28,7 +28,17 @@ import type { NodeState } from "../components/TalentNode";
 export type TreeMode = "fixed" | "open";
 
 /** What a click on an open tree does. */
-export type Tool = "toggle" | "atLeastOne" | "exactlyOne";
+export type Tool = "toggle" | "atMost" | "atLeastOne" | "exactlyOne";
+
+/**
+ * A multi-rank talent's limits beyond "taken or not": at least `min` ranks, at most `max`
+ * (null: no cap). The ranks are separate steps in the engine and the counter alike, so
+ * "exactly 2 of 3" or a one-point dip cost nothing extra to ask.
+ */
+export interface RankRange {
+  min: number;
+  max: number | null;
+}
 
 export interface Search {
   /** Points to spend in this tree. Null follows the tree's cap, which is almost always wanted. */
@@ -39,6 +49,11 @@ export interface Search {
   sides: Record<string, Exclude<ChoiceSide, "none">>;
   atLeastOne: number[];
   exactlyOne: number[];
+  /**
+   * Rank limits on multi-rank talents, by node id. Only what `required`/`excluded` cannot
+   * say: "required" is already at least one rank and "barred" none. Missing on older work.
+   */
+  ranks?: Record<string, RankRange>;
 }
 
 export interface TreeWork {
@@ -57,6 +72,7 @@ export const EMPTY_SEARCH: Search = {
   sides: {},
   atLeastOne: [],
   exactlyOne: [],
+  ranks: {},
 };
 
 export const emptyWork = (mode: TreeMode = "open"): TreeWork => ({
@@ -77,6 +93,43 @@ const toggled = (list: number[], id: number) =>
   list.includes(id) ? without(list, id) : [...list, id];
 
 const isChoice = (node: TalentNode) => node.kind === "choice" && node.entries.length >= 2;
+/** A talent whose ranks can be limited one by one. */
+export const isMultiRank = (node: TalentNode) => !isChoice(node) && node.maxPoints > 1;
+
+/** The ranks a search allows a talent: [min, max], whatever combination of fields says so. */
+export function rangeOf(s: Search, node: TalentNode): [number, number] {
+  const id = node.nodeId;
+  const top = node.maxPoints;
+  if (s.excluded.includes(id)) return [0, 0];
+  const r = s.ranks?.[String(id)];
+  const min = Math.max(r?.min ?? 0, s.required.includes(id) ? 1 : 0);
+  return [min, Math.max(min, r?.max ?? top)];
+}
+
+/**
+ * Set a talent's rank range, written the plainest way it can be: none is barred, at least
+ * one with no cap is required, the full range is nothing at all, and anything else a range.
+ * Groups on the talent are dropped, since a range already says what should happen to it.
+ */
+export function withRange(s: Search, node: TalentNode, min: number, max: number): Search {
+  const id = node.nodeId;
+  const top = node.maxPoints;
+  const ranks = { ...(s.ranks ?? {}) };
+  delete ranks[String(id)];
+  const base: Search = {
+    ...s,
+    ranks,
+    required: without(s.required, id),
+    excluded: without(s.excluded, id),
+    atLeastOne: without(s.atLeastOne, id),
+    exactlyOne: without(s.exactlyOne, id),
+  };
+  if (max <= 0) return { ...base, excluded: [...base.excluded, id] };
+  const required = min >= 1 ? [...base.required, id] : base.required;
+  if (min <= 1 && max >= top) return { ...base, required };
+  ranks[String(id)] = { min, max: max >= top ? null : max };
+  return { ...base, required, ranks };
+}
 
 /**
  * Paint a constraint onto an open tree.
@@ -84,7 +137,9 @@ const isChoice = (node: TalentNode) => node.kind === "choice" && node.entries.le
  * Clicking cycles neutral -> required -> barred -> neutral; right-click or shift goes the other
  * way, so a mis-click is one more click rather than a trip round the cycle. A choice node
  * cycles its *side* instead -- left, right, either -- because a choice node's interesting
- * property is which alternative, not whether. A group tool adds or removes the node from
+ * property is which alternative, not whether. A multi-rank talent cycles its *minimum*, a rank
+ * at a time -- at least 1, at least 2, ... maxed, barred -- and the At most tool lowers its cap,
+ * so "exactly 2 of 3" is two clicks and a one-point dip is one of each. A group tool adds or removes the node from
  * that group and clears any individual constraint on it, since the group already says what
  * should happen to it.
  */
@@ -92,7 +147,7 @@ export function paint(work: TreeWork, node: TalentNode, tool: Tool, alternate: b
   const id = node.nodeId;
   const s = work.search;
 
-  if (tool !== "toggle") {
+  if (tool === "atLeastOne" || tool === "exactlyOne") {
     const key = tool === "atLeastOne" ? "atLeastOne" : "exactlyOne";
     const other = tool === "atLeastOne" ? "exactlyOne" : "atLeastOne";
     return {
@@ -103,6 +158,7 @@ export function paint(work: TreeWork, node: TalentNode, tool: Tool, alternate: b
         [other]: without(s[other], id),
         required: without(s.required, id),
         excluded: without(s.excluded, id),
+        ranks: Object.fromEntries(Object.entries(s.ranks ?? {}).filter(([k]) => k !== String(id))),
       },
     };
   }
@@ -129,6 +185,32 @@ export function paint(work: TreeWork, node: TalentNode, tool: Tool, alternate: b
     };
   }
 
+  if (tool === "atMost") {
+    // Lower the cap a rank at a time: none, then max-1, ... down to 1, then none again. A
+    // minimum above the new cap comes down with it. A one-rank talent has only "barred".
+    const [min, max] = rangeOf(s, node);
+    const top = node.maxPoints;
+    if (!isMultiRank(node)) {
+      return { ...work, search: withRange(s, node, 0, max === 0 ? top : 0) };
+    }
+    const caps = Array.from({ length: top }, (_, i) => top - i); // top, top-1, ..., 1
+    const at = Math.max(0, caps.indexOf(Math.max(1, max)));
+    const cap = caps[(at + (alternate ? caps.length - 1 : 1)) % caps.length]!;
+    return { ...work, search: withRange(s, node, Math.min(min, cap), cap) };
+  }
+
+  if (isMultiRank(node)) {
+    // Free -> at least 1 -> at least 2 -> ... -> maxed -> barred -> free: the minimum, a rank
+    // at a time. A cap set with the At most tool is cleared, since the minimum now leads.
+    const top = node.maxPoints;
+    const [min, max] = rangeOf(s, node);
+    const steps = top + 2; // 0..top, then barred
+    const at = max === 0 ? top + 1 : min;
+    const next = (((at + (alternate ? -1 : 1)) % steps) + steps) % steps;
+    const search = next === top + 1 ? withRange(s, node, 0, 0) : withRange(s, node, next, top);
+    return { ...work, search };
+  }
+
   const state = s.required.includes(id) ? 1 : s.excluded.includes(id) ? 2 : 0;
   const landing = (((state + (alternate ? -1 : 1)) % 3) + 3) % 3;
   return {
@@ -137,6 +219,7 @@ export function paint(work: TreeWork, node: TalentNode, tool: Tool, alternate: b
       ...s,
       required: landing === 1 ? [...without(s.required, id), id] : without(s.required, id),
       excluded: landing === 2 ? [...without(s.excluded, id), id] : without(s.excluded, id),
+      ranks: Object.fromEntries(Object.entries(s.ranks ?? {}).filter(([k]) => k !== String(id))),
       atLeastOne: without(s.atLeastOne, id),
       exactlyOne: without(s.exactlyOne, id),
     },
@@ -192,6 +275,14 @@ export function payloadOf(work: TreeWork, cap: number): Constraints {
   // means the second talent has not been clicked yet.
   if (s.atLeastOne.length > 1) body.atLeastOneOf = [[...s.atLeastOne]];
   if (s.exactlyOne.length > 1) body.exactlyOneOf = [[...s.exactlyOne]];
+  const rankMin: Record<string, number> = {};
+  const rankMax: Record<string, number> = {};
+  for (const [id, r] of Object.entries(s.ranks ?? {})) {
+    if (r.min >= 2) rankMin[id] = r.min;
+    if (r.max !== null) rankMax[id] = r.max;
+  }
+  if (Object.keys(rankMin).length) body.rankMin = rankMin;
+  if (Object.keys(rankMax).length) body.rankMax = rankMax;
   return body;
 }
 
@@ -208,7 +299,9 @@ export const constraintCount = (work: TreeWork) =>
   work.search.excluded.length +
   Object.keys(work.search.sides).length +
   work.search.atLeastOne.length +
-  work.search.exactlyOne.length;
+  work.search.exactlyOne.length +
+  // A range on a required talent is one constraint, already counted as required.
+  Object.keys(work.search.ranks ?? {}).filter((id) => !work.search.required.includes(Number(id))).length;
 
 /** How each node of an open tree is drawn. */
 export function statesOf(work: TreeWork): Map<number, NodeState> {
@@ -220,6 +313,20 @@ export function statesOf(work: TreeWork): Map<number, NodeState> {
   for (const id of work.search.exactlyOne) map.set(id, "oneOf");
   // A pinned side takes the node, so it reads as required; the dimmed half says which side.
   for (const id of Object.keys(work.search.sides)) map.set(Number(id), "required");
+  return map;
+}
+
+/** Rank limits drawn on multi-rank talents: min and max ranks, where a search sets them. */
+export function rangesOf(work: TreeWork, tree: TreeDetail | null): Map<number, { min: number; max: number }> {
+  const map = new Map<number, { min: number; max: number }>();
+  if (work.mode !== "open" || !tree) return map;
+  const s = work.search;
+  const touched = new Set([...s.required, ...s.excluded, ...Object.keys(s.ranks ?? {}).map(Number)]);
+  for (const node of tree.nodes) {
+    if (!touched.has(node.nodeId) || !isMultiRank(node)) continue;
+    const [min, max] = rangeOf(s, node);
+    map.set(node.nodeId, { min, max });
+  }
   return map;
 }
 

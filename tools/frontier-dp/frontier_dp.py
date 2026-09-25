@@ -132,7 +132,7 @@ def topo_sort(meta, par, chi):
 
 def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
                       weight_choices=False, choice_sides=None,
-                      require=None, exclude=None):
+                      require=None, exclude=None, rank_min=None, rank_max=None):
     """
     Returns dict {k: count of valid selections of size exactly k} for k in 0..max_points.
 
@@ -158,10 +158,14 @@ def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
     the opposite of the engine, where must-have was historically tested only once per
     completed path.
 
-    Note these are node-level: requiring a multi-rank talent means requiring at least its
-    first rank. Requiring an exact rank count is a caller-level composition (require rank
-    k, exclude rank k+1).
+    Those two are node-level: requiring a multi-rank talent means at least its first rank.
+    `rank_min` and `rank_max` ({node id: ranks}) are the per-rank refinement, and just as
+    free: the ranks are already separate nodes in a chain, so "at least k" forces the first k
+    to be taken and "at most k" forbids rank k+1 and so everything after it. Together they
+    say "exactly k", or a one-point dip.
     """
+    rank_min = rank_min or {}
+    rank_max = rank_max or {}
     choice_sides = choice_sides or {}
     require = set(require or ())
     exclude = set(exclude or ())
@@ -185,8 +189,8 @@ def count_frontier_dp(meta, par, chi, order, max_points, verbose=False,
         # A required talent must be taken; the first expanded rank carries the requirement,
         # since later ranks can only be reached through it.
         rank = meta[n].get('rank', 0)
-        must_take = orig in require and rank == 0
-        must_skip = orig in exclude
+        must_take = (orig in require and rank == 0) or rank < rank_min.get(orig, 0)
+        must_skip = orig in exclude or rank >= rank_max.get(orig, rank + 1)
         if must_take and must_skip:
             # Contradictory filters admit nothing; say so rather than silently favouring one.
             return {}, 1
@@ -300,7 +304,7 @@ def count_with_groups(meta, par, chi, order, max_points, **filters):
 
 def count_spread(meta, par, chi, order, max_points, *, weight_choices=False,
                  choice_sides=None, require=None, exclude=None,
-                 at_least_one_of=None, exactly_one_of=None):
+                 at_least_one_of=None, exactly_one_of=None, rank_min=None, rank_max=None):
     """Counts for every point total 0..max_points at once, under the full filter language.
 
     One DP run already yields every total -- its state carries the points spent -- so asking
@@ -328,7 +332,8 @@ def count_spread(meta, par, chi, order, max_points, *, weight_choices=False,
     at_least_one_of = [list(g) for g in (at_least_one_of or []) if g]
     exactly_one_of = [list(g) for g in (exactly_one_of or []) if g]
 
-    base_kwargs = dict(weight_choices=weight_choices, choice_sides=choice_sides)
+    base_kwargs = dict(weight_choices=weight_choices, choice_sides=choice_sides,
+                       rank_min=rank_min, rank_max=rank_max)
 
     def run(req, exc):
         totals, _ = count_frontier_dp(meta, par, chi, order, max_points,

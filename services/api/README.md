@@ -43,9 +43,19 @@ POST /counts
   "mustNotHave":  [88210],
   "choiceSides":  {"88209": "a"},   // "a" | "b" | "none"
   "atLeastOneOf": [[88204, 88215, 88219]],
-  "exactlyOneOf": [[88221, 88236]]
+  "exactlyOneOf": [[88221, 88236]],
+  "rankMin":      {"88204": 2},     // multi-rank talents: at least so many ranks
+  "rankMax":      {"88204": 2}      // ... and at most; together, exactly
 }
 ```
+
+`rankMin` and `rankMax` refine a multi-rank talent past taken-or-not: at least 2 of 3, at most 1
+(a one-point dip), or both for exactly. The counter and the engine each already model a talent's
+ranks as a chain of single steps, so a minimum forces the first steps and a cap forbids the one
+after it -- no new state, and the engine's filter token grows a cap: `2/2` is exactly two.
+"Exactly one of" a group means its chosen member is *taken*, as the counter always read it; the
+engine used to demand it maxed, which the two disagreed on for multi-rank members (solve
+contract 3 drops results stored under the old meaning).
 
 ```jsonc
 {

@@ -288,11 +288,12 @@ namespace Engine {
                         continue;
                     }
                     if (iFP.first == indexFilterPair.first) {
-                        for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
-                            int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][i];
-                            int pos = expandedToPosIndexMap[expandedTalentIndex];
-                            setTalent(inc, pos);
-                        }
+                        // The chosen member is *taken* -- its first rank -- as the counting DP
+                        // reads "exactly one of". Requiring it maxed made the two disagree on
+                        // any group with a multi-rank member.
+                        int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][0];
+                        int pos = expandedToPosIndexMap[expandedTalentIndex];
+                        setTalent(inc, pos);
                     }
                     else {
                         for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
@@ -323,6 +324,15 @@ namespace Engine {
                     setTalent(includeFilter, pos);
                 }
             }
+        }
+        // Rank caps: "at most k ranks" excludes rank k+1, and the rank chain does the rest.
+        for (auto& indexCapPair : filter->maxSkillPoints) {
+            auto& ranks = compactToExpandedIndexMap[indexCapPair.first];
+            if (indexCapPair.second < 0 || indexCapPair.second >= static_cast<int>(ranks.size())) {
+                continue;
+            }
+            int pos = expandedToPosIndexMap[ranks[indexCapPair.second]];
+            setTalent(excludeFilter, pos);
         }
 
         //iterate through all possible combinations in order:
@@ -1015,11 +1025,12 @@ namespace Engine {
                         continue;
                     }
                     if (iFP.first == indexFilterPair.first) {
-                        for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
-                            int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][i];
-                            int pos = expandedToPosIndexMap[expandedTalentIndex];
-                            setTalent(inc, pos);
-                        }
+                        // The chosen member is *taken* -- its first rank -- as the counting DP
+                        // reads "exactly one of". Requiring it maxed made the two disagree on
+                        // any group with a multi-rank member.
+                        int expandedTalentIndex = compactToExpandedIndexMap[iFP.first][0];
+                        int pos = expandedToPosIndexMap[expandedTalentIndex];
+                        setTalent(inc, pos);
                     }
                     else {
                         for (int i = 0; i < compactToExpandedIndexMap[iFP.first].size(); i++) {
@@ -1050,6 +1061,15 @@ namespace Engine {
                     setTalent(includeFilter, pos);
                 }
             }
+        }
+        // Rank caps: "at most k ranks" excludes rank k+1, and the rank chain does the rest.
+        for (auto& indexCapPair : filter->maxSkillPoints) {
+            auto& ranks = compactToExpandedIndexMap[indexCapPair.first];
+            if (indexCapPair.second < 0 || indexCapPair.second >= static_cast<int>(ranks.size())) {
+                continue;
+            }
+            int pos = expandedToPosIndexMap[ranks[indexCapPair.second]];
+            setTalent(excludeFilter, pos);
         }
 
         vec2d<SIND> filteredCombinations;

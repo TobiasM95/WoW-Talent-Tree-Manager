@@ -49,6 +49,19 @@ export function ConstraintLegend({ counts }: ConstraintLegendProps) {
           ) : null}
         </li>
       ))}
+      {/* Ranks: the one meaning drawn as a ring rather than a colour. */}
+      <li className="flex items-center gap-1.5 text-[11.5px] leading-snug">
+        <svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true" className="shrink-0">
+          <path d="M 6.5 1.5 A 5 5 0 0 1 11.2 8" fill="none" stroke="var(--must)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 9.6 10.4 A 5 5 0 0 1 3.4 10.4" fill="none" stroke="color-mix(in srgb, var(--ink-faint) 40%, transparent)" strokeWidth="2" strokeLinecap="round" />
+          <path d="M 1.8 8 A 5 5 0 0 1 4.2 2" fill="none" stroke="var(--barred)" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+        <span className="whitespace-nowrap text-ink">Ranks</span>
+        <span className="truncate text-ink-faint" title="A multi-rank talent's ring is one arc per rank: green up to the minimum asked, red past the cap. The badge says it: 2+, =2, ≤1.">
+          — green to the minimum, red past the cap
+        </span>
+        {counts.ranks ? <span className="num ml-auto text-[10.5px] text-ink-faint">{counts.ranks}</span> : null}
+      </li>
     </ul>
   );
 }
