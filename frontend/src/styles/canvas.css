@@ -17,7 +17,14 @@
   */
   position: absolute;
   inset: 0;
-  overflow: hidden;
+  /*
+    clip, not hidden. A hidden overflow is still a scroll container: clicking a talent focuses
+    it, and the browser scrolls the container to bring the focused button into view -- so a
+    click near the edge of a pane silently slid the whole tree sideways and down, out of
+    reach of the pan and zoom that are supposed to own its position. clip cuts the same way
+    and cannot be scrolled at all.
+  */
+  overflow: clip;
   background:
     radial-gradient(
       100% 70% at 50% 8%,
