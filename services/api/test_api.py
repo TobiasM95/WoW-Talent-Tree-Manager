@@ -622,6 +622,111 @@ def t_forever_gates_and_arrows_bite():
     assert without_parent == 0, f"{child['name']} was countable without {parent['name']}"
 
 
+def _homebrew(name="Homebrew"):
+    """A small two-tree project: row gates, a prerequisite, a multi-rank talent, a choice."""
+    return {
+        "name": name,
+        "sharedPointCap": 12,
+        "trees": [
+            {
+                "name": "Might",
+                "pointsPerRow": 3,
+                "nodes": [
+                    {"nodeId": 101, "name": "Strength", "maxPoints": 3, "row": 0, "col": 0,
+                     "entries": [{"name": "Strength", "icon": "ability_rogue_ambush", "kind": "passive"}]},
+                    {"nodeId": 102, "name": "Grit", "maxPoints": 2, "row": 0, "col": 1},
+                    {"nodeId": 103, "name": "Cleave", "maxPoints": 1, "row": 1, "col": 0, "parents": [101],
+                     "entries": [{"name": "Cleave", "kind": "active"}]},
+                    {"nodeId": 104, "name": "Rage", "kind": "choice", "maxPoints": 1, "row": 1, "col": 1,
+                     "entries": [{"name": "Fury"}, {"name": "Calm"}]},
+                    {"nodeId": 105, "name": "Titan", "maxPoints": 1, "row": 2, "col": 0, "parents": [103]},
+                ],
+            },
+            {
+                "name": "Guard",
+                "nodes": [
+                    {"nodeId": 201, "name": "Shield", "maxPoints": 2, "row": 0, "col": 0},
+                    {"nodeId": 202, "name": "Wall", "maxPoints": 1, "row": 1, "col": 0, "parents": [201],
+                     "pointsRequired": 2},
+                ],
+            },
+        ],
+    }
+
+
+def t_custom_projects_save_and_solve():
+    """A designed project is saved, content-addressed, and solves like any other tree."""
+    saved = post("/custom-trees", _homebrew(), expect=201)
+    again = post("/custom-trees", _homebrew(), expect=201)
+    assert saved["project"] == again["project"], "the same design must be the same project"
+    other = post("/custom-trees", _homebrew("Homebrew 2"), expect=201)
+    assert other["project"] != saved["project"], "a different design must be a different project"
+
+    project = get(f"/custom-trees/{saved['project']}")
+    assert [t["name"] for t in project["trees"]] == ["Might", "Guard"], project["trees"]
+    assert project["design"]["trees"][0]["nodes"][0]["name"] == "Strength"
+    # The design round-trips: saving it again is the same project.
+    assert post("/custom-trees", project["design"], expect=201)["project"] == saved["project"]
+
+    might = project["trees"][0]["key"]
+    tree = get(f"/trees/{might}")
+    gates = {n["name"]: n["pointsRequired"] for n in tree["nodes"]}
+    assert gates["Cleave"] == 3 and gates["Titan"] == 6 and gates["Strength"] == 0, gates
+    assert tree["sharedPointCap"] == 12
+
+    for points in (3, 4, 6, 7):
+        count = post("/counts", {"treeKey": might, "points": points})
+        job = post("/solve", {"treeKey": might, "points": points}, expect=202)
+        done = _await_job(job["id"])
+        assert done["state"] == "done", done
+        assert done["resultCount"] == count["sets"], (points, done["resultCount"], count["sets"])
+        for build in _results(done["id"], done["resultCount"]):
+            problem = _vanilla_problem(tree, build, points)
+            assert problem is None, f"{points}: {problem} in {build}"
+    # Titan needs Cleave, which needs Strength at full rank, and row three opens at six.
+    titan = next(n["nodeId"] for n in tree["nodes"] if n["name"] == "Titan")
+    assert post("/counts", {"treeKey": might, "points": 5, "mustHave": [titan]})["sets"] == 0
+    assert post("/counts", {"treeKey": might, "points": 7, "mustHave": [titan]})["sets"] > 0
+    # The choice node's two sides count as two builds.
+    counted = post("/counts", {"treeKey": might, "points": 4})
+    assert counted["builds"] > counted["sets"], counted
+
+
+def t_custom_projects_refuse_broken_designs():
+    """Every rule the solver relies on is checked, and the refusal says what is wrong."""
+    import copy
+
+    cases = []
+    loop = copy.deepcopy(_homebrew())
+    loop["trees"][0]["nodes"][0]["parents"] = [105]
+    cases.append((loop, "loops back"))
+    clash = copy.deepcopy(_homebrew())
+    clash["trees"][0]["nodes"][1]["col"] = 0
+    cases.append((clash, "shares a cell"))
+    lonely = copy.deepcopy(_homebrew())
+    lonely["trees"][0]["nodes"][3]["entries"] = [{"name": "Fury"}]
+    cases.append((lonely, "exactly two alternatives"))
+    dangling = copy.deepcopy(_homebrew())
+    dangling["trees"][1]["nodes"][1]["parents"] = [999]
+    cases.append((dangling, "not in the tree"))
+    dup = copy.deepcopy(_homebrew())
+    dup["trees"][1]["nodes"][0]["nodeId"] = 101
+    cases.append((dup, "used twice"))
+    too_many = copy.deepcopy(_homebrew())
+    too_many["trees"] = too_many["trees"] * 2
+    cases.append((too_many, "one to 3 trees"))
+    ranks = copy.deepcopy(_homebrew())
+    ranks["trees"][0]["nodes"][0]["maxPoints"] = 12
+    cases.append((ranks, "ranks must be"))
+    for body, words in cases:
+        r = post("/custom-trees", body, expect=400)
+        assert words in str(r.get("detail", "")), (words, r)
+
+    # And custom trees are not browsable in bulk.
+    status, body = get_raw("/trees?game=custom")
+    assert status == 400 and "per project" in str(body.get("detail", "")), (status, body)
+
+
 def t_class_trees_differ_by_specialisation():
     """One class tree per spec, and they are genuinely different.
 
@@ -943,6 +1048,12 @@ def main() -> int:
     check("results name the talents the engine chose, granted roots or not",
           t_results_name_the_talents_the_engine_chose)
     check("class trees differ by specialisation", t_class_trees_differ_by_specialisation)
+
+    print("\ncustom trees:")
+    check("a designed project saves, is content-addressed, and solves",
+          t_custom_projects_save_and_solve)
+    check("broken designs are refused, saying what is wrong",
+          t_custom_projects_refuse_broken_designs)
 
     print("\nWoW Forever:")
     check("both games are served side by side", t_both_games_are_served)

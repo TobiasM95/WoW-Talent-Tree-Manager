@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(BASE + path, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
@@ -56,8 +56,11 @@ export const getHealth = (game: Game = "retail") => request<Health>(`/health?gam
 /** `tab` is a classic talent tab: one of a class's three trees, sharing one point pool. */
 export type TreeKind = "class" | "spec" | "hero" | "tab";
 
-/** Which game's trees. Retail has class, spec and hero trees; Forever has three tabs a class. */
-export type Game = "retail" | "forever";
+/**
+ * Which game's trees. Retail has class, spec and hero trees; Forever has three tabs a class;
+ * custom trees are a player's own project of one to three.
+ */
+export type Game = "retail" | "forever" | "custom";
 
 export interface TreeSummary {
   key: string;
@@ -160,8 +163,10 @@ export interface TreeDetail extends TreeSummary {
    */
   sharedPointCap?: number;
   pointsPerRow?: number;
-  /** Forever: this tab's place among its class's three. */
+  /** Forever and custom: this tab's place among its project's trees. */
   order?: number;
+  /** Custom: the saved project this tree belongs to. */
+  project?: string;
   /** Whose data this is, when the licence asks to say so. */
   attribution?: { name: string; url: string; license: string };
   nodes: TalentNode[];

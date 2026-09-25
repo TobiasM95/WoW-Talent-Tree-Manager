@@ -16,13 +16,14 @@
     "shots": "node shot.mjs",
     "test": "node workflow.test.mjs",
     "test:share": "node share.test.mjs",
-    "test:all": "pnpm run typecheck && pnpm run test:share && pnpm run test:loadout && pnpm run test:string && pnpm run test:simc && pnpm run test:report && pnpm run test:canvas && pnpm run test:forever && pnpm test",
+    "test:all": "pnpm run typecheck && pnpm run test:share && pnpm run test:loadout && pnpm run test:string && pnpm run test:simc && pnpm run test:report && pnpm run test:canvas && pnpm run test:forever && pnpm run test:editor && pnpm test",
     "test:loadout": "node loadout.test.mjs",
     "test:string": "node loadoutString.test.mjs",
     "test:simc": "node simc.test.mjs",
     "test:report": "node simcReport.test.mjs",
     "test:canvas": "node canvas.test.mjs",
-    "test:forever": "node forever.test.mjs"
+    "test:forever": "node forever.test.mjs",
+    "test:editor": "node editor.test.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

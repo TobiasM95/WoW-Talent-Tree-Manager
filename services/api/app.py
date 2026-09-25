@@ -18,6 +18,7 @@ from __future__ import annotations
 import functools
 import json
 import os
+import re
 import sys
 import time
 from typing import Annotated, Any, Literal
@@ -309,6 +310,10 @@ def list_trees(
     specId: int | None = None,
 ) -> list[TreeSummary]:
     """Every tree in the promoted revision, optionally narrowed."""
+    if game == "custom":
+        # A custom project is seen by those who have its link, not by browsing: listing every
+        # tree anyone has saved would publish them. GET /custom-trees/{project} lists one.
+        raise HTTPException(400, "custom trees are listed per project: GET /custom-trees/{project}")
     sql = ["SELECT key, kind::text, name, class_name, spec_name, sub_tree_id,",
            "       node_count, max_points_in_tree, point_cap,",
            "       (definition->>'order')::int AS tab_order",
@@ -608,6 +613,123 @@ def get_job_results(job_id: str, offset: int = 0, limit: int = Query(100, ge=1, 
         "total": int(rows[0]["result_count"] or 0), "offset": offset,
         "builds": [r["points"] for r in results],
     }
+
+
+
+# ---------------------------------------------------------------------------
+# custom trees
+# ---------------------------------------------------------------------------
+
+CUSTOM_REVISION = 1
+CUSTOM_BODY_LIMIT = 400_000
+
+
+def _summary(t: dict) -> dict[str, Any]:
+    return {
+        "key": t["key"], "kind": t["kind"], "name": t["name"], "className": t["className"],
+        "specName": None, "subTreeId": None, "nodeCount": t["nodeCount"],
+        "maxPointsInTree": t["maxPointsInTree"], "pointCap": t["pointCap"], "order": t["order"],
+    }
+
+
+@app.post("/custom-trees", status_code=201)
+async def save_custom_project(request: Request) -> dict[str, Any]:
+    """Save a project from the tree editor, and return its id and trees.
+
+    Content-addressed: the id is the hash of the design, so saving the same design twice is
+    the same project, and an edit is a new one. Nothing is overwritten and nothing belongs to
+    anyone -- whoever has the id can open it, and the browser remembers which ids are yours.
+    """
+    from ttm_ingest import custom
+
+    body = await request.body()
+    if len(body) > CUSTOM_BODY_LIMIT:
+        raise HTTPException(413, f"a project is at most {CUSTOM_BODY_LIMIT // 1000} kB")
+    try:
+        canon = custom.canonical(json.loads(body))
+        pid, trees, warnings = custom.build(canon)
+    except json.JSONDecodeError:
+        raise HTTPException(400, "the body is not JSON") from None
+    except custom.CustomTreeError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+    with pool().connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO custom_projects (id, name, tree_count, shared_pool, design) "
+                "VALUES (%s, %s, %s, %s, %s) "
+                "ON CONFLICT (id) DO UPDATE SET design = EXCLUDED.design",
+                (pid, canon["name"], len(trees), canon["sharedPointCap"], json.dumps(canon)),
+            )
+            cur.executemany(
+                """
+                INSERT INTO trees (
+                    id, revision, key, kind, game, gating, class_id, spec_id, class_name,
+                    spec_name, sub_tree_id, name, definition, point_cap, max_points_in_tree,
+                    node_count
+                ) VALUES (%s, %s, %s, 'tab', 'custom', 'reqPoints', NULL, NULL, %s, NULL, NULL,
+                          %s, %s, %s, %s, %s)
+                ON CONFLICT (id, revision) DO UPDATE SET
+                    definition = EXCLUDED.definition, point_cap = EXCLUDED.point_cap,
+                    max_points_in_tree = EXCLUDED.max_points_in_tree,
+                    node_count = EXCLUDED.node_count
+                """,
+                # Same id means same design, so refreshing the derived record is always safe
+                # -- and it is how a change to the derivation reaches trees saved before it.
+                [
+                    (t["id"], CUSTOM_REVISION, t["key"], t["className"], t["name"],
+                     json.dumps(t), t["pointCap"], t["maxPointsInTree"], t["nodeCount"])
+                    for t in trees
+                ],
+            )
+    return {
+        "project": pid,
+        "name": canon["name"],
+        "sharedPointCap": canon["sharedPointCap"],
+        "trees": [_summary(t) for t in trees],
+        "warnings": warnings,
+    }
+
+
+@app.get("/custom-trees/{project}")
+def get_custom_project(project: str) -> dict[str, Any]:
+    """A saved project: its trees, and its design in the editor's shape to keep editing."""
+    from ttm_ingest import custom
+
+    if not re.fullmatch(r"[0-9a-f]{16}", project):
+        raise HTTPException(400, "not a project id")
+    head = query("SELECT name, shared_pool, design FROM custom_projects WHERE id = %s", (project,))
+    if not head:
+        raise HTTPException(404, f"no custom project {project!r}")
+    rows = query(
+        "SELECT definition FROM current_trees WHERE game = 'custom' AND key LIKE %s ORDER BY key",
+        (f"custom/{project}/%",),
+    )
+    trees = [r["definition"] for r in rows]
+    return {
+        "project": project,
+        "name": head[0]["name"],
+        "sharedPointCap": head[0]["shared_pool"],
+        "trees": [_summary(t) for t in trees],
+        # The stored design, which is the source of truth; derived only for projects that
+        # predate keeping it.
+        "design": head[0]["design"] or custom.editable(trees, head[0]["name"], head[0]["shared_pool"]),
+    }
+
+
+@app.get("/icons")
+def list_icons(search: str = "", limit: int = Query(80, ge=1, le=300)) -> list[str]:
+    """Names of cached icons, for the tree editor's picker. Only these can be drawn."""
+    from ttm_ingest import icons as icon_source
+
+    needle = "".join(ch for ch in search.lower() if ch.isalnum() or ch in "_-")
+    rows = query(
+        "SELECT DISTINCT name FROM icons WHERE status = 200 AND size = 56 AND name LIKE %s "
+        "ORDER BY name LIMIT %s",
+        (f"%{needle}%", limit),
+    )
+    del icon_source
+    return [r["name"] for r in rows]
 
 
 @app.get("/icons/{name}", responses={200: {"content": {"image/jpeg": {}}}})

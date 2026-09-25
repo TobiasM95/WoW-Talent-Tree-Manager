@@ -5,8 +5,8 @@
 > a ranking, the value of each talent, each choice node's two sides, and which hero tree is
 > better. What remains: engine performance (deferred until there are precise performance
 > tests), importers for the legacy native-app formats, Phase 4 (accounts and persistence), and
-> the rest of Phase 5 (a tree editor, popular builds from WarcraftLogs). WoW Forever is
-> supported alongside retail.
+> popular builds from WarcraftLogs (waiting on API keys). WoW Forever is supported alongside
+> retail, and the tree editor is done.
 >
 > CI runs on releases, not commits: a push to `release`, a `v*` tag, or by hand. See the
 > repository README.
@@ -237,7 +237,12 @@ trees, solve it under constraints, and share a link — without signing in.
 
 Only now, once the foundation holds:
 
-- Tree Editor (custom/homebrew trees) — the native app's authoring surface.
+- ~~Tree Editor (custom/homebrew trees)~~ **done.** A project of one to three trees with
+  separate budgets or one shared pool, designed on a grid and then planned, counted and shared
+  like any real tree. Any retail or Forever trees can be copied in to change; a copy of Forever's
+  trees is checked to count exactly like the originals. Saved versions are content-addressed on
+  the server -- the solver has to read them -- with no accounts: drafts and the project list live
+  in the browser.
 - Sim Analysis: **done, both legs.** An enumerated result set becomes SimulationCraft
   profilesets, one line per build, each a whole character rather than one tree -- feasible
   precisely because the counting gate bounds the set to something simmable. SimC's JSON

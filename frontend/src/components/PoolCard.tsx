@@ -10,18 +10,20 @@
 export interface PoolCardProps {
   tabs: { name: string; points: number }[];
   pool: number;
-  /** The first level that grants a talent point. */
-  firstLevel?: number;
+  /** The first level that grants a talent point; null for a game with no levels to show. */
+  firstLevel?: number | null;
 }
 
 export function PoolCard({ tabs, pool, firstLevel = 10 }: PoolCardProps) {
   const total = tabs.reduce((a, t) => a + t.points, 0);
-  const level = total > 0 ? total + firstLevel - 1 : null;
+  const level = firstLevel !== null && total > 0 ? total + firstLevel - 1 : null;
   return (
     <section className="panel p-3.5" aria-label="Talent points">
       <div className="flex items-baseline justify-between gap-2">
         <span className="label">Talent points</span>
-        <span className="num text-[11px] text-ink-faint">{level ? `level ${level}` : "no points spent"}</span>
+        <span className="num text-[11px] text-ink-faint">
+          {level ? `level ${level}` : total === 0 ? "no points spent" : ""}
+        </span>
       </div>
       <div className="mt-1.5 num text-[26px] leading-none text-ink" data-split={tabs.map((t) => t.points).join("/")}>
         {tabs.map((t) => t.points).join(" / ")}

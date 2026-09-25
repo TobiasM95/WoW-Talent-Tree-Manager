@@ -173,3 +173,22 @@ with it empty. See [`../../docs/02-target/icons.md`](../../docs/02-target/icons.
 ## Not yet here
 
 - **Auth.** Nothing here needs an account; identity is additive and comes later.
+
+## Custom trees
+
+`POST /custom-trees` takes a project from the tree editor -- one to three trees, each a list of
+talents with a grid cell, ranks, a gate and requirements -- validates everything the solver
+relies on, and writes the trees into `trees` like any other game's, under game `custom`. From
+there every other endpoint takes them unchanged: counts, solves, results, the tree detail.
+
+Projects are **content-addressed**: the id is the hash of the canonical design, so saving the
+same design twice is the same project and an edit is a new one. Keys therefore never change
+meaning, which is what makes the DP-graph cache and solve dedup safe without invalidation. The
+design itself is stored beside the derived trees and is the source of truth (migration 010): the
+first version rebuilt it from the trees, which made the derivation part of the identity, so an
+opened project saved back as a different one.
+
+`GET /custom-trees/{project}` returns a project's trees and its design, for the editor to keep
+editing. Custom trees are never listed wholesale -- `GET /trees?game=custom` is refused -- since
+listing would publish every project anyone saved; they are reached by their link.
+`GET /icons?search=` lists cached icon names for the editor's picker.

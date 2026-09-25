@@ -40,6 +40,9 @@ const COLUMN_PITCH = 86;
 // desktop and silently crops the tree on a small screen, which is worse than small icons.
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3;
+// The fit stops a little above natural size: a four-talent custom tree fitted to a whole pane
+// came up at 3x, every talent the size of a fist. The wheel still zooms to MAX_ZOOM.
+const FIT_MAX_ZOOM = 1.4;
 // A whole tree pressed flat against the panel edge reads as clipped even when it is not.
 const FIT_MARGIN = 0.97;
 
@@ -144,7 +147,7 @@ export function TreeCanvas({
       const { width, height } = element.getBoundingClientRect();
       if (width < 1 || height < 1) return; // not laid out yet; the observer will call back
       const zoom = Math.min(
-        MAX_ZOOM,
+        FIT_MAX_ZOOM,
         Math.max(
           MIN_ZOOM,
           Math.min(width / layout.width, height / layout.height) * FIT_MARGIN,

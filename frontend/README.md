@@ -26,6 +26,19 @@ not sim Forever -- and the data is credited in the footer, as its licence asks. 
 presses on the pool: 51 however it is split, a refund in one tab frees a point in another, and
 a link reproduces the split.
 
+**The tree editor.** The third game, Custom, is your own trees: a project of one to three,
+each with its own budget or all sharing one pool -- shaped like retail or like Forever. Design
+on a grid (click an empty cell to add a talent, drag to move, Connect or shift-click to make one
+require another), then Plan with it: the same planner, counter and share links as the real
+games. "Edit a copy in the tree editor" brings any retail or Forever trees in, for the what-if
+nobody else can answer -- and a copy is checked to count *exactly* like its original.
+
+Edits that could never be saved are refused as they are made (a requirement that would loop is
+not drawn), and everything is undoable. Drafts and the project list live in this browser; a
+saved version lives on the server, because the solver has to read it -- immutable and keyed by
+the hash of the design, so a link to it always means the tree it was made from, and nothing is
+tied to a person.
+
 **Both hero trees at once.** The hero pane's `both` switch sims the other hero tree too, each
 with its own fixed build or search — the hero factor becomes a sum, class × spec × (A + B),
 and the names choose which one is being edited. The analysis then compares the trees by best
@@ -70,6 +83,7 @@ pnpm run test:simc                             # expansion == API count; every l
 pnpm run test:report                           # the SimC report reader, against a real report
 pnpm run test:canvas                           # shapes, keylines, four colours, both themes
 pnpm run test:forever                          # WoW Forever: three tabs, one pool of 51
+pnpm run test:editor                           # design, connect, undo, save, plan, share, copy
 pnpm test                                      # the whole workflow, with a live SimulationCraft run
 pnpm run test:all                              # all of it
 ```
@@ -168,6 +182,11 @@ game data the tool exists to display; everything around them is ours.
 | `lib/api.ts` | Typed client. Every field checked against a live response. |
 | `lib/classes.ts`, `lib/theme.ts` | Class colours per theme; the theme on `<html data-theme>`. |
 | `components/TreePane.tsx` | One tree, with its fixed/open switch, budget and count. |
+| `components/EditorView.tsx` | The tree editor: grid, connections, inspector, icon picker. |
+| `components/ProjectRail.tsx` | Your custom projects, in place of the class rail. |
+| `components/PoolCard.tsx` | A shared point pool's split, for Forever and pooled projects. |
+| `lib/design.ts` | A project as the editor holds it, and every edit as a pure function. |
+| `lib/projects.ts` | Drafts in this browser, saved versions on the server. |
 | `components/SpaceCard.tsx` | The product, its factors, and whether it is simmable. |
 | `components/PaintTools.tsx` | What a click does, and what every colour means. |
 | `components/SimulateView.tsx` | Step two: the file out, the report back. |

@@ -38,6 +38,20 @@ import {
   type TreeWork,
 } from "./lib/workspace";
 import { AnalysisView } from "./components/AnalysisView";
+import { EditorView } from "./components/EditorView";
+import { ProjectRail } from "./components/ProjectRail";
+import { emptyDesign, fromTrees, type Design } from "./lib/design";
+import {
+  getProject,
+  isDirty,
+  projectOfKey,
+  readProjects,
+  saveProject,
+  writeProjects,
+  type Project,
+} from "./lib/projects";
+import { ApiError } from "./lib/api";
+import { newId } from "./lib/saved";
 import { ShapeKey } from "./components/Legend";
 import { LoadoutString } from "./components/LoadoutString";
 import { PaintTools } from "./components/PaintTools";
@@ -63,7 +77,7 @@ import { TreePane } from "./components/TreePane";
  * being done.
  */
 
-type Step = "narrow" | "simulate" | "analyse";
+type Step = "design" | "narrow" | "simulate" | "analyse";
 
 const DEFAULT_LIMIT = 10000;
 const STALE_AFTER_S = 14 * 24 * 3600;
@@ -81,7 +95,11 @@ const SHARED = decode(window.location.search);
 const LABEL: Record<Role, string> = { class: "Class", spec: "Spec", hero: "Hero", hero2: "Hero" };
 
 /** A link names a tree, and a Forever tree's key says so. */
-const STARTING_GAME: Game = SHARED.spec?.startsWith("forever/") ? "forever" : "retail";
+const STARTING_GAME: Game = SHARED.spec?.startsWith("forever/")
+  ? "forever"
+  : SHARED.spec?.startsWith("custom/")
+    ? "custom"
+    : "retail";
 
 export default function App() {
   const { resolved, toggle } = useTheme();
@@ -93,6 +111,36 @@ export default function App() {
   */
   const [game, setGame] = useState<Game>(STARTING_GAME);
   const forever = game === "forever";
+  const custom = game === "custom";
+  /** Forever and custom trees are tabs: a set of trees taking the three panes in order. */
+  const tabbed = game !== "retail";
+
+  /*
+    Custom projects: the player's own trees, designed in the editor. The list and every draft
+    live in this browser; each saved version lives on the server, content-addressed, because
+    the solver has to be able to read it.
+  */
+  const [projects, setProjects] = useState<Project[]>(() => readProjects());
+  const [projectId, setProjectId] = useState<string | null>(() => readProjects()[0]?.id ?? null);
+  const project = projects.find((p) => p.id === projectId) ?? null;
+  useEffect(() => {
+    writeProjects(projects);
+  }, [projects]);
+  const updateProject = useCallback((id: string, change: (p: Project) => Project) => {
+    setProjects((list) => list.map((p) => (p.id === id ? { ...change(p), updatedAt: Date.now() } : p)));
+  }, []);
+  const addProject = useCallback((draft: Design, savedAs: string | null = null) => {
+    const entry: Project = {
+      id: newId(),
+      draft,
+      savedAs,
+      savedDraft: savedAs ? JSON.stringify(draft) : null,
+      updatedAt: Date.now(),
+    };
+    setProjects((list) => [entry, ...list]);
+    setProjectId(entry.id);
+    return entry;
+  }, []);
   const [health, setHealth] = useState<Health | null>(null);
   const [trees, setTrees] = useState<TreeSummary[]>([]);
   const [className, setClassName] = useState<string | null>(null);
@@ -117,12 +165,13 @@ export default function App() {
     talents and produced strings the game would not accept.
   */
   const group = useMemo(() => {
-    if (forever) {
+    if (tabbed) {
       // A class's three tabs, in the game's own order, take the three panes. The third sits
       // in the hero slot purely as a position -- it is not a hero tree and nothing treats it
-      // as one: there is exactly one, so there is nothing to choose or pool.
+      // as one: there is exactly one, so there is nothing to choose or pool. A custom
+      // project's list holds only its own trees, so it needs no class to filter by.
       const tabs = trees
-        .filter((t) => t.kind === "tab" && t.className === className)
+        .filter((t) => t.kind === "tab" && (custom || t.className === className))
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
       return { class: tabs[0] ?? null, spec: tabs[1] ?? null, heroes: tabs[2] ? [tabs[2]] : [] };
     }
@@ -132,7 +181,7 @@ export default function App() {
       spec: mine.find((t) => t.kind === "spec") ?? null,
       heroes: mine.filter((t) => t.kind === "hero"),
     };
-  }, [trees, className, specName, forever]);
+  }, [trees, className, specName, tabbed, custom]);
   const hero = group.heroes.find((h) => h.key === heroKey) ?? null;
 
   const roles = useMemo(
@@ -169,6 +218,13 @@ export default function App() {
     let cancelled = false;
     void (async () => {
       try {
+        if (game === "custom") {
+          // Custom trees are not listed by game; they come from the chosen project, below.
+          const h = await getHealth("retail");
+          if (!cancelled) setHealth(h);
+          firstLoad.current = false;
+          return;
+        }
         const [h, list] = await Promise.all([getHealth(game), listTrees({ game })]);
         if (cancelled) return;
         setHealth(h);
@@ -196,11 +252,58 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game]);
 
+  // The chosen project's last saved version is what the planner and the counter use.
+  const savedAs = custom ? (project?.savedAs ?? null) : null;
+  useEffect(() => {
+    if (!custom) return;
+    if (!savedAs) {
+      setTrees([]);
+      return;
+    }
+    let cancelled = false;
+    void getProject(savedAs)
+      .then((saved) => {
+        if (cancelled) return;
+        setTrees(saved.trees);
+        setClassName(saved.name);
+        setSpecName(null);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setNote(`Could not load the saved project: ${error instanceof Error ? error.message : String(error)}`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [custom, savedAs]);
+
+  // A link to a custom tree opens its project -- adding it to this browser's list if it is new.
+  useEffect(() => {
+    const linked = projectOfKey(SHARED.spec);
+    if (!linked) return;
+    const known = readProjects().find((p) => p.savedAs === linked);
+    if (known) {
+      setProjectId(known.id);
+      return;
+    }
+    void getProject(linked)
+      .then((saved) => {
+        if (saved.design) addProject(saved.design, linked);
+      })
+      .catch(() => setNote("That link names a custom project this server does not have."));
+    // Once, for the link the page was opened with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The custom game always has a project to show, even the first time.
+  useEffect(() => {
+    if (custom && projects.length === 0) addProject(emptyDesign());
+  }, [custom, projects.length, addProject]);
+
   const switchGame = useCallback((next: Game) => {
     setGame(next);
     setSim(null);
     setAnalysis(null);
-    setStep("narrow");
+    setStep(next === "custom" ? "design" : "narrow");
     setNote(null);
     setBothHeroes(false);
   }, []);
@@ -224,14 +327,15 @@ export default function App() {
   const incoming = useRef<{ shared: Shared; replace: boolean }>({ shared: SHARED, replace: false });
   const [seedTick, setSeedTick] = useState(0);
   useEffect(() => {
-    if (seeded.current || !group.spec || !group.class || (group.heroes.length && !hero)) return;
+    const primary = group.spec ?? (tabbed ? group.class : null);
+    if (seeded.current || !primary || !group.class || (group.heroes.length && !hero)) return;
     const { shared, replace } = incoming.current;
-    if (shared.spec && shared.spec !== group.spec.key) return; // still switching spec
+    if (shared.spec && shared.spec !== primary.key) return; // still switching spec
     if (shared.hero && hero && shared.hero !== hero.key && group.heroes.some((h) => h.key === shared.hero)) return;
     seeded.current = true;
     const next: Record<string, TreeWork> = {};
     if (replace) {
-      for (const k of [group.class.key, group.spec.key, ...group.heroes.map((h) => h.key)]) {
+      for (const k of [group.class.key, group.spec?.key, ...group.heroes.map((h) => h.key)].filter(Boolean) as string[]) {
         next[k] = emptyWork(forever ? "fixed" : "open");
       }
     }
@@ -244,7 +348,7 @@ export default function App() {
     if (Object.keys(next).length) {
       setWork((previous) => (replace ? { ...previous, ...next } : { ...next, ...previous }));
     }
-  }, [group.spec, group.class, group.heroes, hero, roles, seedTick, forever]);
+  }, [group.spec, group.class, group.heroes, hero, roles, seedTick, forever, tabbed]);
 
   // Every tree of the spec, both hero trees included: a talent string writes granted talents
   // whether or not their tree is the one chosen.
@@ -306,7 +410,12 @@ export default function App() {
     commits an explicit budget, or, left at its default, takes what is left in tab order.
     Retail trees have separate budgets and this is simply their own cap.
   */
-  const pool = forever ? (group.class ? (loaded[group.class.key]?.sharedPointCap ?? 51) : 51) : null;
+  // Forever always pools; a custom project pools when its designer chose one.
+  const pool = forever
+    ? (group.class ? (loaded[group.class.key]?.sharedPointCap ?? 51) : 51)
+    : custom && group.class
+      ? (loaded[group.class.key]?.sharedPointCap ?? null)
+      : null;
   const allowance = useMemo(() => {
     const out = new Map<string, number>();
     if (pool === null) return out;
@@ -339,8 +448,8 @@ export default function App() {
     [allowance],
   );
   const labelOf = useCallback(
-    (role: Role, summary: TreeSummary) => (forever ? summary.name : LABEL[role]),
-    [forever],
+    (role: Role, summary: TreeSummary) => (tabbed ? summary.name : LABEL[role]),
+    [tabbed],
   );
 
   // --- per-tree counts ----------------------------------------------------
@@ -508,21 +617,22 @@ export default function App() {
 
   // --- the link -----------------------------------------------------------
   const sharedNow = useMemo((): Shared | null => {
-    if (!group.spec) return null;
+    const primary = group.spec ?? (tabbed ? group.class : null);
+    if (!primary) return null;
     const out: Partial<Record<Role, TreeWork>> = {};
     for (const [role, s] of roles) if (work[s.key]) out[role] = work[s.key];
     // The other hero tree rides along whenever it holds something, simmed or not, so a
     // link never loses what was painted on the tree not currently shown.
     if (otherHero && work[otherHero.key]) out.hero2 = work[otherHero.key];
     return {
-      spec: group.spec.key,
+      spec: primary.key,
       hero: heroKey,
       hero2: otherHero?.key ?? null,
       both: bothHeroes,
       work: out,
       limit: limit === DEFAULT_LIMIT ? null : limit,
     };
-  }, [group.spec, heroKey, otherHero, bothHeroes, roles, work, limit]);
+  }, [group.spec, group.class, tabbed, heroKey, otherHero, bothHeroes, roles, work, limit]);
   useEffect(() => {
     if (sharedNow && seeded.current) syncUrl(sharedNow);
   }, [sharedNow]);
@@ -604,7 +714,7 @@ export default function App() {
         key={summary.key}
         tree={tree}
         title={labelOf(role, summary)}
-        subtitle={forever ? null : role === "class" ? className : role === "spec" ? specName : null}
+        subtitle={tabbed ? null : role === "class" ? className : role === "spec" ? specName : null}
         mode={w.mode}
         onMode={(m) => onMode(summary.key, m)}
         points={{ value: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, cap), cap, shared: forever }}
@@ -656,6 +766,7 @@ export default function App() {
           {([
             ["retail", "Retail"],
             ["forever", "WoW Forever"],
+            ["custom", "Custom"],
           ] as const).map(([id, label]) => (
             <button key={id} type="button" aria-pressed={game === id} onClick={() => switchGame(id)}>
               {label}
@@ -663,16 +774,43 @@ export default function App() {
           ))}
         </div>
 
-        <SpecRail trees={trees} className={className} specName={specName} onSelect={selectSpec} />
+        {custom ? (
+          <ProjectRail
+            projects={projects}
+            current={projectId}
+            onSelect={(id) => {
+              setProjectId(id);
+              setStep("design");
+              setNote(null);
+            }}
+            onNew={() => {
+              addProject(emptyDesign(`Project ${projects.length + 1}`));
+              setStep("design");
+            }}
+            onRemove={(id) => {
+              const rest = projects.filter((p) => p.id !== id);
+              setProjects(rest);
+              setProjectId(rest[0]?.id ?? null);
+            }}
+          />
+        ) : (
+          <SpecRail trees={trees} className={className} specName={specName} onSelect={selectSpec} />
+        )}
 
         {/* The workflow, in order. A step is reachable once the one before it has produced
             what it needs: something simmable, then a report. */}
         <nav className="steps ml-auto" aria-label="Workflow">
-          {([
-            ["narrow", "Narrow", true],
-            ["simulate", "Simulate", !forever && (simmable || sim !== null)],
-            ["analyse", "Analyse", !forever && analysis !== null],
-          ] as const).map(([id, label, enabled], i) => (
+          {(custom
+            ? ([
+                ["design", "Design", true],
+                ["narrow", "Plan", Boolean(project?.savedAs)],
+              ] as const)
+            : ([
+                ["narrow", "Narrow", true],
+                ["simulate", "Simulate", !forever && (simmable || sim !== null)],
+                ["analyse", "Analyse", !forever && analysis !== null],
+              ] as const)
+          ).map(([id, label, enabled], i) => (
             <span key={id} className="contents">
               {i > 0 && <span className="sep" aria-hidden="true" />}
               <button
@@ -683,7 +821,9 @@ export default function App() {
                 title={
                   enabled
                     ? undefined
-                    : forever
+                    : custom
+                      ? "Save the project first"
+                      : forever
                       ? "SimulationCraft does not simulate WoW Forever"
                       : id === "simulate"
                         ? "Narrow the trees until the builds fit the sim limit"
@@ -704,16 +844,39 @@ export default function App() {
 
       <div className="rule mx-4 shrink-0" />
 
+      {step === "design" && custom && project && (
+        <EditorView
+          draft={project.draft}
+          dirty={isDirty(project)}
+          saved={Boolean(project.savedAs)}
+          onChange={(draft) => updateProject(project.id, (p) => ({ ...p, draft }))}
+          onSave={async () => {
+            try {
+              const saved = await saveProject(project.draft);
+              updateProject(project.id, (p) => ({ ...p, savedAs: saved.project, savedDraft: JSON.stringify(p.draft) }));
+              return {
+                ok: true,
+                message: `Saved as ${saved.project.slice(0, 8)}… — the planner now uses this version.`,
+                warnings: saved.warnings,
+              };
+            } catch (error) {
+              return { ok: false, message: error instanceof ApiError ? error.detail : String(error) };
+            }
+          }}
+          onPlan={project.savedAs ? () => setStep("narrow") : null}
+        />
+      )}
+
       {step === "narrow" && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 md:flex-row md:gap-2.5 md:p-2.5">
           {group.class && pane("class", group.class, { className: "min-h-[22rem] flex-1 md:min-h-0" })}
           {group.spec && pane("spec", group.spec, { className: "min-h-[22rem] flex-1 md:min-h-0" })}
           {hero &&
             pane("hero", hero, {
-              className: forever
+              className: tabbed
                 ? "min-h-[22rem] flex-1 md:min-h-0"
                 : "min-h-[18rem] md:min-h-0 md:w-[20rem] md:shrink-0",
-              children: forever ? null : (
+              children: tabbed ? null : (
                 <span className="ml-auto flex shrink-0 items-center gap-1">
                   {group.heroes.map((h) => (
                     <button
@@ -748,9 +911,10 @@ export default function App() {
             })}
 
           <aside className="flex w-full shrink-0 flex-col gap-2 md:w-[19rem] md:gap-2.5 md:overflow-y-auto md:pr-1">
-            {forever && pool !== null && (
+            {tabbed && pool !== null && (
               <PoolCard
                 pool={pool}
+                firstLevel={forever ? 10 : null}
                 tabs={roles.map(([, s]) => {
                   const w = workOf(s.key);
                   return { name: s.name, points: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, capFor(s)) };
@@ -768,7 +932,9 @@ export default function App() {
               unavailable={
                 forever
                   ? "SimulationCraft does not simulate WoW Forever, so this counts the builds but cannot sim them."
-                  : null
+                  : custom
+                    ? "A custom tree has no spells for SimulationCraft to sim, so this counts the builds but cannot sim them."
+                    : null
               }
             />
 
@@ -787,7 +953,7 @@ export default function App() {
               counts={paintCounts}
             />
 
-            {!forever && (
+            {!tabbed && (
             <LoadoutString
               spec={specTree}
               trees={allTrees}
@@ -806,6 +972,25 @@ export default function App() {
               onOpen={openSaved}
             />
 
+            {!custom && roles.every(([, s]) => loaded[s.key]) && (
+              <button
+                type="button"
+                className="btn"
+                title="Copy these trees into the tree editor, to change them and count the result"
+                onClick={() => {
+                  const copy = fromTrees(
+                    forever ? `${className} (copy)` : `${specName} ${className} (copy)`,
+                    roles.map(([, s]) => loaded[s.key]!),
+                    pool,
+                  );
+                  addProject(copy);
+                  switchGame("custom");
+                }}
+              >
+                Edit a copy in the tree editor
+              </button>
+            )}
+
             <section className="panel p-3.5">
               <span className="label">Share</span>
               <p className="mt-1 mb-2 text-[11.5px] leading-snug text-ink-soft">
@@ -816,7 +1001,9 @@ export default function App() {
             </section>
 
             <section className="panel px-3.5 py-2.5">
-              <ShapeKey kinds={forever ? ["passive", "active"] : undefined} />
+              <ShapeKey
+                kinds={forever ? ["passive", "active"] : custom ? ["passive", "active", "choice"] : undefined}
+              />
             </section>
 
             <footer className="px-1 pb-1 text-[10.5px] leading-relaxed text-ink-faint">
