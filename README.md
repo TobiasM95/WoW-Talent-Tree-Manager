@@ -23,6 +23,13 @@ correct, and being kept — it is the reason this project is worth reviving.
 
 Everything around it is being replaced.
 
+Two games are supported: **retail** (class, spec and hero trees, with a full
+SimulationCraft round trip) and **WoW Forever** (the vanilla-shaped game launching November
+2026: three tabs per class sharing 51 points, planned and counted but not simmed, since
+SimulationCraft does not support it). WoW Forever talent data is from
+[talentsforever.com](https://talentsforever.com), read from the beta client and published under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+
 ## Why the rewrite
 
 The native client was discontinued when the talent data pipeline broke during the

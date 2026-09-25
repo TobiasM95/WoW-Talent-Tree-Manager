@@ -22,7 +22,7 @@ import { EMPTY_SEARCH, emptyWork, type Search, type TreeWork } from "./workspace
  *
  *   t   the spec tree's key, which also names the class      h   the hero tree's key
  *   h2  the other hero tree's key, when it carries state     both  sim both hero trees
- *   ?m  f when the tree is fixed (absent means open)          l   the sim limit, if changed
+ *   ?m  f fixed, o open (older links: absent meant open)      l   the sim limit, if changed
  *   ?b  the fixed build            ?k  its choice sides
  *   ?p  the search's point budget  ?r ?x  required, barred
  *   ?s  pinned choice sides        ?o ?e  at-least-one, exactly-one groups
@@ -111,7 +111,10 @@ export function encode(state: Shared): string {
     if (!work || (role === "hero2" && !state.hero2)) continue;
     const p = PREFIX[role];
     const s = work.search;
-    if (work.mode === "fixed") params.set(`${p}m`, "f");
+    // Written both ways. "Absent" used to mean open, which was only true while every game's
+    // trees started open: Forever's start fixed, so an open tab with nothing painted on it
+    // wrote nothing at all and came back fixed.
+    params.set(`${p}m`, work.mode === "fixed" ? "f" : "o");
     if (Object.keys(work.points).length) params.set(`${p}b`, pairs(work.points));
     if (Object.keys(work.picks).length) params.set(`${p}k`, pairs(work.picks));
     if (s.budget) params.set(`${p}p`, String(s.budget));

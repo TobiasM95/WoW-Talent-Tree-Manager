@@ -526,6 +526,102 @@ def t_results_name_the_talents_the_engine_chose():
     assert set(rows[0]) == real, sorted(real - set(rows[0]))
 
 
+FOREVER_TAB = "forever/warrior/arms"
+
+
+def t_both_games_are_served():
+    """Loading a second game must not unserve the first.
+
+    `current_trees` served the single highest promoted revision across everything, and
+    Forever's revisions are numerically far above retail's -- so without per-game serving,
+    loading Forever would have taken all 160 retail trees offline.
+    """
+    retail = get("/trees")
+    forever = get("/trees?game=forever")
+    assert len(retail) >= 100 and all(not t["key"].startswith("forever/") for t in retail), len(retail)
+    assert len(forever) == 27, len(forever)
+    classes = {}
+    for t in forever:
+        assert t["kind"] == "tab", t
+        classes.setdefault(t["className"], []).append(t["order"])
+    assert len(classes) == 9 and all(sorted(v) == [0, 1, 2] for v in classes.values()), classes
+    assert get("/health")["revision"] != get("/health?game=forever")["revision"]
+
+
+def _vanilla_problem(tree, build, points):
+    """Why a build breaks vanilla's rules, or None. Written from the rules, not the solver.
+
+    Rows open at five points each: a talent in row r (0-based) needs 5r points in the rows
+    above it. A prerequisite arrow needs its parent at full rank. Every point is spent.
+    """
+    nodes = {str(n["nodeId"]): n for n in tree["nodes"]}
+    if any(k not in nodes for k in build):
+        return "names a talent the tree does not have"
+    if sum(build.values()) != points:
+        return f"spends {sum(build.values())} of {points}"
+    per_row = {}
+    for k, rank in build.items():
+        n = nodes[k]
+        if not 1 <= rank <= n["maxPoints"]:
+            return f"{n['name']} at {rank}/{n['maxPoints']}"
+        per_row[n["row"]] = per_row.get(n["row"], 0) + rank
+    for k in build:
+        n = nodes[k]
+        above = sum(v for r, v in per_row.items() if r < n["row"])
+        if above < n["pointsRequired"]:
+            return f"{n['name']} in row {n['row'] + 1} with {above} points above it, needs {n['pointsRequired']}"
+        for p in n["parents"]:
+            if build.get(str(p), 0) < nodes[str(p)]["maxPoints"]:
+                return f"{n['name']} without {nodes[str(p)]['name']} at full rank"
+    return None
+
+
+def t_forever_builds_follow_vanilla_rules():
+    """Every enumerated Forever build is one vanilla's rules allow, and the count agrees.
+
+    The DP and the engine were built and checked on retail trees, where almost every talent
+    hangs off an edge. Vanilla trees are the opposite -- nearly every talent is a free-standing
+    root opened only by its row's point gate -- so the same code is being asked something new,
+    and the answer is checked from the rules themselves.
+    """
+    tree = get(f"/trees/{FOREVER_TAB}")
+    assert tree["sharedPointCap"] == 51 and tree["pointsPerRow"] == 5, tree.get("sharedPointCap")
+    for points in (5, 11, 16):
+        count = post("/counts", {"treeKey": FOREVER_TAB, "points": points})
+        job = post("/solve", {"treeKey": FOREVER_TAB, "points": points, "maxResults": 200000}, expect=202)
+        done = _await_job(job["id"], timeout=300)
+        assert done["state"] == "done", done
+        assert done["resultCount"] == count["sets"], (points, done["resultCount"], count["sets"])
+        rows = _results(done["id"], done["resultCount"])
+        for build in rows:
+            problem = _vanilla_problem(tree, build, points)
+            assert problem is None, f"{points} points: {problem} in {build}"
+
+
+def t_forever_gates_and_arrows_bite():
+    """The rules are not vacuously satisfied: gated and arrowed talents really are held back.
+
+    At 5 points nothing below row two can be taken; a talent behind an arrow never appears
+    without its parent at full rank. Both are checked on the counts, which is where a missing
+    gate or edge would show first.
+    """
+    tree = get(f"/trees/{FOREVER_TAB}")
+    deep = [n for n in tree["nodes"] if n["row"] >= 2]
+    arrowed = [n for n in tree["nodes"] if n["parents"]]
+    assert deep and arrowed
+    # Requiring a row-three talent at 5 points is impossible: its row needs 10 above it.
+    assert post("/counts", {"treeKey": FOREVER_TAB, "points": 5, "mustHave": [deep[0]["nodeId"]]})["sets"] == 0
+    child = arrowed[0]
+    parent = next(n for n in tree["nodes"] if n["nodeId"] == child["parents"][0])
+    budget = child["pointsRequired"] + parent["maxPoints"] + child["maxPoints"] + 5
+    with_both = post("/counts", {"treeKey": FOREVER_TAB, "points": budget,
+                                 "mustHave": [child["nodeId"]]})["sets"]
+    without_parent = post("/counts", {"treeKey": FOREVER_TAB, "points": budget,
+                                      "mustHave": [child["nodeId"]], "mustNotHave": [parent["nodeId"]]})["sets"]
+    assert with_both > 0, (child["name"], budget)
+    assert without_parent == 0, f"{child['name']} was countable without {parent['name']}"
+
+
 def t_class_trees_differ_by_specialisation():
     """One class tree per spec, and they are genuinely different.
 
@@ -847,6 +943,13 @@ def main() -> int:
     check("results name the talents the engine chose, granted roots or not",
           t_results_name_the_talents_the_engine_chose)
     check("class trees differ by specialisation", t_class_trees_differ_by_specialisation)
+
+    print("\nWoW Forever:")
+    check("both games are served side by side", t_both_games_are_served)
+    check("Forever builds follow vanilla's rules, and the count agrees",
+          t_forever_builds_follow_vanilla_rules)
+    check("row gates and prerequisite arrows really hold talents back",
+          t_forever_gates_and_arrows_bite)
 
     print("\nfilters reach the engine:")
     check("every filter kind agrees between gate and engine",

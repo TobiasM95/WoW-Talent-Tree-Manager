@@ -5,7 +5,8 @@
 > a ranking, the value of each talent, each choice node's two sides, and which hero tree is
 > better. What remains: engine performance (deferred until there are precise performance
 > tests), importers for the legacy native-app formats, Phase 4 (accounts and persistence), and
-> the rest of Phase 5 (Classic, a tree editor, popular builds from WarcraftLogs).
+> the rest of Phase 5 (a tree editor, popular builds from WarcraftLogs). WoW Forever is
+> supported alongside retail.
 >
 > CI runs on releases, not commits: a push to `release`, a `v*` tag, or by hand. See the
 > repository README.
@@ -254,7 +255,11 @@ Only now, once the foundation holds:
   they are a property of the enumeration, not of the sim. The API still serves them
   (`/solve/{id}/stats`); the panel showing them was dropped in the workflow redesign and has
   no home in the new layout yet.
-- Classic support (open question Q3).
+- ~~Classic support (open question Q3).~~ **WoW Forever is supported** instead -- the
+  vanilla-shaped game launching November 2026, targeted while its beta runs. A class's three
+  tabs share one 51-point pool; the planner, the count, share links and saved setups all work;
+  SimulationCraft does not sim it. Data: talentsforever.com's beta-client export, CC BY 4.0.
+  Classic Era itself is not targeted.
 - Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.
 - Engine improvements, which are far easier once it is under test in CI with a stable contract.
 

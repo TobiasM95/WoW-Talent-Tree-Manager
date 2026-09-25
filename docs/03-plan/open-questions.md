@@ -40,6 +40,16 @@ purely additive (save, name, organise). Needs confirmation.
 
 ### Q3. Retail first, or retail+classic together?
 
+**Answered: retail first, then WoW Forever -- done.** The target became WoW Forever, Blizzard's
+vanilla-shaped game launching November 2026: three tabs per class, one pool of 51 points, five
+points a row. Its talents come from talentsforever.com's export of the beta client (CC BY 4.0,
+credited in the app). No schema change was needed beyond a new tree kind (`tab`) and serving
+each game from its own revision: the DP and engine already handled row-gated roots, which is
+what a vanilla tree is almost entirely made of, and an API check enumerates Forever builds and
+verifies each against vanilla's rules independently of the solver. SimulationCraft does not sim
+Forever, so it is a planner and a counter there, not a sim workflow. The notes below predate
+this and describe *Classic Era*, which remains untargeted.
+
 The stated preference is "get a hold of retail first", which is right. The real question is
 whether the *schema* should accommodate classic from day one. Classic's 3-tab / 51-point /
 row-gated system is a different gating model (points-in-*this-tab* gating, strict row unlocks).

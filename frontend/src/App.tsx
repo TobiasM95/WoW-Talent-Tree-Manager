@@ -3,6 +3,7 @@ import {
   getHealth,
   getTree,
   listTrees,
+  type Game,
   type Health,
   type TalentNode,
   type TreeDetail,
@@ -40,6 +41,7 @@ import { AnalysisView } from "./components/AnalysisView";
 import { ShapeKey } from "./components/Legend";
 import { LoadoutString } from "./components/LoadoutString";
 import { PaintTools } from "./components/PaintTools";
+import { PoolCard } from "./components/PoolCard";
 import { ShareButton } from "./components/ShareButton";
 import { SavedPanel } from "./components/SavedPanel";
 import { SimulateView, type Sim } from "./components/SimulateView";
@@ -78,8 +80,19 @@ const SHARED = decode(window.location.search);
 
 const LABEL: Record<Role, string> = { class: "Class", spec: "Spec", hero: "Hero", hero2: "Hero" };
 
+/** A link names a tree, and a Forever tree's key says so. */
+const STARTING_GAME: Game = SHARED.spec?.startsWith("forever/") ? "forever" : "retail";
+
 export default function App() {
   const { resolved, toggle } = useTheme();
+  /*
+    Which game's trees. Retail: a spec's class, spec and hero trees, each with its own points.
+    WoW Forever: a class's three talent tabs, sharing one pool of 51 -- vanilla's shape. Both
+    run on the same solver and canvas; what differs is where the panes come from and how their
+    budgets relate.
+  */
+  const [game, setGame] = useState<Game>(STARTING_GAME);
+  const forever = game === "forever";
   const [health, setHealth] = useState<Health | null>(null);
   const [trees, setTrees] = useState<TreeSummary[]>([]);
   const [className, setClassName] = useState<string | null>(null);
@@ -104,13 +117,22 @@ export default function App() {
     talents and produced strings the game would not accept.
   */
   const group = useMemo(() => {
+    if (forever) {
+      // A class's three tabs, in the game's own order, take the three panes. The third sits
+      // in the hero slot purely as a position -- it is not a hero tree and nothing treats it
+      // as one: there is exactly one, so there is nothing to choose or pool.
+      const tabs = trees
+        .filter((t) => t.kind === "tab" && t.className === className)
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      return { class: tabs[0] ?? null, spec: tabs[1] ?? null, heroes: tabs[2] ? [tabs[2]] : [] };
+    }
     const mine = trees.filter((t) => t.className === className && t.specName === specName);
     return {
       class: mine.find((t) => t.kind === "class") ?? null,
       spec: mine.find((t) => t.kind === "spec") ?? null,
       heroes: mine.filter((t) => t.kind === "hero"),
     };
-  }, [trees, className, specName]);
+  }, [trees, className, specName, forever]);
   const hero = group.heroes.find((h) => h.key === heroKey) ?? null;
 
   const roles = useMemo(
@@ -141,22 +163,46 @@ export default function App() {
   );
 
   // --- bootstrap ----------------------------------------------------------
+  // Per game: each has its own trees, its own revision and its own data age.
+  const firstLoad = useRef(true);
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       try {
-        const [h, list] = await Promise.all([getHealth(), listTrees()]);
+        const [h, list] = await Promise.all([getHealth(game), listTrees({ game })]);
+        if (cancelled) return;
         setHealth(h);
         setTrees(list);
+        // The link's tree on first load; afterwards, keep the class if this game has it.
+        const linked = firstLoad.current ? list.find((t) => t.key === SHARED.spec) : undefined;
+        firstLoad.current = false;
         const start =
-          list.find((t) => t.key === SHARED.spec) ?? list.find((t) => t.kind === "spec") ?? list[0];
+          linked ??
+          list.find((t) => t.className === className && (t.kind === "spec" || t.kind === "tab")) ??
+          list.find((t) => t.kind === "spec" || t.kind === "tab") ??
+          list[0];
         if (start) {
           setClassName(start.className);
-          setSpecName(start.specName);
+          setSpecName(start.kind === "tab" ? null : start.specName);
         }
       } catch (error) {
-        setLoadError(error instanceof Error ? error.message : String(error));
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : String(error));
       }
     })();
+    return () => {
+      cancelled = true;
+    };
+    // The class is read, not watched: switching class must not refetch the tree list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game]);
+
+  const switchGame = useCallback((next: Game) => {
+    setGame(next);
+    setSim(null);
+    setAnalysis(null);
+    setStep("narrow");
+    setNote(null);
+    setBothHeroes(false);
   }, []);
 
   useEffect(() => {
@@ -184,7 +230,11 @@ export default function App() {
     if (shared.hero && hero && shared.hero !== hero.key && group.heroes.some((h) => h.key === shared.hero)) return;
     seeded.current = true;
     const next: Record<string, TreeWork> = {};
-    if (replace) for (const k of [group.class.key, group.spec.key, ...group.heroes.map((h) => h.key)]) next[k] = emptyWork();
+    if (replace) {
+      for (const k of [group.class.key, group.spec.key, ...group.heroes.map((h) => h.key)]) {
+        next[k] = emptyWork(forever ? "fixed" : "open");
+      }
+    }
     for (const [role, summary] of roles) {
       const work = shared.work[role];
       if (work) next[summary.key] = work;
@@ -194,7 +244,7 @@ export default function App() {
     if (Object.keys(next).length) {
       setWork((previous) => (replace ? { ...previous, ...next } : { ...next, ...previous }));
     }
-  }, [group.spec, group.class, group.heroes, hero, roles, seedTick]);
+  }, [group.spec, group.class, group.heroes, hero, roles, seedTick, forever]);
 
   // Every tree of the spec, both hero trees included: a talent string writes granted talents
   // whether or not their tree is the one chosen.
@@ -221,21 +271,77 @@ export default function App() {
     };
   }, [wanted, loaded]);
 
-  const workOf = useCallback((key: string) => work[key] ?? emptyWork(), [work]);
+  /*
+    What an untouched tree is. Retail trees start open: the space is the thing to narrow.
+    Forever tabs start fixed and empty -- a vanilla calculator, where the first thing anyone
+    does is spend points by hand -- and one can be opened to explore from there.
+  */
+  const defaultMode = forever ? "fixed" : "open";
+  const workOf = useCallback((key: string) => work[key] ?? emptyWork(defaultMode), [work, defaultMode]);
   const update = useCallback(
     (key: string, change: (w: TreeWork) => TreeWork) =>
-      setWork((previous) => ({ ...previous, [key]: change(previous[key] ?? emptyWork()) })),
-    [],
+      setWork((previous) => ({ ...previous, [key]: change(previous[key] ?? emptyWork(defaultMode)) })),
+    [defaultMode],
   );
 
   const selectSpec = useCallback((nextClass: string, nextSpec: string | null) => {
     setClassName(nextClass);
-    setSpecName(nextSpec);
+    // Clicking a retail class names no spec; it opens on the class's first one. Forever has
+    // no specs, and null is exactly right there.
+    setSpecName(
+      nextSpec ??
+        trees.find((t) => t.className === nextClass && t.kind === "spec")?.specName ??
+        null,
+    );
     setSim(null);
     setAnalysis(null);
     setStep("narrow");
     setNote(null);
-  }, []);
+  }, [trees]);
+
+  // --- the shared point pool ------------------------------------------------
+  /*
+    Forever's three tabs draw on one pool of 51, so no tab has a cap of its own: each may
+    use what the other two leave. A fixed tab commits the points it has spent; an open tab
+    commits an explicit budget, or, left at its default, takes what is left in tab order.
+    Retail trees have separate budgets and this is simply their own cap.
+  */
+  const pool = forever ? (group.class ? (loaded[group.class.key]?.sharedPointCap ?? 51) : 51) : null;
+  const allowance = useMemo(() => {
+    const out = new Map<string, number>();
+    if (pool === null) return out;
+    const tabs = [group.class, group.spec, ...group.heroes].filter(Boolean) as TreeSummary[];
+    const used = new Map<string, number>();
+    for (const t of tabs) {
+      const w = workOf(t.key);
+      used.set(
+        t.key,
+        w.mode === "fixed" ? loadout.total(w.points) : w.search.budget !== null ? Math.min(w.search.budget, capOf(t)) : 0,
+      );
+    }
+    let left = pool - [...used.values()].reduce((a, b) => a + b, 0);
+    for (const t of tabs) {
+      const w = workOf(t.key);
+      if (w.mode === "open" && w.search.budget === null) {
+        const take = Math.max(0, Math.min(capOf(t), left));
+        used.set(t.key, take);
+        left -= take;
+      }
+    }
+    for (const t of tabs) {
+      const others = [...used].filter(([k]) => k !== t.key).reduce((a, [, v]) => a + v, 0);
+      out.set(t.key, Math.max(0, Math.min(capOf(t), pool - others)));
+    }
+    return out;
+  }, [pool, group.class, group.spec, group.heroes, workOf]);
+  const capFor = useCallback(
+    (summary: TreeSummary) => allowance.get(summary.key) ?? capOf(summary),
+    [allowance],
+  );
+  const labelOf = useCallback(
+    (role: Role, summary: TreeSummary) => (forever ? summary.name : LABEL[role]),
+    [forever],
+  );
 
   // --- per-tree counts ----------------------------------------------------
   const countRequests = useMemo(
@@ -245,10 +351,10 @@ export default function App() {
         return {
           key: summary.key,
           payload:
-            w.mode === "open" && pendingOf(w).length === 0 ? payloadOf(w, capOf(summary)) : null,
+            w.mode === "open" && pendingOf(w).length === 0 ? payloadOf(w, capFor(summary)) : null,
         };
       }),
-    [members, workOf],
+    [members, workOf, capFor],
   );
   const counts = useCounts(countRequests);
 
@@ -258,7 +364,7 @@ export default function App() {
     return {
       key: summary.key,
       // Two hero rows need their names; one does not.
-      label: role.startsWith("hero") && bothHeroes ? summary.name : LABEL[role],
+      label: role.startsWith("hero") && bothHeroes ? summary.name : labelOf(role, summary),
       op: role === "hero2" ? ("+" as const) : undefined,
       fixed: w.mode === "fixed",
       builds: w.mode === "fixed" ? 1 : (c?.builds ?? null),
@@ -267,7 +373,7 @@ export default function App() {
     };
   });
   const pending = members.flatMap(([role, s]) =>
-    pendingOf(workOf(s.key)).map((p) => `${p} in the ${LABEL[role].toLowerCase()} tree`),
+    pendingOf(workOf(s.key)).map((p) => `${p} in the ${labelOf(role, s).toLowerCase()} tree`),
   );
   const total = rows.length >= 3 ? totalOf(rows) : null;
   // Two hero trees at different budgets compare the extra points, not the trees.
@@ -290,7 +396,7 @@ export default function App() {
       if (!tree) return;
       const w = workOf(summary.key);
       if (w.mode === "fixed") {
-        const result = spend(w, tree, capOf(summary), node, alternate);
+        const result = spend(w, tree, capFor(summary), node, alternate);
         update(summary.key, () => result.work);
         setNote(result.note);
       } else {
@@ -298,7 +404,7 @@ export default function App() {
         setNote(null);
       }
     },
-    [loaded, workOf, update, tool],
+    [loaded, workOf, update, tool, capFor],
   );
 
   const onMode = useCallback(
@@ -371,7 +477,7 @@ export default function App() {
       key: s.key,
       tree: loaded[s.key]!,
       work: workOf(s.key),
-      cap: capOf(s),
+      cap: capFor(s),
       // Both hero trees fill one factor of the product, and each names its own sub-tree.
       ...(role.startsWith("hero") ? { slot: "hero", hero: s.subTreeId } : {}),
     }));
@@ -386,17 +492,17 @@ export default function App() {
     ),
   });
   const labels = Object.fromEntries(
-    members.map(([role, s]) => [s.key, role.startsWith("hero") && bothHeroes ? s.name : LABEL[role]]),
+    members.map(([role, s]) => [s.key, role.startsWith("hero") && bothHeroes ? s.name : labelOf(role, s)]),
   );
   // Only the trees this character can have: the sibling spec's hero-talent targets are not
   // in here, which is what keeps the tooltip from naming abilities this spec never gets.
   const nodeNames = useMemo(() => {
     const map = new Map<number, NamedNode>();
     for (const [role, s] of members) {
-      for (const n of loaded[s.key]?.nodes ?? []) map.set(n.nodeId, { name: n.name, tree: LABEL[role] });
+      for (const n of loaded[s.key]?.nodes ?? []) map.set(n.nodeId, { name: n.name, tree: labelOf(role, s) });
     }
     return map;
-  }, [members, loaded]);
+  }, [members, loaded, labelOf]);
   const allTrees = wanted.map((k) => loaded[k]).filter(Boolean) as TreeDetail[];
   const specTree = group.spec ? (loaded[group.spec.key] ?? null) : null;
 
@@ -425,6 +531,12 @@ export default function App() {
   const openSaved = useCallback(
     (saved: SavedLoadout) => {
       const shared = decode(saved.query);
+      const savedGame: Game = shared.spec?.startsWith("forever/") ? "forever" : "retail";
+      if (savedGame !== game) {
+        // The list for the other game has to load first; the link path does the rest.
+        window.location.search = saved.query;
+        return;
+      }
       const summary = trees.find((t) => t.key === shared.spec);
       if (!summary) {
         setNote(`“${saved.name}” is for a specialisation this data no longer has.`);
@@ -441,7 +553,7 @@ export default function App() {
       setStep("narrow");
       setNote(`Opened “${saved.name}”.`);
     },
-    [trees],
+    [trees, game],
   );
 
   const fixedPoints = Object.assign(
@@ -485,17 +597,17 @@ export default function App() {
   const pane = (role: Role, summary: TreeSummary, extra?: { className: string; children?: React.ReactNode }) => {
     const tree = loaded[summary.key] ?? null;
     const w = workOf(summary.key);
-    const cap = capOf(summary);
+    const cap = capFor(summary);
     const c = counts[summary.key];
     return (
       <TreePane
         key={summary.key}
         tree={tree}
-        title={LABEL[role]}
-        subtitle={role === "class" ? className : role === "spec" ? specName : null}
+        title={labelOf(role, summary)}
+        subtitle={forever ? null : role === "class" ? className : role === "spec" ? specName : null}
         mode={w.mode}
         onMode={(m) => onMode(summary.key, m)}
-        points={{ value: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, cap), cap }}
+        points={{ value: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, cap), cap, shared: forever }}
         onBudget={(p) =>
           update(summary.key, (current) => ({
             ...current,
@@ -538,6 +650,19 @@ export default function App() {
           className="hidden h-7 w-px shrink-0 md:block"
           style={{ background: "color-mix(in srgb, var(--brass) 30%, transparent)" }}
         />
+        {/* Which game. Two words, because the two are different enough that a player
+            should always know which trees they are looking at. */}
+        <div className="seg shrink-0" role="group" aria-label="Game">
+          {([
+            ["retail", "Retail"],
+            ["forever", "WoW Forever"],
+          ] as const).map(([id, label]) => (
+            <button key={id} type="button" aria-pressed={game === id} onClick={() => switchGame(id)}>
+              {label}
+            </button>
+          ))}
+        </div>
+
         <SpecRail trees={trees} className={className} specName={specName} onSelect={selectSpec} />
 
         {/* The workflow, in order. A step is reachable once the one before it has produced
@@ -545,8 +670,8 @@ export default function App() {
         <nav className="steps ml-auto" aria-label="Workflow">
           {([
             ["narrow", "Narrow", true],
-            ["simulate", "Simulate", simmable || sim !== null],
-            ["analyse", "Analyse", analysis !== null],
+            ["simulate", "Simulate", !forever && (simmable || sim !== null)],
+            ["analyse", "Analyse", !forever && analysis !== null],
           ] as const).map(([id, label, enabled], i) => (
             <span key={id} className="contents">
               {i > 0 && <span className="sep" aria-hidden="true" />}
@@ -558,9 +683,11 @@ export default function App() {
                 title={
                   enabled
                     ? undefined
-                    : id === "simulate"
-                      ? "Narrow the trees until the builds fit the sim limit"
-                      : "Bring a SimulationCraft report back first"
+                    : forever
+                      ? "SimulationCraft does not simulate WoW Forever"
+                      : id === "simulate"
+                        ? "Narrow the trees until the builds fit the sim limit"
+                        : "Bring a SimulationCraft report back first"
                 }
               >
                 <span className="n">{i + 1}</span>
@@ -583,8 +710,10 @@ export default function App() {
           {group.spec && pane("spec", group.spec, { className: "min-h-[22rem] flex-1 md:min-h-0" })}
           {hero &&
             pane("hero", hero, {
-              className: "min-h-[18rem] md:min-h-0 md:w-[20rem] md:shrink-0",
-              children: (
+              className: forever
+                ? "min-h-[22rem] flex-1 md:min-h-0"
+                : "min-h-[18rem] md:min-h-0 md:w-[20rem] md:shrink-0",
+              children: forever ? null : (
                 <span className="ml-auto flex shrink-0 items-center gap-1">
                   {group.heroes.map((h) => (
                     <button
@@ -619,6 +748,16 @@ export default function App() {
             })}
 
           <aside className="flex w-full shrink-0 flex-col gap-2 md:w-[19rem] md:gap-2.5 md:overflow-y-auto md:pr-1">
+            {forever && pool !== null && (
+              <PoolCard
+                pool={pool}
+                tabs={roles.map(([, s]) => {
+                  const w = workOf(s.key);
+                  return { name: s.name, points: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, capFor(s)) };
+                })}
+              />
+            )}
+
             <SpaceCard
               rows={rows}
               limit={limit}
@@ -626,6 +765,11 @@ export default function App() {
               pending={pending}
               onSimulate={() => setStep("simulate")}
               hint={heroHint}
+              unavailable={
+                forever
+                  ? "SimulationCraft does not simulate WoW Forever, so this counts the builds but cannot sim them."
+                  : null
+              }
             />
 
             {note && (
@@ -643,6 +787,7 @@ export default function App() {
               counts={paintCounts}
             />
 
+            {!forever && (
             <LoadoutString
               spec={specTree}
               trees={allTrees}
@@ -652,6 +797,7 @@ export default function App() {
               onImport={onImportString}
               exportable={allFixed}
             />
+            )}
 
             <SavedPanel
               query={sharedNow ? encode(sharedNow) : ""}
@@ -670,10 +816,28 @@ export default function App() {
             </section>
 
             <section className="panel px-3.5 py-2.5">
-              <ShapeKey />
+              <ShapeKey kinds={forever ? ["passive", "active"] : undefined} />
             </section>
 
             <footer className="px-1 pb-1 text-[10.5px] leading-relaxed text-ink-faint">
+              {forever && (
+                <>
+                  WoW Forever talent data from{" "}
+                  <a className="underline" href="https://talentsforever.com" target="_blank" rel="noreferrer">
+                    talentsforever.com
+                  </a>
+                  , read from the beta client, under{" "}
+                  <a
+                    className="underline"
+                    href="https://creativecommons.org/licenses/by/4.0/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    CC BY 4.0
+                  </a>
+                  . It is beta data and will change before launch.{" "}
+                </>
+              )}
               A fan project. Not affiliated with or endorsed by Blizzard Entertainment.
               {health && (
                 <>

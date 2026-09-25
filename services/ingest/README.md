@@ -123,6 +123,37 @@ If the endpoint ever disappears, simc ships the same text in
 templates (`$s1`, `$?spell[a][b]`, `$lsingular:plural;`), so using it means writing an
 expression evaluator over spell effect data. A last resort, not a swap.
 
+## WoW Forever
+
+`forever_ingest.py` reads [talentsforever.com](https://talentsforever.com)'s data export, which
+is taken from the Forever beta client's own files (build 1.60.1.70009 at the time of writing)
+and published under CC BY 4.0 -- reusable with a credit and a link, which the app shows
+wherever this data is. It writes the same tree format as the retail ingest, into
+`data/generated-forever`, as its own revision:
+
+```bash
+python services/ingest/forever_ingest.py
+python services/db/load_trees.py --trees data/generated-forever
+```
+
+What it has to supply that the export does not:
+
+- **Node ids.** The export has none, and stable ids are what keep share links and saved setups
+  valid across updates. Each is a hash of class, tab and talent name: it survives a talent
+  moving on the grid, which is common while a beta is tuned, and not a rename. Collisions are
+  checked.
+- **The point rules.** Vanilla's -- 51 points, 5 a row -- recorded on every tree as
+  `sharedPointCap` and `pointsPerRow`, so a change is one edit and nothing downstream assumes it.
+
+It fails loudly on anything the solver relies on: a talent off the grid, two in one cell, a
+prerequisite that names a talent the tab does not have, or one *below* its talent. Prerequisites
+beside a talent are allowed -- vanilla has sideways arrows (Holy Shock to Divine Precision), and
+the first version of this check refused them.
+
+Each game is served from its own latest revision (migration 008), so loading Forever can never
+unserve retail; before that, `current_trees` served the single highest revision of everything,
+and Forever's revisions sort above retail's.
+
 ## Adding a source
 
 Everything downstream works off `Payload.specs`, so a second source means one more loader

@@ -157,6 +157,8 @@ class TreeSummary(BaseModel):
     # Null until a verified source exists. The upstream payload does not carry the game's
     # real per-tree cap, and guessing it would be fabrication.
     pointCap: int | None
+    # A classic tab's place among its class's three; None for retail trees.
+    order: int | None = None
 
 
 class CountRow(BaseModel):
@@ -231,7 +233,7 @@ class CountResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 @app.get("/health")
-def health() -> dict[str, Any]:
+def health(game: str = "retail") -> dict[str, Any]:
     """Liveness plus whether the data we serve is actually fit to serve.
 
     Reports the promoted revision and its age. The legacy pipeline's failure was that
@@ -243,9 +245,10 @@ def health() -> dict[str, Any]:
             SELECT revision, promoted_at, tree_count, node_count, description_coverage,
                    extract(epoch FROM (now() - promoted_at))::bigint AS age_seconds
             FROM ingest_runs
-            WHERE promoted_at IS NOT NULL
+            WHERE promoted_at IS NOT NULL AND game = %s
             ORDER BY revision DESC LIMIT 1
-            """
+            """,
+            (game,),
         )
     except Exception as exc:  # noqa: BLE001 - health must report, not raise
         return {"status": "degraded", "database": f"unreachable: {type(exc).__name__}"}
@@ -307,7 +310,8 @@ def list_trees(
 ) -> list[TreeSummary]:
     """Every tree in the promoted revision, optionally narrowed."""
     sql = ["SELECT key, kind::text, name, class_name, spec_name, sub_tree_id,",
-           "       node_count, max_points_in_tree, point_cap",
+           "       node_count, max_points_in_tree, point_cap,",
+           "       (definition->>'order')::int AS tab_order",
            "FROM current_trees WHERE game = %s"]
     params: list[Any] = [game]
     if kind:
@@ -319,7 +323,7 @@ def list_trees(
     if specId is not None:
         sql.append("AND spec_id = %s")
         params.append(specId)
-    sql.append("ORDER BY class_name, spec_name, kind, sub_tree_id")
+    sql.append("ORDER BY class_name, spec_name, kind, tab_order, sub_tree_id")
 
     return [
         TreeSummary(
@@ -327,6 +331,7 @@ def list_trees(
             className=r["class_name"], specName=r["spec_name"],
             subTreeId=r["sub_tree_id"], nodeCount=r["node_count"],
             maxPointsInTree=r["max_points_in_tree"], pointCap=r["point_cap"],
+            order=r["tab_order"],
         )
         for r in query(" ".join(sql), tuple(params))
     ]

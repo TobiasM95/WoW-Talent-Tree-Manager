@@ -60,10 +60,11 @@ const SHAPES: { shape: Kind; label: string }[] = [
   { shape: "subtree", label: "Hero tree" },
 ];
 
-export function ShapeKey() {
+/** `kinds` limits the key to the shapes a game actually has: Forever has no choice nodes. */
+export function ShapeKey({ kinds }: { kinds?: Kind[] }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      {SHAPES.map(({ shape, label }) => (
+      {SHAPES.filter((s) => !kinds || kinds.includes(s.shape)).map(({ shape, label }) => (
         <span key={shape} className="flex items-center gap-1 text-[10.5px] text-ink-faint">
           <Swatch shape={shape} />
           {label}

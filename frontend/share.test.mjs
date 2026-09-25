@@ -70,6 +70,11 @@ check("every constraint kind survives", same(back.work.spec.search, specWork.sea
 check("a budget-only tree survives", back.work.hero.search.budget === 8 && back.work.hero.mode === "open");
 console.log(`     (${text.length} characters for three trees)`);
 
+// An open tree with nothing painted and the default budget still says it is open: in a game
+// whose trees start fixed, silence would read back as fixed.
+const bare = S.decode(S.encode({ ...state, work: { hero: W.emptyWork("open") } }));
+check("an open tree with nothing on it still reads back open", bare.work.hero?.mode === "open");
+
 const empty = S.decode("");
 check("an empty link is empty", !empty.spec && Object.keys(empty.work).length === 0 && empty.limit === null);
 

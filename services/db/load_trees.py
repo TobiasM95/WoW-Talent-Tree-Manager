@@ -54,14 +54,19 @@ def load_dp():
 COVERAGE_TOLERANCE = 0.02
 
 
-def _currently_serving(cur) -> tuple[int, float] | None:
-    """(revision, description coverage) of the revision being served right now, if any."""
+def _currently_serving(cur, game: str) -> tuple[int, float] | None:
+    """(revision, description coverage) of the revision this game is serving, if any.
+
+    Per game: a Forever revision has no tooltips to cover in the retail sense, and comparing
+    it against retail's coverage would refuse every Forever load -- or, the other way round,
+    let a degraded retail load through because Forever happened to be promoted last.
+    """
     cur.execute(
         """
         SELECT revision, description_coverage FROM ingest_runs
-        WHERE promoted_at IS NOT NULL AND description_coverage IS NOT NULL
+        WHERE promoted_at IS NOT NULL AND description_coverage IS NOT NULL AND game = %s
         ORDER BY promoted_at DESC LIMIT 1
-        """)
+        """, (game,))
     row = cur.fetchone()
     return (int(row[0]), float(row[1])) if row else None
 
@@ -121,12 +126,14 @@ def main() -> int:
     with open(manifest_path, encoding="utf-8") as handle:
         manifest = json.load(handle)
     revision = manifest["revision"]
+    # Which game this revision serves. Older manifests predate the field and are retail.
+    game = manifest.get("game", "retail")
     source = manifest["source"]
     descriptions = manifest.get("descriptions") or {}
     point_caps = manifest.get("pointCaps") or {}
 
     trees = [json.load(open(p, encoding="utf-8")) for p in tree_paths]
-    print(f"revision  {revision}")
+    print(f"revision  {revision} ({game})")
     print(f"trees     {len(trees)}")
     print(f"digest    {source['digest'][:16]}...")
     if point_caps:
@@ -165,7 +172,7 @@ def main() -> int:
             # overwrites this revision's own coverage and clears its promoted_at, so after
             # it there is nothing left to compare against -- and re-ingesting the same
             # upstream build reuses the same revision number, which is the common case.
-            serving = _currently_serving(cur)
+            serving = _currently_serving(cur, game)
 
             # Re-running the same revision updates it in place rather than deleting it.
             # Deleting would cascade into trees, which solve_jobs references -- a reload
@@ -175,9 +182,10 @@ def main() -> int:
                 """
                 INSERT INTO ingest_runs (
                     revision, source_provider, source_origin, source_digest, fetched_at,
-                    tree_count, node_count, anomalies, description_coverage, warnings
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    tree_count, node_count, anomalies, description_coverage, warnings, game
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (revision) DO UPDATE SET
+                    game            = EXCLUDED.game,
                     source_provider = EXCLUDED.source_provider,
                     source_origin   = EXCLUDED.source_origin,
                     source_digest   = EXCLUDED.source_digest,
@@ -196,6 +204,7 @@ def main() -> int:
                     json.dumps(manifest.get("anomalies") or {}),
                     descriptions.get("coverage"),
                     json.dumps(manifest.get("warnings") or []),
+                    game,
                 ),
             )
 

@@ -17,6 +17,15 @@ The typical path: paste the talent string you play, which fixes all three trees;
 one you want to explore; paint until the count fits; simulate; read the answer; "use this
 build" to fix the trees to it and go round again.
 
+**WoW Forever.** The header switches game. Forever's trees are a class's three tabs sharing
+one pool of 51 points, so no tab has a cap of its own: each gets what the other two leave, the
+readout is the split ("31 / 20 / 0") with the level it takes, and tabs start **fixed and empty**,
+because the first thing anyone does in a vanilla calculator is spend points by hand. A tab can
+still be opened to count what fits in the points left. Simulate is off -- SimulationCraft does
+not sim Forever -- and the data is credited in the footer, as its licence asks. `test:forever`
+presses on the pool: 51 however it is split, a refund in one tab frees a point in another, and
+a link reproduces the split.
+
 **Both hero trees at once.** The hero pane's `both` switch sims the other hero tree too, each
 with its own fixed build or search — the hero factor becomes a sum, class × spec × (A + B),
 and the names choose which one is being edited. The analysis then compares the trees by best
@@ -60,6 +69,7 @@ pnpm run test:string                           # the Blizzard talent-string code
 pnpm run test:simc                             # expansion == API count; every line a real character
 pnpm run test:report                           # the SimC report reader, against a real report
 pnpm run test:canvas                           # shapes, keylines, four colours, both themes
+pnpm run test:forever                          # WoW Forever: three tabs, one pool of 51
 pnpm test                                      # the whole workflow, with a live SimulationCraft run
 pnpm run test:all                              # all of it
 ```

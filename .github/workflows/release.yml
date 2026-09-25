@@ -50,6 +50,13 @@ jobs:
           docker compose run --rm ingest --point-caps --quiet
           docker compose run --rm loader
 
+      # WoW Forever: a second game, loaded as its own revision. Retail must still be served
+      # afterwards, which the API suite checks.
+      - name: ingest WoW Forever and load it
+        run: |
+          docker compose run --rm --entrypoint python ingest services/ingest/forever_ingest.py
+          docker compose run --rm loader --trees data/generated-forever
+
       - name: start the services
         run: |
           docker compose --profile web up -d --build api worker web

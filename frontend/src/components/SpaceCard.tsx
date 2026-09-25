@@ -46,11 +46,13 @@ export interface SpaceCardProps {
   onSimulate: () => void;
   /** Something true about the space that does not stop a sim but changes what it means. */
   hint?: string | null;
+  /** Why simulating is not possible at all here, if it is not. */
+  unavailable?: string | null;
 }
 
 export const LIMITS = [1000, 5000, 10000, 25000, 50000] as const;
 
-export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: SpaceCardProps) {
+export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint, unavailable }: SpaceCardProps) {
   const total = totalOf(rows);
   const stale = rows.some((r) => r.stale);
   const errored = rows.find((r) => r.error);
@@ -81,6 +83,7 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: S
     <section className="panel p-3.5" aria-live="polite">
       <div className="flex items-baseline justify-between gap-2">
         <span className="label">Possibility space</span>
+        {!unavailable && (
         <label className="flex items-center gap-1 text-[10.5px] text-ink-faint">
           sim limit
           <select
@@ -96,6 +99,7 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: S
             ))}
           </select>
         </label>
+        )}
       </div>
 
       <div
@@ -124,12 +128,15 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: S
         ))}
       </ul>
 
-      <p
-        className="mt-2.5 text-[11.5px] leading-snug"
-        style={{ color: verdict.ok ? "var(--ink-soft)" : "var(--any-of)" }}
-      >
-        {verdict.text}
-      </p>
+      {/* Nothing to say about simming where there is no sim -- only the count. */}
+      {!unavailable && (
+        <p
+          className="mt-2.5 text-[11.5px] leading-snug"
+          style={{ color: verdict.ok ? "var(--ink-soft)" : "var(--any-of)" }}
+        >
+          {verdict.text}
+        </p>
+      )}
 
       {hint && (
         <p className="mt-1.5 text-[11px] leading-snug" style={{ color: "var(--any-of)" }}>
@@ -137,6 +144,9 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: S
         </p>
       )}
 
+      {unavailable ? (
+        <p className="mt-2.5 text-[11.5px] leading-snug text-ink-faint">{unavailable}</p>
+      ) : (
       <button
         type="button"
         className="btn btn-primary mt-2.5"
@@ -147,6 +157,7 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: S
           ? `Simulate ${formatCount(total)} build${total === 1 ? "" : "s"} →`
           : "Simulate →"}
       </button>
+      )}
     </section>
   );
 }

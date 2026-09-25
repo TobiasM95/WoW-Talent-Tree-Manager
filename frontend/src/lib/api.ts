@@ -48,11 +48,16 @@ export interface Health {
   dataAgeSeconds: number;
 }
 
-export const getHealth = () => request<Health>("/health");
+/** Each game is its own revision with its own age, so health is asked per game. */
+export const getHealth = (game: Game = "retail") => request<Health>(`/health?game=${game}`);
 
 /* --- trees ----------------------------------------------------------------- */
 
-export type TreeKind = "class" | "spec" | "hero";
+/** `tab` is a classic talent tab: one of a class's three trees, sharing one point pool. */
+export type TreeKind = "class" | "spec" | "hero" | "tab";
+
+/** Which game's trees. Retail has class, spec and hero trees; Forever has three tabs a class. */
+export type Game = "retail" | "forever";
 
 export interface TreeSummary {
   key: string;
@@ -64,6 +69,8 @@ export interface TreeSummary {
   nodeCount: number;
   maxPointsInTree: number;
   pointCap: number | null;
+  /** A classic tab's place among its class's three; null for retail trees. */
+  order?: number | null;
 }
 
 export type NodeKind = "single" | "choice" | "tiered" | "subtree";
@@ -146,6 +153,17 @@ export interface TreeDetail extends TreeSummary {
    * loses which hero tree they belong to.
    */
   subTreeSelector: { nodeId: number; subTreeIds: number[] } | null;
+  /**
+   * Forever: the one point pool a class's three tabs share (51), and the points each row
+   * needs. Recorded on the data rather than assumed in the client, since the export does not
+   * state them and they are one edit away from changing.
+   */
+  sharedPointCap?: number;
+  pointsPerRow?: number;
+  /** Forever: this tab's place among its class's three. */
+  order?: number;
+  /** Whose data this is, when the licence asks to say so. */
+  attribution?: { name: string; url: string; license: string };
   nodes: TalentNode[];
 }
 

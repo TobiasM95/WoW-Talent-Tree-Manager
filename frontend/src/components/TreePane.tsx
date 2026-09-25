@@ -20,8 +20,12 @@ export interface TreePaneProps {
   /** Absent on read-only panes, such as the analysis page. */
   mode?: TreeMode;
   onMode?: (mode: TreeMode) => void;
-  /** Points: spent of cap when fixed, budget of cap when open. */
-  points?: { value: number; cap: number };
+  /**
+   * Points: spent of cap when fixed, budget of cap when open. `shared` drops the cap from a
+   * fixed tree's readout: when trees draw on one pool, a tree's "cap" is only what the others
+   * happen to leave, and "47/47 spent" says nothing a player can use.
+   */
+  points?: { value: number; cap: number; shared?: boolean };
   onBudget?: (points: number) => void;
   /** Builds this tree contributes; null while counting. */
   count?: { builds: number | null; stale: boolean; error: string | null };
@@ -127,11 +131,13 @@ export function TreePane({
             {points && mode === "fixed" && (
               <span
                 className="num text-[11.5px]"
-                style={{ color: points.value < points.cap ? "var(--any-of)" : "var(--ink-soft)" }}
-                title={points.value < points.cap ? "Points left unspent" : "Every point spent"}
+                style={{
+                  color: !points.shared && points.value < points.cap ? "var(--any-of)" : "var(--ink-soft)",
+                }}
+                title={points.shared ? undefined : points.value < points.cap ? "Points left unspent" : "Every point spent"}
               >
                 {points.value}
-                <span className="text-ink-faint">/{points.cap} spent</span>
+                <span className="text-ink-faint">{points.shared ? " spent" : `/${points.cap} spent`}</span>
               </span>
             )}
 
