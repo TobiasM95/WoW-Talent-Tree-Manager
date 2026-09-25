@@ -44,7 +44,10 @@ async function waitForServer(target, timeoutMs = 30000) {
   }
 }
 
+// The web container answers at once; the API behind it can take several seconds more
+// after a rebuild. Waiting on the page alone failed the first run after every deploy.
 await waitForServer(url);
+await waitForServer(`${url}/api/health`);
 
 const browser = await chromium.launch();
 const problems = [];

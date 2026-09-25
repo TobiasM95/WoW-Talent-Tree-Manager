@@ -222,6 +222,13 @@
   background: var(--star-wash);
 }
 
+/* On paper a tinted wash reads as disabled, so the one loud control is filled instead. */
+:root:not([data-theme="dark"]) .btn-primary:not(:disabled) {
+  color: #fdfaf3;
+  background: var(--star);
+  border-color: var(--star);
+}
+
 .btn-primary:hover:not(:disabled) {
   color: var(--ink-inverse);
   background: var(--star);
@@ -266,6 +273,221 @@
 :root:not([data-theme="dark"]) .rail-item[aria-pressed="true"]::after {
   box-shadow: none;
   height: 2px;
+}
+
+/* --- segmented switch --------------------------------------------------------
+   Fixed / open on each tree, and the step tabs in the header. One control shape for "pick
+   exactly one of these", so the page teaches it once. */
+
+.seg {
+  display: inline-flex;
+  border: 1px solid color-mix(in srgb, var(--brass) 35%, transparent);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.seg > button {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0.18rem 0.6rem;
+  border: 0;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 120ms, background 120ms;
+}
+
+.seg > button + button {
+  border-left: 1px solid color-mix(in srgb, var(--brass) 25%, transparent);
+}
+
+.seg > button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.seg > button[aria-pressed="true"] {
+  color: var(--star-bright);
+  background: var(--star-wash);
+}
+
+:root:not([data-theme="dark"]) .seg > button[aria-pressed="true"] {
+  color: var(--star);
+}
+
+.seg > button:disabled {
+  color: var(--locked-ink);
+  cursor: not-allowed;
+}
+
+/* A small square stepper button for the per-tree budget. */
+.step {
+  width: 1.3rem;
+  height: 1.3rem;
+  line-height: 1;
+  font-size: 13px;
+  border: 1px solid color-mix(in srgb, var(--brass) 30%, transparent);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.step:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--brass);
+}
+
+.step:disabled {
+  color: var(--locked-ink);
+  cursor: not-allowed;
+}
+
+/* --- workflow steps ---------------------------------------------------------
+   Narrow, simulate, analyse: the three things this tool is for, in the order they happen.
+   Numbered, because the order is the information. */
+
+.steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.steps button {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+}
+
+.steps button .n {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+.steps button:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.steps button[aria-current="step"] {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--brass) 40%, transparent);
+  background: color-mix(in srgb, var(--brass) 8%, transparent);
+}
+
+.steps button[aria-current="step"] .n {
+  color: var(--class-tint);
+}
+
+.steps button:disabled {
+  color: var(--locked-ink);
+  cursor: not-allowed;
+}
+
+.steps .sep {
+  width: 1rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--brass) 30%, transparent);
+}
+
+/* --- tables on the analysis page -------------------------------------------- */
+
+.ttm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ttm-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--panel);
+  border-bottom: 1px solid color-mix(in srgb, var(--brass) 25%, transparent);
+}
+
+.ttm-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--brass) 10%, transparent);
+  color: var(--ink-soft);
+  vertical-align: baseline;
+}
+
+.ttm-table tbody tr {
+  cursor: pointer;
+}
+
+.ttm-table tbody tr:hover td {
+  background: color-mix(in srgb, var(--brass) 6%, transparent);
+}
+
+.ttm-table tbody tr[aria-selected="true"] td {
+  background: var(--star-wash);
+  color: var(--ink);
+}
+
+/* A value bar: a thin track with a fill from the centre, green right, red left. Used for the
+   talent values, where the sign is the message. */
+.vbar {
+  position: relative;
+  height: 6px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--ink-faint) 14%, transparent);
+}
+
+.vbar::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  width: 1px;
+  background: color-mix(in srgb, var(--ink-faint) 45%, transparent);
+}
+
+.vbar > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 1px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0 0.35rem;
+  font-size: 10.5px;
+  line-height: 1.5;
+  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--brass) 25%, transparent);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.dropzone {
+  border: 1px dashed color-mix(in srgb, var(--brass) 45%, transparent);
+  border-radius: var(--radius);
+  transition: border-color 120ms, background 120ms;
+}
+
+.dropzone[data-over] {
+  border-color: var(--star);
+  background: var(--star-wash);
 }
 
 input[type="range"] {

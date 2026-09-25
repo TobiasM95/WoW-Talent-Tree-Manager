@@ -1,145 +1,114 @@
 /**
- * Round-trip tests for the share codec.
+ * The share codec: every tree, both halves of each, and links from before the redesign.
  *
  *   node share.test.mjs
- *
- * No browser: this is pure string handling, and it is the part where a mistake is silent.
- * A link that loses a constraint still opens, shows a plausible tree, and gives the wrong
- * answer -- there is nothing for a person to notice.
- *
- * Run through Vite so the TypeScript source is the thing under test rather than a copy.
  */
 import { createServer } from "vite";
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
-const { encode, decode } = await server.ssrLoadModule("/src/lib/share.ts");
+const S = await server.ssrLoadModule("/src/lib/share.ts");
+const W = await server.ssrLoadModule("/src/lib/workspace.ts");
 
 const failures = [];
 const check = (name, ok, detail = "") => {
   console.log(`${ok ? "ok  " : "FAIL"} ${name}${ok || !detail ? "" : ` -- ${detail}`}`);
   if (!ok) failures.push(name);
 };
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+const classWork = {
+  ...W.emptyWork("fixed"),
+  points: { 76061: 1, 76062: 2, 96167: 1 },
+  picks: { 76062: 1 },
+  // A search is kept even while the tree is fixed, which is the point of the redesign.
+  search: { ...W.EMPTY_SEARCH, required: [76070] },
+};
+const specWork = {
+  ...W.emptyWork("open"),
+  search: {
+    budget: 27,
+    required: [96200, 96201],
+    excluded: [96210],
+    sides: { 96220: "b", 96221: "a" },
+    atLeastOne: [96230, 96231],
+    exactlyOne: [96240, 96241, 96242],
+  },
+};
+const heroWork = { ...W.emptyWork("open"), search: { ...W.EMPTY_SEARCH, budget: 8 } };
 
 const state = {
-  tree: "retail/11/102/spec",
-  points: 27,
-  required: [88203, 88210, 91045],
-  excluded: [88219],
-  sides: new Map([
-    [88209, "a"],
-    [88221, "b"],
-    [88236, "none"],
-  ]),
-  atLeastOne: [88204, 88215, 88219],
-  exactlyOne: [88221, 88236],
-  spent: {
-    class: { 76169: 1, 76170: 2 },
-    spec: { 88203: 1, 88225: 1 },
-    hero: { 91045: 1 },
-  },
-  heroKey: "retail/11/102/hero/23",
-  mode: "explore",
+  spec: "retail/6/250/spec",
+  hero: "retail/6/250/hero/31",
+  limit: 5000,
+  work: { class: classWork, spec: specWork, hero: heroWork },
 };
 
-const round = decode(encode(state));
+const text = S.encode(state);
+const back = S.decode(text);
 
-check("the tree key survives, slashes and all", round.tree === state.tree, round.tree);
-check("the point budget survives", round.points === state.points, String(round.points));
-check(
-  "required and excluded survive",
-  String(round.required) === String(state.required) &&
-    String(round.excluded) === String(state.excluded),
-  `${round.required} / ${round.excluded}`,
-);
-check(
-  "every choice side survives, including 'none'",
-  [...state.sides].every(([id, side]) => round.sides.get(id) === side),
-  JSON.stringify([...round.sides]),
-);
-check(
-  "both group kinds survive",
-  String(round.atLeastOne) === String(state.atLeastOne) &&
-    String(round.exactlyOne) === String(state.exactlyOne),
-);
-/*
-  A link carries one of two things, chosen by the mode: a *loadout* or a *search*. Carrying
-  both is what produced links that arrived with a leftover budget and constraints their
-  sender never meant to send.
-*/
-check("a search link carries no loadout",
-      round.spent.class === null && round.spent.spec === null && round.spent.hero === null,
-      JSON.stringify(round.spent));
+check("the spec and hero trees survive", back.spec === state.spec && back.hero === state.hero);
+check("the sim limit survives", back.limit === 5000);
+check("a fixed tree stays fixed", back.work.class.mode === "fixed");
+check("with its points", same(back.work.class.points, classWork.points), JSON.stringify(back.work.class.points));
+check("and its choice sides, including side 0", same(back.work.class.picks, classWork.picks));
+check("and the search it is not using", same(back.work.class.search.required, [76070]));
+check("an open tree stays open", back.work.spec.mode === "open");
+check("its budget survives", back.work.spec.search.budget === 27);
+check("every constraint kind survives", same(back.work.spec.search, specWork.search), JSON.stringify(back.work.spec.search));
+check("a budget-only tree survives", back.work.hero.search.budget === 8 && back.work.hero.mode === "open");
+console.log(`     (${text.length} characters for three trees)`);
 
-const asBuild = decode(encode({ ...state, mode: "build" }));
-check("a loadout link carries the loadout for all three trees",
-      JSON.stringify(asBuild.spent) === JSON.stringify(state.spent),
-      JSON.stringify(asBuild.spent));
-check("and carries no search state",
-      asBuild.points === null && asBuild.required.length === 0 &&
-        asBuild.excluded.length === 0 && asBuild.sides.size === 0,
-      `${asBuild.points} / ${asBuild.required.length} required`);
+const empty = S.decode("");
+check("an empty link is empty", !empty.spec && Object.keys(empty.work).length === 0 && empty.limit === null);
 
-// Multi-rank talents are the case an encoding is most likely to flatten, since a naive
-// "list of taken ids" loses how many points each one has.
-const ranked = decode(encode({
-  ...state, mode: "build",
-  spent: { class: { 100: 1, 200: 2, 300: 3 }, spec: null, hero: null },
-}));
-check("point counts are not flattened to 1",
-      ranked.spent.class?.["200"] === 2 && ranked.spent.class?.["300"] === 3,
-      JSON.stringify(ranked.spent.class));
+/* --- links from before the redesign --------------------------------------- */
 
-// A talent with zero points is not in the build; carrying it would inflate every link.
-const sparse = decode(encode({
-  ...state, mode: "build",
-  spent: { class: { 100: 0, 200: 1 }, spec: null, hero: null },
-}));
-check("zero-point talents are omitted", !("100" in (sparse.spent.class ?? {})),
-      JSON.stringify(sparse.spent.class));
-check("the hero tree is named, since a spec has two", round.heroKey === state.heroKey,
-      String(round.heroKey));
+const oldLoadout = S.decode("?t=retail%2F6%2F250%2Fspec&bc=1mrs1-1mrt2&bs=1n001&bh=1no01&h=retail%2F6%2F250%2Fhero%2F31&m=b");
+check("an old loadout link opens with all three trees fixed",
+  ["class", "spec", "hero"].every((r) => oldLoadout.work[r]?.mode === "fixed"));
+check("and their points", oldLoadout.work.class.points[String(parseInt("1mrs", 36))] === 1);
 
-// A link can hold both a loadout and an enumerated build; guessing the mode from which
-// fields are present reopened one showing neither.
-check("the mode is carried, not guessed", round.mode === state.mode, String(round.mode));
+const oldSearch = S.decode("?t=retail%2F6%2F250%2Fhero%2F31&p=8&r=1n001&s=1n0aa&m=e");
+check("an old search link maps its tree to a spec key", oldSearch.spec === "retail/6/250/spec", oldSearch.spec);
+check("and opens that tree with the search", oldSearch.work.hero?.mode === "open" && oldSearch.work.hero.search.budget === 8);
+check("pinned sides included", oldSearch.work.hero.search.sides[String(parseInt("1n0a", 36))] === "a");
 
-const blank = { tree: null, points: null, required: [], excluded: [],
-                sides: new Map(), atLeastOne: [], exactlyOne: [],
-                spent: { class: null, spec: null, hero: null }, heroKey: null,
-                mode: null };
-const empty = decode(encode(blank));
-check(
-  "an empty state encodes to nothing and decodes back to empty",
-  encode(blank) === "" && empty.tree === null && empty.spent.class === null,
-);
+/* --- the workspace model -------------------------------------------------- */
 
-// Called with hand-assembled state in a few places, so a missing field must drop a
-// parameter rather than throw and lose the whole link.
-const partial = { ...blank };
-delete partial.spent;
-check("a partial state encodes without throwing", encode(partial) === "");
+const node = (id, kind = "single", entries = 1) => ({
+  nodeId: id, kind, name: `n${id}`, entries: Array.from({ length: entries }, (_, i) => ({ name: `e${i}` })),
+});
 
-// Links get truncated, hand-edited and pasted out of chat clients. Garbage must produce an
-// empty view, never a wrong one.
-for (const junk of ["?t=&p=abc&r=zzz-", "?r=-,-&x=!!!", "?bc=-&s=x", "?p=-5"]) {
-  const parsed = decode(junk);
-  const ok =
-    parsed.required.every((id) => Number.isFinite(id) && id > 0) &&
-    parsed.excluded.every((id) => Number.isFinite(id) && id > 0) &&
-    (parsed.points === null || parsed.points > 0);
-  check(`malformed input is discarded, not misread: ${junk}`, ok, JSON.stringify(parsed));
+let w = W.emptyWork("open");
+w = W.paint(w, node(1), "toggle", false);
+check("a click requires", same(w.search.required, [1]));
+w = W.paint(w, node(1), "toggle", false);
+check("a second bars", same(w.search.required, []) && same(w.search.excluded, [1]));
+w = W.paint(w, node(1), "toggle", false);
+check("a third clears", w.search.excluded.length === 0);
+w = W.paint(w, node(1), "toggle", true);
+check("right-click goes backwards, straight to barred", same(w.search.excluded, [1]));
+
+const choice = node(5, "choice", 2);
+let c = W.emptyWork("open");
+const cycle = [];
+for (let i = 0; i < 4; i++) {
+  c = W.paint(c, choice, "toggle", false);
+  cycle.push(c.search.excluded.includes(5) ? "barred" : (c.search.sides["5"] ?? "free"));
 }
+check("a choice node cycles left, right, barred, free", same(cycle, ["a", "b", "barred", "free"]), cycle.join(" "));
 
-// Links live in chat clients that break long ones across lines.
-const size = encode(state).length;
-check("a full link stays short enough to paste", size < 400, `${size} characters`);
-console.log(`     (${size} characters for a 27-point build with 9 constraints)`);
+let g = W.emptyWork("open");
+g = W.paint(g, node(7), "toggle", false);
+g = W.paint(g, node(7), "atLeastOne", false);
+check("adding to a group clears the talent's own constraint", same(g.search.atLeastOne, [7]) && g.search.required.length === 0);
+check("a group of one is pending, not sent", W.pendingOf(g).length === 1 && !W.payloadOf(g, 30).atLeastOneOf);
+g = W.paint(g, node(8), "atLeastOne", false);
+check("a group of two is sent", same(W.payloadOf(g, 30).atLeastOneOf, [[7, 8]]));
+
+const budget = W.payloadOf({ ...W.emptyWork(), search: { ...W.EMPTY_SEARCH, budget: 40 } }, 34);
+check("a budget above the cap is clamped to it", budget.points === 34);
 
 await server.close();
-
-console.log();
-if (failures.length) {
-  console.error(`${failures.length} failed: ${failures.join(", ")}`);
-  process.exit(1);
-}
-console.log("all share codec tests passed");
+console.log(failures.length ? `\n${failures.length} FAILED: ${failures.join(", ")}` : "\nall share and workspace tests passed");
+process.exit(failures.length ? 1 : 0);

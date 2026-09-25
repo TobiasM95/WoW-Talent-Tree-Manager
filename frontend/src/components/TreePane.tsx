@@ -1,37 +1,39 @@
 import type { TalentNode as NodeData, TreeDetail } from "../lib/api";
+import type { TreeMode } from "../lib/workspace";
+import { formatCount } from "../lib/space";
 import type { NodeState } from "./TalentNode";
 import { TreeCanvas } from "./TreeCanvas";
 
 /**
- * One tree in the multi-tree view, with its own heading and active state.
+ * One tree, with everything about it in its own header.
  *
- * A spec is three trees -- class, specialisation, hero -- and a player thinks about all of
- * them at once, so all of them are on screen at once. The solver still works on one tree at
- * a time, which is a property of the engine rather than of the product, so the one it is
- * pointed at is marked and the others stay visible as context. Context that is hidden is
- * not context.
+ * Each tree is independently **fixed** (you spend its points, it contributes one build) or
+ * **open** (you paint what you want, it contributes every build that matches). The switch,
+ * the budget and the count live on the tree they describe rather than in a sidebar, because
+ * "which tree am I changing" was the question the old layout made hardest to answer.
  */
 
 export interface TreePaneProps {
   tree: TreeDetail | null;
   title: string;
   subtitle?: string | null;
-  active: boolean;
-  onActivate: () => void;
-  /** Only the active pane carries constraints; the rest render plain. */
+  /** Absent on read-only panes, such as the analysis page. */
+  mode?: TreeMode;
+  onMode?: (mode: TreeMode) => void;
+  /** Points: spent of cap when fixed, budget of cap when open. */
+  points?: { value: number; cap: number };
+  onBudget?: (points: number) => void;
+  /** Builds this tree contributes; null while counting. */
+  count?: { builds: number | null; stale: boolean; error: string | null };
   states?: Map<number, NodeState>;
   sides?: Map<number, "a" | "b" | "none">;
-  stale?: boolean;
   build?: Record<string, number> | null;
-  shares?: Map<number, number> | null;
   impacts?: Map<number, number> | null;
   reachable?: Set<number> | null;
   editing?: boolean;
-  /** Points spent by hand in this tree, shown beside the heading in build mode. */
-  budget?: { spent: number; cap: number } | null;
   onNode?: (node: NodeData, alternate: boolean) => void;
   className?: string;
-  /** Rendered under the heading; the hero pane puts its sub-tree picker here. */
+  /** Rendered at the end of the heading; the hero pane puts its tree picker here. */
   children?: React.ReactNode;
 }
 
@@ -43,73 +45,129 @@ export function TreePane({
   tree,
   title,
   subtitle,
-  active,
-  onActivate,
+  mode,
+  onMode,
+  points,
+  onBudget,
+  count,
   states,
   sides,
-  stale,
   build,
-  shares,
   impacts,
   reachable,
   editing,
-  budget,
   onNode,
   className,
   children,
 }: TreePaneProps) {
   return (
     <section
-      className={`ttm-tree panel relative flex min-h-0 flex-col ${
-        active ? "bracket" : ""
-      } ${className ?? ""}`}
-      data-active={active ? "yes" : "no"}
+      className={`ttm-tree panel relative flex min-h-0 flex-col ${className ?? ""}`}
+      data-mode={mode}
       aria-label={title}
     >
-      <header className="flex shrink-0 items-baseline gap-2 px-3 pt-2 pb-1.5">
-        {/* Clicking the heading points the solver here. The heading is the pane's name and
-            its control at once, which keeps a second row of buttons off the screen. */}
-        <button
-          type="button"
-          className="rail-item !px-0 !text-[11px]"
-          aria-pressed={active}
-          onClick={onActivate}
-          title={active ? "The solver is pointed here" : `Point the solver at ${title}`}
-        >
-          <span className="label !text-[10px]" style={active ? { color: "inherit" } : undefined}>
-            {title}
-          </span>
-        </button>
-        {subtitle && (
-          <span className="display truncate text-[15px] leading-none text-ink">
-            {subtitle}
-          </span>
+      <header className="flex shrink-0 flex-col gap-1.5 px-3 pt-2 pb-1.5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="label !text-[10px]">{title}</span>
+          {subtitle && (
+            <span className="display truncate text-[15px] leading-none text-ink">{subtitle}</span>
+          )}
+          {children}
+        </div>
+
+        {mode && (
+          <div className="flex items-center gap-2">
+            {/* Fixed or open, as a segmented switch on the tree itself. Words rather than
+                icons, because the distinction is the whole model and has to be read. */}
+            <div className="seg" role="group" aria-label={`${title} tree mode`}>
+              {(["fixed", "open"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={mode === m}
+                  onClick={() => onMode?.(m)}
+                  title={
+                    m === "fixed"
+                      ? "Spend points by hand: this tree contributes one build"
+                      : "Paint what you want: this tree contributes every build that matches"
+                  }
+                >
+                  {m === "fixed" ? "Fixed" : "Open"}
+                </button>
+              ))}
+            </div>
+
+            {points && mode === "open" && onBudget && (
+              <label className="flex items-center gap-1 text-[11px] text-ink-soft" title="Points to spend in this tree">
+                <button
+                  type="button"
+                  className="step"
+                  onClick={() => onBudget(Math.max(1, points.value - 1))}
+                  disabled={points.value <= 1}
+                  aria-label={`Spend one point fewer in ${title}`}
+                >
+                  −
+                </button>
+                <span className="num min-w-[3.2rem] text-center text-ink">
+                  {points.value}
+                  <span className="text-ink-faint">/{points.cap}</span>
+                </span>
+                <button
+                  type="button"
+                  className="step"
+                  onClick={() => onBudget(Math.min(points.cap, points.value + 1))}
+                  disabled={points.value >= points.cap}
+                  aria-label={`Spend one point more in ${title}`}
+                >
+                  +
+                </button>
+              </label>
+            )}
+
+            {points && mode === "fixed" && (
+              <span
+                className="num text-[11.5px]"
+                style={{ color: points.value < points.cap ? "var(--any-of)" : "var(--ink-soft)" }}
+                title={points.value < points.cap ? "Points left unspent" : "Every point spent"}
+              >
+                {points.value}
+                <span className="text-ink-faint">/{points.cap} spent</span>
+              </span>
+            )}
+
+            {count && (
+              <span
+                className="num ml-auto shrink-0 text-[12px]"
+                data-count-for={title}
+                style={{
+                  color: count.error ? "var(--barred)" : "var(--ink)",
+                  opacity: count.stale ? 0.55 : 1,
+                }}
+                title={count.error ?? "Builds this tree contributes, choice sides included"}
+              >
+                {count.error
+                  ? "error"
+                  : count.builds === null
+                    ? "…"
+                    : `${formatCount(count.builds)} build${count.builds === 1 ? "" : "s"}`}
+              </span>
+            )}
+          </div>
         )}
-        {budget && (
-          <span className="num shrink-0 text-[12px] text-ink-soft">
-            {budget.spent}
-            <span className="text-ink-faint">/{budget.cap}</span>
-          </span>
-        )}
-        {children}
       </header>
 
       <div className="relative min-h-0 flex-1">
         {tree ? (
           <TreeCanvas
             tree={tree}
-            states={active ? (states ?? EMPTY_STATES) : EMPTY_STATES}
-            sides={active ? (sides ?? EMPTY_SIDES) : EMPTY_SIDES}
-            stale={active ? stale : false}
+            states={states ?? EMPTY_STATES}
+            sides={sides ?? EMPTY_SIDES}
+            stale={count?.stale}
             build={build}
-            shares={active ? shares : null}
-            impacts={active ? impacts : null}
+            impacts={impacts}
             reachable={reachable}
             editing={editing}
-            // In build mode every tree is editable, because a loadout spans all three.
-            // In explore mode only the tree the solver is pointed at takes constraints, so a
-            // click anywhere else re-points it instead.
-            onActivate={onNode ?? (active ? noop : () => onActivate())}
+            onActivate={onNode ?? noop}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-[12px] text-ink-faint">

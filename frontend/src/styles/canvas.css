@@ -450,6 +450,22 @@
   );
 }
 
+/* A heat map is read from across the screen, so its band is twice the usual width and
+   carries a halo even on paper, where nothing else glows. */
+.ttm-node[data-impact] .ttm-node-face {
+  inset: 5px;
+}
+
+.ttm-node[data-impact="good"] {
+  --glow: drop-shadow(0 0 calc(2px + 7px * var(--impact, 0))
+    color-mix(in srgb, var(--must) calc(var(--impact, 0) * 80%), transparent));
+}
+
+.ttm-node[data-impact="bad"] {
+  --glow: drop-shadow(0 0 calc(2px + 7px * var(--impact, 0))
+    color-mix(in srgb, var(--barred) calc(var(--impact, 0) * 70%), transparent));
+}
+
 /* The further from zero, the more the talent has to say, so the artwork comes up with it. */
 .ttm-node[data-impact] .ttm-node-face {
   opacity: calc(0.45 + 0.55 * var(--impact, 0));

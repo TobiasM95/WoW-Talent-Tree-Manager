@@ -1,77 +1,45 @@
-import type { ChoiceSide } from "./api";
+import { EMPTY_SEARCH, emptyWork, type Search, type TreeWork } from "./workspace";
 
 /**
- * The whole view, encoded into the URL.
+ * The whole workspace, encoded into the URL.
  *
- * The point of rebuilding this as a web app was that the tool should be a URL. That only
- * means something if a link reproduces the screen rather than the front page.
+ * The point of rebuilding this as a web app was that the tool should be a URL, and that only
+ * means something if a link reproduces what the sender was looking at: every tree, whether it
+ * is fixed or open, the build spent in it and the search painted on it.
  *
- * There are two things worth sharing, and they are not the same thing:
+ * **All three trees, both halves of each.** An earlier codec carried either a loadout or a
+ * search depending on a global mode, which made a link lose whichever half its sender was not
+ * looking at. Now each tree carries its fixed build and its search, and a flag saying which
+ * one is in use, so a link loses nothing.
  *
- *   **a loadout** -- points spent by hand across all three trees, which is a build;
- *   **a search** -- a tree, a budget and the constraints painted on it, which is a question.
+ * **Node ids, never positions.** A shared link is a stored build that happens to live in
+ * someone's chat history, and it outlives more data revisions than a database row does. The
+ * legacy format stored assignments positionally and a regenerated preset reassigned people's
+ * points to different talents; ids cannot do that. They are written in base36 to keep links
+ * short -- 88203 becomes "1txf" -- which is a transport encoding, not a substitute.
  *
- * A link carries one or the other, chosen by the mode. Carrying both produced links that made
- * no sense: a shared loadout arrived with a leftover point budget and a possibility space
- * narrowed by constraints its sender never meant to send.
+ * Parameters, with `c`, `s` or `h` standing for the class, spec or hero tree:
  *
- * An *enumerated* build is deliberately not shareable on its own. It only exists relative to
- * a job that has since gone, and a link to one would be a loadout wearing someone else's
- * context. Taking one into the loadout is an explicit act, and then it shares as a loadout.
- *
- * **Node ids, never positions.** This is the same rule the storage schema enforces, and for
- * the same reason: the legacy format stored point assignments positionally and the preset
- * generator re-indexed nodes on every regeneration, so a data update silently reassigned
- * someone's points to different talents. A shared link is a stored build that happens to
- * live in someone's chat history, and it outlives more revisions than a database row does.
- *
- * Ids are base36 to keep links short -- 88203 becomes "1txf" -- which is a transport
- * encoding of the id, not a substitute for it.
+ *   t   the spec tree's key, which also names the class      h   the hero tree's key
+ *   ?m  f when the tree is fixed (absent means open)          l   the sim limit, if changed
+ *   ?b  the fixed build            ?k  its choice sides
+ *   ?p  the search's point budget  ?r ?x  required, barred
+ *   ?s  pinned choice sides        ?o ?e  at-least-one, exactly-one groups
  */
 
-export interface ShareState {
-  tree: string | null;
-  points: number | null;
-  required: number[];
-  excluded: number[];
-  sides: Map<number, ChoiceSide>;
-  atLeastOne: number[];
-  exactlyOne: number[];
-  /**
-   * Points spent by hand, per tree.
-   *
-   * Three separate fields rather than one keyed by tree name, because a loadout spans class,
-   * specialisation and hero and a link has to carry all three -- a class build without its
-   * spec is not a build anyone meant to share. `hero` names which hero tree, since a spec
-   * has two and the points alone would not say which.
-   */
-  spent: { class: Record<string, number> | null;
-           spec: Record<string, number> | null;
-           hero: Record<string, number> | null };
-  heroKey: string | null;
-  /**
-   * Which mode the link opens in.
-   *
-   * Carried explicitly rather than inferred from which fields are present. A link can hold
-   * It decides which half of the state is written, so it cannot be inferred from which
-   * fields are present -- that reasoning is circular. It is also part of what the person was
-   * looking at, which makes it part of what a link should reproduce.
-   */
-  mode: "build" | "explore" | null;
+export type Role = "class" | "spec" | "hero";
+const PREFIX: Record<Role, string> = { class: "c", spec: "s", hero: "h" };
+export const ROLES: Role[] = ["class", "spec", "hero"];
+
+export interface Shared {
+  /** The spec tree's key; the class and the class tree follow from it. */
+  spec: string | null;
+  hero: string | null;
+  work: Partial<Record<Role, TreeWork>>;
+  limit: number | null;
 }
 
-export const EMPTY: ShareState = {
-  tree: null,
-  points: null,
-  required: [],
-  excluded: [],
-  sides: new Map(),
-  atLeastOne: [],
-  exactlyOne: [],
-  spent: { class: null, spec: null, hero: null },
-  heroKey: null,
-  mode: null,
-};
+export const NOTHING: Shared = { spec: null, hero: null, work: {}, limit: null };
 
 const b36 = (id: number) => id.toString(36);
 const unb36 = (text: string) => Number.parseInt(text, 36);
@@ -80,122 +48,170 @@ const ids = (list: number[]) => list.map(b36).join("-");
 const parseIds = (text: string | null): number[] =>
   (text ?? "")
     .split("-")
+    .filter(Boolean)
     .map(unb36)
     .filter((id) => Number.isFinite(id) && id > 0);
 
-const SIDE_CODE: Record<ChoiceSide, string> = { a: "a", b: "b", none: "n" };
-const CODE_SIDE: Record<string, ChoiceSide> = { a: "a", b: "b", n: "none" };
-
 /**
- * A build is `<base36 id><points>` per talent, joined by `-`. Points are a single digit
- * because no talent in the game has ten ranks, and keeping them fused to the id avoids a
- * second separator -- which matters when a link carries thirty of them.
+ * `<base36 id><digit>`, joined by `-`: a build's points, or a choice's side.
+ *
+ * One digit because no talent has ten ranks, and fused to the id so a thirty-talent build
+ * needs no second separator.
  */
-const encodeBuild = (build: Record<string, number>) =>
-  Object.entries(build)
-    .filter(([, points]) => points > 0)
-    .map(([id, points]) => `${b36(Number(id))}${Math.min(9, points)}`)
+const pairs = (map: Record<string, number>) =>
+  Object.entries(map)
+    .filter(([, v]) => Number.isFinite(v) && v >= 0)
+    .map(([id, v]) => `${b36(Number(id))}${Math.min(9, v)}`)
     .join("-");
 
-const decodeBuild = (text: string | null): Record<string, number> | null => {
-  if (!text) return null;
-  const build: Record<string, number> = {};
-  for (const token of text.split("-")) {
+const parsePairs = (text: string | null, keepZero = false): Record<string, number> => {
+  const out: Record<string, number> = {};
+  for (const token of (text ?? "").split("-")) {
     if (token.length < 2) continue;
     const id = unb36(token.slice(0, -1));
-    const points = Number(token.slice(-1));
-    if (Number.isFinite(id) && id > 0 && points > 0) build[String(id)] = points;
+    const value = Number(token.slice(-1));
+    if (Number.isFinite(id) && id > 0 && Number.isFinite(value) && (keepZero || value > 0)) {
+      out[String(id)] = value;
+    }
   }
-  return Object.keys(build).length ? build : null;
+  return out;
 };
 
-/**
- * Only the fields the mode actually means.
- *
- * A link used to carry a hand-built loadout, a set of constraints and an inspected build all
- * at once, because every write went through one function that wrote everything it had. What
- * came back was incoherent: a shared loadout arrived with a point budget left over from some
- * earlier search, and the possibility space it showed was narrowed by constraints the sender
- * had never meant to send.
- *
- * The two modes are two different things to share. Build shares a *loadout*; explore shares a
- * *search*. Writing only one of them is what makes a link mean something.
- */
-export function encode(state: ShareState): string {
-  const params = new URLSearchParams();
-  const building = state.mode === "build";
+const sidePairs = (sides: Search["sides"]) =>
+  Object.entries(sides)
+    .map(([id, side]) => `${b36(Number(id))}${side}`)
+    .join("-");
 
-  if (state.tree) params.set("t", state.tree);
-  if (!building) {
-    if (state.points) params.set("p", String(state.points));
-    if (state.required.length) params.set("r", ids(state.required));
-    if (state.excluded.length) params.set("x", ids(state.excluded));
-    if (state.sides.size) {
-      params.set(
-        "s",
-        [...state.sides].map(([id, side]) => `${b36(id)}${SIDE_CODE[side]}`).join("-"),
-      );
-    }
-    if (state.atLeastOne.length) params.set("o", ids(state.atLeastOne));
-    if (state.exactlyOne.length) params.set("e", ids(state.exactlyOne));
+const parseSides = (text: string | null): Search["sides"] => {
+  const out: Search["sides"] = {};
+  for (const token of (text ?? "").split("-")) {
+    const side = token.slice(-1);
+    const id = unb36(token.slice(0, -1));
+    if ((side === "a" || side === "b") && Number.isFinite(id) && id > 0) out[String(id)] = side;
   }
-  // Defaulted rather than assumed: this is called with hand-assembled state in places, and
-  // a missing field should drop a parameter, not throw and lose the whole link.
-  const spent = building ? (state.spent ?? EMPTY.spent) : EMPTY.spent;
-  if (spent.class) params.set("bc", encodeBuild(spent.class));
-  if (spent.spec) params.set("bs", encodeBuild(spent.spec));
-  if (spent.hero) params.set("bh", encodeBuild(spent.hero));
-  // Which hero tree is showing is true in both modes, so it is written in both.
-  if (state.heroKey) params.set("h", state.heroKey);
-  if (state.mode) params.set("m", state.mode === "build" ? "b" : "e");
-  return params.toString();
+  return out;
+};
+
+export function encode(state: Shared): string {
+  const params = new URLSearchParams();
+  if (state.spec) params.set("t", state.spec);
+  if (state.hero) params.set("h", state.hero);
+  if (state.limit) params.set("l", String(state.limit));
+
+  for (const role of ROLES) {
+    const work = state.work[role];
+    if (!work) continue;
+    const p = PREFIX[role];
+    const s = work.search;
+    if (work.mode === "fixed") params.set(`${p}m`, "f");
+    if (Object.keys(work.points).length) params.set(`${p}b`, pairs(work.points));
+    if (Object.keys(work.picks).length) params.set(`${p}k`, pairs(work.picks));
+    if (s.budget) params.set(`${p}p`, String(s.budget));
+    if (s.required.length) params.set(`${p}r`, ids(s.required));
+    if (s.excluded.length) params.set(`${p}x`, ids(s.excluded));
+    if (Object.keys(s.sides).length) params.set(`${p}s`, sidePairs(s.sides));
+    if (s.atLeastOne.length) params.set(`${p}o`, ids(s.atLeastOne));
+    if (s.exactlyOne.length) params.set(`${p}e`, ids(s.exactlyOne));
+  }
+
+  const text = params.toString();
+  return text ? `?${text}` : "";
 }
 
-export function decode(search: string): ShareState {
-  const params = new URLSearchParams(search);
-  const points = Number(params.get("p"));
+/** The role a tree key names: `.../class`, `.../spec`, `.../hero/31`. */
+export function roleOfKey(key: string): Role | null {
+  if (/\/class$/.test(key)) return "class";
+  if (/\/spec$/.test(key)) return "spec";
+  if (/\/hero\/\d+$/.test(key)) return "hero";
+  return null;
+}
 
-  const sides = new Map<number, ChoiceSide>();
-  for (const token of (params.get("s") ?? "").split("-")) {
-    if (token.length < 2) continue;
-    const id = unb36(token.slice(0, -1));
-    const side = CODE_SIDE[token.slice(-1)];
-    if (Number.isFinite(id) && id > 0 && side) sides.set(id, side);
+/** The spec tree's key, from any tree of the same specialisation. */
+export const specKeyOf = (key: string) =>
+  key.replace(/\/(class|hero\/\d+)$/, "/spec");
+
+export function decode(search: string): Shared {
+  const params = new URLSearchParams(search);
+  const t = params.get("t");
+  const out: Shared = {
+    spec: t ? specKeyOf(t) : null,
+    hero: params.get("h"),
+    work: {},
+    limit: Number(params.get("l")) > 0 ? Number(params.get("l")) : null,
+  };
+
+  for (const role of ROLES) {
+    const p = PREFIX[role];
+    const has = [..."mbkprxsoe"].some((k) => params.has(`${p}${k}`));
+    if (!has) continue;
+    const budget = Number(params.get(`${p}p`));
+    out.work[role] = {
+      mode: params.get(`${p}m`) === "f" ? "fixed" : "open",
+      points: parsePairs(params.get(`${p}b`)),
+      picks: parsePairs(params.get(`${p}k`), true),
+      search: {
+        budget: Number.isFinite(budget) && budget > 0 ? budget : null,
+        required: parseIds(params.get(`${p}r`)),
+        excluded: parseIds(params.get(`${p}x`)),
+        sides: parseSides(params.get(`${p}s`)),
+        atLeastOne: parseIds(params.get(`${p}o`)),
+        exactlyOne: parseIds(params.get(`${p}e`)),
+      },
+    };
   }
 
-  return {
-    // A tree key contains slashes ("retail/11/102/spec"); URLSearchParams handles the
-    // escaping in both directions, so it is stored as-is rather than mangled into a
-    // custom format that would then need its own parser.
-    tree: params.get("t"),
-    points: Number.isFinite(points) && points > 0 ? points : null,
-    required: parseIds(params.get("r")),
-    excluded: parseIds(params.get("x")),
-    sides,
-    atLeastOne: parseIds(params.get("o")),
-    exactlyOne: parseIds(params.get("e")),
-    spent: {
-      class: decodeBuild(params.get("bc")),
-      spec: decodeBuild(params.get("bs")),
-      hero: decodeBuild(params.get("bh")),
+  legacy(params, t, out);
+  return out;
+}
+
+/**
+ * Links from before the per-tree workspace still open.
+ *
+ * They carried a loadout (`bc`/`bs`/`bh`) or one tree's search (`p`, `r`, `x`, `s`, `o`, `e`
+ * on the tree named by `t`). Both map cleanly onto the new model -- a loadout is three fixed
+ * trees, a search is one open one -- so an old link lands on the same screen it described.
+ */
+function legacy(params: URLSearchParams, t: string | null, out: Shared) {
+  const builds: [Role, string][] = [
+    ["class", "bc"],
+    ["spec", "bs"],
+    ["hero", "bh"],
+  ];
+  for (const [role, key] of builds) {
+    if (out.work[role] || !params.has(key)) continue;
+    out.work[role] = { ...emptyWork("fixed"), points: parsePairs(params.get(key)) };
+  }
+
+  const role = t ? roleOfKey(t) : null;
+  const legacySearch = ["p", "r", "x", "s", "o", "e"].some((k) => params.has(k));
+  if (!role || !legacySearch || out.work[role]?.mode === "open") return;
+
+  const sides: Search["sides"] = {};
+  for (const token of (params.get("s") ?? "").split("-")) {
+    const side = token.slice(-1);
+    const id = unb36(token.slice(0, -1));
+    if ((side === "a" || side === "b") && id > 0) sides[String(id)] = side;
+  }
+  const budget = Number(params.get("p"));
+  out.work[role] = {
+    ...(out.work[role] ?? emptyWork()),
+    mode: "open",
+    search: {
+      ...EMPTY_SEARCH,
+      budget: budget > 0 ? budget : null,
+      required: parseIds(params.get("r")),
+      excluded: parseIds(params.get("x")),
+      sides,
+      atLeastOne: parseIds(params.get("o")),
+      exactlyOne: parseIds(params.get("e")),
     },
-    heroKey: params.get("h"),
-    mode: params.get("m") === "b" ? "build" : params.get("m") === "e" ? "explore" : null,
   };
 }
 
-/**
- * Replace the address bar without adding a history entry.
- *
- * Painting constraints is a continuous gesture -- a dozen clicks while narrowing a search --
- * and pushing each one would turn the back button into an undo stepper for something the
- * user does not think of as navigation. The URL stays current so it can be copied at any
- * moment; it just does not accumulate.
- */
-export function syncUrl(state: ShareState): void {
-  const query = encode(state);
-  const next = `${window.location.pathname}${query ? `?${query}` : ""}`;
-  if (next !== window.location.pathname + window.location.search) {
+/** Keep the address bar current, replacing rather than pushing: painting is not navigation. */
+export function syncUrl(state: Shared): void {
+  const next = `${window.location.pathname}${encode(state)}`;
+  if (next !== `${window.location.pathname}${window.location.search}`) {
     window.history.replaceState(null, "", next);
   }
 }

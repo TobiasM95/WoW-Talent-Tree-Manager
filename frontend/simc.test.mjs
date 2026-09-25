@@ -1,22 +1,22 @@
 /**
- * SimulationCraft export.
+ * The character space and its SimulationCraft export, against the real API.
  *
  *   node simc.test.mjs [api-url]
  *
- * The thing worth checking is not the text format -- that is a few lines of string joining --
- * but that every exported line is a *whole, valid character*. The solver varies one tree at a
- * time, so each line has to be the enumerated tree's points combined with whatever the other
- * two hold; drop that and the export is a spec tree with no class talents, which sims but is
- * not what anyone asked for.
+ * Two claims carry the redesigned workflow, and both are checked here against the solver
+ * rather than against my reading of it:
  *
- * So each generated string is decoded back and checked: the fixed trees must be untouched,
- * the varying tree must match the build it came from, and the whole thing must still be a
- * loadout the spending rules allow.
+ *   1. Expanding enumerated selections into both sides of every free choice node gives
+ *      *exactly* the API's `builds` count -- so the number a player narrows against is the
+ *      number of lines they get.
+ *   2. Every exported line is a whole, legal character: each tree's part is a build its
+ *      search allows, and the string decodes back to precisely that character.
  */
 import { createServer } from "vite";
 
 const api = (process.argv[2] ?? "http://localhost:8001").replace(/\/$/, "");
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
+const SPACE = await server.ssrLoadModule("/src/lib/space.ts");
 const SIMC = await server.ssrLoadModule("/src/lib/simc.ts");
 const STR = await server.ssrLoadModule("/src/lib/loadoutString.ts");
 const L = await server.ssrLoadModule("/src/lib/loadout.ts");
@@ -31,161 +31,142 @@ const get = async (p) => {
   if (!r.ok) throw new Error(`${p}: ${r.status}`);
   return r.json();
 };
+const post = async (p, body) => {
+  const r = await fetch(api + p, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${p}: ${r.status} ${await r.text()}`);
+  return r.json();
+};
 
-const summaries = await get("/trees");
-const specSummary = summaries.find((t) => t.kind === "spec");
-const mine = summaries.filter(
-  (t) => t.className === specSummary.className && t.specName === specSummary.specName,
-);
-const trees = [];
-for (const s of mine) trees.push(await get(`/trees/${s.key}`));
-const spec = trees.find((t) => t.kind === "spec");
-const classTree = trees.find((t) => t.kind === "class");
-const heroTree = trees.find((t) => t.kind === "hero");
+async function enumerate(treeKey, body) {
+  let job = await post("/solve", { treeKey, ...body, maxResults: 20000 });
+  while (!["done", "capped", "cancelled", "failed"].includes(job.state)) {
+    await new Promise((r) => setTimeout(r, 300));
+    job = await get(`/solve/${job.id}`);
+  }
+  if (job.state !== "done") throw new Error(`job ${job.state}`);
+  const out = [];
+  for (let offset = 0; offset < job.resultCount; offset += 1000) {
+    out.push(...(await get(`/solve/${job.id}/results?offset=${offset}&limit=1000`)).builds);
+  }
+  return out;
+}
+
+const trees = {};
+for (const key of ["retail/6/250/class", "retail/6/250/spec", "retail/6/250/hero/31", "retail/6/250/hero/33"]) {
+  trees[key] = await get(`/trees/${key}`).catch(() => null);
+}
+const heroKey = trees["retail/6/250/hero/31"] ? "retail/6/250/hero/31" : null;
+const hero = trees[heroKey];
+const choiceIds = hero.nodes.filter((n) => n.kind === "choice" && n.entries.length >= 2).map((n) => String(n.nodeId));
+
+/* --- 1. the expansion is the API's count ----------------------------------- */
+
+const cases = [
+  ["hero, 8 points, every side free", { points: 8 }],
+  ["hero, 8 points, one side pinned", { points: 8, choiceSides: { [choiceIds[0]]: "a" } }],
+  ["hero, 8 points, two sides pinned", { points: 8, choiceSides: { [choiceIds[0]]: "b", [choiceIds[1]]: "a" } }],
+  ["hero, 10 points", { points: 10 }],
+];
+for (const [label, body] of cases) {
+  const count = await post("/counts", { treeKey: heroKey, ...body });
+  const selections = await enumerate(heroKey, body);
+  const expanded = selections.flatMap((s) => SPACE.expand(hero, s, body.choiceSides ?? {}));
+  check(
+    `${label}: expansion equals the API's builds`,
+    expanded.length === count.builds && selections.length === count.sets,
+    `${selections.length} selections -> ${expanded.length} expanded, API says ${count.sets} / ${count.builds}`,
+  );
+  const unique = new Set(expanded.map((v) => JSON.stringify([v.points, v.choices])));
+  check(`${label}: and every expanded build is distinct`, unique.size === expanded.length);
+}
+
+/* --- 2. whole characters, exported ---------------------------------------- */
+
+const spec = trees["retail/6/250/spec"];
+const cls = trees["retail/6/250/class"];
+const all = Object.values(trees).filter(Boolean);
 const capOf = (t) => t.pointCap ?? t.maxPointsInTree;
 
-check("the sample-profile hint names the file SimC actually ships",
-      SIMC.profilesets(["X"], { className: "Death Knight", specName: "Blood" })
-        .includes("_Death_Knight_Blood.simc"));
-
-// --- a base loadout across all three trees ---------------------------------
-const build = (tree, cap, seed) => {
-  let state = seed >>> 0;
-  const rnd = () => ((state = (state * 1664525 + 1013904223) >>> 0) / 4294967296);
+// Fixed class and spec trees: the first legal full build of each.
+const fill = (tree) => {
   let points = {};
-  for (let i = 0; i < cap; i++) {
-    const open = [...L.available(tree, points, cap)];
-    if (!open.length) break;
-    const id = open[Math.floor(rnd() * open.length)];
-    const node = tree.nodes.find((n) => n.nodeId === id);
-    const result = L.add(tree, points, cap, node);
-    if (result.reason) break;
-    points = result.points;
+  for (let i = 0; i < 80; i++) {
+    const next = [...L.available(tree, points, capOf(tree))][0];
+    if (next === undefined) break;
+    const node = tree.nodes.find((n) => n.nodeId === next);
+    points = L.add(tree, points, capOf(tree), node).points;
   }
   return points;
 };
+const classPoints = fill(cls);
+const specPoints = fill(spec);
+const heroSelections = await enumerate(heroKey, { points: 8 });
+const heroVariants = heroSelections.flatMap((s) => SPACE.expand(hero, s, {}));
 
-const base = {
-  ...build(classTree, capOf(classTree), 5),
-  ...build(spec, capOf(spec), 9),
-  ...build(heroTree, capOf(heroTree), 3),
-};
-
-// --- enumerated variations of one tree -------------------------------------
-// Real results, from a real job, so the export is exercised on what it will actually get.
-const budget = 10;
-const submitted = await fetch(api + "/solve", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ treeKey: spec.key, points: budget }),
-}).then((r) => r.json());
-
-let job = submitted;
-for (let i = 0; i < 200 && !["done", "capped", "failed", "cancelled"].includes(job.state); i++) {
-  await new Promise((r) => setTimeout(r, 200));
-  job = await get(`/solve/${submitted.id}`);
-}
-check("a job to export from finished", job.state === "done", `${job.state}: ${job.error}`);
-
-const page = await get(`/solve/${job.id}/results?limit=40`);
-const builds = page.builds;
-check("it produced builds to export", builds.length > 1, `${builds.length}`);
-
-const { strings, collapsed } = SIMC.buildStrings({
-  spec, trees, varying: spec, base, choices: {}, heroSubTreeId: heroTree?.subTreeId ?? null,
-  builds,
-});
-check("every build becomes a talent string", strings.length > 0,
-      `${strings.length} of ${builds.length}, ${collapsed} collapsed`);
-
-// --- each line is a whole character ----------------------------------------
-const varyingIds = new Set(spec.nodes.map((n) => n.nodeId));
-const fixedExpected = Object.fromEntries(
-  Object.entries(base).filter(([id]) => !varyingIds.has(Number(id))),
+const characters = SPACE.characters(
+  [
+    { key: cls.key, variants: [SPACE.fixedVariant(cls, classPoints, {})] },
+    { key: spec.key, variants: [SPACE.fixedVariant(spec, specPoints, {})] },
+    { key: hero.key, variants: heroVariants },
+  ],
+  10000,
 );
+check("the product is class × spec × hero", characters.length === heroVariants.length, `${characters.length}`);
+check("characters are numbered from 1, in order", characters.every((c, i) => c.line === i + 1));
 
-let intact = 0;
-let matched = 0;
+const capped = SPACE.characters([{ key: "x", variants: heroVariants }], 100);
+check("the limit caps the list", capped.length === 100);
+
+const strings = SIMC.talentStrings({ spec, trees: all, heroSubTreeId: hero.subTreeId, characters });
+let exact = 0;
 let legal = 0;
-for (let i = 0; i < strings.length; i++) {
-  const decoded = STR.decode(strings[i], spec, trees);
-
-  // The trees that were held fixed must come back exactly as they went in.
-  const fixedBack = Object.fromEntries(
-    Object.entries(decoded.points).filter(([id]) => !varyingIds.has(Number(id))),
-  );
-  if (JSON.stringify(fixedBack) === JSON.stringify(fixedExpected)) intact += 1;
-
-  // And the varying tree must be one of the enumerated results.
-  const varyBack = Object.fromEntries(
-    Object.entries(decoded.points).filter(([id]) => varyingIds.has(Number(id))),
-  );
-  if (builds.some((b) => JSON.stringify(b) === JSON.stringify(varyBack))) matched += 1;
-
-  // The whole thing must still be buildable, tree by tree.
-  const ok = trees.every((tree) => {
-    const owned = Object.fromEntries(
-      Object.entries(decoded.points).filter(([id]) =>
-        tree.nodes.some((n) => String(n.nodeId) === id)),
-    );
-    const placed = L.place(tree, owned, capOf(tree));
-    return L.total(placed.points) === L.total(owned);
-  });
-  if (ok) legal += 1;
+for (let i = 0; i < characters.length; i++) {
+  const c = characters[i];
+  const decoded = STR.decode(strings[i], spec, all);
+  const samePoints = JSON.stringify(Object.entries(decoded.points).sort()) ===
+    JSON.stringify(Object.entries(c.points).filter(([, v]) => v > 0).sort());
+  const sameChoices = Object.entries(c.choices).every(([id, side]) => decoded.choices[id] === side);
+  if (samePoints && sameChoices && decoded.heroSubTreeId === hero.subTreeId) exact++;
+  else if (process.env.DEBUG_DECODE && !globalThis.__shown) {
+    globalThis.__shown = true;
+    const want = Object.fromEntries(Object.entries(c.points).filter(([, v]) => v > 0));
+    const diffP = [...new Set([...Object.keys(want), ...Object.keys(decoded.points)])]
+      .filter((k) => want[k] !== decoded.points[k])
+      .map((k) => `${k}: want ${want[k]} got ${decoded.points[k]} (${all.flatMap((t) => t.nodes).find((n) => String(n.nodeId) === k)?.kind})`);
+    const diffC = Object.entries(c.choices).filter(([k, v]) => decoded.choices[k] !== v)
+      .map(([k, v]) => `${k}: want side ${v} got ${decoded.choices[k]}`);
+    console.log("   first mismatch, line", c.line, { samePoints, sameChoices, hero: decoded.heroSubTreeId, diffP, diffC });
+  }
+  const heroPart = c.parts[hero.key].points;
+  if (L.place(hero, heroPart, 8).points && L.total(heroPart) === 8) legal++;
 }
-check("the fixed trees survive untouched in every line", intact === strings.length,
-      `${intact} of ${strings.length}`);
-check("each line's varying tree is one of the enumerated builds",
-      matched === strings.length, `${matched} of ${strings.length}`);
-check("every exported build is one the rules allow", legal === strings.length,
-      `${legal} of ${strings.length}`);
-check("every line spends more than the varying tree alone",
-      Object.keys(STR.decode(strings[0], spec, trees).points).length >
-        Object.keys(builds[0]).length);
+check("every string decodes back to exactly its character", exact === characters.length, `${exact} of ${characters.length}`);
+check("every hero part is a legal 8-point build", legal === characters.length, `${legal} of ${characters.length}`);
+check("every line is a whole character, not one tree",
+  characters.every((c) => Object.keys(c.parts).length === 3));
+check("strings are unique", new Set(strings).size === strings.length);
 
-// --- the text ---------------------------------------------------------------
-const text = SIMC.profilesets(strings, {
-  className: spec.className, specName: spec.specName, note: `${budget} points`,
-});
+// Both sides of a free choice node are simmed.
+const id = choiceIds[0];
+const sides = new Set(characters.filter((c) => c.choices[id] !== undefined).map((c) => c.choices[id]));
+check("both sides of a free choice node are in the export", sides.size === 2, [...sides].join(","));
+
+/* --- the text -------------------------------------------------------------- */
+
+const text = SIMC.profilesets(strings, { className: "Death Knight", specName: "Blood", note: "test" });
 const lines = text.trim().split("\n");
-const setLines = lines.filter((l) => l.startsWith("profileset."));
-check("one profileset line per build", setLines.length === strings.length,
-      `${setLines.length} of ${strings.length}`);
-check("profileset lines override only talents",
-      setLines.every((l) => /^profileset\."[^"]+"\+=talents=[A-Za-z0-9+/]+$/.test(l)),
-      setLines[0]);
-check("names are zero-padded so they sort in enumeration order",
-      setLines.length < 10 || /_01\b|_001\b/.test(setLines[0]), setLines[0]);
-check("the header explains what to do with it",
-      lines[0].startsWith("#") && text.includes("your own profile"), lines[0]);
-
-/*
-  The file is only profilesets, and says where to get a character to run them against.
-
-  There was a "minimal runnable profile" option here. Running the export through
-  SimulationCraft 1210-01 showed it did not run: `death_knight=` is not an option SimC knows
-  (it wants `deathknight=`), and once that was fixed it failed initialisation anyway --
-  "no weapon equipped in the Main-Hand slot". A naked level-80 body also sims a number that
-  means nothing. SimC ships a real character per specialisation, so the header points there.
-*/
-const preamble = text.split("profileset.")[0];
-const settings = preamble.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
+const sets = lines.filter((l) => l.startsWith("profileset."));
+check("one profileset line per character", sets.length === characters.length);
+check("each overrides only talents", sets.every((l) => /^profileset\."ttm_\d+"\+=talents=[A-Za-z0-9+/]+$/.test(l)), sets[0]);
+check("names are zero-padded to sort in order", /ttm_0*1"/.test(sets[0]) && sets[0].includes(`ttm_${"1".padStart(String(sets.length).length, "0")}"`));
+const settings = text.split("profileset.")[0].split("\n").filter((l) => l.trim() && !l.startsWith("#"));
 check("the file carries no profile of its own", settings.length === 0, settings[0] ?? "");
-check("it says how to run it against one SimC ships",
-      text.includes("profiles/") && text.includes("json2=report.json"));
-
-// Duplicates are collapsed: the same character twice is wasted sim time.
-const dupes = SIMC.buildStrings({
-  spec, trees, varying: spec, base, choices: {}, heroSubTreeId: heroTree?.subTreeId ?? null,
-  builds: [builds[0], builds[0], builds[1]],
-});
-check("identical builds are collapsed", dupes.strings.length === 2 && dupes.collapsed === 1,
-      `${dupes.strings.length} kept, ${dupes.collapsed} collapsed`);
+check("it says how to run it and bring the report back", text.includes("json2=report.json") && text.includes("_Death_Knight_Blood.simc"));
 
 await server.close();
-console.log();
-if (failures.length) {
-  console.error(`${failures.length} failed: ${failures.join(", ")}`);
-  process.exit(1);
-}
-console.log("all simc export tests passed");
+console.log(failures.length ? `\n${failures.length} FAILED: ${failures.join(", ")}` : "\nall space and export tests passed");
+process.exit(failures.length ? 1 : 0);

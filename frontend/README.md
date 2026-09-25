@@ -1,40 +1,39 @@
 # Frontend
 
-React + Tailwind. One screen, two modes, and one arc: count the possibility space,
-narrow it to something simmable, then hand the survivors to SimulationCraft.
+React + Tailwind. Three steps, in the order a player does them:
 
-**Build** spends points by hand across all three of a specialisation's trees, under the
-same rules the solver counts under. **Explore** paints constraints on the tree the solver
-is pointed at, watches the count move as they land, enumerates the matches, and steps
-through them on the tree itself. That shape follows from the
-product model — the count is free and answered inline, so it belongs beside the canvas
-being painted rather than behind a "calculate" step. The number moving as constraints land
-*is* the feedback loop.
+1. **Narrow** — each of the three trees is **fixed** (you spend its points: one build) or
+   **open** (you paint what you want: every build that matches). The space of whole
+   characters is the product of the three, shown as the product it is, and it is simmable
+   once it fits the sim limit — 10,000 builds by default, choice sides included.
+2. **Simulate** — the builds are listed on arrival, downloaded as SimulationCraft
+   profilesets, run under a real character, and the report is dropped back on the page.
+3. **Analyse** — a page, not a panel: the ranking, what each talent was worth per tree, and
+   each choice node's two sides head to head, with the three trees drawn beside it.
 
-### Who owns what
+The typical path: paste the talent string you play, which fixes all three trees; open the
+one you want to explore; paint until the count fits; simulate; read the answer; "use this
+build" to fix the trees to it and go round again.
 
-The two modes own disjoint state, and the sidebar is gated on the mode rather than on
-whether the data happens to exist:
+### Why it is shaped like this
 
-| | Build | Explore |
-| --- | --- | --- |
-| Canvas | points spent by hand, all three trees editable | constraints painted on the active tree |
-| Sidebar | Loadout, Talent string, Share | Point budget, Constraints, Possibility space, Enumeration, Statistics, Builds, Simulate, Share |
-| URL | `bc`/`bs`/`bh` (the loadout), `h`, `m=b` | `p`, `r`, `x`, `s`, `o`, `e`, `m=e` |
+It was not, twice, and both failures are worth knowing:
 
-This was not always true, and the ways it failed are the reason it is written down.
-Rendering the results panels on `job` alone put Simulate and a build browser in the mode
-that generates nothing, so the Build tab appeared to have results from nowhere. And a
-single URL carrying both modes' state meant a shared loadout arrived with a stale point
-budget and somebody else's constraints attached, with no way to tell which of the two
-things on screen you were looking at.
+- **One tree searched at a time, plus a "baseline".** The solver works one tree at a time,
+  and I let that engine detail become the product: exporting a set of spec builds required
+  hand-building a class and hero tree first, in another mode. But the trees have separate
+  point budgets, so the character space is simply their product — a fixed tree is a factor
+  of one. No baseline is needed, and every exported line is a whole character.
+- **Two global modes, Build and Explore, owning disjoint state.** Switching mode made
+  everything painted in the other one vanish from the screen. Now each tree keeps its fixed
+  build *and* its search whichever it is using, so flipping a tree loses nothing, and a link
+  carries both halves of all three trees.
 
-**Two artefacts are shareable, and a link is one or the other.** A *loadout* is a build
-somebody made; a *search* is a question somebody asked. An enumerated result is neither:
-it exists only relative to its job and is gone with the next search, so it has no link.
-The way to keep one is to take it into the loadout — the button under the build browser —
-after which it is an ordinary loadout and shares, exports and edits like one. That is the
-only path that crosses between the modes, and `bridge.test.mjs` walks it end to end.
+**Choice sides are expanded, not guessed.** The solver enumerates *selections*, saying a
+choice node is taken but not which side. A selection with k free choice nodes is 2^k builds,
+and the API's `builds` count already counts them that way — `test:simc` checks the client's
+expansion equals it exactly, pinned sides included. The first export simmed only the
+selections, so one side of every choice node was quietly never simmed.
 
 ```bash
 docker compose up -d postgres api worker      # the services it talks to
@@ -47,16 +46,14 @@ pnpm run dev                                   # http://localhost:5173
 
 pnpm run typecheck
 pnpm run shots                                 # both themes, desktop + phone
-pnpm run test:share                            # the share codec, no browser
+pnpm run test:share                            # share codec and workspace rules, no browser
 pnpm run test:loadout                          # spending rules, against the API
 pnpm run test:string                           # the Blizzard talent-string codec
-pnpm run test:simc                             # SimulationCraft export
-pnpm test                                      # drives the real interactions
-pnpm run test:bugs                             # shapes, constraint colours, mode ownership
-pnpm run test:bridge                           # an enumerated build taken into the loadout
+pnpm run test:simc                             # expansion == API count; every line a real character
 pnpm run test:report                           # the SimC report reader, against a real report
-pnpm run test:round                            # export -> SimulationCraft -> import, for real
-pnpm run test:all                              # all ten
+pnpm run test:canvas                           # shapes, keylines, four colours, both themes
+pnpm test                                      # the whole workflow, with a live SimulationCraft run
+pnpm run test:all                              # all of it
 ```
 
 Production is Caddy serving the built assets and proxying `/api`:
@@ -68,7 +65,8 @@ docker compose --profile web up -d --build web   # http://localhost:8081
 That one command is enough: `postgres`, `api` and `worker` come up as dependencies. Drop
 `--build` to start what is already built. **The browser suites default to 8081**, this
 container, rather than the dev server — a suite that fails because nothing happens to be
-running on 5173 has said nothing about the app.
+running on 5173 has said nothing about the app — and they wait for the API behind the proxy,
+not just the page, since the API takes seconds longer to come up after a rebuild.
 
 ## Design
 
@@ -139,29 +137,28 @@ game data the tool exists to display; everything around them is ours.
 
 | | |
 |---|---|
-| `lib/api.ts` | Typed client. Every field checked against a live response. |
-| `lib/constraints.ts` | The constraint set and the click-cycling rules. |
-| `lib/theme.ts` | Theme choice, stamped on `<html data-theme>`. |
-| `components/SpecRail.tsx` | Class and specialisation selection. |
-| `components/TreePane.tsx` | One tree, with its heading and active state. |
-| `lib/share.ts` | The whole view, encoded into the URL. |
+| `App.tsx` | The three steps, and the per-tree workspace they share. |
+| `lib/workspace.ts` | A tree fixed or open: painting, spending, the payload it sends. |
+| `lib/useCounts.ts` | A live, debounced count per open tree. |
+| `lib/space.ts` | Characters as the product of the trees; choice-side expansion. |
+| `lib/enumerate.ts` | Open trees through the solver, into a list of characters. |
+| `lib/simc.ts` | Characters as SimulationCraft profilesets. |
+| `lib/simcReport.ts` | SimC's JSON report: ranking, talent value, choice duels. |
+| `lib/share.ts` | All three trees, both halves of each, in the URL. Old links still open. |
 | `lib/loadout.ts` | Spending points by hand, under the solver's rules. |
 | `lib/loadoutString.ts` | Blizzard's talent string, in and out. |
-| `lib/simc.ts` | An enumerated result set as SimulationCraft profilesets. |
-| `lib/simcReport.ts` | SimulationCraft's JSON report, ranked and attributed to talents. |
-| `components/LoadoutString.tsx` | Paste a build in, copy one out. |
-| `components/SimcExport.tsx` | Hand the matching builds to the sim. |
-| `components/SimcImport.tsx` | Read the sim's report back and rank them. |
-| `components/TalentImpact.tsx` | What each talent was worth across the simmed set. |
-| `lib/classes.ts` | Class colours, one value per theme. |
+| `lib/api.ts` | Typed client. Every field checked against a live response. |
+| `lib/classes.ts`, `lib/theme.ts` | Class colours per theme; the theme on `<html data-theme>`. |
+| `components/TreePane.tsx` | One tree, with its fixed/open switch, budget and count. |
+| `components/SpaceCard.tsx` | The product, its factors, and whether it is simmable. |
+| `components/PaintTools.tsx` | What a click does, and what every colour means. |
+| `components/SimulateView.tsx` | Step two: the file out, the report back. |
+| `components/AnalysisView.tsx` | Step three: builds, talent value, choice nodes. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
-| `components/CountGate.tsx` | The pre-flight count and the listable verdict. |
-| `components/JobPanel.tsx` | A running enumeration, per phase. |
-| `components/ResultsBrowser.tsx` | A cursor over the enumerated builds. |
-| `components/ShareButton.tsx` | Copy the current link, with a fallback. |
-| `components/StatsPanel.tsx` | What every matching build shares, and where the choice is. |
-| `components/Legend.tsx` | What the ring colours and the silhouettes mean. |
+| `components/LoadoutString.tsx` | Paste a build in (fixing all three trees), copy one out. |
+| `components/Legend.tsx` | Swatches and the shape key. |
+| `components/SpecRail.tsx`, `ShareButton.tsx`, `Tooltip.tsx` | Selection, the link, tooltips. |
 
 ## Things worth knowing before changing this
 
@@ -271,7 +268,7 @@ apart.
 **The reader was built against a report SimulationCraft actually wrote.** Reading its source
 (`report_json.cpp`) gave the key names; running it gave the rest — that results come back
 unordered, that a zero-mean profileset is dropped rather than reported, and that the metric is
-a sentence rather than a token. `fixtures/simc-report.json` is that run, and `test:round`
+a sentence rather than a token. `fixtures/simc-report.json` is that run, and `pnpm test`
 re-runs the whole loop through Docker when the SimC image is present. A Feral Druid build --
 full spec tree, half-spent class tree, partly-spent hero tree -- decodes and re-encodes byte
 for byte. That single string caught three faults a round trip never could, because encode and
@@ -363,32 +360,22 @@ a hatched fill and the node still reads as a talent.
 error** — a blank-looking panel and a thrown exception are indistinguishable in a still
 image.
 
-`pnpm test` drives the real thing against the real stack: clicking a talent must move the
-count, clicking again must bar it, the tooltip must land on screen, the gate must refuse an
-oversized listing, and a real enumeration must complete. Both scripts take a URL, so they
-run against the dev server or the production container:
+`pnpm test` is the workflow a player follows, end to end, against the real stack: paste a
+real talent string (SimulationCraft's own sample Blood Death Knight), check it fixes all
+three trees to exactly one build, open the hero tree and narrow it to 580, flip trees back
+and forth and check nothing is lost, paint and un-paint, reopen the link in a fresh page,
+simulate, download — and then, if the SimulationCraft image is present, **run the real
+sim** on the downloaded file and drop its report back to check the ranking, talent value,
+choice duels and "use this build". Without Docker the sim step is reported as skipped rather
+than faked: a fabricated report would only prove the reader agrees with itself.
 
-```bash
-pnpm test http://localhost:8081
-```
-
-Two things that suite has to handle, which are properties of the system rather than
-awkwardness:
-
-- **Degenerate talents.** The top rows of a spec tree are in *every* build at a realistic
-  budget and talents behind a point gate are in *none*, so "the number changed" passes for
-  both while testing almost nothing. The test insists the narrowed count is non-zero and
-  strictly smaller.
-- **Deduplication.** An identical request is served from the previous job, instantly, with
-  no phases to observe. That is the cache working, so the test asserts it rather than
-  working around it.
-- **Every build spends the whole budget.** So the *number* of lit talents is not a signal
-  that stepping to the next build did anything — the test compares which talents are lit.
+`pnpm run test:simc` holds the two claims the workflow rests on, against the live solver:
+the client's expansion of selections equals the API's `builds` count exactly, and every
+exported string decodes back to precisely the character it came from. That second check is
+what found the solver storing talents under their neighbour's id on every tree with a
+granted talent — see the worker's README.
 
 Share links get a suite of their own (`pnpm run test:share`) because that is where a mistake
-is silent: a link that loses a constraint still opens, shows a plausible tree and gives the
-wrong answer, with nothing for a person to notice. It round-trips every field, checks that
-multi-rank point counts are not flattened to 1, and feeds in mangled query strings — links
-get truncated and hand-edited in chat clients, and garbage has to produce an empty view
-rather than a wrong one. `pnpm test` then opens a real link in a fresh page and checks the
-same talents light up.
+is silent: a link that loses a constraint still opens and gives the wrong answer. It
+round-trips every field of all three trees, checks side 0 of a choice survives, and opens
+links from before the redesign.

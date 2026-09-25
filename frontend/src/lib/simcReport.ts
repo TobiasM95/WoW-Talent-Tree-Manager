@@ -216,7 +216,11 @@ export function rank(report: SimcReport, lines: number, label = "ttm"): Ranking 
 }
 
 export interface TalentImpact {
+  /** A node id, or `nodeId:side` for one alternative of a choice node. */
+  key: string;
   nodeId: number;
+  /** For a choice node, which alternative: 0 or 1. Undefined for an ordinary talent. */
+  side?: number;
   /** Mean of the builds that take it. */
   withIt: number;
   /** Mean of the builds that do not. */
@@ -227,49 +231,58 @@ export interface TalentImpact {
   taken: number;
 }
 
+const parseKey = (key: string) => {
+  const [id, side] = key.split(":");
+  return { nodeId: Number(id), side: side === undefined ? undefined : Number(side) };
+};
+
 /**
  * What each talent is worth across the set that was simmed.
  *
  * The mean of the builds taking a talent against the mean of those that do not. This is the
  * number the whole tool exists to produce and it cannot be got any other way: a sim ranks
  * whole characters, so the value of one talent only appears once you have simmed a set of
- * builds that differ in a controlled way — which is exactly what an enumeration under
+ * builds that differ in a controlled way -- which is exactly what an enumeration under
  * constraints is.
  *
  * It is an *observational* difference, not a controlled one. Talents that are only ever
  * taken together cannot be told apart by it, and a talent taken by every build has nothing
  * to compare against and is left out. Saying so is part of the result.
+ *
+ * Keys are opaque strings so that a choice node's two alternatives can be two talents:
+ * `4127` is an ordinary talent, `4131:0` and `4131:1` are the two sides of a choice.
  */
 export function impact(
   ranking: Ranking,
-  buildsForLine: (line: number) => Iterable<number> | undefined,
+  keysForLine: (line: number) => Iterable<string | number> | undefined,
 ): TalentImpact[] {
-  const sums = new Map<number, { withSum: number; withN: number }>();
+  const sums = new Map<string, { withSum: number; withN: number }>();
   let total = 0;
   let n = 0;
 
   for (const build of ranking.builds) {
-    const nodes = buildsForLine(build.line);
-    if (!nodes) continue;
+    const keys = keysForLine(build.line);
+    if (!keys) continue;
     total += build.mean;
     n += 1;
-    for (const nodeId of new Set(nodes)) {
-      const entry = sums.get(nodeId) ?? { withSum: 0, withN: 0 };
+    for (const raw of new Set([...keys].map(String))) {
+      const entry = sums.get(raw) ?? { withSum: 0, withN: 0 };
       entry.withSum += build.mean;
       entry.withN += 1;
-      sums.set(nodeId, entry);
+      sums.set(raw, entry);
     }
   }
 
   const out: TalentImpact[] = [];
-  for (const [nodeId, { withSum, withN }] of sums) {
+  for (const [key, { withSum, withN }] of sums) {
     // Taken by everything, or by nothing: there is no comparison to make, and reporting
     // "+0%" for a talent every build has would read as "this talent does nothing".
     if (withN === 0 || withN === n) continue;
     const withIt = withSum / withN;
     const without = (total - withSum) / (n - withN);
     out.push({
-      nodeId,
+      key,
+      ...parseKey(key),
       withIt,
       without,
       delta: without > 0 ? withIt / without - 1 : 0,
@@ -277,4 +290,51 @@ export function impact(
     });
   }
   return out.sort((a, b) => b.delta - a.delta);
+}
+
+export interface Duel {
+  nodeId: number;
+  /** Mean of the builds taking the left alternative, and how many there were. */
+  left: { mean: number; n: number };
+  right: { mean: number; n: number };
+  /** right / left - 1: positive means the right-hand alternative did better. */
+  delta: number;
+}
+
+/**
+ * Each choice node, one alternative against the other.
+ *
+ * The comparison a choice node actually poses. "Builds with the left side against builds
+ * without it" mixes in every build that skipped the node entirely; this looks only at builds
+ * that took the node and asks which side did better. Since the export now sims both sides of
+ * every free choice node, each duel is between builds that are otherwise matched.
+ */
+export function duels(
+  ranking: Ranking,
+  keysForLine: (line: number) => Iterable<string | number> | undefined,
+): Duel[] {
+  const sides = new Map<number, [{ sum: number; n: number }, { sum: number; n: number }]>();
+  for (const build of ranking.builds) {
+    const keys = keysForLine(build.line);
+    if (!keys) continue;
+    for (const raw of keys) {
+      const { nodeId, side } = parseKey(String(raw));
+      if (side !== 0 && side !== 1) continue;
+      const pair = sides.get(nodeId) ?? [
+        { sum: 0, n: 0 },
+        { sum: 0, n: 0 },
+      ];
+      pair[side].sum += build.mean;
+      pair[side].n += 1;
+      sides.set(nodeId, pair);
+    }
+  }
+  const out: Duel[] = [];
+  for (const [nodeId, [a, b]] of sides) {
+    if (!a.n || !b.n) continue; // one side was pinned or never taken: nothing to compare
+    const left = { mean: a.sum / a.n, n: a.n };
+    const right = { mean: b.sum / b.n, n: b.n };
+    out.push({ nodeId, left, right, delta: left.mean > 0 ? right.mean / left.mean - 1 : 0 });
+  }
+  return out.sort((x, y) => Math.abs(y.delta) - Math.abs(x.delta));
 }

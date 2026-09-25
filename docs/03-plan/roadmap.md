@@ -187,6 +187,20 @@ Still to do in this phase:
   build, each a whole character rather than one tree.
 - **`ttm1.` share codes** are superseded by the URL, which already carries the whole view.
 
+**Reworked around the workflow, not the engine.** The first version exposed the solver's
+one-tree-at-a-time nature as the product: a "baseline" loadout had to be hand-built before
+anything could be exported, and two global modes (Build, Explore) held disjoint state that
+vanished when switching. Now each tree is independently fixed or open, the character space
+is their product, and the app is three steps -- Narrow, Simulate, Analyse -- with analysis as
+a page of its own. Choice sides are expanded into separate builds, matching the API's count
+exactly. See [`../../frontend/README.md`](../../frontend/README.md).
+
+Building that found a data bug under everything: the CLI reported result bits ranked over
+the solved DAG, which excludes granted roots, so every stored build on a class or hero tree
+named each talent by its neighbour's id. Counts were never affected, which is why no count
+test saw it. Fixed in the CLI, stale results dropped by migration 007, and guarded by a
+legality check on stored builds (see [`../../services/worker/README.md`](../../services/worker/README.md)).
+
 **Phase 3 exit criteria met.** A player can land on the site, build a spec across all three
 trees, solve it under constraints, and share a link — without signing in.
 

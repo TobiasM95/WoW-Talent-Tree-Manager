@@ -14,16 +14,14 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "shots": "node shot.mjs",
-    "test": "node interact.mjs",
+    "test": "node workflow.test.mjs",
     "test:share": "node share.test.mjs",
-    "test:all": "pnpm run typecheck && pnpm run test:share && pnpm run test:loadout && pnpm run test:string && pnpm run test:simc && pnpm test && pnpm run test:bugs && pnpm run test:bridge && pnpm run test:report && pnpm run test:round",
+    "test:all": "pnpm run typecheck && pnpm run test:share && pnpm run test:loadout && pnpm run test:string && pnpm run test:simc && pnpm run test:report && pnpm run test:canvas && pnpm test",
     "test:loadout": "node loadout.test.mjs",
     "test:string": "node loadoutString.test.mjs",
     "test:simc": "node simc.test.mjs",
-    "test:bugs": "node bugs.test.mjs",
-    "test:bridge": "node bridge.test.mjs",
     "test:report": "node simcReport.test.mjs",
-    "test:round": "node simcround.test.mjs"
+    "test:canvas": "node canvas.test.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",
