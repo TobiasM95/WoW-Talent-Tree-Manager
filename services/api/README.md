@@ -188,6 +188,13 @@ design itself is stored beside the derived trees and is the source of truth (mig
 first version rebuilt it from the trees, which made the derivation part of the identity, so an
 opened project saved back as a different one.
 
+A tree's gates come from, in order: a talent's own `pointsRequired`; else the highest
+**barrier** (`barriers: [{row, points}]`, retail's lines, which must rise going down) at or
+above its row; and `pointsPerRow` times its row, whichever is higher. A talent marked
+`granted` is served as `preFilled` -- free, like retail's starting talents -- which is what lets
+a copied retail tree count exactly like the original. Both fields are only written when used,
+so projects saved before they existed keep their ids.
+
 `GET /custom-trees/{project}` returns a project's trees and its design, for the editor to keep
 editing. Custom trees are never listed wholesale -- `GET /trees?game=custom` is refused -- since
 listing would publish every project anyone saved; they are reached by their link.

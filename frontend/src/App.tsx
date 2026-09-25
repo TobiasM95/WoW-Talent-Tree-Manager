@@ -40,7 +40,8 @@ import {
 import { AnalysisView } from "./components/AnalysisView";
 import { EditorView } from "./components/EditorView";
 import { ProjectRail } from "./components/ProjectRail";
-import { emptyDesign, fromTrees, type Design } from "./lib/design";
+import { fromTrees, type Design } from "./lib/design";
+import { TemplatePicker } from "./components/TemplatePicker";
 import {
   getProject,
   isDirty,
@@ -159,6 +160,8 @@ export default function App() {
   const [note, setNote] = useState<string | null>(null);
 
   const [step, setStep] = useState<Step>("narrow");
+  // Choosing what a new project starts from: blank, or a copy of a real tree.
+  const [picking, setPicking] = useState(false);
   /**
    * A ready list of characters for the Simulate step, instead of enumerating the trees: the
    * builds top players run. Cleared whenever a sim is started from the trees themselves.
@@ -305,10 +308,10 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The custom game always has a project to show, even the first time.
+  // The first time, the custom game opens on the choice of what to start from.
   useEffect(() => {
-    if (custom && projects.length === 0) addProject(emptyDesign());
-  }, [custom, projects.length, addProject]);
+    if (custom && projects.length === 0) setPicking(true);
+  }, [custom, projects.length]);
 
   const switchGame = useCallback((next: Game) => {
     setGame(next);
@@ -898,11 +901,12 @@ export default function App() {
             current={projectId}
             onSelect={(id) => {
               setProjectId(id);
+              setPicking(false);
               setStep("design");
               setNote(null);
             }}
             onNew={() => {
-              addProject(emptyDesign(`Project ${projects.length + 1}`));
+              setPicking(true);
               setStep("design");
             }}
             onRemove={(id) => {
@@ -962,7 +966,21 @@ export default function App() {
 
       <div className="rule mx-4 shrink-0" />
 
-      {step === "design" && custom && project && (
+      {step === "design" && custom && picking && (
+        <div className="min-h-0 flex-1 overflow-auto p-2">
+          <TemplatePicker
+            room={3}
+            purpose="project"
+            onPick={(design) => {
+              addProject(design.name === "New project" ? { ...design, name: `Project ${projects.length + 1}` } : design);
+              setPicking(false);
+            }}
+            onCancel={project ? () => setPicking(false) : null}
+          />
+        </div>
+      )}
+
+      {step === "design" && custom && !picking && project && (
         <EditorView
           draft={project.draft}
           dirty={isDirty(project)}

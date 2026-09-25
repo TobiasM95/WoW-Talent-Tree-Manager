@@ -43,6 +43,16 @@ require another), then Plan with it: the same planner, counter and share links a
 games. "Edit a copy in the tree editor" brings any retail or Forever trees in, for the what-if
 nobody else can answer -- and a copy is checked to count *exactly* like its original.
 
+A tree gates one of two ways. **Barriers**, retail's way: dashed lines between rows, crossed
+once enough is spent (a blank one starts with 8 and 20), on a wide grid with free connections --
++ in the margin adds a barrier, its number edits it, × removes it. **Per row**, the classic way:
+four columns, each row opening a fixed number of points after the last. Any talent can still
+override its own gate, and any can be **granted** -- free and always taken, like retail's
+starting talents. A new project, or a tree added to one, starts blank in either style or as a
+copy of any retail spec's trees or Forever class's tabs; a retail copy brings its gates back as
+barriers and its granted talents as granted, and `test:editor` checks Blood's class and spec
+trees count the same as the originals at every budget tried.
+
 Edits that could never be saved are refused as they are made (a requirement that would loop is
 not drawn), and everything is undoable. Drafts and the project list live in this browser; a
 saved version lives on the server, because the solver has to read it -- immutable and keyed by
@@ -193,7 +203,8 @@ game data the tool exists to display; everything around them is ours.
 | `lib/api.ts` | Typed client. Every field checked against a live response. |
 | `lib/classes.ts`, `lib/theme.ts` | Class colours per theme; the theme on `<html data-theme>`. |
 | `components/TreePane.tsx` | One tree, with its fixed/open switch, budget and count. |
-| `components/EditorView.tsx` | The tree editor: grid, connections, inspector, icon picker. |
+| `components/EditorView.tsx` | The tree editor: grid, connections, barriers, inspector, icon picker. |
+| `components/TemplatePicker.tsx` | What a project or tree starts from: blank retail or classic, or a copy of a real tree. |
 | `components/ProjectRail.tsx` | Your custom projects, in place of the class rail. |
 | `components/PoolCard.tsx` | A shared point pool's split, for Forever and pooled projects. |
 | `components/PopularPanel.tsx` | What top players run, and three things to do with it. |

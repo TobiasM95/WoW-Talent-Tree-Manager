@@ -28,18 +28,37 @@ export interface DesignNode {
   col: number;
   /** Null takes the tree's points-per-row gate for this row. */
   pointsRequired: number | null;
+  /** Free: always taken, costing no point -- retail's starting talents. */
+  granted?: boolean;
   parents: number[];
   entries: DesignEntry[];
+}
+
+/** Retail's gate: a line above `row`, crossed once `points` are spent in the tree. */
+export interface Barrier {
+  row: number;
+  points: number;
 }
 
 export interface DesignTree {
   name: string;
   /** Null: every rank in the tree can be bought. */
   pointCap: number | null;
-  /** Null: gates are set per talent. */
+  /** Classic style: each row opens a fixed number of points after the last. Null: retail style. */
   pointsPerRow: number | null;
+  /** Retail style: lines between rows. Missing on designs saved before barriers existed. */
+  barriers?: Barrier[];
   nodes: DesignNode[];
 }
+
+export type TreeStyle = "retail" | "classic";
+export const styleOf = (t: DesignTree): TreeStyle => (t.pointsPerRow === null ? "retail" : "classic");
+
+/** A blank tree of either style: retail is wide with free connections, classic is 4 columns by rows. */
+export const blankTree = (name: string, style: TreeStyle): DesignTree =>
+  style === "retail"
+    ? { name, pointCap: 30, pointsPerRow: null, barriers: [{ row: 4, points: 8 }, { row: 7, points: 20 }], nodes: [] }
+    : { name, pointCap: null, pointsPerRow: 5, nodes: [] };
 
 export interface Design {
   name: string;
@@ -50,15 +69,33 @@ export interface Design {
 
 export const LIMITS = { trees: 3, nodes: 150, ranks: 9, rows: 30, cols: 20, engineSlots: 64 } as const;
 
-export const emptyDesign = (name = "New project"): Design => ({
+export const emptyDesign = (name = "New project", style: TreeStyle = "retail"): Design => ({
   name,
   sharedPointCap: null,
-  trees: [{ name: "Tree 1", pointCap: null, pointsPerRow: 5, nodes: [] }],
+  trees: [blankTree("Tree 1", style)],
 });
 
-/** The gate a talent actually has, whether set on it or inherited from its row. */
-export const gateOf = (tree: DesignTree, node: DesignNode) =>
-  node.pointsRequired ?? (tree.pointsPerRow ?? 0) * node.row;
+/** The gate a row gives the talents in it: its points-per-row, or the barriers above it. */
+export const rowGate = (tree: DesignTree, row: number) =>
+  Math.max(
+    (tree.pointsPerRow ?? 0) * row,
+    ...(tree.barriers ?? []).filter((b) => b.row <= row).map((b) => b.points),
+    0,
+  );
+
+/** The gate a talent actually has, whether set on it or inherited from where it sits. */
+export const gateOf = (tree: DesignTree, node: DesignNode) => node.pointsRequired ?? rowGate(tree, node.row);
+
+/**
+ * Set, move or clear the barrier above `row` (points 0 clears it). Barriers must rise going
+ * down, as the server insists, so this refuses one that would not.
+ */
+export function setBarrier(tree: DesignTree, row: number, points: number): DesignTree | null {
+  const rest = (tree.barriers ?? []).filter((b) => b.row !== row);
+  const next = points > 0 ? [...rest, { row, points }].sort((a, b) => a.row - b.row) : rest;
+  for (let i = 1; i < next.length; i++) if (next[i]!.points <= next[i - 1]!.points) return null;
+  return { ...tree, barriers: next };
+}
 
 const nextId = (design: Design) =>
   1 + Math.max(0, ...design.trees.flatMap((t) => t.nodes.map((n) => n.nodeId)));
@@ -190,8 +227,8 @@ export function problems(design: Design): { errors: string[]; notes: string[] } 
  *
  * Retail and Forever trees come in with their grid, gates, arrows, icons and rank texts. Their
  * node ids are kept, which is safe: a copy is a new project and ids only need to be unique
- * within it. Granted talents come across as ordinary ones, since a design has no notion of
- * free points; hero-tree selectors, which are not talents, are left out.
+ * within it. Granted talents stay granted, so a copy counts exactly like its original;
+ * hero-tree selectors, which are not talents, are left out.
  */
 export function fromTrees(name: string, trees: TreeDetail[], sharedPointCap: number | null): Design {
   return {
@@ -199,10 +236,13 @@ export function fromTrees(name: string, trees: TreeDetail[], sharedPointCap: num
     sharedPointCap,
     trees: trees.slice(0, LIMITS.trees).map((t) => {
       const ids = new Set(t.nodes.filter((n) => n.kind !== "subtree").map((n) => n.nodeId));
+      const barriers = t.pointsPerRow ? [] : barriersOf(t);
+      const shell: DesignTree = { name: "", pointCap: null, pointsPerRow: t.pointsPerRow ?? null, barriers, nodes: [] };
       return {
         name: t.name.slice(0, 60),
         pointCap: t.pointCap ?? null,
         pointsPerRow: t.pointsPerRow ?? null,
+        barriers,
         nodes: t.nodes
           .filter((n) => n.kind !== "subtree")
           .map((n) => {
@@ -220,7 +260,12 @@ export function fromTrees(name: string, trees: TreeDetail[], sharedPointCap: num
               maxPoints: choice ? 1 : Math.min(LIMITS.ranks, Math.max(1, n.maxPoints)),
               row: Math.min(LIMITS.rows, n.row ?? 0),
               col: Math.min(LIMITS.cols, n.col ?? 0),
-              pointsRequired: t.pointsPerRow ? null : n.pointsRequired,
+              // Explicit only where the talent's gate differs from what its row now gives it.
+              pointsRequired:
+                t.pointsPerRow || n.pointsRequired === rowGate(shell, Math.min(LIMITS.rows, n.row ?? 0))
+                  ? null
+                  : n.pointsRequired,
+              ...(n.preFilled ? { granted: true } : {}),
               parents: n.parents.filter((p) => ids.has(p)),
               entries: entries.length ? entries : [{ name: n.name, icon: null, kind: "passive" as const, ranks: [] }],
             };
@@ -228,4 +273,24 @@ export function fromTrees(name: string, trees: TreeDetail[], sharedPointCap: num
       };
     }),
   };
+}
+
+/**
+ * A real tree's gates as barriers: each distinct gate becomes a line above the first row that
+ * uses it. Retail's 8 and 20 come out as two lines; a gate that would not rise going down is
+ * left out, and its talents keep it as their own.
+ */
+export function barriersOf(t: TreeDetail): Barrier[] {
+  const first = new Map<number, number>();
+  for (const n of t.nodes) {
+    if (n.kind === "subtree" || !n.pointsRequired) continue;
+    const row = Math.min(LIMITS.rows, n.row ?? 0);
+    first.set(n.pointsRequired, Math.min(first.get(n.pointsRequired) ?? Infinity, row));
+  }
+  const out: Barrier[] = [];
+  for (const [points, row] of [...first].sort((a, b) => a[0] - b[0])) {
+    const last = out[out.length - 1];
+    if (row >= 1 && (!last || row > last.row)) out.push({ row, points });
+  }
+  return out;
 }

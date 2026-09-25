@@ -47,9 +47,18 @@ page.on("pageerror", (e) => check("no page error", false, String(e)));
 await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForSelector(".ttm-node");
 await page.locator('button:text-is("Custom")').click();
-await page.waitForSelector('section[aria-label="Tree grid"]');
+await page.waitForSelector('section[aria-label="Start from"]');
 check("the custom game opens on the editor", (await page.locator('nav[aria-label="Workflow"] [aria-current="step"]').innerText()).includes("Design"));
+check("first asking what to start from", /Start a new project/.test(await page.locator('section[aria-label="Start from"]').innerText()));
+// Classic, because the count below is worked out by hand from 5 points a row.
+await page.locator('button:has-text("Classic style")').click();
+await page.waitForSelector('section[aria-label="Tree grid"]');
 check("with a project ready to design", (await page.locator('input[aria-label="Project name"]').count()) === 1);
+check("a classic tree is four columns", (await page.locator('[data-cell^="0,"]').count()) === 4);
+
+// Where a talent can go is visible before anything is there, not only on hover.
+const outline = await page.locator('[data-cell="3,2"]').evaluate((e) => getComputedStyle(e).borderTopColor);
+check("empty cells are visible without hovering", !/rgba\(.*,\s*0\)$|transparent/.test(outline), outline);
 
 await page.locator('input[aria-label="Project name"]').fill("Test brew");
 
@@ -155,6 +164,54 @@ if (saved) {
     }
   }
   check("the copy counts exactly like the original, every tab and budget", same === 12, `${same} of 12`);
+}
+
+// Retail: a new project copied from a real spec. Barriers come across as barriers, granted
+// talents stay granted, and the copy counts exactly like the original.
+await page.locator('button:text-is("Custom")').click();
+await page.locator('[aria-label="Projects"] button:has-text("New project")').click();
+const picker = page.locator('section[aria-label="Start from"]');
+await picker.locator('button:text-is("Retail")').click();
+await picker.locator('select[aria-label="Template class"]').selectOption("Death Knight");
+await picker.locator('select[aria-label="Template spec"]').selectOption("Blood");
+await picker.locator('button:has-text("Copy 2 trees")').click();
+await page.waitForSelector('section[aria-label="Tree grid"] .editor-node');
+const retailTabs = await page.locator('[aria-label="Trees"] [role="tab"]').allInnerTexts();
+check("a retail template brings its class and spec trees", retailTabs.length === 2, retailTabs.join());
+check("with retail's gates as barriers", (await page.locator("[data-barrier]").count()) >= 2);
+check("and its granted talents still free", (await page.locator(".editor-node[data-granted]").count()) >= 1);
+check("on a retail-width grid", (await page.locator('[data-cell^="9,"], .editor-node').count()) > 0 &&
+  (await page.evaluate(() => Math.max(...[...document.querySelectorAll("[data-cell]")].map((e) => Number(e.dataset.cell.split(",")[1]))))) >= 8);
+
+// A blank retail tree beside them: two barriers to start, and one more from the margin.
+await page.locator('[aria-label="Trees"] button:text-is("+ tree")').click();
+await picker.locator('button:has-text("Retail style")').click();
+await page.waitForSelector('[aria-label="Tree style"]');
+check("a blank retail tree starts with two barriers", (await page.locator("[data-barrier]").count()) === 2);
+await page.locator('button[aria-label="Add a barrier above row 2"]').click();
+const added = await page.locator('input[aria-label="Points to pass the barrier above row 2"]').inputValue();
+check("the margin adds a barrier below the first", (await page.locator("[data-barrier]").count()) === 3 && added === "5", added);
+await page.locator('button:text-is("Remove this tree")').click();
+await page.screenshot({ path: "shots/editor-retail.png" });
+
+await page.locator('button:text-is("Save")').click();
+await page.waitForSelector('[data-save-state="saved"]', { timeout: 20000 });
+const rpid = /Saved as ([0-9a-f]{8})/.exec(await page.locator("aside").innerText())?.[1];
+const rsaved = (await page.evaluate(() => JSON.parse(localStorage.getItem("ttm.projects.v1") || "[]")))
+  .find((p) => p.savedAs?.startsWith(rpid ?? "-"))?.savedAs;
+check("the retail copy saves", Boolean(rsaved), String(rpid));
+if (rsaved) {
+  let same = 0;
+  const budgets = [8, 15, 25, 34];
+  for (const [i, key] of ["retail/6/250/class", "retail/6/250/spec"].entries()) {
+    for (const points of budgets) {
+      const a = await api("/counts", { treeKey: key, points });
+      const b = await api("/counts", { treeKey: `custom/${rsaved}/${i}`, points });
+      if (a.sets === b.sets && a.builds === b.builds) same++;
+      else console.log(`   ${key} at ${points}: original ${a.sets}/${a.builds}, copy ${b.sets}/${b.builds}`);
+    }
+  }
+  check("the retail copy counts exactly like the original, both trees and every budget", same === 8, `${same} of 8`);
 }
 
 await browser.close();

@@ -108,6 +108,7 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
         per_row = raw_tree.get("pointsPerRow")
         if per_row is not None:
             per_row = _int(per_row, f"{tree_name}: points per row", 0, 50)
+        barriers = _barriers(raw_tree.get("barriers"), tree_name)
         raw_nodes = raw_tree.get("nodes")
         if not isinstance(raw_nodes, list) or not 1 <= len(raw_nodes) <= MAX_NODES:
             raise CustomTreeError(f"{tree_name} has 1 to {MAX_NODES} talents")
@@ -132,7 +133,8 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
                 raise CustomTreeError(f"{where} shares a cell with {cells[(row, col)]}")
             cells[(row, col)] = label
             gate = raw.get("pointsRequired")
-            gate = row * per_row if gate is None and per_row is not None else gate or 0
+            if gate is None:
+                gate = _inherited(row, per_row, barriers)
             gate = _int(gate, f"{where}: points required", 0, MAX_GATE)
             kind = raw.get("kind", "single")
             if kind not in ("single", "choice"):
@@ -146,10 +148,13 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
                 raise CustomTreeError(f"{where}: a single talent has exactly one entry")
             if kind == "choice" and max_rank != 1:
                 raise CustomTreeError(f"{where}: a choice node has one rank")
+            granted = raw.get("granted", False)
+            if not isinstance(granted, bool):
+                raise CustomTreeError(f"{where}: granted is yes or no")
             parents = raw.get("parents") or []
             if not isinstance(parents, list) or len(parents) > 8:
                 raise CustomTreeError(f"{where}: parents must be a list of up to 8 talents")
-            nodes.append({
+            node = {
                 "nodeId": nid,
                 "name": label,
                 "kind": kind,
@@ -159,7 +164,11 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
                 "pointsRequired": gate,
                 "parents": sorted({_int(p, f"{where}: a parent", 1, 2**31 - 1) for p in parents}),
                 "entries": [_entry(e, f"{where} alternative {i + 1}", max_rank) for i, e in enumerate(entries)],
-            })
+            }
+            if granted:
+                # Free, like retail's starting talents. Only when set, so older ids hold.
+                node["granted"] = True
+            nodes.append(node)
 
         by_id = {n["nodeId"]: n for n in nodes}
         for n in nodes:
@@ -174,9 +183,44 @@ def canonical(project: dict[str, Any]) -> dict[str, Any]:
         slots = sum(n["maxPoints"] for n in nodes)
         cap = slots if cap is None else _int(cap, f"{tree_name}: point budget", 1, slots)
         nodes.sort(key=lambda n: (n["row"], n["col"], n["nodeId"]))
-        trees.append({"name": tree_name, "pointCap": cap, "pointsPerRow": per_row, "nodes": nodes})
+        tree = {"name": tree_name, "pointCap": cap, "pointsPerRow": per_row, "nodes": nodes}
+        if barriers:
+            # Only when present, so a project saved before barriers existed keeps its id.
+            tree["barriers"] = barriers
+        trees.append(tree)
 
     return {"name": name, "sharedPointCap": pool, "trees": trees}
+
+
+def _barriers(raw: Any, tree_name: str) -> list[dict[str, int]]:
+    """Retail's gates: a line above a row, and the points to spend before crossing it.
+
+    A barrier holds for every row from its own down, until a later one raises it, which is how
+    retail's 8- and 20-point lines work. Sorted by row, one per row, never lowering the gate.
+    """
+    if raw is None:
+        return []
+    if not isinstance(raw, list) or len(raw) > MAX_ROW:
+        raise CustomTreeError(f"{tree_name}: barriers must be a list of up to {MAX_ROW}")
+    out: dict[int, int] = {}
+    for b in raw:
+        if not isinstance(b, dict):
+            raise CustomTreeError(f"{tree_name}: a barrier is a row and a number of points")
+        row = _int(b.get("row"), f"{tree_name}: a barrier's row", 1, MAX_ROW)
+        if row in out:
+            raise CustomTreeError(f"{tree_name}: two barriers above row {row + 1}")
+        out[row] = _int(b.get("points"), f"{tree_name}: the barrier above row {row + 1}", 1, MAX_GATE)
+    rows = sorted(out)
+    for above, below in zip(rows, rows[1:]):
+        if out[below] <= out[above]:
+            raise CustomTreeError(f"{tree_name}: the barrier above row {below + 1} must ask for more than the one above it")
+    return [{"row": r, "points": out[r]} for r in rows]
+
+
+def _inherited(row: int, per_row: int | None, barriers: list[dict[str, int]]) -> int:
+    """The gate a talent takes from where it sits: its row's points, or the barriers above it."""
+    crossed = max((b["points"] for b in barriers if b["row"] <= row), default=0)
+    return max(crossed, row * per_row if per_row is not None else 0)
 
 
 def _acyclic(nodes: list[dict[str, Any]], by_id: dict[int, dict[str, Any]], tree_name: str) -> None:
@@ -228,7 +272,7 @@ def build(canon: dict[str, Any]) -> tuple[str, list[dict[str, Any]], list[str]]:
                 "maxPoints": n["maxPoints"],
                 "rankLevels": None,
                 "pointsRequired": n["pointsRequired"],
-                "preFilled": False,
+                "preFilled": bool(n.get("granted")),
                 "freeLevel": None,
                 "entryNode": not n["parents"],
                 "row": n["row"],
@@ -277,6 +321,7 @@ def build(canon: dict[str, Any]) -> tuple[str, list[dict[str, Any]], list[str]]:
             "nodeCount": len(nodes),
             "sharedPointCap": canon["sharedPointCap"],
             "pointsPerRow": t["pointsPerRow"],
+            "barriers": t.get("barriers") or [],
             "order": order,
             "project": pid,
             "fullNodeOrder": None,
@@ -297,6 +342,7 @@ def editable(canon_tree_records: list[dict[str, Any]], name: str, pool: int | No
                 "name": t["name"],
                 "pointCap": t["pointCap"],
                 "pointsPerRow": t.get("pointsPerRow"),
+                "barriers": t.get("barriers") or [],
                 "nodes": [
                     {
                         "nodeId": n["nodeId"],
@@ -306,6 +352,7 @@ def editable(canon_tree_records: list[dict[str, Any]], name: str, pool: int | No
                         "row": n["row"],
                         "col": n["col"],
                         "pointsRequired": n["pointsRequired"],
+                        "granted": bool(n.get("preFilled")),
                         "parents": n["parents"],
                         "entries": [
                             {"name": e["name"], "icon": e["icon"], "kind": e["kind"], "ranks": e["ranks"]}

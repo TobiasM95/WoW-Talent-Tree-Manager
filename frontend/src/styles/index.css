@@ -514,18 +514,20 @@
 
 /* An empty cell: invisible until pointed at, so a design is not a wall of boxes, and plainly
    a place to add something the moment it is. */
+/* Empty cells are always visible, so it is clear where a talent can go; hover says "add". */
 .editor-cell {
-  border: 1px dashed transparent;
+  border: 1px dashed color-mix(in srgb, var(--brass) 28%, transparent);
   border-radius: 50%;
-  background: transparent;
+  background: color-mix(in srgb, var(--brass) 3%, transparent);
   cursor: copy;
   transition: border-color 120ms, background 120ms;
 }
 
 .editor-cell:hover,
 .editor-cell:focus-visible {
-  border-color: color-mix(in srgb, var(--brass) 55%, transparent);
-  background: color-mix(in srgb, var(--brass) 8%, transparent);
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--brass) 70%, transparent);
+  background: color-mix(in srgb, var(--brass) 12%, transparent);
 }
 
 .editor-cell::after {
@@ -535,11 +537,63 @@
   display: grid;
   place-items: center;
   font-size: 18px;
-  color: transparent;
+  color: color-mix(in srgb, var(--brass) 30%, transparent);
 }
 
-.editor-cell:hover::after {
+.editor-cell:hover::after,
+.editor-cell:focus-visible::after {
   color: var(--brass);
+}
+
+/* A granted talent: taken for free, marked the way the planner marks it. */
+.editor-node[data-granted]::after {
+  content: "free";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--panel);
+  color: var(--must);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+/* Retail's barriers: a line across the tree, the points to cross it in the margin. */
+.editor-barrier {
+  height: 0;
+  border-top: 2px dashed color-mix(in srgb, var(--any-of) 75%, transparent);
+}
+
+.editor-barrier-points {
+  width: 36px;
+  height: 20px;
+  padding: 0 2px;
+  border: 1px solid color-mix(in srgb, var(--any-of) 70%, transparent);
+  border-radius: 4px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 11px;
+  text-align: center;
+}
+
+.editor-barrier-add,
+.editor-barrier-remove {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--ink-faint);
+  border: 1px dashed color-mix(in srgb, var(--ink-faint) 50%, transparent);
+  background: transparent;
+}
+
+.editor-barrier-add:hover,
+.editor-barrier-remove:hover {
+  color: var(--any-of);
+  border-color: var(--any-of);
 }
 
 .editor-node {

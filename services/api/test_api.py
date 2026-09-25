@@ -727,6 +727,44 @@ def t_custom_projects_refuse_broken_designs():
     assert status == 400 and "per project" in str(body.get("detail", "")), (status, body)
 
 
+def t_custom_barriers_and_granted_talents():
+    """Retail's shape: barriers between rows gate everything below them, and a granted root
+    is free. Worked out by hand: a free root, two talents under it, and a barrier of 2 above
+    the two below those -- so 1 point buys either of the first pair, 2 buys both, 3 adds one
+    of the pair below the barrier."""
+    design = {
+        "name": "Barriers",
+        "trees": [{
+            "name": "Retail-like",
+            "pointsPerRow": None,
+            "barriers": [{"row": 2, "points": 2}],
+            "nodes": [
+                {"nodeId": 1, "name": "Root", "maxPoints": 1, "row": 0, "col": 1, "granted": True},
+                {"nodeId": 2, "name": "A", "maxPoints": 1, "row": 1, "col": 0, "parents": [1]},
+                {"nodeId": 3, "name": "B", "maxPoints": 1, "row": 1, "col": 2, "parents": [1]},
+                {"nodeId": 4, "name": "C", "maxPoints": 1, "row": 2, "col": 0, "parents": [2]},
+                {"nodeId": 5, "name": "D", "maxPoints": 1, "row": 2, "col": 2, "parents": [3]},
+            ],
+        }],
+    }
+    saved = post("/custom-trees", design, expect=201)
+    key = f"custom/{saved['project']}/0"
+    tree = get(f"/trees/{key}")
+    gates = {n["name"]: n["pointsRequired"] for n in tree["nodes"]}
+    assert gates == {"Root": 0, "A": 0, "B": 0, "C": 2, "D": 2}, gates
+    assert [n["preFilled"] for n in tree["nodes"] if n["name"] == "Root"] == [True]
+    sets = [post("/counts", {"treeKey": key, "points": p})["sets"] for p in (1, 2, 3)]
+    assert sets == [2, 1, 2], sets
+    # The stored design brings the barriers and the granted talent back to the editor.
+    back = get(f"/custom-trees/{saved['project']}")["design"]
+    assert back["trees"][0]["barriers"] == [{"row": 2, "points": 2}], back["trees"][0]
+    assert post("/custom-trees", back, expect=201)["project"] == saved["project"]
+    # A barrier lower down must ask for more.
+    design["trees"][0]["barriers"] = [{"row": 1, "points": 3}, {"row": 2, "points": 2}]
+    r = post("/custom-trees", design, expect=400)
+    assert "must ask for more" in str(r.get("detail", "")), r
+
+
 def t_top_players_builds_are_legal_here():
     """Every build the live game allowed a top player must be legal on our copy of the trees.
 
@@ -1093,6 +1131,8 @@ def main() -> int:
           t_custom_projects_save_and_solve)
     check("broken designs are refused, saying what is wrong",
           t_custom_projects_refuse_broken_designs)
+    check("retail-style barriers gate what is below them, and granted talents are free",
+          t_custom_barriers_and_granted_talents)
 
     print("\nWoW Forever:")
     check("both games are served side by side", t_both_games_are_served)

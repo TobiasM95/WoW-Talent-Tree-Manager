@@ -2,13 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { iconUrl, request } from "../lib/api";
 import {
   addNode,
+  blankTree,
   deleteNode,
   gateOf,
   LIMITS,
   moveNode,
   problems,
   renameNode,
+  rowGate,
+  setBarrier,
   setKind,
+  styleOf,
   toggleEdge,
   updateNode,
   type Design,
@@ -16,6 +20,7 @@ import {
   type DesignNode,
   type DesignTree,
 } from "../lib/design";
+import { appendTrees, TemplatePicker } from "./TemplatePicker";
 
 /**
  * The tree editor: design talent trees of your own, then plan and count them like any other.
@@ -59,6 +64,8 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
   const [source, setSource] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Choosing what an added tree starts from.
+  const [adding, setAdding] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; message: string; warnings?: string[] } | null>(null);
   const past = useRef<Design[]>([]);
   const future = useRef<Design[]>([]);
@@ -123,8 +130,10 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo, commit, draft, at, selected]);
 
-  const rows = Math.min(LIMITS.rows + 1, Math.max(8, ...tree.nodes.map((n) => n.row + 3)));
-  const cols = Math.min(LIMITS.cols + 1, Math.max(4, ...tree.nodes.map((n) => n.col + 2)));
+  // Retail trees are wide and gated by barriers; classic ones are four columns gated by row.
+  const retail = styleOf(tree) === "retail";
+  const rows = Math.min(LIMITS.rows + 1, Math.max(retail ? 10 : 8, ...tree.nodes.map((n) => n.row + 3)));
+  const cols = Math.min(LIMITS.cols + 1, Math.max(retail ? 9 : 4, ...tree.nodes.map((n) => n.col + 2)));
   const cellOf = (row: number, col: number) => tree.nodes.find((n) => n.row === row && n.col === col);
 
   const connect = (parent: number, child: number) => {
@@ -160,6 +169,27 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
 
   const setTree = (change: (t: DesignTree) => DesignTree) =>
     commit({ ...draft, trees: draft.trees.map((t, i) => (i === at ? change(t) : t)) });
+
+  const BARRIER_RULE = "Each barrier must ask for more points than the one above it.";
+  const barrierAt = (row: number, points: number) => {
+    const next = setBarrier(tree, row, points);
+    commit(next ? { ...draft, trees: draft.trees.map((t, i) => (i === at ? next : t)) } : null, BARRIER_RULE);
+  };
+  // A new barrier asks a little more than what the row already needs, if the one below allows.
+  const addBarrier = (row: number) => {
+    const here = rowGate(tree, row);
+    const below = (tree.barriers ?? []).find((b) => b.row > row)?.points ?? Infinity;
+    const points = [here + 5, here + 1].find((v) => v < below);
+    if (points === undefined) setMessage(BARRIER_RULE);
+    else barrierAt(row, points);
+  };
+  const setStyle = (style: "retail" | "classic") =>
+    setTree((t) => {
+      const blank = blankTree(t.name, style);
+      return style === "retail"
+        ? { ...t, pointsPerRow: null, barriers: t.barriers?.length ? t.barriers : blank.barriers }
+        : { ...t, pointsPerRow: blank.pointsPerRow, barriers: [] };
+    });
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-2 md:p-2.5">
@@ -217,12 +247,9 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
           {draft.trees.length < LIMITS.trees && (
             <button
               type="button"
+              aria-pressed={adding}
               onClick={() => {
-                commit({
-                  ...draft,
-                  trees: [...draft.trees, { name: `Tree ${draft.trees.length + 1}`, pointCap: null, pointsPerRow: 5, nodes: [] }],
-                });
-                setAt(draft.trees.length);
+                setAdding(true);
                 setSelected(null);
               }}
               title="Add a tree to the project"
@@ -257,6 +284,22 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
         </div>
       </section>
 
+      {adding ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <TemplatePicker
+            room={LIMITS.trees - draft.trees.length}
+            purpose="tree"
+            onPick={(picked) => {
+              const blank = picked.trees.length === 1 && picked.trees[0]!.nodes.length === 0;
+              const extra = blank ? [{ ...picked.trees[0]!, name: `Tree ${draft.trees.length + 1}` }] : picked.trees;
+              commit(appendTrees(draft, extra));
+              setAt(draft.trees.length);
+              setAdding(false);
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        </div>
+      ) : (
       <div className="flex min-h-0 flex-1 flex-col gap-2 md:flex-row md:gap-2.5">
         {/* The grid. */}
         <section className="panel relative min-h-[26rem] flex-1 overflow-auto" aria-label="Tree grid">
@@ -285,9 +328,9 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
             </span>
           </div>
 
-          <div className="relative m-3" style={{ width: cols * CELL_W + 40, height: rows * CELL_H }}>
+          <div className="relative m-3" style={{ width: cols * CELL_W + 64, height: rows * CELL_H }}>
             {/* Row gates, when the tree gates by row. */}
-            {tree.pointsPerRow !== null &&
+            {!retail &&
               Array.from({ length: rows }, (_, r) => (
                 <span
                   key={r}
@@ -298,6 +341,56 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
                   {r * tree.pointsPerRow!}
                 </span>
               ))}
+
+            {/* Barriers, when the tree gates retail's way: a line between two rows, crossed once
+                enough is spent. Set in the margin: + adds one, the number edits it, x removes it. */}
+            {retail &&
+              Array.from({ length: rows - 1 }, (_, i) => {
+                const row = i + 1;
+                const barrier = (tree.barriers ?? []).find((b) => b.row === row);
+                const y = row * CELL_H - (CELL_H - TILE) / 2 + 4;
+                return barrier ? (
+                  <div key={row} data-barrier={row}>
+                    <div
+                      className="editor-barrier pointer-events-none absolute left-10"
+                      style={{ top: y, width: cols * CELL_W }}
+                    />
+                    <input
+                      className="editor-barrier-points num absolute left-0"
+                      style={{ top: y - 10 }}
+                      inputMode="numeric"
+                      value={barrier.points}
+                      onChange={(event) => {
+                        const v = Number(event.target.value.replace(/\D/g, ""));
+                        if (v > 0) barrierAt(row, Math.min(300, v));
+                      }}
+                      aria-label={`Points to pass the barrier above row ${row + 1}`}
+                      title={`Row ${row + 1} and below open at ${barrier.points} points spent in this tree`}
+                    />
+                    <button
+                      type="button"
+                      className="editor-barrier-remove absolute"
+                      style={{ top: y - 8, left: cols * CELL_W + 42 }}
+                      onClick={() => barrierAt(row, 0)}
+                      aria-label={`Remove the barrier above row ${row + 1}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    key={row}
+                    type="button"
+                    className="editor-barrier-add absolute left-2"
+                    style={{ top: y - 8 }}
+                    onClick={() => addBarrier(row)}
+                    aria-label={`Add a barrier above row ${row + 1}`}
+                    title={`Add a barrier above row ${row + 1}`}
+                  >
+                    +
+                  </button>
+                );
+              })}
 
             <svg className="pointer-events-none absolute left-10 top-0" width={cols * CELL_W} height={rows * CELL_H}>
               {tree.nodes.flatMap((child) =>
@@ -381,6 +474,7 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
                         data-node={here.nodeId}
                         data-selected={here.nodeId === selected ? "" : undefined}
                         data-source={isSource ? "" : undefined}
+                        data-granted={here.granted ? "" : undefined}
                         aria-label={`${here.name}, ${shape}, ${here.maxPoints} rank${here.maxPoints === 1 ? "" : "s"}`}
                         style={{ width: TILE, height: TILE }}
                       >
@@ -451,20 +545,38 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
                 }
                 aria-label="Point budget"
               />
-              <span className="text-ink-soft" title="Points spent in the rows above that open each row">Points per row</span>
-              <input
-                className="field num"
-                type="number"
-                min={0}
-                max={50}
-                placeholder="set per talent"
-                value={tree.pointsPerRow ?? ""}
-                onChange={(event) =>
-                  setTree((t) => ({ ...t, pointsPerRow: event.target.value === "" ? null : Math.max(0, Math.min(50, Number(event.target.value))) }))
-                }
-                aria-label="Points per row"
-              />
+              <span className="text-ink-soft">Gates</span>
+              <div className="seg" role="group" aria-label="Tree style">
+                <button type="button" className="flex-1" aria-pressed={retail} onClick={() => setStyle("retail")} title="Lines between rows, crossed once enough is spent">
+                  Barriers
+                </button>
+                <button type="button" className="flex-1" aria-pressed={!retail} onClick={() => setStyle("classic")} title="Every row opens a fixed number of points after the last">
+                  Per row
+                </button>
+              </div>
+              {!retail && (
+                <>
+                  <span className="text-ink-soft" title="Points spent in the rows above that open each row">Points per row</span>
+                  <input
+                    className="field num"
+                    type="number"
+                    min={0}
+                    max={50}
+                    value={tree.pointsPerRow ?? 0}
+                    onChange={(event) =>
+                      setTree((t) => ({ ...t, pointsPerRow: Math.max(0, Math.min(50, Number(event.target.value) || 0)) }))
+                    }
+                    aria-label="Points per row"
+                  />
+                </>
+              )}
             </div>
+            {retail && (
+              <p className="mt-2 text-[11px] leading-snug text-ink-faint">
+                Barriers sit between rows, like retail&apos;s 8 and 20: + in the grid&apos;s margin adds one, its number
+                sets the points, × removes it. A talent can still override its own gate.
+              </p>
+            )}
             {draft.trees.length > 1 && (
               <button
                 type="button"
@@ -504,6 +616,7 @@ export function EditorView({ draft, onChange, onSave, onPlan, dirty, saved }: Ed
           )}
         </aside>
       </div>
+      )}
     </div>
   );
 }
@@ -576,13 +689,23 @@ function NodeInspector({
           className="field num"
           type="number"
           min={0}
-          placeholder={tree.pointsPerRow !== null ? `row gate: ${gateOf(tree, { ...node, pointsRequired: null })}` : "0"}
+          placeholder={`from its row: ${gateOf(tree, { ...node, pointsRequired: null })}`}
           value={node.pointsRequired ?? ""}
           onChange={(event) =>
             onChange((n) => ({ ...n, pointsRequired: event.target.value === "" ? null : Math.max(0, Number(event.target.value)) }))
           }
           aria-label="Points required"
         />
+        <span className="text-ink-soft" title="Always taken and costs no point, like retail's starting talents">Granted</span>
+        <label className="flex items-center gap-1.5 text-ink-soft">
+          <input
+            type="checkbox"
+            checked={Boolean(node.granted)}
+            onChange={(event) => onChange((n) => ({ ...n, granted: event.target.checked || undefined }))}
+            aria-label="Granted"
+          />
+          free, always taken
+        </label>
       </div>
 
       {node.entries.map((entry, i) => (
