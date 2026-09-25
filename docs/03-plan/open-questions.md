@@ -120,6 +120,22 @@ What remains open is only the **design response**, not the fact. Recommended: su
 pre-satisfied prerequisite mask per solve job, so the engine stays strictly per-tree and needs no
 algorithm change. Confirm this during spike S3 rather than investigating from scratch.
 
+**Resolved: `requiresNode` is not a prerequisite, and the solver is right to ignore it.**
+Decoding every sample profile SimulationCraft ships (44 real, game-valid builds) found 49
+hero talents that carry a `requiresNode`, and 26 of them taken *without* their target:
+
+- 24 because the target is in the **sibling spec's** tree, which this character can never
+  have -- Frost takes Apocalypse Now, whose target is Unholy's Army of the Dead;
+- 2 by choice, with the target in the character's own tree -- Enhancement's Splitstream
+  without Healing Stream Totem, Protection's Boneshaker without Shockwave.
+
+A requirement that curated real builds routinely break is not a requirement. What the field
+records is the ability a hero talent **modifies**: Apocalypse Now changes Army of the Dead,
+Memory of Al'ar changes Combustion. Turning it into a constraint -- the mask recommended above
+-- would have deleted legal builds from every count. So nothing changes in the solver; the
+tooltip says "Modifies Army of the Dead" when that ability is in the character's own trees,
+and says nothing when it belongs to the sibling spec.
+
 ### Q10. How should tiered nodes (level-gated ranks) be modelled in the solver?
 
 New, and not anticipated by any of the current-state analysis. Live data has exactly 40 `tiered`

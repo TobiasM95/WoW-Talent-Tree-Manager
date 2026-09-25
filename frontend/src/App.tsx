@@ -9,6 +9,7 @@ import {
   type TreeSummary,
 } from "./lib/api";
 import { classTintStyle } from "./lib/classes";
+import { NodeNames, type NamedNode } from "./lib/nodeNames";
 import type { TreeInput } from "./lib/enumerate";
 import * as loadout from "./lib/loadout";
 import { decode, syncUrl, type Role } from "./lib/share";
@@ -322,6 +323,15 @@ export default function App() {
     ),
   });
   const labels = Object.fromEntries(roles.map(([role, s]) => [s.key, LABEL[role]]));
+  // Only the trees this character can have: the sibling spec's hero-talent targets are not
+  // in here, which is what keeps the tooltip from naming abilities this spec never gets.
+  const nodeNames = useMemo(() => {
+    const map = new Map<number, NamedNode>();
+    for (const [role, s] of roles) {
+      for (const n of loaded[s.key]?.nodes ?? []) map.set(n.nodeId, { name: n.name, tree: LABEL[role] });
+    }
+    return map;
+  }, [roles, loaded]);
   const allTrees = wanted.map((k) => loaded[k]).filter(Boolean) as TreeDetail[];
   const specTree = group.spec ? (loaded[group.spec.key] ?? null) : null;
 
@@ -410,6 +420,7 @@ export default function App() {
   };
 
   return (
+    <NodeNames.Provider value={nodeNames}>
     <div
       className="sky flex min-h-screen flex-col md:h-screen md:min-h-0 md:overflow-hidden"
       style={classTintStyle(className)}
@@ -595,5 +606,6 @@ export default function App() {
         />
       )}
     </div>
+    </NodeNames.Provider>
   );
 }

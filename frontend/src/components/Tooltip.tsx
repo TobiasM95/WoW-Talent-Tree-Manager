@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { useNodeNames } from "../lib/nodeNames";
 import type { TalentNode } from "../lib/api";
 
 /**
@@ -18,6 +19,7 @@ const GAP = 12;
 const MARGIN = 8;
 
 export function Tooltip({ node, anchor }: TooltipProps) {
+  const names = useNodeNames();
   const box = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
@@ -90,6 +92,22 @@ export function Tooltip({ node, anchor }: TooltipProps) {
           )}
         </div>
       ))}
+
+      {/*
+        What a hero talent modifies, when that ability is in this specialisation.
+
+        Upstream calls it `requiresNode`, and it is not a requirement: decoding every sample
+        profile SimulationCraft ships found hero talents taken without it 26 times in 49 --
+        24 because the ability belongs to the sibling spec that shares the hero tree, and 2
+        by choice. So it is shown as what it is, and only when it names something this
+        character could take; the sibling spec's version would be noise.
+      */}
+      {node.requiresNode && names.get(node.requiresNode) && (
+        <p className="!mt-1.5 text-[11.5px]">
+          Modifies <span className="text-ink">{names.get(node.requiresNode)!.name}</span>
+          <span className="text-ink-faint"> ({names.get(node.requiresNode)!.tree.toLowerCase()} tree)</span>
+        </p>
+      )}
 
       <div className="meta">
         {choice ? "Choice" : node.kind === "tiered" ? "Scales with level" : node.kind}
