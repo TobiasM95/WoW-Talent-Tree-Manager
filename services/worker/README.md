@@ -46,6 +46,26 @@ Output rows are positional; what gets stored is keyed by Blizzard `nodeId`. Posi
 references are precisely what made shared builds unsafe in the legacy format, so they do
 not survive past this boundary.
 
+**A position means a talent's rank among every talent of the tree, by row then column** —
+the same ranking the `--filter` parser uses and the order the trees are stored in, so a
+position names the same talent going in and coming out.
+
+It did not always. The CLI used to rank only the talents of the *solved DAG*, and the DAG is
+built after granted (pre-filled) roots are removed. On every tree with a granted root — every
+class tree and every hero tree — each talent after it was therefore reported one position
+early and stored under its neighbour's id: a full San'layn build came back as "Vampiric Strike
+plus the first twelve", missing its capstone, while a real character spends all thirteen and
+gets Vampiric Strike free. **Counts were right the whole time** — the DP and the engine agreed
+on 67 builds at 8 points — so every count test passed while the stored builds named the wrong
+talents. It surfaced only when the frontend decoded exported talent strings back and compared
+them with what it had exported.
+
+The fix is in `CLI.cpp`; migration `007` drops every result stored under the old mapping, and
+the API's cache key now carries a `SOLVE_CONTRACT` version so the next change to what a result
+means invalidates old rows by itself. `test_api.py` checks every stored build of a hero, class
+and spec tree for legality from outside — spend, ranks, parents, no granted talent listed —
+which is the check the counts could never be.
+
 ## The gate and the engine must agree
 
 The worker compares the engine's reported count against `expected_count`, the number the

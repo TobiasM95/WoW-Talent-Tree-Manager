@@ -59,6 +59,8 @@ HERO = "retail/11/102/hero/23"
 SPEC_WITH_CAPSTONE = "retail/6/250/spec"
 # Feral Druid's class tree: Rake, Rip and Swipe are granted to it and not to its siblings.
 CLASS_WITH_GRANTED = "retail/11/103/class"
+# San'layn: its root, Vampiric Strike, is granted, and its capstone is the last talent.
+HERO_WITH_GRANTED = "retail/6/250/hero/31"
 
 
 def t_health_reports_promoted_data():
@@ -450,6 +452,80 @@ def t_granted_talents_cannot_be_constrained():
     assert post("/counts", {"treeKey": CLASS_WITH_GRANTED, "points": 10})["sets"] > 0
 
 
+def _results(job_id, total):
+    rows = []
+    for offset in range(0, total, 1000):
+        rows += get(f"/solve/{job_id}/results?offset={offset}&limit=1000")["builds"]
+    return rows
+
+
+def _legal(tree, build, points):
+    """A build the game would accept: the right spend, and every talent's parents in place.
+
+    Deliberately independent of the solver and the DP. Granted talents cost nothing and are
+    never listed; a talent needs at least one parent taken at full rank, or a granted parent,
+    or to be a root; and the talents a build names must be ones the tree has.
+    """
+    nodes = {str(n["nodeId"]): n for n in tree["nodes"]}
+    granted = {k for k, n in nodes.items() if n["preFilled"]}
+    if any(k not in nodes for k in build):
+        return "names a node the tree does not have"
+    if granted & set(build):
+        return f"lists granted talent {sorted(granted & set(build))}"
+    spent = sum(build.values())
+    if spent != points:
+        return f"spends {spent} of {points}"
+    for k, rank in build.items():
+        n = nodes[k]
+        if rank > n["maxPoints"]:
+            return f"{n['name']} at {rank}/{n['maxPoints']}"
+        parents = [str(p) for p in n["parents"] if str(p) in nodes]
+        if not parents:
+            continue
+        if not any(p in granted or build.get(p, 0) >= nodes[p]["maxPoints"] for p in parents):
+            return f"{n['name']} taken without a full-rank parent"
+    return None
+
+
+def t_results_name_the_talents_the_engine_chose():
+    """Every enumerated build must be a build the game would accept -- checked from outside.
+
+    The CLI reported each result bit as a talent's rank among the talents of the *solved DAG*,
+    which has granted roots removed, while the worker read it as a rank over the whole tree.
+    On every tree with a granted root, each talent after it was stored as its neighbour. Counts
+    were right throughout -- the DP and the engine agreed on 67 hero builds at 8 points -- so
+    every count test passed while the builds themselves named the wrong talents: a full hero
+    tree came back as "the granted talent plus the first twelve", missing its capstone.
+
+    So this checks the thing the counts cannot: that each stored build, read back, is legal.
+    A hero tree and a class tree, since both kinds carry granted roots, and a spec tree as the
+    control that never had one.
+    """
+    cases = [
+        (HERO_WITH_GRANTED, 8),
+        (HERO_WITH_GRANTED, 13),
+        (CLASS_WITH_GRANTED, 6),
+        (SPEC, 6),
+    ]
+    for key, points in cases:
+        tree = get(f"/trees/{key}")
+        job = post("/solve", {"treeKey": key, "points": points, "maxResults": 20000}, expect=202)
+        done = _await_job(job["id"])
+        assert done["state"] == "done", (key, points, done)
+        rows = _results(done["id"], done["resultCount"])
+        assert rows, (key, points)
+        for build in rows:
+            problem = _legal(tree, build, points)
+            assert problem is None, f"{key} at {points}: {problem} in {build}"
+
+    # And the one case that exposed it: a full hero tree is every talent but the granted one.
+    tree = get(f"/trees/{HERO_WITH_GRANTED}")
+    real = {str(n["nodeId"]) for n in tree["nodes"] if not n["preFilled"]}
+    job = post("/solve", {"treeKey": HERO_WITH_GRANTED, "points": 13}, expect=202)
+    rows = _results(_await_job(job["id"])["id"], 1)
+    assert set(rows[0]) == real, sorted(real - set(rows[0]))
+
+
 def t_class_trees_differ_by_specialisation():
     """One class tree per spec, and they are genuinely different.
 
@@ -768,6 +844,8 @@ def main() -> int:
     print("\nunusual tree shapes:")
     check("a detached, gate-only capstone is reachable", t_a_gated_capstone_is_reachable)
     check("granted talents cannot be constrained", t_granted_talents_cannot_be_constrained)
+    check("results name the talents the engine chose, granted roots or not",
+          t_results_name_the_talents_the_engine_chose)
     check("class trees differ by specialisation", t_class_trees_differ_by_specialisation)
 
     print("\nfilters reach the engine:")

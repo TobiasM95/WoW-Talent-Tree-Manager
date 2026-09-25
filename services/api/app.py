@@ -84,6 +84,15 @@ def query(sql: str, params: tuple = ()) -> list[dict[str, Any]]:
 # tree loading, cached
 # ---------------------------------------------------------------------------
 
+# What a stored solve result means, as a version. Part of the cache key, so bumping it makes
+# every earlier result unreachable instead of silently served.
+#
+#   2  result bits name talents by rank over the whole tree, granted roots included --
+#      version 1 ranked only the solved DAG and mislabelled every talent after a granted
+#      root (migration 007 drops those rows).
+SOLVE_CONTRACT = 2
+
+
 @functools.lru_cache(maxsize=256)
 def _dp_graph(tree_key: str, level_cap: int):
     """Build and cache the DP graph for a tree.
@@ -482,9 +491,10 @@ def submit_solve(req: SolveRequest) -> "JobResponse":
         "maxResults": req.maxResults, "timeBudgetMs": req.timeBudgetMs,
     }
     # Dedup and cache are the same mechanism. The hash covers the exact tree revision, so
-    # a new ingest revision correctly yields a different job rather than a stale hit.
+    # a new ingest revision correctly yields a different job rather than a stale hit -- and
+    # the solver contract, so a change to what a stored result *means* does too.
     digest = hashlib.sha256(
-        f"{graph['tree_id']}:{graph['revision']}:"
+        f"v{SOLVE_CONTRACT}:{graph['tree_id']}:{graph['revision']}:"
         f"{json.dumps(payload, sort_keys=True)}".encode()).digest()
 
     from psycopg.rows import dict_row

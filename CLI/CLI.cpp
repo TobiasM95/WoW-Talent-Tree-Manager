@@ -417,12 +417,19 @@ namespace CLI {
                 }
             }
 
-            // normally, TTM indices will already be in that order but since arbitrary
-            // unique indices are allowed we're gonna make sure to adhere to this ordering now
+            // Positional index = rank of the talent among *every* talent of the tree as it was
+            // given, ordered by row then column -- the same ranking the --filter parser uses, so
+            // a position means the same talent in both directions.
+            //
+            // This used to rank the talents of the solved DAG instead. The DAG is built after
+            // granted (pre-filled) roots are removed, so on any tree with a granted root every
+            // talent after it was reported one position early: a full hero-tree build came back
+            // as "the granted talent plus the first twelve", missing the capstone. Counts were
+            // unaffected, which is why it went unnoticed -- only which talents a result held.
             Engine::TalentVec resortedTalents;
-            resortedTalents.reserve(allRunDetails[i].treeDAGInfo->sortedTalents.size());
-            for (auto& talent : allRunDetails[i].treeDAGInfo->sortedTalents) {
-                resortedTalents.push_back(talent);
+            resortedTalents.reserve(allRunDetails[i].tree.orderedTalents.size());
+            for (auto& indexTalentPair : allRunDetails[i].tree.orderedTalents) {
+                resortedTalents.push_back(indexTalentPair.second);
             }
             std::sort(resortedTalents.begin(), resortedTalents.end(),
                 [](const Engine::Talent_s& a, const Engine::Talent_s& b) -> bool
@@ -435,11 +442,8 @@ namespace CLI {
 
             std::map<int, int> compactToPositionalIndexMap;
             int positionalIndex = 0;
-            for (int j = 0; j < static_cast<int>(resortedTalents.size()); j++) {
-                int compactIndex = expandedToCompactIndexMap[resortedTalents[j]->index];
-                if (!compactToPositionalIndexMap.count(compactIndex)) {
-                    compactToPositionalIndexMap[compactIndex] = positionalIndex++;
-                }
+            for (auto& talent : resortedTalents) {
+                compactToPositionalIndexMap[talent->index] = positionalIndex++;
             }
 
             std::vector<int> bitToIndexVec;
