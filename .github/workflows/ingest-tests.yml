@@ -1,17 +1,17 @@
 name: ingest
 
+# Releases, plus a weekly run against live data.
+#
+# The weekly run is the one trigger not tied to a release, and on purpose: its job is to notice
+# that upstream changed shape, which happens on Blizzard's schedule rather than ours. The legacy
+# pipeline broke at the TWW pre-patch and nobody noticed until the tool was already dead. Weekly
+# rather than daily, since a data change is not urgent to the day and compute is not free.
 on:
   push:
-    paths:
-      - 'services/ingest/**'
-      - '.github/workflows/ingest-tests.yml'
-  pull_request:
+    branches: [release]
+    tags: ['v*']
   schedule:
-    # Daily against live data. The point is not to publish anything -- it is to find
-    # out that upstream changed shape on the day it happens, rather than months later.
-    # The legacy pipeline broke at the TWW pre-patch and nobody noticed until the tool
-    # was already dead.
-    - cron: '0 6 * * *'
+    - cron: '0 6 * * 1'
   workflow_dispatch:
 
 jobs:

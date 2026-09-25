@@ -107,6 +107,23 @@ containers.
 | `master` | Web application development. |
 | `archive/native-client` | The native client at v1.4.2, frozen. |
 | `archive/server-deploy` | Old deployment/domain setup for the abandoned web attempt. |
+| `release` | What is about to ship. Pushing here (or tagging `v*`) runs CI. |
+
+### CI runs on releases, not commits
+
+Commits land constantly and most are small, so nothing runs on every push or pull request.
+The checks run when something is about to ship — a push to `release`, a `v*` tag, or by hand
+from the Actions tab:
+
+| Workflow | What it proves |
+|---|---|
+| `release.yml` | The whole product: live ingest, the API's 48 checks, every frontend suite, and a real SimulationCraft round trip. |
+| `engine-tests.yml` | Golden counts from the C++ engine, and the DP agreeing with it. The 8-minute overflow case runs on tags only. |
+| `ingest-tests.yml` | The ingest against live data — also **weekly**, since upstream changes shape on Blizzard's schedule, not ours. |
+| `update_presets.yml` | Legacy, manual only. Failing daily since 2024-07-05 on a retired runner image. |
+
+Locally, the same suites are one command each: `python services/api/test_api.py` and
+`pnpm run test:all` in `frontend/`.
 
 ### A note on history
 

@@ -1,8 +1,13 @@
 name: update-presets-on-change
 
+# LEGACY -- manual only.
+#
+# This regenerated the native app's presets daily and pushed the result straight to master. Its
+# last successful run was 2024-07-05; it runs on ubuntu-20.04, an image GitHub has retired, so
+# since then it has failed every day while doing nothing. The web app's data comes from
+# services/ingest instead. Kept runnable by hand while the native client is still built, but no
+# longer scheduled. Delete it together with the native client's presets when that goes.
 on:
-  schedule:
-    - cron: '0 6 * * *'
   workflow_dispatch:
 
 jobs:

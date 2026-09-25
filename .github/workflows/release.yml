@@ -1,0 +1,102 @@
+name: release
+
+# The whole product, end to end, before anything is released -- and only then.
+#
+# Deliberately not on every push or pull request. Commits land constantly and most of them
+# are small; running a full stack, a live ingest and a real SimulationCraft sim on each would
+# spend compute on checks nobody reads. So this runs when something is about to ship:
+#
+#   - a push to the `release` branch,
+#   - a `v*` tag,
+#   - or by hand, from the Actions tab.
+#
+# What it proves is what a player relies on: live data ingests and loads, the API's 48 checks
+# pass (counts, filters, and every stored build legal), and the frontend suites pass --
+# including the workflow suite, which downloads a real export, sims it in SimulationCraft and
+# reads the report back.
+
+on:
+  push:
+    branches: [release]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      live_sim:
+        description: 'Run the real SimulationCraft round trip (pulls a ~1 GB image)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stack:
+    name: full stack + every suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: database
+        run: |
+          docker compose up -d postgres
+          docker compose run --rm migrate
+
+      # Live data, the same path production takes. A shape change upstream fails here, on the
+      # release it would have broken, rather than in front of a player.
+      - name: ingest live data and load it
+        run: |
+          docker compose run --rm ingest --point-caps --quiet
+          docker compose run --rm loader
+
+      - name: start the services
+        run: |
+          docker compose --profile web up -d --build api worker web
+          for i in $(seq 1 90); do
+            curl -fs http://localhost:8001/health > /dev/null && \
+            curl -fs http://localhost:8081/api/health > /dev/null && exit 0
+            sleep 2
+          done
+          docker compose logs --tail 80 api worker web
+          exit 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: API suite
+        run: python services/api/test_api.py http://localhost:8001
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: frontend dependencies
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+
+      # Present, and the workflow suite sims for real; absent, it says the sim was skipped
+      # rather than faking a report.
+      - name: SimulationCraft image
+        if: github.event_name != 'workflow_dispatch' || inputs.live_sim
+        run: docker pull simulationcraftorg/simc:latest
+
+      - name: frontend suites
+        working-directory: frontend
+        run: pnpm run test:all
+
+      - name: screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: frontend/shots/
+          if-no-files-found: ignore
+
+      - name: service logs on failure
+        if: failure()
+        run: docker compose logs --tail 200 api worker web
