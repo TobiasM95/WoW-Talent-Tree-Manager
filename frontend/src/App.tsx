@@ -12,7 +12,8 @@ import { classTintStyle } from "./lib/classes";
 import { NodeNames, type NamedNode } from "./lib/nodeNames";
 import type { TreeInput } from "./lib/enumerate";
 import * as loadout from "./lib/loadout";
-import { decode, syncUrl, type Role } from "./lib/share";
+import { decode, encode, syncUrl, type Role, type Shared } from "./lib/share";
+import type { SavedLoadout } from "./lib/saved";
 import type { Ranking } from "./lib/simcReport";
 import type { Character } from "./lib/space";
 import { useCounts } from "./lib/useCounts";
@@ -40,6 +41,7 @@ import { ShapeKey } from "./components/Legend";
 import { LoadoutString } from "./components/LoadoutString";
 import { PaintTools } from "./components/PaintTools";
 import { ShareButton } from "./components/ShareButton";
+import { SavedPanel } from "./components/SavedPanel";
 import { SimulateView, type Sim } from "./components/SimulateView";
 import { SpaceCard, totalOf, type SpaceRow } from "./components/SpaceCard";
 import { SpecRail } from "./components/SpecRail";
@@ -164,20 +166,35 @@ export default function App() {
     );
   }, [group.heroes]);
 
-  // A link's trees are by role; map them onto keys once the keys are known.
+  /*
+    A link's trees are by role; map them onto keys once the keys are known.
+
+    The same path opens a saved setup: a save *is* a link, so it is decoded into `incoming` and
+    seeded exactly as a link is -- one path, so the two can never disagree. A link seeds under
+    anything already on screen; a save replaces the spec's trees outright, including any the
+    save leaves empty, since that emptiness is part of what was saved.
+  */
   const seeded = useRef(false);
+  const incoming = useRef<{ shared: Shared; replace: boolean }>({ shared: SHARED, replace: false });
+  const [seedTick, setSeedTick] = useState(0);
   useEffect(() => {
     if (seeded.current || !group.spec || !group.class || (group.heroes.length && !hero)) return;
+    const { shared, replace } = incoming.current;
+    if (shared.spec && shared.spec !== group.spec.key) return; // still switching spec
+    if (shared.hero && hero && shared.hero !== hero.key && group.heroes.some((h) => h.key === shared.hero)) return;
     seeded.current = true;
     const next: Record<string, TreeWork> = {};
+    if (replace) for (const k of [group.class.key, group.spec.key, ...group.heroes.map((h) => h.key)]) next[k] = emptyWork();
     for (const [role, summary] of roles) {
-      const shared = SHARED.work[role];
-      if (shared) next[summary.key] = shared;
+      const work = shared.work[role];
+      if (work) next[summary.key] = work;
     }
-    const second = group.heroes.find((h) => h.key === SHARED.hero2);
-    if (second && SHARED.work.hero2) next[second.key] = SHARED.work.hero2;
-    if (Object.keys(next).length) setWork((previous) => ({ ...next, ...previous }));
-  }, [group.spec, group.class, group.heroes, hero, roles]);
+    const second = group.heroes.find((h) => h.key === shared.hero2);
+    if (second && shared.work.hero2) next[second.key] = shared.work.hero2;
+    if (Object.keys(next).length) {
+      setWork((previous) => (replace ? { ...previous, ...next } : { ...next, ...previous }));
+    }
+  }, [group.spec, group.class, group.heroes, hero, roles, seedTick]);
 
   // Every tree of the spec, both hero trees included: a talent string writes granted talents
   // whether or not their tree is the one chosen.
@@ -384,22 +401,48 @@ export default function App() {
   const specTree = group.spec ? (loaded[group.spec.key] ?? null) : null;
 
   // --- the link -----------------------------------------------------------
-  useEffect(() => {
-    if (!group.spec || !seeded.current) return;
+  const sharedNow = useMemo((): Shared | null => {
+    if (!group.spec) return null;
     const out: Partial<Record<Role, TreeWork>> = {};
     for (const [role, s] of roles) if (work[s.key]) out[role] = work[s.key];
     // The other hero tree rides along whenever it holds something, simmed or not, so a
     // link never loses what was painted on the tree not currently shown.
     if (otherHero && work[otherHero.key]) out.hero2 = work[otherHero.key];
-    syncUrl({
+    return {
       spec: group.spec.key,
       hero: heroKey,
       hero2: otherHero?.key ?? null,
       both: bothHeroes,
       work: out,
       limit: limit === DEFAULT_LIMIT ? null : limit,
-    });
+    };
   }, [group.spec, heroKey, otherHero, bothHeroes, roles, work, limit]);
+  useEffect(() => {
+    if (sharedNow && seeded.current) syncUrl(sharedNow);
+  }, [sharedNow]);
+
+  /** Open a saved setup: decode its link and seed it as a link would be, replacing. */
+  const openSaved = useCallback(
+    (saved: SavedLoadout) => {
+      const shared = decode(saved.query);
+      const summary = trees.find((t) => t.key === shared.spec);
+      if (!summary) {
+        setNote(`“${saved.name}” is for a specialisation this data no longer has.`);
+        return;
+      }
+      incoming.current = { shared, replace: true };
+      seeded.current = false;
+      setClassName(summary.className);
+      setSpecName(summary.specName);
+      if (shared.hero) setHeroKey(shared.hero);
+      setBothHeroes(shared.both);
+      setLimit(shared.limit ?? DEFAULT_LIMIT);
+      setSeedTick((t) => t + 1);
+      setStep("narrow");
+      setNote(`Opened “${saved.name}”.`);
+    },
+    [trees],
+  );
 
   const fixedPoints = Object.assign(
     {},
@@ -608,6 +651,13 @@ export default function App() {
               heroSubTreeId={hero?.subTreeId ?? null}
               onImport={onImportString}
               exportable={allFixed}
+            />
+
+            <SavedPanel
+              query={sharedNow ? encode(sharedNow) : ""}
+              spec={group.spec?.key ?? null}
+              revision={health?.revision ?? null}
+              onOpen={openSaved}
             />
 
             <section className="panel p-3.5">

@@ -148,6 +148,21 @@ await fresh.waitForSelector(".ttm-node", { timeout: 20000 });
 check("a shared link reopens the same space", (await waitTotal(fresh, (v) => v === 580)) === 580);
 await fresh.close();
 
+// Save the setup under a name, change the trees, and open the save again.
+await page.locator('input[aria-label="Name for the saved setup"]').fill("Eight-point Sanlayn");
+await page.locator('section:has-text("Saved") button:text-is("Save")').click();
+await heroPane.locator('button[aria-label^="Spend one point fewer"]').click();
+check("changing the trees after saving moves the count", (await waitTotal(page, (v) => v !== 580)) !== 580);
+await page.locator('section:has-text("Saved") button:has-text("Eight-point Sanlayn")').click();
+check("opening the save restores it", (await waitTotal(page, (v) => v === 580)) === 580);
+await page.reload({ waitUntil: "networkidle" });
+await page.waitForSelector(".ttm-node");
+check(
+  "and the save outlives a reload",
+  (await page.locator('section:has-text("Saved") button:has-text("Eight-point Sanlayn")').count()) === 1,
+);
+check("the reloaded page is the same space", (await waitTotal(page, (v) => v === 580)) === 580);
+
 // Both hero trees at once: the question a player asks first. Deathbringer is left open at its
 // full budget, so the hero factor becomes San'layn's 580 plus however many Deathbringer has.
 const api = `${url}/api`;
