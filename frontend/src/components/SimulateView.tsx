@@ -40,6 +40,11 @@ export interface SimulateViewProps {
   onSim: (sim: Sim) => void;
   onRanking: (ranking: Ranking) => void;
   onBack: () => void;
+  /**
+   * Characters to sim as given, instead of enumerating the trees: the builds top players
+   * actually run. Real loadouts need no combinatorics -- only a talent string each.
+   */
+  preset?: { characters: Character[]; description: string } | null;
 }
 
 export function SimulateView({
@@ -56,6 +61,7 @@ export function SimulateView({
   onSim,
   onRanking,
   onBack,
+  preset = null,
 }: SimulateViewProps) {
   const [progress, setProgress] = useState<Progress[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +75,16 @@ export function SimulateView({
   // Enumerate on arrival, and again only if the searches changed since the last time.
   useEffect(() => {
     if (current) return;
+    if (preset) {
+      const strings = talentStrings({ spec, trees, heroSubTreeId, characters: preset.characters });
+      onSim({
+        signature,
+        characters: preset.characters,
+        strings,
+        text: profilesets(strings, { className, specName, note: preset.description }),
+      });
+      return;
+    }
     const controller = new AbortController();
     setError(null);
     void enumerate(inputs, limit, setProgress, controller.signal)
@@ -157,6 +173,9 @@ export function SimulateView({
       {/* 1. what is being listed */}
       <section className="panel p-4">
         <span className="label">1 · The builds</span>
+        {preset ? (
+          <p className="mt-2 text-[12.5px] text-ink-soft">{preset.description}</p>
+        ) : (
         <ul className="mt-2 space-y-1 text-[12.5px]">
           {inputs.map((i) => {
             const p = progress.find((x) => x.key === i.key);
@@ -180,12 +199,13 @@ export function SimulateView({
             );
           })}
         </ul>
+        )}
         {error && (
           <p className="mt-2 text-[12px]" style={{ color: "var(--barred)" }}>
             {error}
           </p>
         )}
-        {current && (
+        {current && !preset && (
           <p className="mt-2 text-[12px] text-ink-soft">
             Every combination of those, with both sides of each free choice node:{" "}
             <span className="num text-ink">{formatCount(current.characters.length)}</span> whole
@@ -274,11 +294,21 @@ export function SimulateView({
       <BuildViewer
         characters={current.characters}
         strings={current.strings}
-        trees={inputs.map((i) => ({
-          key: i.key,
-          label: i.tree.kind === "hero" ? "Hero" : (labels[i.key] ?? i.key),
-          tree: i.tree,
-        }))}
+        trees={
+          // Top players' builds span both hero trees, so every tree of the spec is on offer;
+          // the viewer draws whichever hero tree the build in front of it uses.
+          preset
+            ? trees.map((t) => ({
+                key: t.key,
+                label: t.kind === "hero" ? "Hero" : t.kind === "class" ? "Class" : "Spec",
+                tree: t,
+              }))
+            : inputs.map((i) => ({
+                key: i.key,
+                label: i.tree.kind === "hero" ? "Hero" : (labels[i.key] ?? i.key),
+                tree: i.tree,
+              }))
+        }
       />
     ) : (
       <div className="panel flex flex-1 items-center justify-center text-[12px] text-ink-faint">

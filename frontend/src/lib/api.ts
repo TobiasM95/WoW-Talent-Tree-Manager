@@ -317,3 +317,49 @@ export const getStats = (id: string) => request<JobStats>(`/solve/${id}/stats`);
  */
 export const iconUrl = (name: string | null, size: 18 | 36 | 56 = 56) =>
   name ? `${BASE}/icons/${name}?size=${size}` : null;
+
+/* --- what top players run (WarcraftLogs) ------------------------------------ */
+
+export interface PopularContent {
+  zoneId: number;
+  name: string;
+  kind: "raid" | "dungeon";
+  difficulties: { id: number; name: string }[];
+  encounters: { id: number; name: string }[];
+}
+
+export interface PopularBuild {
+  count: number;
+  best: number;
+  median: number;
+  /** Tree key -> nodeId -> points, granted talents excluded. */
+  points: Record<string, Record<string, number>>;
+  /** nodeId -> which alternative of a choice node, 0 or 1. */
+  choices: Record<string, number>;
+  hero: string | null;
+  example: string;
+}
+
+export interface Popular {
+  zone: { id: number; name: string };
+  encounters: string[];
+  difficulty: number;
+  players: number;
+  heroes: { key: string | null; count: number }[];
+  /** nodeId -> share of players taking it, and their mean rank. */
+  pickRates: Record<string, { share: number; meanRank: number }>;
+  /** nodeId -> [share on the left alternative, share on the right], among those taking it. */
+  choiceSides: Record<string, [number, number]>;
+  builds: PopularBuild[];
+  distinctBuilds: number;
+  /** Real builds our tree data would not allow: a sign the data has drifted. */
+  illegal: string[];
+  fetchedAt: number;
+}
+
+export const getPopularContent = () => request<PopularContent[]>("/popular/content");
+
+export const getPopular = (specKey: string, zone: number, encounter: string, difficulty: number) =>
+  request<Popular>(
+    `/popular/${specKey}?zone=${zone}&encounter=${encodeURIComponent(encounter)}&difficulty=${difficulty}`,
+  );

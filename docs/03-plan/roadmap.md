@@ -5,8 +5,8 @@
 > a ranking, the value of each talent, each choice node's two sides, and which hero tree is
 > better. What remains: engine performance (deferred until there are precise performance
 > tests), importers for the legacy native-app formats, Phase 4 (accounts and persistence), and
-> popular builds from WarcraftLogs (waiting on API keys). WoW Forever is supported alongside
-> retail, and the tree editor is done.
+> nothing on the product side beyond polish: WoW Forever, the tree editor and top players from
+> WarcraftLogs are all done. Engine performance stays deferred, and accounts are not needed.
 >
 > CI runs on releases, not commits: a push to `release`, a `v*` tag, or by hand. See the
 > repository README.
@@ -265,7 +265,11 @@ Only now, once the foundation holds:
   tabs share one 51-point pool; the planner, the count, share links and saved setups all work;
   SimulationCraft does not sim it. Data: talentsforever.com's beta-client export, CC BY 4.0.
   Classic Era itself is not targeted.
-- Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.
+- ~~Popular builds from WarcraftLogs~~ **done**, and more than the legacy idea: the top
+  players' hero-tree split and pick rates on the trees, their recurring builds one click from
+  being yours, narrowing to only the talents they still contest, and simming their actual builds
+  on your own character. Every real build doubles as a test of our tree data -- 809 top Blood
+  players, all legal on our trees.
 - Engine improvements, which are far easier once it is under test in CI with a stable contract.
 
 ## Sequencing notes

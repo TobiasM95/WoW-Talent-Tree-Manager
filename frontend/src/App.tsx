@@ -56,6 +56,8 @@ import { ShapeKey } from "./components/Legend";
 import { LoadoutString } from "./components/LoadoutString";
 import { PaintTools } from "./components/PaintTools";
 import { PoolCard } from "./components/PoolCard";
+import { PopularPanel } from "./components/PopularPanel";
+import type { Popular, PopularBuild } from "./lib/api";
 import { ShareButton } from "./components/ShareButton";
 import { SavedPanel } from "./components/SavedPanel";
 import { SimulateView, type Sim } from "./components/SimulateView";
@@ -91,6 +93,8 @@ const formatAge = (seconds: number) => {
 
 // The URL is the *initial* state; after that the app owns it and writes back.
 const SHARED = decode(window.location.search);
+
+const kindOrder = (kind: string) => ["class", "spec", "hero", "tab"].indexOf(kind);
 
 const LABEL: Record<Role, string> = { class: "Class", spec: "Spec", hero: "Hero", hero2: "Hero" };
 
@@ -155,6 +159,13 @@ export default function App() {
   const [note, setNote] = useState<string | null>(null);
 
   const [step, setStep] = useState<Step>("narrow");
+  /**
+   * A ready list of characters for the Simulate step, instead of enumerating the trees: the
+   * builds top players run. Cleared whenever a sim is started from the trees themselves.
+   */
+  const [preset, setPreset] = useState<{ signature: string; characters: Character[]; description: string } | null>(null);
+  /** Top players' pick rates, painted on the trees while this is set. */
+  const [popularHeat, setPopularHeat] = useState<Popular | null>(null);
   const [sim, setSim] = useState<Sim | null>(null);
   const [analysis, setAnalysis] = useState<{ sim: Sim; ranking: Ranking } | null>(null);
 
@@ -579,6 +590,108 @@ export default function App() {
     [loaded, trees, group.heroes],
   );
 
+  /** A build the top players run, taken as the loadout: every tree fixed to it. */
+  const usePopular = useCallback(
+    (build: PopularBuild) => {
+      setWork((previous) => {
+        const next = { ...previous };
+        for (const [key, points] of Object.entries(build.points)) {
+          const tree = loaded[key];
+          const summary = trees.find((t) => t.key === key);
+          if (!tree || !summary) continue;
+          next[key] = fixedFrom(previous[key] ?? emptyWork(), tree, capOf(summary), points, build.choices);
+        }
+        return next;
+      });
+      if (build.hero) setHeroKey(build.hero);
+      setBothHeroes(false);
+      setPopularHeat(null);
+      setNote(`Fixed to a build ${build.count} top players run (e.g. ${build.example}).`);
+    },
+    [loaded, trees],
+  );
+
+  /*
+    Narrow to what the top players have not settled.
+
+    A talent taken by at least `agreement` of them is required, one taken by no more than the
+    rest is barred, and a choice node they agree on is pinned to its side; everything between
+    stays open. On their most common hero tree. What is left is the part of the tree the best
+    players still disagree about -- which is exactly the part worth simming.
+  */
+  const narrowToContested = useCallback(
+    (popular: Popular, agreement: number) => {
+      const heroTop = popular.heroes.find((h) => h.key)?.key ?? heroKey;
+      if (heroTop) setHeroKey(heroTop);
+      setBothHeroes(false);
+      const keys = [group.class?.key, group.spec?.key, heroTop].filter(Boolean) as string[];
+      // Computed here, not inside the state updater: React runs that later, and the note
+      // below needs the numbers now.
+      let settled = 0;
+      let open = 0;
+      const entries: Record<string, TreeWork> = {};
+      for (const key of keys) {
+        const tree = loaded[key];
+        if (!tree) continue;
+        const required: number[] = [];
+        const excluded: number[] = [];
+        const sides: Record<string, "a" | "b"> = {};
+        for (const node of tree.nodes) {
+          if (node.preFilled || node.kind === "subtree") continue;
+          const share = popular.pickRates[String(node.nodeId)]?.share ?? 0;
+          if (share >= agreement) {
+            const split = popular.choiceSides[String(node.nodeId)];
+            if (node.kind === "choice" && split && split[0] >= agreement) sides[String(node.nodeId)] = "a";
+            else if (node.kind === "choice" && split && split[1] >= agreement) sides[String(node.nodeId)] = "b";
+            else required.push(node.nodeId);
+            settled++;
+          } else if (share <= 1 - agreement) {
+            excluded.push(node.nodeId);
+            settled++;
+          } else {
+            open++;
+          }
+        }
+        entries[key] = { ...workOf(key), mode: "open", search: { ...EMPTY_SEARCH, required, excluded, sides } };
+      }
+      setWork((previous) => ({ ...previous, ...entries }));
+      setPopularHeat(null);
+      setNote(
+        `Narrowed to what top players contest: ${settled} talents settled at ${Math.round(agreement * 100)}% agreement, ${open} left open.`,
+      );
+    },
+    [group.class, group.spec, heroKey, loaded, workOf],
+  );
+
+  /** Sim the builds top players actually run, as they are. */
+  const simTopBuilds = useCallback(
+    (popular: Popular) => {
+      const characters: Character[] = popular.builds.slice(0, limit).map((b, i) => {
+        const parts: Character["parts"] = {};
+        const points: loadout.Points = {};
+        const choices: Record<string, number> = {};
+        for (const [key, pts] of Object.entries(b.points)) {
+          const ids = new Set((loaded[key]?.nodes ?? []).map((n) => String(n.nodeId)));
+          const mine = Object.fromEntries(Object.entries(b.choices).filter(([id]) => ids.has(id)));
+          parts[key] = { points: pts, choices: mine, tree: key };
+          Object.assign(points, pts);
+          Object.assign(choices, mine);
+        }
+        const heroSubTreeId = b.hero ? (trees.find((t) => t.key === b.hero)?.subTreeId ?? null) : null;
+        return { line: i + 1, parts, points, choices, heroSubTreeId };
+      });
+      const where = popular.encounters.length > 1 ? popular.zone.name : popular.encounters[0];
+      setPreset({
+        signature: `popular:${group.spec?.key}:${popular.zone.id}:${popular.encounters.join(",")}:${popular.difficulty}:${popular.fetchedAt}:${limit}`,
+        characters,
+        description: `The ${characters.length.toLocaleString("en-US")} distinct builds the top ${popular.players.toLocaleString("en-US")} players run in ${where}${popular.builds.length > characters.length ? ", most common first" : ""}.`,
+      });
+      setPopularHeat(null);
+      setStep("simulate");
+    },
+    [limit, loaded, trees, group.spec],
+  );
+
   // --- the simulation step ------------------------------------------------
   const inputs: TreeInput[] = members
     .filter(([, s]) => loaded[s.key])
@@ -729,9 +842,14 @@ export default function App() {
             ? { builds: 1, stale: false, error: null }
             : { builds: c?.builds ?? null, stale: c?.stale ?? true, error: c?.error ?? null }
         }
-        states={statesOf(w)}
-        sides={sidesOf(w)}
-        build={w.mode === "fixed" ? drawnBuild(w, tree) : null}
+        states={popularHeat ? undefined : statesOf(w)}
+        sides={popularHeat ? undefined : sidesOf(w)}
+        shares={
+          popularHeat && tree
+            ? new Map(tree.nodes.map((n) => [n.nodeId, popularHeat.pickRates[String(n.nodeId)]?.share ?? 0]))
+            : null
+        }
+        build={popularHeat ? null : w.mode === "fixed" ? drawnBuild(w, tree) : null}
         reachable={w.mode === "fixed" && tree ? loadout.available(tree, w.points, cap) : null}
         editing={w.mode === "fixed"}
         onNode={(node, alternate) => onNode(summary, node, alternate)}
@@ -807,7 +925,7 @@ export default function App() {
               ] as const)
             : ([
                 ["narrow", "Narrow", true],
-                ["simulate", "Simulate", !forever && (simmable || sim !== null)],
+                ["simulate", "Simulate", !forever && (simmable || sim !== null || preset !== null)],
                 ["analyse", "Analyse", !forever && analysis !== null],
               ] as const)
           ).map(([id, label, enabled], i) => (
@@ -927,7 +1045,10 @@ export default function App() {
               limit={limit}
               onLimit={setLimit}
               pending={pending}
-              onSimulate={() => setStep("simulate")}
+              onSimulate={() => {
+                setPreset(null);
+                setStep("simulate");
+              }}
               hint={heroHint}
               unavailable={
                 forever
@@ -942,6 +1063,19 @@ export default function App() {
               <p className="panel px-3.5 py-2 text-[11.5px] leading-snug" style={{ color: "var(--brass-bright)" }}>
                 {note}
               </p>
+            )}
+
+            {!tabbed && group.spec && (
+              <PopularPanel
+                specKey={group.spec.key}
+                heroName={(key) => trees.find((t) => t.key === key)?.name ?? "No hero tree"}
+                onUse={usePopular}
+                onNarrow={narrowToContested}
+                heat={popularHeat !== null}
+                onHeat={setPopularHeat}
+                onSimTop={simTopBuilds}
+                limit={limit}
+              />
             )}
 
             <PaintTools
@@ -1053,7 +1187,8 @@ export default function App() {
       {step === "simulate" && specTree && className && specName && (
         <div className="flex min-h-0 flex-1">
           <SimulateView
-            signature={signature}
+            signature={preset?.signature ?? signature}
+            preset={preset}
             inputs={inputs}
             labels={labels}
             limit={limit}
@@ -1080,6 +1215,8 @@ export default function App() {
           ranking={analysis.ranking}
           trees={[...new Set(analysis.sim.characters.flatMap((c) => Object.keys(c.parts)))]
             .filter((k) => loaded[k])
+            // Class, spec, hero, whatever order the builds happened to list their trees in.
+            .sort((a, b) => kindOrder(loaded[a]!.kind) - kindOrder(loaded[b]!.kind))
             .map((k) => {
               const role = roles.find(([, s]) => s.key === k)?.[0];
               const kind = loaded[k]!.kind as Role;

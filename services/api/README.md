@@ -192,3 +192,27 @@ opened project saved back as a different one.
 editing. Custom trees are never listed wholesale -- `GET /trees?game=custom` is refused -- since
 listing would publish every project anyone saved; they are reached by their link.
 `GET /icons?search=` lists cached icon names for the editor's picker.
+
+## Top players (WarcraftLogs)
+
+`GET /popular/content` lists the current raid and Mythic+ season; `GET /popular/{spec key}?zone=&encounter=all|<id>&difficulty=`
+reads the top-ranked players of a spec there and returns, in this tool's terms: the hero-tree
+split, each talent's pick rate, choice-side shares, and every distinct build with how many
+players run it. Answers are cached for six hours (migration 011): the public API allows 3,600
+points an hour and a page of 100 players costs one or two.
+
+Keys come from `.env` (`WCL_CLIENT_ID`, `WCL_CLIENT_SECRET`) through docker compose, and never
+reach the browser. The v2 client-credentials flow needs no redirect URL, which is what lets a
+local service use it. Without keys these endpoints answer 503 and nothing else changes.
+
+WarcraftLogs names a talent by its **trait entry id**, so a choice node's side comes for free.
+Two things had to be learned from real data: granted talents are listed and are dropped, and
+a **tiered** node is listed once per rank -- Blood's 4-rank capstone arrives as four entries of
+one point. Taking the last entry instead of the sum dropped three points from every Blood build;
+a legality check cannot see that (spending less is legal), so the API suite now also asserts
+every top build fills every tree to its cap. Fixing it moved SimC's verdict on the top builds
+from 15% behind its sample profile to 1.2% ahead, and flipped which hero tree won.
+
+Every real build is also checked against our copy of the trees. The live game allowed them, so
+one our data refuses means the data is stale; the API reports those rather than hiding them, and
+the suite asserts there are none -- 809 top Blood players, zero today.

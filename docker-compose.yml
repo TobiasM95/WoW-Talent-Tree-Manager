@@ -100,6 +100,10 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql://ttm:ttm_dev_only@postgres:5432/ttm}
+      # WarcraftLogs v2 client credentials, from .env (never committed). Without them the
+      # popular-builds endpoints answer 503 and everything else works.
+      WCL_CLIENT_ID: ${WCL_CLIENT_ID:-}
+      WCL_CLIENT_SECRET: ${WCL_CLIENT_SECRET:-}
     ports:
       # 8001, not 8000: 8000 is the most contended port on a developer machine, and
       # a clash here looks like the API being down. The container still listens on

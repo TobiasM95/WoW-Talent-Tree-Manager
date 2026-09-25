@@ -33,6 +33,8 @@ export interface TreePaneProps {
   sides?: Map<number, "a" | "b" | "none">;
   build?: Record<string, number> | null;
   impacts?: Map<number, number> | null;
+  /** nodeId -> share, painted as heat: how often something takes each talent. */
+  shares?: Map<number, number> | null;
   reachable?: Set<number> | null;
   editing?: boolean;
   onNode?: (node: NodeData, alternate: boolean) => void;
@@ -58,6 +60,7 @@ export function TreePane({
   sides,
   build,
   impacts,
+  shares,
   reachable,
   editing,
   onNode,
@@ -171,6 +174,7 @@ export function TreePane({
             stale={count?.stale}
             build={build}
             impacts={impacts}
+            shares={shares}
             reachable={reachable}
             editing={editing}
             onActivate={onNode ?? noop}

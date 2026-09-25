@@ -616,6 +616,164 @@ def get_job_results(job_id: str, offset: int = 0, limit: int = Query(100, ge=1, 
 
 
 
+
+# ---------------------------------------------------------------------------
+# popular builds, from WarcraftLogs
+# ---------------------------------------------------------------------------
+
+POPULAR_TTL_SECONDS = 6 * 3600
+CONTENT_TTL_SECONDS = 24 * 3600
+
+
+def _cached(key: str, ttl: int, compute):
+    """Serve a stored answer while it is fresh; compute and store it otherwise."""
+    rows = query(
+        "SELECT body FROM wcl_cache WHERE key = %s AND fetched_at > now() - make_interval(secs => %s)",
+        (key, ttl),
+    )
+    if rows:
+        return rows[0]["body"]
+    body = compute()
+    with pool().connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO wcl_cache (key, body, fetched_at) VALUES (%s, %s, now()) "
+                "ON CONFLICT (key) DO UPDATE SET body = EXCLUDED.body, fetched_at = now()",
+                (key, json.dumps(body)),
+            )
+    return body
+
+
+def _wcl_call(fn):
+    from ttm_ingest import wcl
+
+    try:
+        return fn()
+    except wcl.NotConfigured as exc:
+        raise HTTPException(503, str(exc)) from None
+    except wcl.WclError as exc:
+        raise HTTPException(502, f"WarcraftLogs: {exc}") from None
+
+
+@app.get("/popular/content")
+def popular_content() -> list[dict[str, Any]]:
+    """The raids and Mythic+ season that top-player builds can be read from right now."""
+    from ttm_ingest import wcl
+
+    return _wcl_call(lambda: _cached("content", CONTENT_TTL_SECONDS, wcl.current_content))
+
+
+@app.get("/popular/{spec_key:path}")
+def popular_builds(
+    spec_key: str,
+    zone: int,
+    encounter: str = "all",
+    difficulty: int = 5,
+    pages: int = Query(1, ge=1, le=3),
+) -> dict[str, Any]:
+    """What the top-ranked players of a specialisation run, in this tool's terms.
+
+    Every ranked player's talents become a build on our trees -- points per tree, a side for
+    each choice node, which hero tree -- and the set is summarised three ways: how often each
+    talent is taken, how the hero trees split, and which exact builds recur. Each build is also
+    checked against our copy of the trees; one the live game allowed and our data does not is
+    a sign the data has drifted, and is reported rather than hidden.
+    """
+    from ttm_ingest import wcl
+
+    rows = query("SELECT definition FROM current_trees WHERE key = %s AND kind = 'spec'", (spec_key,))
+    if not rows:
+        raise HTTPException(404, f"no current spec tree {spec_key!r}")
+    spec = rows[0]["definition"]
+    group = query(
+        "SELECT definition FROM current_trees WHERE game = 'retail' AND class_name = %s "
+        "AND spec_name = %s", (spec["className"], spec["specName"]),
+    )
+    trees = [r["definition"] for r in group]
+    by_key = {t["key"]: t for t in trees}
+
+    def compute() -> dict[str, Any]:
+        content = _cached("content", CONTENT_TTL_SECONDS, wcl.current_content)
+        zone_info = next((z for z in content if z["zoneId"] == zone), None)
+        if zone_info is None:
+            raise HTTPException(404, f"zone {zone} is not current content")
+        encounters = (
+            zone_info["encounters"] if encounter == "all"
+            else [e for e in zone_info["encounters"] if str(e["id"]) == encounter]
+        )
+        if not encounters:
+            raise HTTPException(404, f"no encounter {encounter} in {zone_info['name']}")
+
+        index = wcl.entry_index(trees)
+        players = []
+        for enc in encounters:
+            for row in wcl.rankings(spec["className"], spec["specName"], enc["id"], difficulty, pages):
+                build = wcl.convert(row, index)
+                build["encounter"] = enc["name"]
+                players.append(build)
+        return _summarise(players, by_key, zone_info, encounters, difficulty)
+
+    key = f"popular:v3:{spec_key}:{zone}:{encounter}:{difficulty}:{pages}"
+    return _wcl_call(lambda: _cached(key, POPULAR_TTL_SECONDS, compute))
+
+
+def _summarise(players, by_key, zone_info, encounters, difficulty) -> dict[str, Any]:
+    from collections import Counter, defaultdict
+    from ttm_ingest import wcl
+
+    n = len(players)
+    heroes = Counter()
+    taken = Counter()
+    ranks = defaultdict(int)
+    sides: dict[str, Counter] = defaultdict(Counter)
+    builds: dict[str, dict] = {}
+    illegal: list[str] = []
+    for p in players:
+        hero_keys = [k for k in p["points"] if "/hero/" in k]
+        hero = hero_keys[0] if hero_keys else None
+        heroes[hero] += 1
+        for key, pts in p["points"].items():
+            tree = by_key.get(key)
+            problem = wcl.problems(tree, pts, tree.get("pointCap")) if tree else "unknown tree"
+            if problem and len(illegal) < 12:
+                illegal.append(f"{p['name']} ({key.rsplit('/', 1)[-1] if '/hero/' not in key else 'hero'}): {problem}")
+            for node, rank in pts.items():
+                taken[node] += 1
+                ranks[node] += rank
+        for node, side in p["choices"].items():
+            sides[node][side] += 1
+        signature = json.dumps([sorted((k, sorted(v.items())) for k, v in p["points"].items()),
+                                sorted(p["choices"].items())])
+        entry = builds.setdefault(signature, {
+            "count": 0, "best": None, "amounts": [], "points": p["points"], "choices": p["choices"],
+            "hero": hero, "example": p["name"],
+        })
+        entry["count"] += 1
+        entry["amounts"].append(p["amount"] or 0)
+
+    # Every distinct build, most common first -- not a top few. They are what the page offers
+    # to sim as they are: real, game-accepted loadouts, with no combinatorics in between.
+    common = sorted(builds.values(), key=lambda b: (-b["count"], -max(b["amounts"])))
+    for b in common:
+        amounts = sorted(b.pop("amounts"))
+        b["best"] = amounts[-1]
+        b["median"] = amounts[len(amounts) // 2]
+    return {
+        "zone": {"id": zone_info["zoneId"], "name": zone_info["name"]},
+        "encounters": [e["name"] for e in encounters],
+        "difficulty": difficulty,
+        "players": n,
+        "heroes": [{"key": k, "count": c} for k, c in heroes.most_common()],
+        # nodeId -> share of players taking it, and the mean rank among those who do.
+        "pickRates": {node: {"share": c / n, "meanRank": ranks[node] / c} for node, c in taken.items()} if n else {},
+        # nodeId -> [share on side 0, share on side 1], among players taking the node.
+        "choiceSides": {node: [s[0] / sum(s.values()), s[1] / sum(s.values())] for node, s in sides.items()},
+        "builds": common,
+        "distinctBuilds": len(builds),
+        "illegal": illegal,
+        "fetchedAt": time.time(),
+    }
+
 # ---------------------------------------------------------------------------
 # custom trees
 # ---------------------------------------------------------------------------

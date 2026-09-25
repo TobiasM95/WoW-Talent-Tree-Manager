@@ -727,6 +727,41 @@ def t_custom_projects_refuse_broken_designs():
     assert status == 400 and "per project" in str(body.get("detail", "")), (status, body)
 
 
+def t_top_players_builds_are_legal_here():
+    """Every build the live game allowed a top player must be legal on our copy of the trees.
+
+    This is the strongest outside check the tree data has: hundreds of real, game-accepted
+    loadouts. One that our data refuses means our data is wrong or stale -- a gate moved, a
+    talent was added -- and would otherwise only show as a wrong count nobody can see.
+    Skipped, not failed, where WarcraftLogs keys are not configured.
+    """
+    status, content = get_raw("/popular/content")
+    if status == 503:
+        print("      (WarcraftLogs not configured: skipped)")
+        return
+    assert status == 200 and content, (status, content)
+    raid = next(c for c in content if c["kind"] == "raid")
+    status, body = get_raw(f"/popular/{SPEC_WITH_CAPSTONE}?zone={raid['zoneId']}&encounter=all&difficulty=5")
+    assert status == 200, (status, body)
+    assert body["players"] >= 100, body["players"]
+    assert body["illegal"] == [], body["illegal"][:5]
+    heroes = sum(h["count"] for h in body["heroes"])
+    assert heroes == body["players"], "every player is on exactly one hero tree"
+    assert all(0 < r["share"] <= 1 for r in body["pickRates"].values())
+    assert all(abs(sum(s) - 1) < 1e-9 for s in body["choiceSides"].values())
+    top = body["builds"][0]
+    assert top["count"] >= 2 and top["hero"], top
+    # Legality cannot see a build that spends too *little* -- that is still legal -- and a
+    # tiered node reported one entry per rank once lost three points from every Blood build
+    # exactly that way. Top players spend every point, so every tree must be full.
+    caps = {}
+    for b in body["builds"]:
+        for key, points in b["points"].items():
+            if key not in caps:
+                caps[key] = get(f"/trees/{key}")["pointCap"]
+            assert sum(points.values()) == caps[key], (key, sum(points.values()), caps[key])
+
+
 def t_class_trees_differ_by_specialisation():
     """One class tree per spec, and they are genuinely different.
 
@@ -1048,6 +1083,10 @@ def main() -> int:
     check("results name the talents the engine chose, granted roots or not",
           t_results_name_the_talents_the_engine_chose)
     check("class trees differ by specialisation", t_class_trees_differ_by_specialisation)
+
+    print("\ntop players (WarcraftLogs):")
+    check("every real top-player build is legal on our trees",
+          t_top_players_builds_are_legal_here)
 
     print("\ncustom trees:")
     check("a designed project saves, is content-addressed, and solves",

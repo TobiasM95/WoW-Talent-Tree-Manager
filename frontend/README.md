@@ -17,6 +17,16 @@ The typical path: paste the talent string you play, which fixes all three trees;
 one you want to explore; paint until the count fits; simulate; read the answer; "use this
 build" to fix the trees to it and go round again.
 
+**Top players.** In retail's Narrow, a panel reads what the top-ranked players of the spec
+run, from WarcraftLogs -- a raid on Mythic or Heroic, one boss or all, or a Mythic+ season. It
+shows the hero-tree split and each talent's pick rate on the trees, and offers three things to
+do with them: **use** a build that recurs; **narrow to the contested talents** (require what
+nearly all of them take, bar what nearly none do, pin the choice sides they agree on -- leaving
+only the part they still disagree about); or **sim the top builds** as they are, straight into
+SimulationCraft and the analysis -- "of the builds that actually win, which is best on *my*
+character?" `test:popular` runs that last one for real: 525 distinct top Blood builds, every one
+accepted by SimulationCraft.
+
 **WoW Forever.** The header switches game. Forever's trees are a class's three tabs sharing
 one pool of 51 points, so no tab has a cap of its own: each gets what the other two leave, the
 readout is the split ("31 / 20 / 0") with the level it takes, and tabs start **fixed and empty**,
@@ -84,6 +94,7 @@ pnpm run test:report                           # the SimC report reader, against
 pnpm run test:canvas                           # shapes, keylines, four colours, both themes
 pnpm run test:forever                          # WoW Forever: three tabs, one pool of 51
 pnpm run test:editor                           # design, connect, undo, save, plan, share, copy
+pnpm run test:popular                          # top players: see, use, narrow, sim them for real
 pnpm test                                      # the whole workflow, with a live SimulationCraft run
 pnpm run test:all                              # all of it
 ```
@@ -185,6 +196,7 @@ game data the tool exists to display; everything around them is ours.
 | `components/EditorView.tsx` | The tree editor: grid, connections, inspector, icon picker. |
 | `components/ProjectRail.tsx` | Your custom projects, in place of the class rail. |
 | `components/PoolCard.tsx` | A shared point pool's split, for Forever and pooled projects. |
+| `components/PopularPanel.tsx` | What top players run, and three things to do with it. |
 | `lib/design.ts` | A project as the editor holds it, and every edit as a pure function. |
 | `lib/projects.ts` | Drafts in this browser, saved versions on the server. |
 | `components/SpaceCard.tsx` | The product, its factors, and whether it is simmable. |

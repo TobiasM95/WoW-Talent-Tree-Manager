@@ -35,6 +35,11 @@ jobs:
     name: full stack + every suite
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # WarcraftLogs keys, as repository secrets. Without them the top-player checks skip rather
+    # than fail, so a fork or a repository without secrets still gets a clean run.
+    env:
+      WCL_CLIENT_ID: ${{ secrets.WCL_CLIENT_ID }}
+      WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
