@@ -161,6 +161,24 @@ await page.waitForFunction(
   { timeout: 120000 },
 );
 check("arriving at Simulate lists the builds without another button", true);
+// The builds can be flicked through on the trees while the sim runs.
+const heroLitAt = () => page.locator('section[aria-label="Hero"] .ttm-node[data-spent="yes"]').evaluateAll(
+  (els) => els.map((e) => e.getAttribute("aria-label")).sort().join("|"),
+);
+const firstBuild = await heroLitAt();
+check("the first build is drawn on the trees", firstBuild.length > 0);
+check(
+  "and the fixed trees are drawn too",
+  (await page.locator('section[aria-label="Class"] .ttm-node[data-spent="yes"]').count()) > 10,
+);
+await page.locator('button[aria-label="Next build"]').click();
+await page.waitForTimeout(200);
+check("next steps to build 2", (await page.locator("[data-browse-index]").getAttribute("data-browse-index")) === "2");
+check("and says what changed", /vs the build before|Same talents/.test(await page.locator('section[aria-label="Browse the builds"]').innerText()));
+await page.locator('section[aria-label="Browse the builds"]').focus();
+for (let i = 0; i < 3; i++) await page.keyboard.press("Shift+ArrowRight");
+check("shift+arrow jumps ten", (await page.locator("[data-browse-index]").getAttribute("data-browse-index")) === "32");
+check("and the trees follow", (await heroLitAt()) !== firstBuild);
 await page.screenshot({ path: `${shots}/flow-3-simulate.png` });
 
 const [download] = await Promise.all([

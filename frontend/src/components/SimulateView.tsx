@@ -4,6 +4,7 @@ import { enumerate, type Progress, type TreeInput } from "../lib/enumerate";
 import { profilesets, talentStrings } from "../lib/simc";
 import { parseReport, rank, SimcReportError, type Ranking } from "../lib/simcReport";
 import { formatCount, type Character } from "../lib/space";
+import { BuildViewer } from "./BuildViewer";
 
 /**
  * Step two: hand the builds to SimulationCraft, and take its answer back.
@@ -140,7 +141,8 @@ export function SimulateView({
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 overflow-y-auto p-4">
+    <div className="flex min-h-0 w-full flex-1 flex-col gap-3 p-2 md:flex-row md:p-2.5">
+    <div className="flex w-full shrink-0 flex-col gap-3 md:w-[26rem] md:overflow-y-auto md:pr-1">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="display text-[26px] leading-tight">
           {current
@@ -265,6 +267,20 @@ export function SimulateView({
           </p>
         )}
       </section>
+    </div>
+
+    {/* The builds themselves, to flick through while the sim runs. */}
+    {current ? (
+      <BuildViewer
+        characters={current.characters}
+        strings={current.strings}
+        trees={inputs.map((i) => ({ key: i.key, label: labels[i.key] ?? i.key, tree: i.tree }))}
+      />
+    ) : (
+      <div className="panel flex flex-1 items-center justify-center text-[12px] text-ink-faint">
+        The builds appear here once they are listed.
+      </div>
+    )}
     </div>
   );
 }

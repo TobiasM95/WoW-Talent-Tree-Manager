@@ -8,6 +8,8 @@ React + Tailwind. Three steps, in the order a player does them:
    once it fits the sim limit — 10,000 builds by default, choice sides included.
 2. **Simulate** — the builds are listed on arrival, downloaded as SimulationCraft
    profilesets, run under a real character, and the report is dropped back on the page.
+   Beside that, every build can be flicked through on the three trees — arrow keys step,
+   shift+arrow jumps ten — with what changed from the build before spelled out.
 3. **Analyse** — a page, not a panel: the ranking, what each talent was worth per tree, and
    each choice node's two sides head to head, with the three trees drawn beside it.
 
@@ -153,6 +155,7 @@ game data the tool exists to display; everything around them is ours.
 | `components/SpaceCard.tsx` | The product, its factors, and whether it is simmable. |
 | `components/PaintTools.tsx` | What a click does, and what every colour means. |
 | `components/SimulateView.tsx` | Step two: the file out, the report back. |
+| `components/BuildViewer.tsx` | Flick through the builds on the trees. |
 | `components/AnalysisView.tsx` | Step three: builds, talent value, choice nodes. |
 | `components/TreeCanvas.tsx` | Pan, zoom, edges, node placement. |
 | `components/TalentNode.tsx` | One talent; shape, icons, state. |
