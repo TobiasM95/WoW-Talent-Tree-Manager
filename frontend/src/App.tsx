@@ -18,6 +18,7 @@ import type { SavedLoadout } from "./lib/saved";
 import type { Ranking } from "./lib/simcReport";
 import type { Character } from "./lib/space";
 import { useCounts } from "./lib/useCounts";
+import { poolCount } from "./lib/pool";
 import { useTheme } from "./lib/theme";
 import {
   budgetOf,
@@ -162,6 +163,8 @@ export default function App() {
   const [work, setWork] = useState<Record<string, TreeWork>>({});
   const [tool, setTool] = useState<Tool>("toggle");
   const [limit, setLimit] = useState(SHARED.limit ?? DEFAULT_LIMIT);
+  // A shared pool's points to spend; null is the whole pool.
+  const [poolBudget, setPoolBudget] = useState<number | null>(SHARED.pool ?? null);
   const [note, setNote] = useState<string | null>(null);
 
   const [step, setStep] = useState<Step>("narrow");
@@ -478,6 +481,25 @@ export default function App() {
     (summary: TreeSummary) => allowance.get(summary.key) ?? capOf(summary),
     [allowance],
   );
+
+  /*
+    Trees that share a pool are one build, not three. Fixed or open is chosen for the class,
+    not per tab: fixed is a talent calculator spending the one pool across every tab; open is
+    one search over them all, counted across every split of the pool. A tab can still be held
+    to exactly so many points -- "31 in Arms" -- which is how a vanilla player names a build.
+  */
+  const pooled = tabbed && pool !== null;
+  const classMode: TreeMode | null = pooled && roles[0] ? workOf(roles[0][1].key).mode : null;
+  // An older link could leave the tabs in different modes; a pooled class has one.
+  useEffect(() => {
+    if (!pooled || !classMode) return;
+    if (roles.every(([, s]) => workOf(s.key).mode === classMode)) return;
+    setWork((previous) => {
+      const next = { ...previous };
+      for (const [, s] of roles) next[s.key] = { ...(previous[s.key] ?? emptyWork(defaultMode)), mode: classMode };
+      return next;
+    });
+  }, [pooled, classMode, roles, workOf, defaultMode]);
   const labelOf = useCallback(
     (role: Role, summary: TreeSummary) => (tabbed || custom ? summary.name : LABEL[role]),
     [tabbed, custom],
@@ -492,13 +514,40 @@ export default function App() {
           key: summary.key,
           payload:
             w.mode === "open" && pendingOf(w).length === 0 ? payloadOf(w, capFor(summary)) : null,
+          spread: pooled,
         };
       }),
-    [members, workOf, capFor],
+    [members, workOf, capFor, pooled],
   );
   const counts = useCounts(countRequests);
 
-  const rows: SpaceRow[] = members.map(([role, summary]) => {
+  // The pool's count: every split of the points across the tabs, each tab at its share.
+  const poolMax = pool === null ? 0 : pool;
+  const poolSpend = Math.min(poolBudget ?? poolMax, poolMax);
+  const pooledCount = useMemo(() => {
+    if (!pooled || classMode !== "open") return null;
+    const spreads = roles.map(([, s]) => counts[s.key]?.spread ?? null);
+    if (spreads.some((x) => !x)) return null;
+    return poolCount(
+      spreads as number[][],
+      poolSpend,
+      roles.map(([, s]) => workOf(s.key).search.budget),
+    );
+  }, [pooled, classMode, roles, counts, poolSpend, workOf]);
+
+  const pooledRows: SpaceRow[] | null =
+    pooled && classMode === "open"
+      ? [
+          {
+            label: `All ${roles.length} tabs, ${poolSpend} points`,
+            fixed: false,
+            builds: pooledCount?.builds ?? null,
+            stale: roles.some(([, s]) => counts[s.key]?.stale ?? true),
+            error: roles.map(([, s]) => counts[s.key]?.error).find(Boolean) ?? null,
+          },
+        ]
+      : null;
+  const rows: SpaceRow[] = pooledRows ?? members.map(([role, summary]) => {
     const w = workOf(summary.key);
     const c = counts[summary.key];
     return {
@@ -549,10 +598,18 @@ export default function App() {
 
   const onMode = useCallback(
     (key: string, mode: TreeMode) => {
-      update(key, (w) => ({ ...w, mode }));
+      if (pooled) {
+        setWork((previous) => {
+          const next = { ...previous };
+          for (const [, s] of roles) next[s.key] = { ...(previous[s.key] ?? emptyWork(defaultMode)), mode };
+          return next;
+        });
+      } else {
+        update(key, (w) => ({ ...w, mode }));
+      }
       setNote(null);
     },
-    [update],
+    [update, pooled, roles, defaultMode],
   );
 
   const clearSearches = useCallback(() => {
@@ -765,8 +822,9 @@ export default function App() {
       both: bothHeroes,
       work: out,
       limit: limit === DEFAULT_LIMIT ? null : limit,
+      pool: pooled ? poolBudget : null,
     };
-  }, [group.spec, group.class, tabbed, heroKey, otherHero, bothHeroes, roles, work, limit]);
+  }, [group.spec, group.class, tabbed, heroKey, otherHero, bothHeroes, roles, work, limit, pooled, poolBudget]);
   useEffect(() => {
     if (sharedNow && seeded.current) syncUrl(sharedNow);
   }, [sharedNow]);
@@ -793,6 +851,7 @@ export default function App() {
       if (shared.hero) setHeroKey(shared.hero);
       setBothHeroes(shared.both);
       setLimit(shared.limit ?? DEFAULT_LIMIT);
+      setPoolBudget(shared.pool ?? null);
       setSeedTick((t) => t + 1);
       setStep("narrow");
       setNote(`Opened “${saved.name}”.`);
@@ -851,17 +910,34 @@ export default function App() {
         subtitle={tabbed || custom ? null : role === "class" ? className : role === "spec" ? specName : null}
         mode={w.mode}
         onMode={(m) => onMode(summary.key, m)}
-        points={{ value: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, cap), cap, shared: forever }}
-        onBudget={(p) =>
-          update(summary.key, (current) => ({
-            ...current,
-            search: { ...current.search, budget: p >= cap ? null : p },
-          }))
+        modeSwitch={!pooled}
+        points={{ value: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, cap), cap, shared: pooled }}
+        onBudget={
+          pooled
+            ? undefined
+            : (p) =>
+                update(summary.key, (current) => ({
+                  ...current,
+                  search: { ...current.search, budget: p >= cap ? null : p },
+                }))
+        }
+        exact={
+          pooled && w.mode === "open"
+            ? {
+                value: w.search.budget,
+                max: Math.min(poolSpend, Math.max(0, (c?.spread?.length ?? capOf(summary) + 1) - 1)),
+                onChange: (p) =>
+                  update(summary.key, (current) => ({ ...current, search: { ...current.search, budget: p } })),
+              }
+            : undefined
         }
         count={
-          w.mode === "fixed"
-            ? { builds: 1, stale: false, error: null }
-            : { builds: c?.builds ?? null, stale: c?.stale ?? true, error: c?.error ?? null }
+          // A pooled tab has no count of its own: the pool's is the only one that means anything.
+          pooled
+            ? undefined
+            : w.mode === "fixed"
+              ? { builds: 1, stale: false, error: null }
+              : { builds: c?.builds ?? null, stale: c?.stale ?? true, error: c?.error ?? null }
         }
         states={popularHeat ? undefined : statesOf(w)}
         sides={popularHeat ? undefined : sidesOf(w)}
@@ -1075,9 +1151,14 @@ export default function App() {
               <PoolCard
                 pool={pool}
                 firstLevel={forever ? 10 : null}
+                mode={classMode ?? "fixed"}
+                onMode={(m) => roles[0] && onMode(roles[0][1].key, m)}
+                budget={poolSpend}
+                onBudget={(p) => setPoolBudget(p >= pool ? null : p)}
+                count={pooledCount}
                 tabs={roles.map(([, s]) => {
                   const w = workOf(s.key);
-                  return { name: s.name, points: w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, capFor(s)) };
+                  return { name: s.name, points: loadout.total(w.points), exact: w.search.budget };
                 })}
               />
             )}

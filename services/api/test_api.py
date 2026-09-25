@@ -727,6 +727,23 @@ def t_custom_projects_refuse_broken_designs():
     assert status == 400 and "per project" in str(body.get("detail", "")), (status, body)
 
 
+def t_spread_agrees_with_counting_one_total_at_a_time():
+    """/counts/spread is /counts at every total, from one DP run: checked total by total, on
+    a Forever tab and on a painted retail tree, with a required talent making the empty tree
+    (index 0) count nothing."""
+    tree = get("/trees/forever/warrior/fury")
+    first = sorted((n for n in tree["nodes"] if not n["preFilled"]), key=lambda n: (n["row"], n["col"]))[0]
+    for key, filters in [("forever/warrior/fury", {}), ("forever/warrior/fury", {"mustHave": [first["nodeId"]]})]:
+        spread = post("/counts/spread", {"treeKey": key, "points": 64, **filters})
+        assert spread["builds"][0] == (0 if filters else 1), spread["builds"][:3]
+        for k in range(1, len(spread["builds"])):
+            one = post("/counts", {"treeKey": key, "points": k, **filters})
+            assert (one["sets"], one["builds"]) == (spread["sets"][k], spread["builds"][k]), (key, k, one, spread["builds"][k])
+    # A capped request stops at the cap.
+    short = post("/counts/spread", {"treeKey": "forever/warrior/fury", "points": 10})
+    assert len(short["builds"]) == 11, len(short["builds"])
+
+
 def t_custom_barriers_and_granted_talents():
     """Retail's shape: barriers between rows gate everything below them, and a granted root
     is free. Worked out by hand: a free root, two talents under it, and a barrier of 2 above
@@ -1187,6 +1204,8 @@ def main() -> int:
           t_custom_projects_save_and_solve)
     check("broken designs are refused, saying what is wrong",
           t_custom_projects_refuse_broken_designs)
+    check("a tree's counts at every total agree with counting each total alone",
+          t_spread_agrees_with_counting_one_total_at_a_time)
     check("retail-style barriers gate what is below them, and granted talents are free",
           t_custom_barriers_and_granted_talents)
     check("a project keeps one style, and retail's has retail's shape",

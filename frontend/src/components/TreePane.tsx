@@ -27,6 +27,10 @@ export interface TreePaneProps {
    */
   points?: { value: number; cap: number; shared?: boolean };
   onBudget?: (points: number) => void;
+  /** False for trees that share a pool: the class is fixed or open as one, not per tree. */
+  modeSwitch?: boolean;
+  /** A tab sharing a pool: the points it must hold in a search, or null for any. */
+  exact?: { value: number | null; max: number; onChange: (points: number | null) => void };
   /** Builds this tree contributes; null while counting. */
   count?: { builds: number | null; stale: boolean; error: string | null };
   states?: Map<number, NodeState>;
@@ -55,6 +59,8 @@ export function TreePane({
   onMode,
   points,
   onBudget,
+  modeSwitch = true,
+  exact,
   count,
   states,
   sides,
@@ -86,6 +92,7 @@ export function TreePane({
           <div className="flex items-center gap-2">
             {/* Fixed or open, as a segmented switch on the tree itself. Words rather than
                 icons, because the distinction is the whole model and has to be read. */}
+            {modeSwitch && (
             <div className="seg" role="group" aria-label={`${title} tree mode`}>
               {(["fixed", "open"] as const).map((m) => (
                 <button
@@ -103,6 +110,26 @@ export function TreePane({
                 </button>
               ))}
             </div>
+            )}
+
+            {exact && mode === "open" && (
+              <label className="flex items-center gap-1.5 text-[11px] text-ink-soft" title="Hold this tab to an exact share of the pool, as in 31/20/0">
+                points here
+                <select
+                  className="field num !h-6 !py-0 !text-[11.5px]"
+                  value={exact.value ?? ""}
+                  onChange={(event) => exact.onChange(event.target.value === "" ? null : Number(event.target.value))}
+                  aria-label={`Points in ${title}`}
+                >
+                  <option value="">any</option>
+                  {Array.from({ length: exact.max + 1 }, (_, p) => (
+                    <option key={p} value={p}>
+                      exactly {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
 
             {points && mode === "open" && onBudget && (
               <label className="flex items-center gap-1 text-[11px] text-ink-soft" title="Points to spend in this tree">

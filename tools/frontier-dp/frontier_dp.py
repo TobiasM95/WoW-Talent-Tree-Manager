@@ -293,10 +293,22 @@ def load_tree_json(path, level_cap=None):
     return header, nodes
 
 
-def count_with_groups(meta, par, chi, order, max_points, *, weight_choices=False,
-                      choice_sides=None, require=None, exclude=None,
-                      at_least_one_of=None, exactly_one_of=None):
-    """Count under the full filter language, including group constraints.
+def count_with_groups(meta, par, chi, order, max_points, **filters):
+    """Count the selections of exactly `max_points` under the full filter language."""
+    return count_spread(meta, par, chi, order, max_points, **filters)[max_points]
+
+
+def count_spread(meta, par, chi, order, max_points, *, weight_choices=False,
+                 choice_sides=None, require=None, exclude=None,
+                 at_least_one_of=None, exactly_one_of=None):
+    """Counts for every point total 0..max_points at once, under the full filter language.
+
+    One DP run already yields every total -- its state carries the points spent -- so asking
+    for all of them costs what asking for one does. Trees that share a point pool need all
+    of them: a class's count at 51 points is the sum, over every split of 51 across its tabs,
+    of the product of each tab's count at its share.
+
+    Group constraints, as below:
 
     `at_least_one_of` and `exactly_one_of` are lists of node-id groups. Neither adds DP
     state; both are compositions of plain counts:
@@ -321,7 +333,7 @@ def count_with_groups(meta, par, chi, order, max_points, *, weight_choices=False
     def run(req, exc):
         totals, _ = count_frontier_dp(meta, par, chi, order, max_points,
                                       require=req, exclude=exc, **base_kwargs)
-        return totals.get(max_points, 0)
+        return [totals.get(k, 0) for k in range(max_points + 1)]
 
     # Expand each exactly-one group into its disjoint alternatives, then take the product
     # across groups: choices in different groups are independent.
@@ -336,11 +348,11 @@ def count_with_groups(meta, par, chi, order, max_points, *, weight_choices=False
                 expanded.append((req | {member}, exc | others))
         alternatives = expanded
         if not alternatives:
-            return 0
+            return [0] * (max_points + 1)
 
     # Inclusion-exclusion over the at-least-one groups: subtract the cases where a group
     # is entirely absent, add back the overlaps, and so on.
-    total = 0
+    total = [0] * (max_points + 1)
     for req, exc in alternatives:
         for mask in range(1 << len(at_least_one_of)):
             dropped = set()
@@ -350,5 +362,5 @@ def count_with_groups(meta, par, chi, order, max_points, *, weight_choices=False
             if dropped & req:
                 continue              # a required node cannot also be excluded
             sign = -1 if bin(mask).count("1") % 2 else 1
-            total += sign * run(req, exc | dropped)
+            total = [t + sign * v for t, v in zip(total, run(req, exc | dropped))]
     return total

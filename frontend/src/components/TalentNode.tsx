@@ -154,6 +154,7 @@ export const TalentNode = memo(function TalentNode({
       type="button"
       className="ttm-node absolute"
       data-state={state}
+      data-node-id={node.nodeId}
       data-kind={node.kind}
       data-shape={shapeOf(node)}
       data-spent={spent === undefined ? undefined : spent > 0 ? "yes" : "no"}

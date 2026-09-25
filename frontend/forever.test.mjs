@@ -49,8 +49,9 @@ await page.waitForTimeout(800);
 
 const panes = await page.locator("section.ttm-tree").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
 check("a class's three tabs are the three panes", panes.join() === "Arms,Fury,Protection", panes.join());
-const modes = await page.locator('.seg button[aria-pressed="true"]:text-is("Fixed")').count();
-check("every tab starts fixed and empty, like a calculator", modes === 3);
+check("the class starts fixed and empty, like a calculator",
+  (await page.locator('[aria-label="Class mode"] button[aria-pressed="true"]').innerText()) === "Fixed build");
+check("with one switch for the class, none per tab", (await page.locator('section.ttm-tree [aria-label$="tree mode"]').count()) === 0);
 check("with no points spent", (await page.locator("[data-split]").getAttribute("data-split")) === "0/0/0");
 
 const shapes = await page.$$eval(".ttm-node", (els) => [...new Set(els.map((e) => e.dataset.shape))].sort().join());
@@ -93,14 +94,69 @@ check("and says why", /does not simulate WoW Forever/.test(await page.locator("a
 check("no Blizzard talent string", (await page.locator("text=Talent string").count()) === 0);
 check("the data is credited, as its licence asks", /talentsforever\.com/.test(await page.locator("aside").innerText()));
 
-// Opening a tab explores within what the others leave.
-const before = (await page.locator("[data-split]").getAttribute("data-split")).split("/").map(Number);
-await page.locator('section[aria-label="Protection"] .seg button:text-is("Open")').click();
-await page.waitForTimeout(1200);
-const count = Number(await page.locator("[data-total]").getAttribute("data-total"));
-const after = (await page.locator("[data-split]").getAttribute("data-split")).split("/").map(Number);
-check("an open tab counts its builds", count > 1, String(count));
-check("within the points the other tabs leave", after[2] === 51 - before[0] - before[1], `${before.join("/")} -> ${after.join("/")}`);
+// Open: one search over all three tabs, counted over every split of the pool. Checked against
+// a sum worked out here from each tab's own per-points counts -- the endpoint that has always
+// answered "how many builds of exactly k points" -- not from the spread the page used.
+const tabs = ["arms", "fury", "protection"];
+const perPoints = async (tab, filters = {}) => {
+  // Zero points is the empty tab: one build, unless something is required in it.
+  const out = [filters.mustHave?.length ? 0 : 1];
+  for (let k = 1; k <= 64; k++) {
+    const r = await fetch(`${url}/api/counts`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ treeKey: `forever/warrior/${tab}`, points: k, ...filters }) });
+    if (r.status !== 200) break;
+    out.push((await r.json()).builds);
+  }
+  return out;
+};
+const pooledBy = (vectors, budget, exact = []) => {
+  let sum = 0n;
+  const [a, b, c] = vectors;
+  for (let x = 0; x < a.length && x <= budget; x++) {
+    if (exact[0] != null && x !== exact[0]) continue;
+    for (let y = 0; y < b.length && x + y <= budget; y++) {
+      if (exact[1] != null && y !== exact[1]) continue;
+      const z = budget - x - y;
+      if (z >= c.length || (exact[2] != null && z !== exact[2])) continue;
+      sum += BigInt(a[x]) * BigInt(b[y]) * BigInt(c[z]);
+    }
+  }
+  return Number(sum);
+};
+const vectors = await Promise.all(tabs.map((t) => perPoints(t)));
+const shownTotal = async () => {
+  await page.waitForTimeout(900);
+  return Number(await page.locator("[data-total]").getAttribute("data-total"));
+};
+
+await page.locator('[aria-label="Class mode"] button:text-is("Open search")').click();
+const open51 = await shownTotal();
+const expect51 = pooledBy(vectors, 51);
+check("an open class counts every split of the whole pool", Math.abs(open51 - expect51) / expect51 < 1e-12,
+  `${open51} vs ${expect51}`);
+check("and the tabs no longer count alone", (await page.locator("section.ttm-tree [data-count-for]").count()) === 0);
+
+await page.locator('button[aria-label="One point fewer"]').click();
+await page.locator('button[aria-label="One point fewer"]').click();
+const open49 = await shownTotal();
+check("fewer points to spend, fewer builds, still every split", open49 === pooledBy(vectors, 49), `${open49} vs ${pooledBy(vectors, 49)}`);
+check("and 49 points takes level 58", /level 58/.test(await page.locator('section[aria-label="Talent points"]').innerText()));
+
+await page.locator('select[aria-label="Points in Arms"]').selectOption("31");
+const arms31 = await shownTotal();
+check("a tab held to exactly 31 counts only those splits", arms31 === pooledBy(vectors, 49, [31]), `${arms31} vs ${pooledBy(vectors, 49, [31])}`);
+check("and the splits say so", /^31 \/ /.test(await page.locator('[aria-label="Splits"] li').first().innerText()));
+
+// Painting still narrows, per tab: require a Fury talent.
+const furyTalent = page.locator('section[aria-label="Fury"] .ttm-node').first();
+const furyId = Number(await furyTalent.getAttribute("data-node-id"));
+await furyTalent.click();
+const required = await shownTotal();
+const furyRequired = await perPoints("fury", { mustHave: [furyId] });
+const expectRequired = pooledBy([vectors[0], furyRequired, vectors[2]], 49, [31]);
+check("painting a tab narrows the whole class, exactly", required === expectRequired && required < arms31,
+  `${required} vs ${expectRequired}`);
+await page.screenshot({ path: "shots/forever-open.png" });
 
 // A link reproduces all of it.
 const link = page.url();
@@ -109,8 +165,9 @@ const fresh = await browser.newPage({ viewport: { width: 1600, height: 1000 } })
 await fresh.goto(link, { waitUntil: "networkidle" });
 await fresh.waitForSelector('section[aria-label="Arms"] .ttm-node');
 await fresh.waitForTimeout(1200);
-const reopened = await fresh.locator("[data-split]").getAttribute("data-split");
-check("and reopens on the same split", reopened === after.join("/"), `${reopened} vs ${after.join("/")} from ${decodeURIComponent(link)}`);
+await fresh.waitForTimeout(800);
+const reopened = Number(await fresh.locator("[data-total]").getAttribute("data-total"));
+check("and reopens on the same search: 49 points, 31 in Arms, the Fury talent", reopened === required, `${reopened} vs ${required}`);
 check("in WoW Forever", (await fresh.locator('button[aria-pressed="true"]:text-is("WoW Forever")').count()) === 1);
 await page.screenshot({ path: "shots/forever.png" });
 

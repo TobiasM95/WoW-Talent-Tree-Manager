@@ -20,6 +20,7 @@ open http://localhost:8001/docs        # generated OpenAPI
 | `GET /trees/{key}` | Full definition: nodes, edges, gating, entries, per-rank descriptions |
 | `GET /trees/{key}/counts` | Precomputed unfiltered counts for every budget |
 | `POST /counts` | **The gate.** Counts under constraints |
+| `POST /counts/spread` | Counts at **every** point total up to `points`, under constraints -- for trees sharing a pool |
 | `POST /solve` | Queue a filtered enumeration — refused if the gate says it is too large |
 | `GET /solve/{id}` | Job state, phase, progress, expected and actual counts |
 | `GET /solve/{id}/results` | A page of matching builds, nodeId-keyed |

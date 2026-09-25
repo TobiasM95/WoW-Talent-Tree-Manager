@@ -24,7 +24,8 @@ import { EMPTY_SEARCH, emptyWork, type Search, type TreeWork } from "./workspace
  *   h2  the other hero tree's key, when it carries state     both  sim both hero trees
  *   ?m  f fixed, o open (older links: absent meant open)      l   the sim limit, if changed
  *   ?b  the fixed build            ?k  its choice sides
- *   ?p  the search's point budget  ?r ?x  required, barred
+ *   ?p  the search's point budget  ?r ?x  required, barred      pp  a shared pool's points
+ *       (a tab sharing a pool: the points it must hold)
  *   ?s  pinned choice sides        ?o ?e  at-least-one, exactly-one groups
  */
 
@@ -43,9 +44,11 @@ export interface Shared {
   both: boolean;
   work: Partial<Record<Role, TreeWork>>;
   limit: number | null;
+  /** A shared pool's points to spend, when fewer than the whole pool. */
+  pool?: number | null;
 }
 
-export const NOTHING: Shared = { spec: null, hero: null, hero2: null, both: false, work: {}, limit: null };
+export const NOTHING: Shared = { spec: null, hero: null, hero2: null, both: false, work: {}, limit: null, pool: null };
 
 const b36 = (id: number) => id.toString(36);
 const unb36 = (text: string) => Number.parseInt(text, 36);
@@ -105,6 +108,7 @@ export function encode(state: Shared): string {
   if (state.hero2 && state.work.hero2) params.set("h2", state.hero2);
   if (state.both) params.set("both", "1");
   if (state.limit) params.set("l", String(state.limit));
+  if (state.pool) params.set("pp", String(state.pool));
 
   for (const role of ROLES) {
     const work = state.work[role];
@@ -151,6 +155,7 @@ export function decode(search: string): Shared {
     both: params.get("both") === "1",
     work: {},
     limit: Number(params.get("l")) > 0 ? Number(params.get("l")) : null,
+    pool: Number(params.get("pp")) > 0 ? Number(params.get("pp")) : null,
   };
 
   for (const role of ROLES) {

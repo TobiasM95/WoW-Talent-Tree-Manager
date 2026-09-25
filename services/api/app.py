@@ -229,6 +229,15 @@ class CountResponse(BaseModel):
     listingLimit: int
 
 
+class SpreadResponse(BaseModel):
+    treeKey: str
+    levelCap: int
+    # Index k: selections spending exactly k points. Index 0 is the empty build.
+    sets: list[int]
+    builds: list[int]
+    elapsedMs: float
+
+
 # ---------------------------------------------------------------------------
 # endpoints
 # ---------------------------------------------------------------------------
@@ -984,6 +993,33 @@ def get_job_stats(job_id: str) -> dict[str, Any]:
             for row in stats
         ],
     }
+
+
+@app.post("/counts/spread", response_model=SpreadResponse)
+def count_spread(req: CountRequest) -> SpreadResponse:
+    """Counts for every point total up to `points` (or the tree's slots), under a search.
+
+    For trees that share a point pool, as WoW Forever's three tabs share 51: a class's count
+    is a sum over every split of the pool across its tabs, so each tab's count at *every*
+    total is what the planner needs -- and the DP yields all of them in the one run it takes
+    to yield one.
+    """
+    started = time.perf_counter()
+    graph = _dp_graph(req.treeKey, req.levelCap)
+    req = req.model_copy(update={"points": min(req.points, graph["slots"])})
+    _validate(req, graph)
+    from frontier_dp import count_spread as spread
+    args = (graph["meta"], graph["par"], graph["chi"], graph["order"], req.points)
+    common = dict(
+        require=set(req.mustHave), exclude=set(req.mustNotHave),
+        choice_sides={int(k): v for k, v in req.choiceSides.items()},
+        at_least_one_of=req.atLeastOneOf, exactly_one_of=req.exactlyOneOf,
+    )
+    return SpreadResponse(
+        treeKey=req.treeKey, levelCap=req.levelCap,
+        sets=spread(*args, **common), builds=spread(*args, weight_choices=True, **common),
+        elapsedMs=round((time.perf_counter() - started) * 1000, 2),
+    )
 
 
 @app.post("/counts", response_model=CountResponse)

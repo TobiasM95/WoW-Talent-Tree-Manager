@@ -28,13 +28,23 @@ character?" `test:popular` runs that last one for real: 525 distinct top Blood b
 accepted by SimulationCraft.
 
 **WoW Forever.** The header switches game. Forever's trees are a class's three tabs sharing
-one pool of 51 points, so no tab has a cap of its own: each gets what the other two leave, the
-readout is the split ("31 / 20 / 0") with the level it takes, and tabs start **fixed and empty**,
-because the first thing anyone does in a vanilla calculator is spend points by hand. A tab can
-still be opened to count what fits in the points left. Simulate is off -- SimulationCraft does
-not sim Forever -- and the data is credited in the footer, as its licence asks. `test:forever`
-presses on the pool: 51 however it is split, a refund in one tab frees a point in another, and
-a link reproduces the split.
+one pool of 51 points, so the class is **one build**, not three: it is fixed or open as a whole,
+from the Talent points card, never tab by tab.
+
+- **Fixed build** is a talent calculator, and where a class starts: every tab spends from the
+  one pool, the readout is the split ("31 / 20 / 0") with the level it takes.
+- **Open search** is one search over all three tabs. Its count is a sum over every split of the
+  points to spend -- arms(a) x fury(b) x protection(c) for every a + b + c = 51 -- each tab
+  counted under whatever is painted on it. A tab can be held to **exactly** so many points
+  ("31 in Arms"), the points to spend can be lowered for a levelling build, and the card lists
+  the splits holding the most builds. Per-tab counts are gone: alone, they mean nothing.
+
+The first version gave each tab a slice of the pool in tab order -- Arms took 47, Fury 4,
+Protection none -- and counted each alone, which is where a count of 1 or an error came from.
+`test:forever` now checks the pooled count against a sum it works out itself from each tab's
+per-points counts, at 51, at 49, with a tab held to 31 and with a talent required. Simulate is
+off -- SimulationCraft does not sim Forever -- and the data is credited in the footer, as its
+licence asks.
 
 **The tree editor.** The third game, Custom, is your own trees: a project of one to three,
 each with its own budget or all sharing one pool -- shaped like retail or like Forever. Design

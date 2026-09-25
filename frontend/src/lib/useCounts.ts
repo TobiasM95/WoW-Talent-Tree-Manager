@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ApiError, countBuilds, type Constraints } from "./api";
+import { ApiError, countBuilds, countSpread, type Constraints } from "./api";
 
 /**
  * A live count per open tree.
@@ -10,6 +10,9 @@ import { ApiError, countBuilds, type Constraints } from "./api";
  * show a count for a search the player has already moved past.
  *
  * A fixed tree is not counted: it contributes exactly one build by definition.
+ *
+ * A tree that shares a point pool asks for its `spread` instead -- its count at every point
+ * total -- since the pool, not the tree, decides how many points it gets.
  */
 
 export interface TreeCount {
@@ -17,12 +20,16 @@ export interface TreeCount {
   sets: number | null;
   stale: boolean;
   error: string | null;
+  /** Builds at every point total, when asked for. */
+  spread?: number[] | null;
 }
 
 export interface CountRequest {
   key: string;
   /** Null for a fixed tree, or a search still being written (a group of one). */
   payload: Constraints | null;
+  /** Ask for the counts at every point total instead of at the payload's budget. */
+  spread?: boolean;
 }
 
 const DEBOUNCE_MS = 160;
@@ -36,7 +43,7 @@ export function useCounts(requests: CountRequest[]): Record<string, TreeCount> {
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
-    for (const { key, payload } of requests) {
+    for (const { key, payload, spread } of requests) {
       if (!payload) continue;
       const mine = (latest.current[key] ?? 0) + 1;
       latest.current[key] = mine;
@@ -46,13 +53,19 @@ export function useCounts(requests: CountRequest[]): Record<string, TreeCount> {
       }));
       timers.push(
         setTimeout(() => {
-          void countBuilds(key, payload)
+          const asked: Promise<TreeCount> = spread
+            ? countSpread(key, payload).then((r) => ({
+                builds: null,
+                sets: null,
+                spread: r.builds,
+                stale: false,
+                error: null,
+              }))
+            : countBuilds(key, payload).then((r) => ({ builds: r.builds, sets: r.sets, stale: false, error: null }));
+          void asked
             .then((result) => {
               if (latest.current[key] !== mine) return;
-              setCounts((previous) => ({
-                ...previous,
-                [key]: { builds: result.builds, sets: result.sets, stale: false, error: null },
-              }));
+              setCounts((previous) => ({ ...previous, [key]: result }));
             })
             .catch((error: unknown) => {
               if (latest.current[key] !== mine) return;

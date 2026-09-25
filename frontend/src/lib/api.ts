@@ -225,6 +225,20 @@ export const countBuilds = (treeKey: string, constraints: Constraints) =>
     body: JSON.stringify({ treeKey, ...constraints }),
   });
 
+export interface SpreadResult {
+  treeKey: string;
+  /** Index k: selections spending exactly k points; index 0 is the empty tree. */
+  sets: number[];
+  builds: number[];
+}
+
+/** A tree's counts at every point total at once, for trees that share a pool. */
+export const countSpread = (treeKey: string, constraints: Constraints) =>
+  request<SpreadResult>("/counts/spread", {
+    method: "POST",
+    body: JSON.stringify({ treeKey, ...constraints, points: 64 }),
+  });
+
 /* --- solve jobs ------------------------------------------------------------ */
 
 export type JobState =
