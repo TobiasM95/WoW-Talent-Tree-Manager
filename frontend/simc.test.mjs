@@ -155,6 +155,42 @@ const id = choiceIds[0];
 const sides = new Set(characters.filter((c) => c.choices[id] !== undefined).map((c) => c.choices[id]));
 check("both sides of a free choice node are in the export", sides.size === 2, [...sides].join(","));
 
+/* --- both hero trees in one search ----------------------------------------- */
+
+const other = trees["retail/6/250/hero/33"];
+const otherSelections = await enumerate(other.key, { points: 8 });
+const tag = (tree, list) => list.map((v) => ({ ...v, tree: tree.key, hero: tree.subTreeId }));
+const pooled = SPACE.characters(
+  [
+    { key: cls.key, variants: [SPACE.fixedVariant(cls, classPoints, {})] },
+    { key: spec.key, variants: [SPACE.fixedVariant(spec, specPoints, {})] },
+    {
+      key: "hero",
+      variants: [
+        ...tag(hero, heroSelections.flatMap((x) => SPACE.expand(hero, x, {}))),
+        ...tag(other, otherSelections.flatMap((x) => SPACE.expand(other, x, {}))),
+      ],
+    },
+  ],
+  10000,
+);
+const otherCount = (await post("/counts", { treeKey: other.key, points: 8 })).builds;
+check("both hero trees make the hero factor a sum", pooled.length === heroVariants.length + otherCount,
+  `${pooled.length} = ${heroVariants.length} + ${otherCount}`);
+const pooledStrings = SIMC.talentStrings({ spec, trees: all, heroSubTreeId: hero.subTreeId, characters: pooled });
+let named = 0;
+for (let i = 0; i < pooled.length; i++) {
+  const c = pooled[i];
+  const partKey = Object.keys(c.parts).find((k) => k.includes("/hero/"));
+  const d = STR.decode(pooledStrings[i], spec, all);
+  const wantHero = trees[partKey].subTreeId;
+  const samePoints = JSON.stringify(Object.entries(d.points).sort()) ===
+    JSON.stringify(Object.entries(c.points).filter(([, v]) => v > 0).sort());
+  if (d.heroSubTreeId === wantHero && samePoints) named++;
+}
+check("each line names its own hero tree, and decodes to its character", named === pooled.length,
+  `${named} of ${pooled.length}`);
+
 /* --- the text -------------------------------------------------------------- */
 
 const text = SIMC.profilesets(strings, { className: "Death Knight", specName: "Blood", note: "test" });

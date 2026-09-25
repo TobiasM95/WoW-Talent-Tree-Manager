@@ -44,6 +44,18 @@ const state = {
 };
 
 const text = S.encode(state);
+
+const bothState = {
+  ...state,
+  hero2: "retail/6/250/hero/33",
+  both: true,
+  work: { ...state.work, hero2: { ...W.emptyWork("open"), search: { ...W.EMPTY_SEARCH, budget: 9, required: [95999] } } },
+};
+const both = S.decode(S.encode(bothState));
+check("both hero trees: the flag survives", both.both === true);
+check("and the other hero tree with its own search", both.hero2 === "retail/6/250/hero/33" &&
+  both.work.hero2?.search.budget === 9 && same(both.work.hero2.search.required, [95999]));
+check("a link without it is one hero tree", S.decode(text).both === false && S.decode(text).hero2 === null);
 const back = S.decode(text);
 
 check("the spec and hero trees survive", back.spec === state.spec && back.hero === state.hero);

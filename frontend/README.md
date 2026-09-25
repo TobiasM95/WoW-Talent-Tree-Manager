@@ -17,6 +17,12 @@ The typical path: paste the talent string you play, which fixes all three trees;
 one you want to explore; paint until the count fits; simulate; read the answer; "use this
 build" to fix the trees to it and go round again.
 
+**Both hero trees at once.** The hero pane's `both` switch sims the other hero tree too, each
+with its own fixed build or search — the hero factor becomes a sum, class × spec × (A + B),
+and the names choose which one is being edited. The analysis then compares the trees by best
+and by mean, and says plainly when they were simmed at different budgets, since that compares
+the extra points rather than the trees.
+
 ### Why it is shaped like this
 
 It was not, twice, and both failures are worth knowing:

@@ -125,7 +125,8 @@ export function BuildViewer({ characters, strings, trees }: BuildViewerProps) {
       </div>
 
       <div className="flex min-h-[26rem] flex-1 flex-col gap-2 md:min-h-0 md:flex-row">
-        {trees.map((t) => {
+        {/* With both hero trees simmed, a build uses one of them: draw that one. */}
+        {trees.filter((t) => t.tree.kind !== "hero" || character.parts[t.key]).map((t) => {
           const part = character.parts[t.key];
           const drawn: loadout.Points = { ...(part?.points ?? {}) };
           for (const id of loadout.grantedRoots(t.tree)) {

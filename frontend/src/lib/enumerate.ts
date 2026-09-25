@@ -17,6 +17,14 @@ export interface TreeInput {
   tree: TreeDetail;
   work: TreeWork;
   cap: number;
+  /**
+   * Which factor of the product this tree belongs to. Trees sharing a slot are alternatives
+   * -- both hero trees at once -- so their builds are pooled and the factor is their sum.
+   * Absent means a slot of its own.
+   */
+  slot?: string;
+  /** For a hero tree, its sub-tree id, which every talent string built from it must name. */
+  hero?: number | null;
 }
 
 export interface Progress {
@@ -70,10 +78,18 @@ export async function enumerate(
   const report = () => onProgress(progress.map((p) => ({ ...p })));
   report();
 
-  const variants: { key: string; variants: Variant[] }[] = await Promise.all(
+  const tag = (input: TreeInput, list: Variant[]): Variant[] =>
+    list.map((v) => ({ ...v, tree: input.key, ...(input.hero !== undefined ? { hero: input.hero } : {}) }));
+
+  const perTree: { key: string; slot: string; variants: Variant[] }[] = await Promise.all(
     inputs.map(async (input, at) => {
+      const slot = input.slot ?? input.key;
       if (input.work.mode === "fixed") {
-        return { key: input.key, variants: [fixedVariant(input.tree, input.work.points, input.work.picks)] };
+        return {
+          key: input.key,
+          slot,
+          variants: tag(input, [fixedVariant(input.tree, input.work.points, input.work.picks)]),
+        };
       }
       try {
         progress[at]!.state = "solving";
@@ -85,7 +101,7 @@ export async function enumerate(
         progress[at]!.state = "done";
         progress[at]!.builds = expanded.length;
         report();
-        return { key: input.key, variants: expanded };
+        return { key: input.key, slot, variants: tag(input, expanded) };
       } catch (error) {
         progress[at]!.state = "failed";
         progress[at]!.error = error instanceof ApiError ? error.detail : String((error as Error).message ?? error);
@@ -95,5 +111,12 @@ export async function enumerate(
     }),
   );
 
-  return characters(variants, limit);
+  // Pool the trees that share a slot, keeping slot order stable so numbering is repeatable.
+  const slots: { key: string; variants: Variant[] }[] = [];
+  for (const t of perTree) {
+    const existing = slots.find((s) => s.key === t.slot);
+    if (existing) existing.variants.push(...t.variants);
+    else slots.push({ key: t.slot, variants: [...t.variants] });
+  }
+  return characters(slots, limit);
 }

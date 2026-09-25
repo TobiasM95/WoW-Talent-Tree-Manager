@@ -23,6 +23,11 @@ export interface LoadoutStringProps {
   choices: Record<string, number>;
   /** Which hero sub-tree the current loadout uses; the string has to name it. */
   heroSubTreeId: number | null;
+  /**
+   * Whether there is one build to write out. With any tree open there is a *set* of builds,
+   * and a string of just the fixed trees read as a real loadout with empty trees in it.
+   */
+  exportable?: boolean;
   onImport: (
     points: Points,
     choices: Record<string, number>,
@@ -37,6 +42,7 @@ export function LoadoutString({
   choices,
   heroSubTreeId,
   onImport,
+  exportable = true,
 }: LoadoutStringProps) {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -96,7 +102,9 @@ export function LoadoutString({
       ) : (
         <>
           <p className="mt-1 text-[11.5px] leading-snug text-ink-soft">
-            The string the game and SimulationCraft use, covering all three trees.
+            {exportable
+              ? "The string the game and SimulationCraft use, covering all three trees."
+              : "Paste the string you play to fix all three trees to it. A string to copy appears once every tree is fixed."}
           </p>
 
           <textarea
@@ -109,7 +117,7 @@ export function LoadoutString({
               minHeight: "3.4rem",
               wordBreak: "break-all",
             }}
-            value={draft || exported}
+            value={draft || (exportable ? exported : "")}
             onChange={(event) => {
               setDraft(event.target.value);
               setError(null);
@@ -124,8 +132,14 @@ export function LoadoutString({
               type="button"
               className="btn flex-1"
               onClick={() => void copy()}
-              disabled={!exported || spendable === 0}
-              title={spendable === 0 ? "Spend some points first" : "Copy this build's string"}
+              disabled={!exportable || !exported || spendable === 0}
+              title={
+                !exportable
+                  ? "Some trees are open: there is a set of builds, not one"
+                  : spendable === 0
+                    ? "Spend some points first"
+                    : "Copy this build's string"
+              }
             >
               {copied ? "Copied" : "Copy"}
             </button>

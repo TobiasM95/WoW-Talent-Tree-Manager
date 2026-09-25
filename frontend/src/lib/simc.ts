@@ -28,8 +28,15 @@ export interface ExportInput {
 
 /** One talent string per character, in character order. */
 export function talentStrings({ spec, trees, heroSubTreeId, characters }: ExportInput): string[] {
+  // Per character, because with both hero trees in the set, half the lines name the other one.
   return characters.map((c) =>
-    encode({ spec, trees, points: c.points, choices: c.choices, heroSubTreeId }),
+    encode({
+      spec,
+      trees,
+      points: c.points,
+      choices: c.choices,
+      heroSubTreeId: c.heroSubTreeId !== undefined ? c.heroSubTreeId : heroSubTreeId,
+    }),
   );
 }
 

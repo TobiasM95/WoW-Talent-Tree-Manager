@@ -1,5 +1,15 @@
 # Revival roadmap
 
+> **Status, September 2026.** Phases 0-3 are done, and so is Sim Analysis from Phase 5: a player
+> can narrow a spec's three trees to a simmable set, export it to SimulationCraft, and read back
+> a ranking, the value of each talent, each choice node's two sides, and which hero tree is
+> better. What remains: engine performance (deferred until there are precise performance
+> tests), importers for the legacy native-app formats, Phase 4 (accounts and persistence), and
+> the rest of Phase 5 (Classic, a tree editor, popular builds from WarcraftLogs).
+>
+> CI runs on releases, not commits: a push to `release`, a `v*` tag, or by hand. See the
+> repository README.
+
 Status: proposal. Ordered to **de-risk the unknowns before building product surface**. The
 tempting order (scaffold the web app first, integrate the engine last) is exactly backwards: the
 engine integration and the data ingestion are the two things that can still fail in surprising
@@ -13,8 +23,8 @@ Small, throwaway, answer-a-question-only work. Nothing here ships.
 |---|---|---|---|
 | S1 | ~~Build the engine + CLI on Linux via CMake in Docker~~ | ~~Is the port as cheap as the analysis says?~~ | **DONE** — byte-for-byte identical output (same sha256) from gcc 12 and MSVC v143 on `druid_restoration`. See the commit and [`../02-target/solver-performance.md`](../02-target/solver-performance.md). |
 | S2 | ~~Transform one spec into the target tree JSON, hero sub-trees included~~ | ~~Does the transformation hold up end to end?~~ | **DONE, and generalised past one spec** — all 40 specs transform into 160 trees (40 class, 40 spec, 80 hero), 4,567 nodes, with validation and tests. See [`../../services/ingest/`](../../services/ingest/README.md). |
-| S3 | Cross-tree prerequisites + tiered nodes | How do we feed pre-satisfied prerequisites and level-gated ranks to a per-tree solver? (Q5, Q10) | A worker contract that handles both, with the 64-bit budget confirmed at max level |
-| S4 | Blizzard hash round-trip | Can we import/export live in-game strings with the current codec? | An in-game export string imports correctly and re-exports byte-identically |
+| S3 | ~~Cross-tree prerequisites + tiered nodes~~ | ~~How do we feed pre-satisfied prerequisites and level-gated ranks to a per-tree solver?~~ (Q5, Q10) | **DONE** — tiered ranks are resolved against the level cap before the solve, in the ingest and the DP alike. Cross-tree `requiresNode` turned out **not to be a prerequisite**: decoding every SimulationCraft sample profile found it broken by 26 of 49 real builds. It names the ability a hero talent modifies, so the solver ignores it and the tooltip shows it. See Q5. |
+| S4 | ~~Blizzard hash round-trip~~ | ~~Can we import/export live in-game strings with the current codec?~~ | **DONE** — a real game export decodes and re-encodes byte for byte, including the `purchased` bit, the hero-tree selector and per-spec class trees. |
 
 S1 and S2 are independent and can run in parallel.
 
@@ -22,7 +32,7 @@ S1 and S2 are independent and can run in parallel.
 [`../02-target/raidbots-live-schema.md`](../02-target/raidbots-live-schema.md), so this is
 transformation work, not discovery.
 
-**S3 is now the highest-risk item.** Both of its inputs are confirmed to exist in live data —
+**S3 was the highest-risk item** (now resolved, above). Both of its inputs are confirmed to exist in live data —
 cross-tree `requiresNode` targets, and `tiered` nodes whose max ranks depend on character level —
 and both affect the solver's input, so they shape the worker contract. Neither requires an
 algorithm redesign if handled as pre-resolution before the solve, which is what this spike should
@@ -48,7 +58,9 @@ Build the pipeline before the product, because everything downstream is shaped b
   drift rather than hardcoding it. Output is staged and swapped in only after validation, so a
   bad run leaves the previous revision intact. A daily CI job runs it against live data so an
   upstream shape change surfaces the day it happens.
-- Still to do here: alerting on a stale `ingest_runs.promoted_at`, and the icon pipeline.
+- ~~Alerting on a stale `ingest_runs.promoted_at`~~ **done** as the thing a player can act on:
+  the page footer says how old the talent data is, and warns past a fortnight. ~~The icon
+  pipeline~~ **done**: icons are synced into Postgres and served with a one-year immutable cache.
 - Primary source: Raidbots `talents.json`; fallback: wago.tools raw DB2 CSVs (`TraitNode`,
   `TraitEdge`, `TraitCond`, `TraitSubTree`). Write the transform against an internal
   source-agnostic intermediate so switching is a swap, not a rewrite. Do **not** use simc as the
@@ -59,6 +71,8 @@ Build the pipeline before the product, because everything downstream is shaped b
   binaries in git.
 - Importers for the legacy formats (TTM tree string, TTM skillset string, Blizzard hash, SimC
   string) so existing users' saved data isn't orphaned — read-only, one-way, into the new JSON.
+  **Blizzard strings are done** (and SimC uses the same string); the two native-app TTM formats
+  are **still open**.
 
 Exit criteria: a fresh ingest run reproduces every spec's trees correctly, and a deliberately
 malformed upstream payload fails the run loudly instead of writing bad data.
@@ -111,7 +125,12 @@ pathological job is capped cleanly rather than taking down a container.
   output needs no merge. Note the functions named `countConfigurationsParallel` are *not*
   parallel, and the PPL usage parallelised across trees, not within one — which is very likely
   why earlier attempts never sped up a single-tree solve.
-- **Confirm the filter language against choice-node sides** (open question Q11).
+- ~~Confirm the filter language against choice-node sides (Q11)~~ **done**: sides reach the
+  engine, and the client's expansion of both sides of every free choice node equals the API's
+  `builds` count exactly (`test:simc`).
+
+Allocation and parallelism are **deferred on purpose**, until there are precise performance
+tests to judge them by.
 
 ### API — count endpoint done
 
@@ -186,6 +205,8 @@ Still to do in this phase:
   string and is done too: an enumerated result set exports as profilesets, one line per
   build, each a whole character rather than one tree.
 - **`ttm1.` share codes** are superseded by the URL, which already carries the whole view.
+- **Both hero trees in one search** — done: the hero factor becomes a sum, and the analysis
+  compares the trees, warning when they were simmed at different budgets.
 
 **Reworked around the workflow, not the engine.** The first version exposed the solver's
 one-tree-at-a-time nature as the product: a "baseline" loadout had to be hand-built before
@@ -225,19 +246,22 @@ Only now, once the foundation holds:
   characters, so a single talent's worth only appears across a controlled set of builds,
   which is exactly what an enumeration under constraints is.
   Built against a report SimulationCraft actually wrote rather than against a reading of its
-  schema, and `test:round` re-runs the entire loop -- export, sim, import -- wherever the
+  schema, and `pnpm test` re-runs the entire loop -- export, sim, import -- wherever the
   SimC container is available. The UI states both limits beside the numbers: differences
   smaller than the sim's own error bar are ties rather than an order, and talents the tree
   never separates share a score.
   **Per-talent frequency statistics** are a separate thing and did not need SimC at all --
-  they are a property of the enumeration, not of the sim.
+  they are a property of the enumeration, not of the sim. The API still serves them
+  (`/solve/{id}/stats`); the panel showing them was dropped in the workflow redesign and has
+  no home in the new layout yet.
 - Classic support (open question Q3).
 - Popular builds from WarcraftLogs — the one genuinely good idea in the legacy web app.
 - Engine improvements, which are far easier once it is under test in CI with a stable contract.
 
 ## Sequencing notes
 
-- **Test the engine contract in CI from Phase 2 onward.** The legacy project had zero tests, and
+- **Test the engine contract in CI from Phase 2 onward** — done, and gated to releases rather
+  than every commit, to keep compute proportionate. The legacy project had zero tests, and
   the trickiest logic (gating validation, hash bit-packing, divider placement) is exactly the kind
   that fails silently. A golden-file test comparing solver output for a fixed set of presets is
   cheap and would catch most regressions.

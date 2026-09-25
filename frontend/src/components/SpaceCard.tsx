@@ -1,4 +1,4 @@
-import { formatCount, productOf } from "../lib/space";
+import { formatCount } from "../lib/space";
 
 /**
  * How many whole characters the three trees describe, and whether that is simmable.
@@ -20,6 +20,22 @@ export interface SpaceRow {
   fixed: boolean;
   stale: boolean;
   error: string | null;
+  /**
+   * "+" pools this row into the factor above it instead of multiplying: two hero trees are
+   * alternatives, so a character takes one *or* the other, and the factor is their sum.
+   */
+  op?: "×" | "+";
+}
+
+/** class × spec × (hero A + hero B): multiply, except where a row says to add. */
+export function totalOf(rows: SpaceRow[]): number | null {
+  if (!rows.length || rows.some((r) => r.builds === null || r.error)) return null;
+  const factors: number[] = [];
+  for (const r of rows) {
+    if (r.op === "+" && factors.length) factors[factors.length - 1]! += r.builds!;
+    else factors.push(r.builds!);
+  }
+  return factors.reduce((a, b) => a * b, 1);
 }
 
 export interface SpaceCardProps {
@@ -28,13 +44,14 @@ export interface SpaceCardProps {
   onLimit: (limit: number) => void;
   pending: string[];
   onSimulate: () => void;
+  /** Something true about the space that does not stop a sim but changes what it means. */
+  hint?: string | null;
 }
 
 export const LIMITS = [1000, 5000, 10000, 25000, 50000] as const;
 
-export function SpaceCard({ rows, limit, onLimit, pending, onSimulate }: SpaceCardProps) {
-  const known = rows.every((r) => r.builds !== null && !r.error);
-  const total = known ? productOf(rows.map((r) => r.builds!)) : null;
+export function SpaceCard({ rows, limit, onLimit, pending, onSimulate, hint }: SpaceCardProps) {
+  const total = totalOf(rows);
   const stale = rows.some((r) => r.stale);
   const errored = rows.find((r) => r.error);
 
@@ -97,7 +114,7 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate }: SpaceCa
       <ul className="mt-2.5 space-y-0.5 text-[11.5px]">
         {rows.map((r, i) => (
           <li key={r.label} className="flex items-baseline gap-1.5">
-            <span className="w-3 text-ink-faint">{i === 0 ? "" : "×"}</span>
+            <span className="w-3 text-ink-faint">{i === 0 ? "" : (r.op ?? "×")}</span>
             <span className="text-ink-soft">{r.label}</span>
             <span className="chip ml-1 !text-[9.5px]">{r.fixed ? "fixed" : "open"}</span>
             <span className="num ml-auto" style={{ color: r.error ? "var(--barred)" : "var(--ink)" }}>
@@ -113,6 +130,12 @@ export function SpaceCard({ rows, limit, onLimit, pending, onSimulate }: SpaceCa
       >
         {verdict.text}
       </p>
+
+      {hint && (
+        <p className="mt-1.5 text-[11px] leading-snug" style={{ color: "var(--any-of)" }}>
+          {hint}
+        </p>
+      )}
 
       <button
         type="button"

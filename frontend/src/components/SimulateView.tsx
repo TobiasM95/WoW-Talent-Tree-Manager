@@ -274,7 +274,11 @@ export function SimulateView({
       <BuildViewer
         characters={current.characters}
         strings={current.strings}
-        trees={inputs.map((i) => ({ key: i.key, label: labels[i.key] ?? i.key, tree: i.tree }))}
+        trees={inputs.map((i) => ({
+          key: i.key,
+          label: i.tree.kind === "hero" ? "Hero" : (labels[i.key] ?? i.key),
+          tree: i.tree,
+        }))}
       />
     ) : (
       <div className="panel flex flex-1 items-center justify-center text-[12px] text-ink-faint">

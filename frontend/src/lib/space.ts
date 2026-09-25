@@ -10,7 +10,9 @@ import type { Search } from "./workspace";
  *   - class, spec and hero trees have their own point budgets, so what one takes never
  *     limits another;
  *   - a fixed tree contributes exactly one build;
- *   - an open tree contributes every build its search matches.
+ *   - an open tree contributes every build its search matches;
+ *   - a slot can hold two trees' builds side by side -- both hero trees at once -- which
+ *     makes that factor a sum: class x spec x (hero A + hero B).
  *
  * **Choice sides are expanded, not guessed.** The enumerator works in *selections*: it says
  * a choice node is taken, not which alternative. A selection with k unpinned choice nodes is
@@ -25,6 +27,13 @@ export interface Variant {
   points: Points;
   /** nodeId -> which alternative, 0 or 1, for every choice node taken. */
   choices: Record<string, number>;
+  /**
+   * The tree this build belongs to, when a slot holds builds from more than one tree -- the
+   * hero slot, when both hero trees are searched at once. Absent means the slot's own key.
+   */
+  tree?: string;
+  /** The hero sub-tree a hero build names, which the talent string has to carry. */
+  hero?: number | null;
 }
 
 export interface Character {
@@ -35,6 +44,8 @@ export interface Character {
   /** Everything merged, as the talent-string encoder wants it. */
   points: Points;
   choices: Record<string, number>;
+  /** Which hero sub-tree this character uses, when its hero build says. */
+  heroSubTreeId?: number | null;
 }
 
 const choiceNodes = (tree: TreeDetail) =>
@@ -98,16 +109,18 @@ export function characters(
     if (at === trees.length) {
       const points: Points = {};
       const choices: Record<string, number> = {};
+      let heroSubTreeId: number | null | undefined;
       for (const v of Object.values(parts)) {
         Object.assign(points, v.points);
         Object.assign(choices, v.choices);
+        if (v.hero !== undefined) heroSubTreeId = v.hero;
       }
-      out.push({ line: out.length + 1, parts: { ...parts }, points, choices });
+      out.push({ line: out.length + 1, parts: { ...parts }, points, choices, heroSubTreeId });
       return;
     }
     const tree = trees[at]!;
     for (const variant of tree.variants) {
-      walk(at + 1, { ...parts, [tree.key]: variant });
+      walk(at + 1, { ...parts, [variant.tree ?? tree.key]: variant });
       if (out.length >= limit) return;
     }
   };

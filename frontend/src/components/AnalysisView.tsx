@@ -55,6 +55,46 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
   }, [byLine]);
 
   const impacts = useMemo(() => impact(ranking, keys), [ranking, keys]);
+
+  /*
+    Hero tree against hero tree, when both were simmed.
+
+    The question a player asks first, and the one the set answers most directly: every other
+    talent varies within each hero tree's builds, so comparing the best and the mean of each
+    says both "which tree can go highest" and "which is better on average across what you
+    allowed". Both are shown because they can disagree.
+  */
+  const heroTrees = useMemo(() => {
+    const heroKeys = trees.filter((t) => t.tree.kind === "hero").map((t) => t.key);
+    if (heroKeys.length < 2) return [];
+    return heroKeys
+      .map((key) => {
+        const mine = ranking.builds.filter((b) => byLine.get(b.line)?.parts[key]);
+        if (!mine.length) return null;
+        const mean = mine.reduce((a, b) => a + b.mean, 0) / mine.length;
+        const part = byLine.get(mine[0]!.line)!.parts[key]!;
+        return {
+          key,
+          name: trees.find((t) => t.key === key)!.tree.name,
+          n: mine.length,
+          best: mine[0]!,
+          mean,
+          // What each hero tree was allowed to spend. Two trees simmed at different budgets
+          // are not being compared -- the extra points are.
+          points: Object.values(part.points).reduce((a, b) => a + b, 0),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b!.best.mean - a!.best.mean) as {
+      key: string;
+      name: string;
+      n: number;
+      best: Ranking["builds"][number];
+      mean: number;
+      points: number;
+    }[];
+  }, [trees, ranking, byLine]);
+  const unevenHeroes = heroTrees.length > 1 && new Set(heroTrees.map((h) => h.points)).size > 1;
   const choiceDuels = useMemo(() => duels(ranking, keys), [ranking, keys]);
 
   /*
@@ -103,16 +143,22 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
   const selectedRank = ranking.byLine.get(selected) ?? null;
   const best = byLine.get(ranking.best.line)!;
 
-  // What a build does differently from the best one, in talent names.
+  // What a build does differently from the best one, in talent names. A build on the other
+  // hero tree differs in *that* first, and listing each of its talents would bury it.
+  const heroKeyOf = (c: Character) => Object.keys(c.parts).find((k) => nodeTreeKind(k) === "hero");
+  const nodeTreeKind = (key: string) => trees.find((t) => t.key === key)?.tree.kind;
   const differences = (c: Character) => {
-    const mine = new Set(traits(c).filter((k) => !k.includes(":")));
-    const theirs = new Set(traits(best).filter((k) => !k.includes(":")));
+    const otherHero = heroKeyOf(c) !== heroKeyOf(best) ? heroKeyOf(c) : undefined;
+    const skip = (k: string) => otherHero !== undefined && nodeTree.get(Number(k))?.tree.kind === "hero";
+    const mine = new Set(traits(c).filter((k) => !k.includes(":") && !skip(k)));
+    const theirs = new Set(traits(best).filter((k) => !k.includes(":") && !skip(k)));
     const added = [...mine].filter((k) => !theirs.has(k)).map((k) => nodeOf(Number(k))?.name ?? k);
     const dropped = [...theirs].filter((k) => !mine.has(k)).map((k) => nodeOf(Number(k))?.name ?? k);
     const sides = Object.entries(c.choices)
       .filter(([id, side]) => best.choices[id] !== undefined && best.choices[id] !== side)
       .map(([id, side]) => nodeOf(Number(id))?.entries[side]?.name ?? id);
-    return { added, dropped, sides };
+    const hero = otherHero ? trees.find((t) => t.key === otherHero)?.tree.name : undefined;
+    return { added, dropped, sides, hero };
   };
 
   // "+Incite Terror −Transfusion · Desecrate": the table's reason to exist.
@@ -121,6 +167,7 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
     if (!c) return "";
     const d = differences(c);
     return [
+      ...(d.hero ? [`${d.hero} instead`] : []),
       ...d.added.map((n) => `+${n}`),
       ...d.dropped.map((n) => `−${n}`),
       ...d.sides,
@@ -159,6 +206,24 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
           <div className="label">Sim noise</div>
           <div className="num text-[18px] text-ink">±{(relError * 100).toFixed(1)}%</div>
         </div>
+        {heroTrees.length > 1 && (
+          <div>
+            <div className="label">Hero tree</div>
+            <div className="num text-[18px] text-ink">
+              {heroTrees[0]!.name}
+              <span className="text-[12px] text-ink-faint">
+                {" "}
+                {pct(heroTrees[0]!.best.mean / heroTrees[1]!.best.mean - 1)} best,{" "}
+                {pct(heroTrees[0]!.mean / heroTrees[1]!.mean - 1)} mean
+              </span>
+            </div>
+            {unevenHeroes && (
+              <div className="text-[11px]" style={{ color: "var(--any-of)" }}>
+                Not like for like: {heroTrees.map((h) => `${h.name} ${h.points} pts`).join(", ")}
+              </div>
+            )}
+          </div>
+        )}
         {ranking.baseline !== null && ranking.baseline > 0 && (
           <div>
             <div className="label">Your profile</div>
@@ -183,7 +248,9 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
       <div className="flex min-h-0 flex-1 flex-col gap-2 md:flex-row md:gap-2.5">
         {/* The trees: the selected build, or the value of each talent. */}
         <div className="flex min-h-[28rem] flex-1 flex-col gap-2 md:min-h-0 md:flex-row md:gap-2.5">
-          {trees.map((t) => {
+          {trees
+            .filter((t) => t.tree.kind !== "hero" || !selectedCharacter || selectedCharacter.parts[t.key])
+            .map((t) => {
             const part = selectedCharacter?.parts[t.key];
             // A tree every build agrees on has no heat to show, and drawing it bare read as
             // "every talent taken". It shows the build instead, which is the true answer.
@@ -256,10 +323,11 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
               </div>
               {selectedRank.rank > 0 && (() => {
                 const d = differences(selectedCharacter);
-                const any = d.added.length + d.dropped.length + d.sides.length;
+                const any = d.added.length + d.dropped.length + d.sides.length + (d.hero ? 1 : 0);
                 return any ? (
                   <p className="mt-1.5 text-[11.5px] leading-snug text-ink-soft">
-                    Against the best: {d.added.length > 0 && <>takes <span className="text-ink">{d.added.join(", ")}</span>. </>}
+                    Against the best: {d.hero && <>the <span className="text-ink">{d.hero}</span> hero tree. </>}
+                    {d.added.length > 0 && <>takes <span className="text-ink">{d.added.join(", ")}</span>. </>}
                     {d.dropped.length > 0 && <>skips <span className="text-ink">{d.dropped.join(", ")}</span>. </>}
                     {d.sides.length > 0 && <>picks <span className="text-ink">{d.sides.join(", ")}</span>.</>}
                   </p>
@@ -349,7 +417,9 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
                   const widest = Math.max(1e-9, ...rows.map((r) => Math.abs(r.delta)));
                   return (
                     <div key={t.key} className="mt-3">
-                      <div className="label !text-[10px]">{t.label}</div>
+                      <div className="label !text-[10px]">
+                        {t.tree.kind === "hero" ? `Hero · ${t.tree.name}` : t.label}
+                      </div>
                       {rows.length === 0 ? (
                         <p className="mt-1 text-[11.5px] text-ink-faint">
                           Every build takes the same talents here.
@@ -376,6 +446,37 @@ export function AnalysisView({ sim, ranking, trees, onUse, onBack, onAnother }: 
 
             {tab === "choices" && (
               <div className="p-3.5">
+                {heroTrees.length > 1 && (
+                  <div className="mb-4">
+                    <div className="label !text-[10px]">Hero trees</div>
+                    <ul className="mt-1.5 space-y-1.5 text-[11.5px]">
+                      {heroTrees.map((h, i) => (
+                        <li key={h.key} className="flex items-baseline gap-2">
+                          <span className={i === 0 ? "text-ink" : "text-ink-soft"} style={{ fontWeight: i === 0 ? 600 : 400 }}>
+                            {h.name}
+                          </span>
+                          <span className="num ml-auto text-[10.5px] text-ink-faint">
+                            best {fmt(h.best.mean)} ±{fmt(h.best.error)} · mean {fmt(h.mean)} · {h.n} builds
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                    {unevenHeroes && (
+                      <p className="mt-1 text-[11px]" style={{ color: "var(--any-of)" }}>
+                        The hero trees were simmed at different budgets (
+                        {heroTrees.map((h) => `${h.name} ${h.points}`).join(", ")} points), so this
+                        compares the extra points as much as the trees. Give both the same budget
+                        in Narrow for a fair comparison.
+                      </p>
+                    )}
+                    {heroTrees[0]!.best.mean - heroTrees[1]!.best.mean <
+                      heroTrees[0]!.best.error + heroTrees[1]!.best.error && (
+                      <p className="mt-1 text-[11px]" style={{ color: "var(--any-of)" }}>
+                        The two best builds are within each other&apos;s error bars — a tie at the top.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <p className="text-[11.5px] leading-snug text-ink-soft">
                   Each choice node, left against right, over the builds that took it. Both sides
                   of every free choice node were simmed.

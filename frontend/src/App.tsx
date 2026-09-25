@@ -14,7 +14,7 @@ import type { TreeInput } from "./lib/enumerate";
 import * as loadout from "./lib/loadout";
 import { decode, syncUrl, type Role } from "./lib/share";
 import type { Ranking } from "./lib/simcReport";
-import { productOf, type Character } from "./lib/space";
+import type { Character } from "./lib/space";
 import { useCounts } from "./lib/useCounts";
 import { useTheme } from "./lib/theme";
 import {
@@ -41,7 +41,7 @@ import { LoadoutString } from "./components/LoadoutString";
 import { PaintTools } from "./components/PaintTools";
 import { ShareButton } from "./components/ShareButton";
 import { SimulateView, type Sim } from "./components/SimulateView";
-import { SpaceCard } from "./components/SpaceCard";
+import { SpaceCard, totalOf, type SpaceRow } from "./components/SpaceCard";
 import { SpecRail } from "./components/SpecRail";
 import { TreePane } from "./components/TreePane";
 
@@ -62,11 +62,19 @@ import { TreePane } from "./components/TreePane";
 type Step = "narrow" | "simulate" | "analyse";
 
 const DEFAULT_LIMIT = 10000;
+const STALE_AFTER_S = 14 * 24 * 3600;
+
+const formatAge = (seconds: number) => {
+  const days = Math.floor(seconds / 86400);
+  if (days >= 1) return `${days} day${days === 1 ? "" : "s"}`;
+  const hours = Math.floor(seconds / 3600);
+  return hours >= 1 ? `${hours} hour${hours === 1 ? "" : "s"}` : "under an hour";
+};
 
 // The URL is the *initial* state; after that the app owns it and writes back.
 const SHARED = decode(window.location.search);
 
-const LABEL: Record<Role, string> = { class: "Class", spec: "Spec", hero: "Hero" };
+const LABEL: Record<Role, string> = { class: "Class", spec: "Spec", hero: "Hero", hero2: "Hero" };
 
 export default function App() {
   const { resolved, toggle } = useTheme();
@@ -105,12 +113,29 @@ export default function App() {
 
   const roles = useMemo(
     () =>
-      ([
-        ["class", group.class],
-        ["spec", group.spec],
-        ["hero", hero],
-      ] as const).filter((r): r is readonly [Role, TreeSummary] => r[1] !== null),
+      (
+        [
+          ["class", group.class],
+          ["spec", group.spec],
+          ["hero", hero],
+        ] as [Role, TreeSummary | null][]
+      ).filter((r): r is [Role, TreeSummary] => r[1] !== null),
     [group.class, group.spec, hero],
+  );
+
+  /*
+    Both hero trees in one search.
+
+    A player's first question about hero talents is which tree, not which talents -- and each
+    hero tree already keeps its own fixed build or search, since work is kept per tree. So
+    "both" just adds the other one to the trees that count: the hero factor becomes a sum,
+    class x spec x (San'layn + Deathbringer), and the picker chooses which one is being edited.
+  */
+  const [bothHeroes, setBothHeroes] = useState(SHARED.both);
+  const otherHero = group.heroes.find((h) => h.key !== heroKey) ?? null;
+  const members = useMemo(
+    () => (bothHeroes && otherHero ? [...roles, ["hero2", otherHero] as [Role, TreeSummary]] : roles),
+    [roles, bothHeroes, otherHero],
   );
 
   // --- bootstrap ----------------------------------------------------------
@@ -149,6 +174,8 @@ export default function App() {
       const shared = SHARED.work[role];
       if (shared) next[summary.key] = shared;
     }
+    const second = group.heroes.find((h) => h.key === SHARED.hero2);
+    if (second && SHARED.work.hero2) next[second.key] = SHARED.work.hero2;
     if (Object.keys(next).length) setWork((previous) => ({ ...next, ...previous }));
   }, [group.spec, group.class, group.heroes, hero, roles]);
 
@@ -196,7 +223,7 @@ export default function App() {
   // --- per-tree counts ----------------------------------------------------
   const countRequests = useMemo(
     () =>
-      roles.map(([, summary]) => {
+      members.map(([, summary]) => {
         const w = workOf(summary.key);
         return {
           key: summary.key,
@@ -204,28 +231,37 @@ export default function App() {
             w.mode === "open" && pendingOf(w).length === 0 ? payloadOf(w, capOf(summary)) : null,
         };
       }),
-    [roles, workOf],
+    [members, workOf],
   );
   const counts = useCounts(countRequests);
 
-  const rows = roles.map(([role, summary]) => {
+  const rows: SpaceRow[] = members.map(([role, summary]) => {
     const w = workOf(summary.key);
     const c = counts[summary.key];
     return {
       key: summary.key,
-      label: LABEL[role],
+      // Two hero rows need their names; one does not.
+      label: role.startsWith("hero") && bothHeroes ? summary.name : LABEL[role],
+      op: role === "hero2" ? ("+" as const) : undefined,
       fixed: w.mode === "fixed",
       builds: w.mode === "fixed" ? 1 : (c?.builds ?? null),
       stale: w.mode === "open" && (c?.stale ?? true),
       error: w.mode === "open" ? (c?.error ?? null) : null,
     };
   });
-  const pending = roles.flatMap(([role, s]) =>
+  const pending = members.flatMap(([role, s]) =>
     pendingOf(workOf(s.key)).map((p) => `${p} in the ${LABEL[role].toLowerCase()} tree`),
   );
-  const total =
-    rows.length === 3 && rows.every((r) => r.builds !== null && !r.error)
-      ? productOf(rows.map((r) => r.builds!))
+  const total = rows.length >= 3 ? totalOf(rows) : null;
+  // Two hero trees at different budgets compare the extra points, not the trees.
+  const heroBudget = (summary: TreeSummary | null) => {
+    if (!summary) return null;
+    const w = workOf(summary.key);
+    return w.mode === "fixed" ? loadout.total(w.points) : budgetOf(w, capOf(summary));
+  };
+  const heroHint =
+    bothHeroes && hero && otherHero && heroBudget(hero) !== heroBudget(otherHero)
+      ? `${hero.name} spends ${heroBudget(hero)} points and ${otherHero.name} ${heroBudget(otherHero)} — give them the same budget to compare the trees fairly.`
       : null;
   const simmable =
     total !== null && total > 0 && total <= limit && pending.length === 0 && !rows.some((r) => r.stale);
@@ -283,6 +319,7 @@ export default function App() {
         }
         return next;
       });
+      setBothHeroes(false);
       setNote("Imported: all three trees are fixed to that build. Switch one to Open to explore around it.");
     },
     [group.class, group.spec, group.heroes, hero, loaded],
@@ -303,6 +340,7 @@ export default function App() {
       });
       const heroPart = Object.keys(character.parts).find((k) => group.heroes.some((h) => h.key === k));
       if (heroPart) setHeroKey(heroPart);
+      setBothHeroes(false);
       setNote(`Build ${character.line} is now fixed on all three trees.`);
       setStep("narrow");
     },
@@ -310,28 +348,38 @@ export default function App() {
   );
 
   // --- the simulation step ------------------------------------------------
-  const inputs: TreeInput[] = roles
+  const inputs: TreeInput[] = members
     .filter(([, s]) => loaded[s.key])
-    .map(([, s]) => ({ key: s.key, tree: loaded[s.key]!, work: workOf(s.key), cap: capOf(s) }));
+    .map(([role, s]) => ({
+      key: s.key,
+      tree: loaded[s.key]!,
+      work: workOf(s.key),
+      cap: capOf(s),
+      // Both hero trees fill one factor of the product, and each names its own sub-tree.
+      ...(role.startsWith("hero") ? { slot: "hero", hero: s.subTreeId } : {}),
+    }));
   const signature = JSON.stringify({
     limit,
     hero: hero?.subTreeId ?? null,
+    both: bothHeroes,
     trees: inputs.map((i) =>
       i.work.mode === "fixed"
         ? { key: i.key, points: i.work.points, picks: i.work.picks }
         : { key: i.key, search: payloadOf(i.work, i.cap), sides: i.work.search.sides },
     ),
   });
-  const labels = Object.fromEntries(roles.map(([role, s]) => [s.key, LABEL[role]]));
+  const labels = Object.fromEntries(
+    members.map(([role, s]) => [s.key, role.startsWith("hero") && bothHeroes ? s.name : LABEL[role]]),
+  );
   // Only the trees this character can have: the sibling spec's hero-talent targets are not
   // in here, which is what keeps the tooltip from naming abilities this spec never gets.
   const nodeNames = useMemo(() => {
     const map = new Map<number, NamedNode>();
-    for (const [role, s] of roles) {
+    for (const [role, s] of members) {
       for (const n of loaded[s.key]?.nodes ?? []) map.set(n.nodeId, { name: n.name, tree: LABEL[role] });
     }
     return map;
-  }, [roles, loaded]);
+  }, [members, loaded]);
   const allTrees = wanted.map((k) => loaded[k]).filter(Boolean) as TreeDetail[];
   const specTree = group.spec ? (loaded[group.spec.key] ?? null) : null;
 
@@ -340,8 +388,18 @@ export default function App() {
     if (!group.spec || !seeded.current) return;
     const out: Partial<Record<Role, TreeWork>> = {};
     for (const [role, s] of roles) if (work[s.key]) out[role] = work[s.key];
-    syncUrl({ spec: group.spec.key, hero: heroKey, work: out, limit: limit === DEFAULT_LIMIT ? null : limit });
-  }, [group.spec, heroKey, roles, work, limit]);
+    // The other hero tree rides along whenever it holds something, simmed or not, so a
+    // link never loses what was painted on the tree not currently shown.
+    if (otherHero && work[otherHero.key]) out.hero2 = work[otherHero.key];
+    syncUrl({
+      spec: group.spec.key,
+      hero: heroKey,
+      hero2: otherHero?.key ?? null,
+      both: bothHeroes,
+      work: out,
+      limit: limit === DEFAULT_LIMIT ? null : limit,
+    });
+  }, [group.spec, heroKey, otherHero, bothHeroes, roles, work, limit]);
 
   const fixedPoints = Object.assign(
     {},
@@ -484,7 +542,7 @@ export default function App() {
             pane("hero", hero, {
               className: "min-h-[18rem] md:min-h-0 md:w-[20rem] md:shrink-0",
               children: (
-                <span className="ml-auto flex shrink-0 items-center">
+                <span className="ml-auto flex shrink-0 items-center gap-1">
                   {group.heroes.map((h) => (
                     <button
                       key={h.key}
@@ -492,11 +550,27 @@ export default function App() {
                       className="rail-item !px-1 !text-[10.5px]"
                       aria-pressed={h.key === heroKey}
                       onClick={() => setHeroKey(h.key)}
-                      title={h.name}
+                      title={bothHeroes ? `Edit ${h.name} — both are simmed` : h.name}
                     >
                       {h.name}
                     </button>
                   ))}
+                  {group.heroes.length > 1 && (
+                    <button
+                      type="button"
+                      className="chip !cursor-pointer"
+                      aria-pressed={bothHeroes}
+                      onClick={() => setBothHeroes((b) => !b)}
+                      style={bothHeroes ? { color: "var(--star-bright)", borderColor: "var(--star)" } : undefined}
+                      title={
+                        bothHeroes
+                          ? "Both hero trees are simmed. The names choose which one you are editing."
+                          : "Sim both hero trees together, to see which is better"
+                      }
+                    >
+                      {bothHeroes ? "both ✓" : "both"}
+                    </button>
+                  )}
                 </span>
               ),
             })}
@@ -508,6 +582,7 @@ export default function App() {
               onLimit={setLimit}
               pending={pending}
               onSimulate={() => setStep("simulate")}
+              hint={heroHint}
             />
 
             {note && (
@@ -532,12 +607,8 @@ export default function App() {
               choices={fixedPicks}
               heroSubTreeId={hero?.subTreeId ?? null}
               onImport={onImportString}
+              exportable={allFixed}
             />
-            {!allFixed && (
-              <p className="-mt-1 px-1 text-[10.5px] leading-snug text-ink-faint">
-                Importing fixes all three trees. The string above holds only the fixed ones.
-              </p>
-            )}
 
             <section className="panel p-3.5">
               <span className="label">Share</span>
@@ -557,7 +628,20 @@ export default function App() {
               {health && (
                 <>
                   {" "}
-                  Data revision <span className="num">{health.revision}</span>.
+                  Data revision <span className="num">{health.revision}</span>
+                  {/* Talent data goes stale silently: a patch lands, the ingest does not run,
+                      and every count is for last week's trees. Saying how old it is -- and
+                      saying it loudly past a fortnight -- is the alert a player can act on. */}
+                  {health.dataAgeSeconds !== null && health.dataAgeSeconds !== undefined && (
+                    <span
+                      style={{ color: health.dataAgeSeconds > STALE_AFTER_S ? "var(--any-of)" : undefined }}
+                      title={health.dataAgeSeconds > STALE_AFTER_S ? "Talents may predate the latest patch" : undefined}
+                    >
+                      , {formatAge(health.dataAgeSeconds)} old
+                      {health.dataAgeSeconds > STALE_AFTER_S && " — may predate the latest patch"}
+                    </span>
+                  )}
+                  .
                 </>
               )}
             </footer>
@@ -593,7 +677,7 @@ export default function App() {
         <AnalysisView
           sim={analysis.sim}
           ranking={analysis.ranking}
-          trees={Object.keys(analysis.sim.characters[0]?.parts ?? {})
+          trees={[...new Set(analysis.sim.characters.flatMap((c) => Object.keys(c.parts)))]
             .filter((k) => loaded[k])
             .map((k) => {
               const role = roles.find(([, s]) => s.key === k)?.[0];

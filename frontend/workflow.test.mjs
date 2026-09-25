@@ -148,16 +148,31 @@ await fresh.waitForSelector(".ttm-node", { timeout: 20000 });
 check("a shared link reopens the same space", (await waitTotal(fresh, (v) => v === 580)) === 580);
 await fresh.close();
 
+// Both hero trees at once: the question a player asks first. Deathbringer is left open at its
+// full budget, so the hero factor becomes San'layn's 580 plus however many Deathbringer has.
+const api = `${url}/api`;
+const deathbringer = await (await fetch(`${api}/counts`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ treeKey: "retail/6/250/hero/33", points: 13 }),
+})).json();
+await heroPane.locator('button:text-is("both")').click();
+const EXPECTED = 580 + deathbringer.builds;
+const pooled = await waitTotal(page, (v) => v === EXPECTED);
+check("both hero trees add, not multiply", pooled === EXPECTED, `${pooled} = 580 + ${deathbringer.builds}`);
+const heroRows = await page.locator('section:has-text("Possibility space") li').allInnerTexts();
+check("and the card shows the sum", heroRows.some((r) => r.includes("+")), heroRows.join(" / "));
+
 /* --- 2. simulate ---------------------------------------------------------- */
 
-await page.locator('button:has-text("Simulate 580 builds")').click();
+await page.locator(`button:has-text("Simulate ${EXPECTED.toLocaleString("en-US")} builds")`).click();
 await page.waitForSelector('button:has-text("Download")', { timeout: 60000 });
 await page.waitForFunction(() => !document.querySelector('button:has-text("Download")')?.disabled, null, {
   timeout: 120000,
 }).catch(() => {});
 await page.waitForFunction(
-  () => [...document.querySelectorAll("h2")].some((h) => /Simulate 580 builds/.test(h.textContent ?? "")),
-  null,
+  (n) => [...document.querySelectorAll("h2")].some((h) => (h.textContent ?? "").includes(`Simulate ${n} builds`)),
+  EXPECTED.toLocaleString("en-US"),
   { timeout: 120000 },
 );
 check("arriving at Simulate lists the builds without another button", true);
@@ -190,7 +205,7 @@ const simcFile = join(dir, "builds.simc");
 await download.saveAs(simcFile);
 const text = await readFile(simcFile, "utf8");
 const lines = text.split("\n").filter((l) => l.startsWith("profileset."));
-check("the file has one profileset per build", lines.length === 580, `${lines.length} lines`);
+check("the file has one profileset per build", lines.length === EXPECTED, `${lines.length} lines`);
 
 if (!hasSimc()) {
   console.log("   SimulationCraft image not present: sim and analysis steps skipped, not faked");
@@ -208,7 +223,7 @@ if (!hasSimc()) {
   const report = JSON.parse(await readFile(join(dir, "report.json"), "utf8"));
   check(
     "SimulationCraft accepted every build",
-    report.sim.profilesets.results.length === 580,
+    report.sim.profilesets.results.length === EXPECTED,
     `${report.sim.profilesets.results.length} results`,
   );
 
@@ -220,6 +235,20 @@ if (!hasSimc()) {
   check("a report goes straight to the analysis", true);
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${shots}/flow-4-builds.png` });
+  check(
+    "with both hero trees simmed, the analysis says which is better",
+    /hero tree/i.test(await page.locator("body").innerText()),
+  );
+  // San'layn was narrowed to 8 points and Deathbringer left at 13: the page must not present
+  // that as a comparison of the trees.
+  check(
+    "and warns when the hero trees were simmed at different budgets",
+    /not like for like/i.test(await page.locator("body").innerText()),
+  );
+  check(
+    "a build on the other hero tree says so in one phrase",
+    (await page.locator(".ttm-table tbody").innerText()).includes("instead"),
+  );
 
   const rowsShown = await page.locator(".ttm-table tbody tr").count();
   check("the ranking is a table", rowsShown >= 100, `${rowsShown} rows`);

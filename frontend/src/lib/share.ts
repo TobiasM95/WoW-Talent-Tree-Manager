@@ -18,28 +18,34 @@ import { EMPTY_SEARCH, emptyWork, type Search, type TreeWork } from "./workspace
  * points to different talents; ids cannot do that. They are written in base36 to keep links
  * short -- 88203 becomes "1txf" -- which is a transport encoding, not a substitute.
  *
- * Parameters, with `c`, `s` or `h` standing for the class, spec or hero tree:
+ * Parameters, with `c`, `s`, `h` or `g` standing for the class, spec, hero or other hero tree:
  *
  *   t   the spec tree's key, which also names the class      h   the hero tree's key
+ *   h2  the other hero tree's key, when it carries state     both  sim both hero trees
  *   ?m  f when the tree is fixed (absent means open)          l   the sim limit, if changed
  *   ?b  the fixed build            ?k  its choice sides
  *   ?p  the search's point budget  ?r ?x  required, barred
  *   ?s  pinned choice sides        ?o ?e  at-least-one, exactly-one groups
  */
 
-export type Role = "class" | "spec" | "hero";
-const PREFIX: Record<Role, string> = { class: "c", spec: "s", hero: "h" };
-export const ROLES: Role[] = ["class", "spec", "hero"];
+/** `hero2` is the hero tree not currently shown -- kept, since both can be simmed at once. */
+export type Role = "class" | "spec" | "hero" | "hero2";
+const PREFIX: Record<Role, string> = { class: "c", spec: "s", hero: "h", hero2: "g" };
+export const ROLES: Role[] = ["class", "spec", "hero", "hero2"];
 
 export interface Shared {
   /** The spec tree's key; the class and the class tree follow from it. */
   spec: string | null;
   hero: string | null;
+  /** The other hero tree, named only when it has state worth carrying. */
+  hero2: string | null;
+  /** Sim both hero trees together. */
+  both: boolean;
   work: Partial<Record<Role, TreeWork>>;
   limit: number | null;
 }
 
-export const NOTHING: Shared = { spec: null, hero: null, work: {}, limit: null };
+export const NOTHING: Shared = { spec: null, hero: null, hero2: null, both: false, work: {}, limit: null };
 
 const b36 = (id: number) => id.toString(36);
 const unb36 = (text: string) => Number.parseInt(text, 36);
@@ -96,11 +102,13 @@ export function encode(state: Shared): string {
   const params = new URLSearchParams();
   if (state.spec) params.set("t", state.spec);
   if (state.hero) params.set("h", state.hero);
+  if (state.hero2 && state.work.hero2) params.set("h2", state.hero2);
+  if (state.both) params.set("both", "1");
   if (state.limit) params.set("l", String(state.limit));
 
   for (const role of ROLES) {
     const work = state.work[role];
-    if (!work) continue;
+    if (!work || (role === "hero2" && !state.hero2)) continue;
     const p = PREFIX[role];
     const s = work.search;
     if (work.mode === "fixed") params.set(`${p}m`, "f");
@@ -136,6 +144,8 @@ export function decode(search: string): Shared {
   const out: Shared = {
     spec: t ? specKeyOf(t) : null,
     hero: params.get("h"),
+    hero2: params.get("h2"),
+    both: params.get("both") === "1",
     work: {},
     limit: Number(params.get("l")) > 0 ? Number(params.get("l")) : null,
   };
