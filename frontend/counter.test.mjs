@@ -16,7 +16,7 @@ const casesPath = process.argv[2];
 if (!casesPath) throw new Error("usage: node counter.test.mjs <cases.json>");
 const root = join(process.cwd(), "..");
 
-const server = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "error" });
+const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: "custom", logLevel: "error" });
 const C = await server.ssrLoadModule("/src/engine/counter.ts");
 
 const cases = JSON.parse(await readFile(casesPath, "utf8"));

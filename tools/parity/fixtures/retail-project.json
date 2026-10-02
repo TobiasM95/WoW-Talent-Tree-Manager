@@ -1,0 +1,256 @@
+{
+ "name": "Parity retail",
+ "style": "retail",
+ "trees": [
+  {
+   "name": "Class",
+   "role": "class",
+   "pointCap": 14,
+   "pointsPerRow": null,
+   "barriers": [
+    {
+     "row": 2,
+     "points": 3
+    },
+    {
+     "row": 4,
+     "points": 7
+    }
+   ],
+   "nodes": [
+    {
+     "nodeId": 1,
+     "name": "Root",
+     "maxPoints": 1,
+     "row": 0,
+     "col": 2,
+     "parents": [],
+     "granted": true
+    },
+    {
+     "nodeId": 2,
+     "name": "Left",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 1,
+     "parents": [
+      1
+     ]
+    },
+    {
+     "nodeId": 3,
+     "name": "Right",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 3,
+     "parents": [
+      1
+     ]
+    },
+    {
+     "nodeId": 4,
+     "name": "Fork",
+     "maxPoints": 1,
+     "row": 2,
+     "col": 2,
+     "parents": [
+      2,
+      3
+     ],
+     "kind": "choice",
+     "entries": [
+      {
+       "name": "Fork A"
+      },
+      {
+       "name": "Fork B"
+      }
+     ]
+    },
+    {
+     "nodeId": 5,
+     "name": "Deep left",
+     "maxPoints": 3,
+     "row": 3,
+     "col": 1,
+     "parents": [
+      2
+     ]
+    },
+    {
+     "nodeId": 6,
+     "name": "Deep right",
+     "maxPoints": 1,
+     "row": 3,
+     "col": 3,
+     "parents": [
+      3
+     ]
+    },
+    {
+     "nodeId": 7,
+     "name": "Below fork",
+     "maxPoints": 2,
+     "row": 3,
+     "col": 2,
+     "parents": [
+      4
+     ]
+    },
+    {
+     "nodeId": 8,
+     "name": "Capstone",
+     "maxPoints": 1,
+     "row": 4,
+     "col": 2,
+     "parents": [
+      5,
+      6,
+      7
+     ]
+    },
+    {
+     "nodeId": 9,
+     "name": "Side",
+     "maxPoints": 2,
+     "row": 4,
+     "col": 4,
+     "parents": [
+      6
+     ]
+    },
+    {
+     "nodeId": 10,
+     "name": "Free standing",
+     "maxPoints": 2,
+     "row": 2,
+     "col": 0,
+     "parents": []
+    }
+   ]
+  },
+  {
+   "name": "Spec",
+   "role": "spec",
+   "pointCap": 9,
+   "pointsPerRow": null,
+   "barriers": [
+    {
+     "row": 2,
+     "points": 4
+    }
+   ],
+   "nodes": [
+    {
+     "nodeId": 20,
+     "name": "Spec root",
+     "maxPoints": 1,
+     "row": 0,
+     "col": 1,
+     "parents": []
+    },
+    {
+     "nodeId": 21,
+     "name": "Two",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 0,
+     "parents": [
+      20
+     ]
+    },
+    {
+     "nodeId": 22,
+     "name": "Three",
+     "maxPoints": 3,
+     "row": 1,
+     "col": 2,
+     "parents": [
+      20
+     ]
+    },
+    {
+     "nodeId": 23,
+     "name": "Pick",
+     "maxPoints": 1,
+     "row": 2,
+     "col": 1,
+     "parents": [
+      21,
+      22
+     ],
+     "kind": "choice",
+     "entries": [
+      {
+       "name": "Pick A"
+      },
+      {
+       "name": "Pick B"
+      }
+     ]
+    },
+    {
+     "nodeId": 24,
+     "name": "Last",
+     "maxPoints": 2,
+     "row": 3,
+     "col": 1,
+     "parents": [
+      23
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Hero",
+   "role": "hero",
+   "specs": [
+    0
+   ],
+   "pointCap": 5,
+   "pointsPerRow": null,
+   "nodes": [
+    {
+     "nodeId": 30,
+     "name": "Hero root",
+     "maxPoints": 1,
+     "row": 0,
+     "col": 1,
+     "parents": [],
+     "granted": true
+    },
+    {
+     "nodeId": 31,
+     "name": "Hero a",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 0,
+     "parents": [
+      30
+     ]
+    },
+    {
+     "nodeId": 32,
+     "name": "Hero b",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 2,
+     "parents": [
+      30
+     ]
+    },
+    {
+     "nodeId": 33,
+     "name": "Hero end",
+     "maxPoints": 1,
+     "row": 2,
+     "col": 1,
+     "parents": [
+      31,
+      32
+     ]
+    }
+   ]
+  }
+ ]
+}

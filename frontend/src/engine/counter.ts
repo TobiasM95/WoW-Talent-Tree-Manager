@@ -197,7 +197,7 @@ export function buildGraph(tree: CounterTree, levelCap: number | null = 90): Gra
   };
 }
 
-interface Rules {
+export interface Rules {
   mustTake: boolean[];
   mustSkip: boolean[];
   multiplier: number[];
@@ -208,7 +208,7 @@ interface Rules {
   exactlyCount: number;
 }
 
-function rulesOf(graph: Graph, search: Search, weightChoices: boolean): Rules {
+export function rulesOf(graph: Graph, search: Search, weightChoices: boolean): Rules {
   const require = new Set(search.mustHave ?? []);
   const exclude = new Set(search.mustNotHave ?? []);
   const sides = search.choiceSides ?? {};
@@ -247,7 +247,7 @@ function rulesOf(graph: Graph, search: Search, weightChoices: boolean): Rules {
 }
 
 /** One DP state: taken steps still needed, group progress, and counts by points spent. */
-interface State {
+export interface State {
   live: number[];
   /** At-least-one groups as a bitmask, then exactly-one counts (0 or 1) per group. */
   atLeast: number;
@@ -255,8 +255,45 @@ interface State {
   v: bigint[];
 }
 
-const stateKey = (live: number[], atLeast: number, exactly: number[]) =>
+export const stateKey = (live: number[], atLeast: number, exactly: number[]) =>
   `${live.join(",")}|${atLeast}|${exactly.join("")}`;
+
+/** Where a state can go from step `i`: skip it, take it, both, or neither. */
+export interface Move {
+  take: boolean;
+  live: number[];
+  atLeast: number;
+  exactly: number[];
+  key: string;
+  /** Taking needs this many points spent already. */
+  from: number;
+  mult: bigint;
+}
+
+export function movesOf(graph: Graph, rules: Rules, i: number, st: { live: number[]; atLeast: number; exactly: number[] }): Move[] {
+  const step = graph.steps[i]!;
+  const keep = (live: number[]) => live.filter((x) => graph.steps[x]!.lastNeeded > i);
+  const out: Move[] = [];
+  // Skip this step, unless the search insists on it.
+  if (!rules.mustTake[i]) {
+    const live = keep(st.live);
+    out.push({ take: false, live, atLeast: st.atLeast, exactly: st.exactly, key: stateKey(live, st.atLeast, st.exactly), from: 0, mult: 1n });
+  }
+  // Take it: allowed by the search, reachable from a parent, behind its gate.
+  if (rules.mustSkip[i]) return out;
+  if (step.parents.length && !step.parents.some((p) => st.live.includes(p))) return out;
+  let exactly = st.exactly;
+  if (rules.exactly[i]!.length) {
+    if (rules.exactly[i]!.some((g) => st.exactly[g])) return out; // a second member: never exactly one
+    exactly = [...st.exactly];
+    for (const g of rules.exactly[i]!) exactly[g] = 1;
+  }
+  let atLeast = st.atLeast;
+  for (const g of rules.atLeast[i]!) atLeast |= 1 << g;
+  const live = keep([...st.live, i].sort((a, b) => a - b));
+  out.push({ take: true, live, atLeast, exactly, key: stateKey(live, atLeast, exactly), from: Math.max(0, step.req), mult: BigInt(rules.multiplier[i]!) });
+  return out;
+}
 
 /**
  * Walk the DP, calling `layer` after each step with the states it ends in. The counter only
@@ -276,41 +313,25 @@ export function walk(
   const start: bigint[] = new Array(width).fill(0n);
   start[0] = 1n;
   states.set(stateKey([], 0, empty), { live: [], atLeast: 0, exactly: empty, v: start });
+  layer?.(-1, states);
 
-  const add = (into: Map<string, State>, live: number[], atLeast: number, exactly: number[], pts: number, count: bigint) => {
-    const key = stateKey(live, atLeast, exactly);
-    let st = into.get(key);
-    if (!st) {
-      st = { live, atLeast, exactly, v: new Array(width).fill(0n) };
-      into.set(key, st);
-    }
-    st.v[pts]! += count;
-  };
-
-  graph.steps.forEach((step, i) => {
+  graph.steps.forEach((_, i) => {
     const next = new Map<string, State>();
-    const keep = (live: number[]) => live.filter((x) => graph.steps[x]!.lastNeeded > i);
     for (const st of states.values()) {
-      // Skip this step, unless the search insists on it.
-      if (!rules.mustTake[i]) {
-        const live = keep(st.live);
-        for (let p = 0; p < width; p++) if (st.v[p]) add(next, live, st.atLeast, st.exactly, p, st.v[p]!);
-      }
-      // Take it: allowed by the search, reachable from a parent, behind its gate.
-      if (rules.mustSkip[i]) continue;
-      if (step.parents.length && !step.parents.some((p) => st.live.includes(p))) continue;
-      let exactly = st.exactly;
-      if (rules.exactly[i]!.length) {
-        if (rules.exactly[i]!.some((g) => st.exactly[g])) continue; // a second member: never exactly one
-        exactly = [...st.exactly];
-        for (const g of rules.exactly[i]!) exactly[g] = 1;
-      }
-      let atLeast = st.atLeast;
-      for (const g of rules.atLeast[i]!) atLeast |= 1 << g;
-      const live = keep([...st.live, i].sort((a, b) => a - b));
-      const mult = BigInt(rules.multiplier[i]!);
-      for (let p = Math.max(0, step.req); p < maxPoints; p++) {
-        if (st.v[p]) add(next, live, atLeast, exactly, p + 1, st.v[p]! * mult);
+      for (const m of movesOf(graph, rules, i, st)) {
+        // Only where a count actually flows: an empty state would be carried, and multiply.
+        const flows = m.take ? st.v.some((c, p) => c && p >= m.from && p < maxPoints) : st.v.some((c) => c);
+        if (!flows) continue;
+        let to = next.get(m.key);
+        if (!to) {
+          to = { live: m.live, atLeast: m.atLeast, exactly: m.exactly, v: new Array(width).fill(0n) };
+          next.set(m.key, to);
+        }
+        if (!m.take) {
+          for (let p = 0; p < width; p++) if (st.v[p]) to.v[p]! += st.v[p]!;
+        } else {
+          for (let p = m.from; p < maxPoints; p++) if (st.v[p]) to.v[p + 1]! += st.v[p]! * m.mult;
+        }
       }
     }
     states = next;

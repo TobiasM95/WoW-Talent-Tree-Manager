@@ -1,0 +1,130 @@
+{
+ "name": "Parity classic",
+ "sharedPointCap": 20,
+ "trees": [
+  {
+   "name": "Tab one",
+   "pointCap": 16,
+   "pointsPerRow": 3,
+   "nodes": [
+    {
+     "nodeId": 101,
+     "name": "A",
+     "maxPoints": 3,
+     "row": 0,
+     "col": 0,
+     "parents": []
+    },
+    {
+     "nodeId": 102,
+     "name": "B",
+     "maxPoints": 2,
+     "row": 0,
+     "col": 1,
+     "parents": []
+    },
+    {
+     "nodeId": 103,
+     "name": "C",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 0,
+     "parents": [
+      101
+     ]
+    },
+    {
+     "nodeId": 104,
+     "name": "D",
+     "maxPoints": 3,
+     "row": 1,
+     "col": 2,
+     "parents": []
+    },
+    {
+     "nodeId": 105,
+     "name": "E",
+     "maxPoints": 1,
+     "row": 2,
+     "col": 1,
+     "parents": [
+      103
+     ]
+    },
+    {
+     "nodeId": 106,
+     "name": "F",
+     "maxPoints": 2,
+     "row": 3,
+     "col": 1,
+     "parents": [
+      105
+     ]
+    },
+    {
+     "nodeId": 107,
+     "name": "G",
+     "maxPoints": 3,
+     "row": 2,
+     "col": 3,
+     "parents": [
+      104
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Tab two",
+   "pointCap": 10,
+   "pointsPerRow": 3,
+   "nodes": [
+    {
+     "nodeId": 201,
+     "name": "H",
+     "maxPoints": 2,
+     "row": 0,
+     "col": 0,
+     "parents": []
+    },
+    {
+     "nodeId": 202,
+     "name": "I",
+     "maxPoints": 3,
+     "row": 0,
+     "col": 2,
+     "parents": []
+    },
+    {
+     "nodeId": 203,
+     "name": "J",
+     "maxPoints": 2,
+     "row": 1,
+     "col": 1,
+     "parents": [
+      201,
+      202
+     ]
+    },
+    {
+     "nodeId": 204,
+     "name": "K",
+     "maxPoints": 1,
+     "row": 2,
+     "col": 1,
+     "parents": [
+      203
+     ],
+     "pointsRequired": 7
+    },
+    {
+     "nodeId": 205,
+     "name": "L",
+     "maxPoints": 2,
+     "row": 2,
+     "col": 3,
+     "parents": []
+    }
+   ]
+  }
+ ]
+}

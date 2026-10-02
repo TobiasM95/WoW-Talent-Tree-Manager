@@ -5,3 +5,6 @@ shots/
 
 # TypeScript incremental build state.
 *.tsbuildinfo
+
+# The engine reference answers for the parity suite: generated, ~70 MB.
+.parity.json
