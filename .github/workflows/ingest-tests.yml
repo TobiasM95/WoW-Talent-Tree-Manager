@@ -46,17 +46,15 @@ jobs:
       # Fails on an unknown node or entry type, a missing field, a broken graph, or a
       # payload that is not what we expect. A warning about the class or spec count
       # means Blizzard changed the roster and the expectation needs updating.
+      # Keeps the payload it validated, so the tests below run on exactly the same bytes.
       - name: ingest live data
-        run: python services/ingest/ingest.py --dry-run
+        run: python services/ingest/ingest.py --dry-run --cache-dir payload
 
+      # Reuses the ingest's download rather than making a second one. The second one used
+      # urllib's default User-Agent, which Raidbots answers with 403 -- so this job failed
+      # on every scheduled run while the data itself was fine.
       - name: tests against the live payload
-        run: |
-          python - <<'PY'
-          from urllib.request import urlopen
-          open('talents.json','wb').write(
-              urlopen('https://www.raidbots.com/static/data/live/talents.json', timeout=120).read())
-          PY
-          python services/ingest/tests/test_ingest.py talents.json
+        run: python services/ingest/tests/test_ingest.py payload/talents-*.json
 
   crosscheck:
     name: DP and engine agree on ingested trees
