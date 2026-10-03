@@ -133,7 +133,7 @@ wherever this data is. It writes the same tree format as the retail ingest, into
 
 ```bash
 python services/ingest/forever_ingest.py
-python services/db/load_trees.py --trees data/generated-forever
+python tools/site/build_data.py --out frontend/public   --game retail=data/generated --game forever=data/generated-forever
 ```
 
 What it has to supply that the export does not:

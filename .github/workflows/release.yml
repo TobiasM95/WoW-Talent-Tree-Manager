@@ -1,19 +1,21 @@
 name: release
 
-# The whole product, end to end, before anything is released -- and only then.
-#
-# Deliberately not on every push or pull request. Commits land constantly and most of them
-# are small; running a full stack, a live ingest and a real SimulationCraft sim on each would
-# spend compute on checks nobody reads. So this runs when something is about to ship:
+# Builds, checks and publishes the site, only when something is meant to ship:
 #
 #   - a push to the `release` branch,
 #   - a `v*` tag,
 #   - or by hand, from the Actions tab.
 #
-# What it proves is what a player relies on: live data ingests and loads, the API's 48 checks
-# pass (counts, filters, and every stored build legal), and the frontend suites pass --
-# including the workflow suite, which downloads a real export, sims it in SimulationCraft and
-# reads the report back.
+# Never on ordinary pushes: commits land constantly, and a live ingest, a real SimulationCraft
+# sim and a deploy on each would spend compute nobody reads.
+#
+# The site is static (docs/03-plan/browser-only.md): tree data and icons are files, counting and
+# listing builds run in the browser, and two Cloudflare Pages Functions serve WarcraftLogs and
+# saved projects. Three jobs:
+#
+#   parity  the browser's counter and lister agree with the C++ engine, built from source;
+#   site    live data ingests, the site builds, and every suite passes against it;
+#   deploy  only when both pass: publish to Cloudflare Pages.
 
 on:
   push:
@@ -25,65 +27,97 @@ on:
         description: 'Run the real SimulationCraft round trip (pulls a ~1 GB image)'
         type: boolean
         default: true
+      deploy:
+        description: 'Publish to Cloudflare Pages when every check passes'
+        type: boolean
+        default: true
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  PAGES_PROJECT: talent-tree-manager
+
 jobs:
-  stack:
-    name: full stack + every suite
+  # The C++ engine is the browser engine's maintained twin. Both answer the same searches on
+  # every live tree and the custom fixtures, and must agree exactly: counts at several budgets,
+  # full listings as sets. A counting or tree feature in one and not the other fails here.
+  parity:
+    name: browser engine agrees with the C++ engine
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    # WarcraftLogs keys, as repository secrets. Without them the top-player checks skip rather
-    # than fail, so a fork or a repository without secrets still gets a clean run.
-    env:
-      WCL_CLIENT_ID: ${{ secrets.WCL_CLIENT_ID }}
-      WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
-      - name: database
+      - name: build the engine
         run: |
-          docker compose up -d postgres
-          docker compose run --rm migrate
-
-      # Live data, the same path production takes. A shape change upstream fails here, on the
-      # release it would have broken, rather than in front of a player.
-      - name: ingest live data and load it
-        run: |
-          docker compose run --rm ingest --point-caps --quiet
-          docker compose run --rm loader
-
-      # WoW Forever: a second game, loaded as its own revision. Retail must still be served
-      # afterwards, which the API suite checks.
-      - name: ingest WoW Forever and load it
-        run: |
-          docker compose run --rm --entrypoint python ingest services/ingest/forever_ingest.py
-          docker compose run --rm loader --trees data/generated-forever
-
-      - name: start the services
-        run: |
-          docker compose --profile web up -d --build api worker web
-          for i in $(seq 1 90); do
-            curl -fs http://localhost:8001/health > /dev/null && \
-            curl -fs http://localhost:8081/api/health > /dev/null && exit 0
-            sleep 2
-          done
-          docker compose logs --tail 80 api worker web
-          exit 1
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j "$(nproc)"
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: pip install -r services/ingest/requirements.txt
 
-      - name: API suite
-        run: python services/api/test_api.py http://localhost:8001
+      - name: ingest live retail and WoW Forever
+        run: |
+          python services/ingest/ingest.py --quiet --out data/generated
+          python services/ingest/forever_ingest.py
+
+      - name: the engine's answers
+        run: >
+          python tools/parity/engine_reference.py --solver build/ttm-solver
+          --out frontend/.parity.json data/generated/trees data/generated-forever/trees
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: frontend dependencies
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
 
+      - name: the browser agrees
+        working-directory: frontend
+        run: node parity.test.mjs .parity.json
+
+  site:
+    name: build the site, every suite against it
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r services/ingest/requirements.txt
+
+      # Live data, the same path the published site gets. A shape change upstream fails here,
+      # on the release it would have broken, rather than in front of a player.
+      - name: ingest live retail (point caps, descriptions) and WoW Forever
+        run: |
+          python services/ingest/ingest.py --quiet --point-caps --descriptions \
+            --out data/generated --cache-dir data/cache --description-cache data/descriptions.json
+          python services/ingest/forever_ingest.py
+
+      # Icons are fetched once and kept between releases: only new names are downloaded.
+      - uses: actions/cache@v4
+        with:
+          path: data/icons
+          key: icons-${{ github.run_id }}
+          restore-keys: icons-
+
+      - name: the site's data and icons
+        run: >
+          python tools/site/build_data.py --out frontend/public
+          --game retail=data/generated --game forever=data/generated-forever --icon-cache data/icons
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: frontend dependencies
         working-directory: frontend
         run: |
@@ -91,13 +125,33 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm exec playwright install --with-deps chromium
 
-      # Present, and the workflow suite sims for real; absent, it says the sim was skipped
-      # rather than faking a report.
+      - name: build
+        working-directory: frontend
+        run: pnpm run build
+
+      # The built site and its functions, served the way Cloudflare serves them. WarcraftLogs
+      # keys, if the repository has them, reach the functions; without them the top-player
+      # checks skip rather than fail.
+      - name: serve the site locally
+        working-directory: frontend
+        env:
+          WCL_CLIENT_ID: ${{ secrets.WCL_CLIENT_ID }}
+          WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
+        run: |
+          printf 'WCL_CLIENT_ID=%s\nWCL_CLIENT_SECRET=%s\n' "$WCL_CLIENT_ID" "$WCL_CLIENT_SECRET" > .dev.vars
+          nohup pnpm exec wrangler pages dev dist --port 8081 > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fs http://localhost:8081/data/retail/index.json > /dev/null && exit 0
+            sleep 2
+          done
+          cat wrangler.log
+          exit 1
+
       - name: SimulationCraft image
         if: github.event_name != 'workflow_dispatch' || inputs.live_sim
         run: docker pull simulationcraftorg/simc:latest
 
-      - name: frontend suites
+      - name: every suite
         working-directory: frontend
         run: pnpm run test:all
 
@@ -109,6 +163,75 @@ jobs:
           path: frontend/shots/
           if-no-files-found: ignore
 
-      - name: service logs on failure
-        if: failure()
-        run: docker compose logs --tail 200 api worker web
+      # The deploy job publishes exactly what was tested.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: frontend/dist/
+          retention-days: 7
+
+  deploy:
+    name: publish to Cloudflare Pages
+    needs: [parity, site]
+    if: github.event_name != 'workflow_dispatch' || inputs.deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: frontend/dist
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: frontend dependencies
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      # First release only: the Pages project and the KV namespace for saved projects are
+      # created if missing. Afterwards these find what is there and change nothing.
+      - name: the Pages project and its storage
+        working-directory: frontend
+        run: |
+          # Creating an existing project fails harmlessly; anything worse (a bad token, say)
+          # fails the publish step below, loudly.
+          pnpm exec wrangler pages project create "$PAGES_PROJECT" --production-branch master \
+            || echo "the Pages project already exists"
+          pnpm exec wrangler kv namespace list > namespaces.json
+          id=$(node -e 'const n=require("./namespaces.json").find(x=>x.title===process.env.PAGES_PROJECT+"-projects");if(n)console.log(n.id)')
+          if [ -z "$id" ]; then
+            pnpm exec wrangler kv namespace create "$PAGES_PROJECT-projects" > created.txt
+            cat created.txt
+            pnpm exec wrangler kv namespace list > namespaces.json
+            id=$(node -e 'const n=require("./namespaces.json").find(x=>x.title===process.env.PAGES_PROJECT+"-projects");if(n)console.log(n.id)')
+          fi
+          test -n "$id"
+          sed -i "s/^id = \".*\"/id = \"$id\"/" wrangler.toml
+          grep -n '^id' wrangler.toml
+
+      - name: WarcraftLogs keys, as Pages secrets
+        working-directory: frontend
+        env:
+          WCL_CLIENT_ID: ${{ secrets.WCL_CLIENT_ID }}
+          WCL_CLIENT_SECRET: ${{ secrets.WCL_CLIENT_SECRET }}
+        run: |
+          if [ -z "$WCL_CLIENT_ID" ] || [ -z "$WCL_CLIENT_SECRET" ]; then
+            echo "No WarcraftLogs secrets in this repository: the top-players panel will say it is not configured."
+            exit 0
+          fi
+          printf '%s' "$WCL_CLIENT_ID" | pnpm exec wrangler pages secret put WCL_CLIENT_ID --project-name "$PAGES_PROJECT"
+          printf '%s' "$WCL_CLIENT_SECRET" | pnpm exec wrangler pages secret put WCL_CLIENT_SECRET --project-name "$PAGES_PROJECT"
+
+      - name: publish
+        working-directory: frontend
+        run: pnpm exec wrangler pages deploy dist --project-name "$PAGES_PROJECT" --branch master --commit-dirty=true

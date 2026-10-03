@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { iconUrl, request } from "../lib/api";
+import { iconUrl, searchIcons } from "../lib/api";
 import {
   addNode,
   deleteNode,
@@ -820,7 +820,7 @@ function IconPicker({ value, onPick }: { value: string | null; onPick: (icon: st
       return;
     }
     const timer = setTimeout(() => {
-      void request<string[]>(`/icons?search=${encodeURIComponent(term)}&limit=48`)
+      void searchIcons(term, 48)
         .then(setResults)
         .catch(() => setResults([]));
     }, 200);

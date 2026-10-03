@@ -7,14 +7,10 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
-    // The API is a separate container. Proxying in dev keeps every fetch same-origin, so
-    // there is no CORS configuration that exists only for development.
+    // /api is the site's Cloudflare Pages Functions. In development they run under
+    // `wrangler pages dev` (port 8788 by default); proxying keeps every fetch same-origin.
     proxy: {
-      "/api": {
-        target: process.env.TTM_API_URL ?? "http://localhost:8001",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
-      },
+      "/api": { target: process.env.TTM_FUNCTIONS_URL ?? "http://localhost:8788", changeOrigin: true },
     },
   },
 });

@@ -1,0 +1,15 @@
+# Cloudflare Pages: the static site (dist/) and its functions (functions/), on one origin.
+#
+#   pnpm run build && pnpm exec wrangler pages dev dist --port 8081     # local, KV simulated
+#
+# The deploy job (.github/workflows/deploy.yml) creates the KV namespace if it is missing and
+# writes its real id here before deploying. The id below is a placeholder for local runs,
+# where wrangler simulates KV on disk.
+name = "talent-tree-manager"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-10-01"
+
+# Saved custom projects, keyed by the hash of their design.
+[[kv_namespaces]]
+binding = "PROJECTS"
+id = "00000000000000000000000000000000"

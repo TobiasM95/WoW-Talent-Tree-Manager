@@ -37,7 +37,7 @@ async function waitForServer(target, timeoutMs = 30000) {
 
 // The web container answers at once; the API behind it can take several seconds more.
 await waitForServer(url);
-await waitForServer(`${url}/api/health`);
+await waitForServer(`${url}/data/retail/index.json`);
 const browser = await chromium.launch();
 
 const palettes = {};

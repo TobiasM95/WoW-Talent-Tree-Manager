@@ -1,5 +1,5 @@
 import { normalise, type Design } from "./design";
-import { request, type TreeSummary } from "./api";
+import { rememberCustomTrees, request, type TreeDetail } from "./api";
 
 /**
  * The player's custom projects, kept in this browser.
@@ -54,15 +54,22 @@ export interface SavedProject {
   project: string;
   name: string;
   sharedPointCap: number | null;
-  trees: TreeSummary[];
+  /** Built from the design by the same code on both ends (src/engine/custom.ts). */
+  trees: TreeDetail[];
   warnings?: string[];
   design?: Design;
 }
 
-export const saveProject = (design: Design) =>
-  request<SavedProject>("/custom-trees", { method: "POST", body: JSON.stringify(design) });
+/** Saved projects come back with their trees, which `getTree` then serves from memory. */
+const remember = (saved: SavedProject) => {
+  rememberCustomTrees(saved.trees);
+  return saved;
+};
 
-export const getProject = (id: string) => request<SavedProject>(`/custom-trees/${id}`);
+export const saveProject = async (design: Design) =>
+  remember(await request<SavedProject>("/custom-trees", { method: "POST", body: JSON.stringify(design) }));
+
+export const getProject = async (id: string) => remember(await request<SavedProject>(`/custom-trees/${id}`));
 
 /** The server id inside a custom tree's key: custom/<id>/<n>. */
 export const projectOfKey = (key: string | null | undefined) =>

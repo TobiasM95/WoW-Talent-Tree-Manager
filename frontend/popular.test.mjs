@@ -36,7 +36,7 @@ async function waitForServer(target, timeoutMs = 30000) {
 }
 
 await waitForServer(url);
-await waitForServer(`${url}/api/health`);
+await waitForServer(`${url}/data/retail/index.json`);
 if ((await fetch(`${url}/api/popular/content`)).status === 503) {
   console.log("WarcraftLogs is not configured on this API: skipped");
   process.exit(0);

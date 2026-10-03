@@ -1,6 +1,20 @@
 # Browser-only: hosting for free on Cloudflare
 
-**Status:** in progress (started 2026-10-03).
+**Status:** built (2026-10-03); the first deploy runs from the release workflow.
+
+| Phase | State |
+|---|---|
+| 1. Counter in TypeScript | done: exact against the Python DP, 1,769 searches, every point total |
+| 2. Listing from the counter | done |
+| 3. Parity suite in CI | done: 4,938 counts and 1,277 listings (594,245 builds) identical to the C++ engine |
+| 4. Static data | done: `tools/site/build_data.py`, 187 trees, 2,181 icons, ~13 MB |
+| 5. Pages Functions | done: `/api/popular/*` (WarcraftLogs), `/api/custom-trees` (KV) |
+| 6. Frontend switch | done: every suite passes against the site under `wrangler pages dev` |
+| 7. Deploy | written (`release.yml`); first run pending |
+| 8. Server retired | done: API, worker, queue, Postgres and the Docker setup removed |
+
+One change from the plan: the WarcraftLogs proxy and the project store are Pages Functions,
+deployed with the site on its own origin, rather than a separate Worker.
 
 The app runs on Cloudflare's free plans with no server of our own. The site is static
 (Cloudflare Pages, a `*.pages.dev` address). Counting and listing builds run in the browser in

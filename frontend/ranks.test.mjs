@@ -7,6 +7,7 @@
  *   node ranks.test.mjs [url]
  */
 import { chromium } from "playwright";
+import { count } from "./testlib.mjs";
 
 // Defaults to the built container, which is what every verification here runs against.
 const url = process.argv[2] ?? "http://localhost:8081";
@@ -32,12 +33,11 @@ async function waitForServer(target, timeoutMs = 30000) {
   }
 }
 await waitForServer(url);
-await waitForServer(`${url}/api/health`);
+await waitForServer(`${url}/data/retail/index.json`);
 
-const api = async (body) =>
-  (await (await fetch(`${url}/api/counts`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })).json()).builds;
+const api = async (body) => (await count(url, body)).builds;
 
-const spec = await (await fetch(`${url}/api/trees/${SPEC}`)).json();
+const spec = await (await fetch(`${url}/data/trees/${SPEC}.json`)).json();
 const target = spec.nodes
   .filter((n) => n.maxPoints >= 3 && !n.preFilled && n.kind !== "choice")
   .sort((a, b) => a.pointsRequired - b.pointsRequired || a.row - b.row)[0];

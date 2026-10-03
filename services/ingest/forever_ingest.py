@@ -2,9 +2,7 @@
 
     python services/ingest/forever_ingest.py [--source PATH_OR_URL] [--out data/generated-forever]
 
-Then load exactly as retail is loaded:
-
-    python services/db/load_trees.py --trees data/generated-forever
+Then build the site's data from it, beside retail's (tools/site/build_data.py).
 
 Written beside the retail output rather than into it, because each game is its own revision
 and is promoted on its own: a Forever update must never touch what retail is serving.

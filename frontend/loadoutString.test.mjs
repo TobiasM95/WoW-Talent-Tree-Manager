@@ -1,7 +1,7 @@
 /**
  * The Blizzard loadout string codec.
  *
- *   node loadoutString.test.mjs [api-url]
+ *   node loadoutString.test.mjs [site-url]
  *
  * A round trip proves almost nothing on its own: encode and decode share a reading of the
  * layout, so a wrong reading round-trips perfectly. Two things are therefore load-bearing
@@ -16,8 +16,10 @@
  * is a build that looks right and is not -- which a person has no way to detect.
  */
 import { createServer } from "vite";
+import { siteGet } from "./testlib.mjs";
 
-const api = (process.argv[2] ?? "http://localhost:8001").replace(/\/$/, "");
+// The site, whose data files stand in for the old API (testlib.mjs).
+const site = (process.argv[2] ?? "http://localhost:8081").replace(/\/$/, "");
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 const S = await server.ssrLoadModule("/src/lib/loadoutString.ts");
 const L = await server.ssrLoadModule("/src/lib/loadout.ts");
@@ -27,11 +29,7 @@ const check = (name, ok, detail = "") => {
   console.log(`${ok ? "ok  " : "FAIL"} ${name}${ok || !detail ? "" : ` -- ${detail}`}`);
   if (!ok) failures.push(name);
 };
-const get = async (p) => {
-  const r = await fetch(api + p);
-  if (!r.ok) throw new Error(`${p}: ${r.status}`);
-  return r.json();
-};
+const get = (p) => siteGet(site, p);
 const rejects = (fn) => {
   try {
     fn();

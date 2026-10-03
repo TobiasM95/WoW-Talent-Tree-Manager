@@ -115,7 +115,7 @@ expansion equals it exactly, pinned sides included. The first export simmed only
 selections, so one side of every choice node was quietly never simmed.
 
 ```bash
-docker compose up -d postgres api worker      # the services it talks to
+# The site's data first: see the repository README (ingest, then tools/site/build_data.py).
 
 # pnpm only, at the version package.json pins. A `preinstall` guard refuses npm and yarn
 # rather than letting a second lockfile appear.
@@ -126,9 +126,9 @@ pnpm run dev                                   # http://localhost:5173
 pnpm run typecheck
 pnpm run shots                                 # both themes, desktop + phone
 pnpm run test:share                            # share codec and workspace rules, no browser
-pnpm run test:loadout                          # spending rules, against the API
+pnpm run test:loadout                          # spending rules, against the counter
 pnpm run test:string                           # the Blizzard talent-string codec
-pnpm run test:simc                             # expansion == API count; every line a real character
+pnpm run test:simc                             # expansion == the count; every line a real character
 pnpm run test:report                           # the SimC report reader, against a real report
 pnpm run test:canvas                           # shapes, keylines, four colours, both themes
 pnpm run test:forever                          # WoW Forever: three tabs, one pool of 51
@@ -137,19 +137,25 @@ pnpm run test:ranks                            # rank limits: at least, exactly,
 pnpm run test:popular                          # top players: see, use, narrow, sim them for real
 pnpm test                                      # the whole workflow, with a live SimulationCraft run
 pnpm run test:all                              # all of it
+node parity.test.mjs .parity.json              # the browser engine against the C++ engine (see tools/parity)
 ```
 
-Production is Caddy serving the built assets and proxying `/api`:
+The site as Cloudflare serves it, static files and the functions under `/api`, with KV
+simulated on disk:
 
 ```bash
-docker compose --profile web up -d --build web   # http://localhost:8081
+pnpm run build && pnpm exec wrangler pages dev dist --port 8081   # http://localhost:8081
 ```
 
-That one command is enough: `postgres`, `api` and `worker` come up as dependencies. Drop
-`--build` to start what is already built. **The browser suites default to 8081**, this
-container, rather than the dev server — a suite that fails because nothing happens to be
-running on 5173 has said nothing about the app — and they wait for the API behind the proxy,
-not just the page, since the API takes seconds longer to come up after a rebuild.
+**The browser suites default to 8081**, the built site, rather than the dev server: a suite
+that fails because nothing happens to be running on 5173 has said nothing about the app.
+WarcraftLogs keys for the top-player suite go in `.dev.vars` (git-ignored).
+
+**There is no server of ours.** Counting and listing builds run in the page
+(`src/engine`: the counter, the lister, the custom-tree validator); `functions/` holds the two
+Cloudflare Pages Functions, WarcraftLogs and saved projects. The suites check the page against
+the counter asked directly in Node (`testlib.mjs`); the counter itself is checked against the C++
+engine by the parity suite, which the release CI runs before every deploy.
 
 ## Design
 
@@ -224,13 +230,18 @@ game data the tool exists to display; everything around them is ours.
 | `lib/workspace.ts` | A tree fixed or open: painting, spending, the payload it sends. |
 | `lib/useCounts.ts` | A live, debounced count per open tree. |
 | `lib/space.ts` | Characters as the product of the trees; choice-side expansion. |
-| `lib/enumerate.ts` | Open trees through the solver, into a list of characters. |
+| `lib/enumerate.ts` | Open trees listed by the page's engine, into a list of characters. |
+| `engine/counter.ts` | The build counter: every point total, every filter, without listing. |
+| `engine/lister.ts` | Listing builds from the counter's own states. |
+| `engine/service.ts` | What the old API's count and solve did: validate, count, spread, list. |
+| `engine/custom.ts` | Custom projects: validation, content address, trees. Shared with `functions/`. |
+| `functions/` | Cloudflare Pages Functions: `/api/popular/*` (WarcraftLogs), `/api/custom-trees` (KV). |
 | `lib/simc.ts` | Characters as SimulationCraft profilesets. |
 | `lib/simcReport.ts` | SimC's JSON report: ranking, talent value, choice duels. |
 | `lib/share.ts` | All three trees, both halves of each, in the URL. Old links still open. |
 | `lib/loadout.ts` | Spending points by hand, under the solver's rules. |
 | `lib/loadoutString.ts` | Blizzard's talent string, in and out. |
-| `lib/api.ts` | Typed client. Every field checked against a live response. |
+| `lib/api.ts` | The data client: static files, the page's engine, and the two functions. |
 | `lib/classes.ts`, `lib/theme.ts` | Class colours per theme; the theme on `<html data-theme>`. |
 | `components/TreePane.tsx` | One tree, with its fixed/open switch, budget and count. |
 | `components/EditorView.tsx` | The tree editor: grid, connections, barriers, inspector, icon picker. |

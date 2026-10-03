@@ -1,4 +1,4 @@
-import { ApiError, getJob, getResults, submitSolve, TERMINAL_STATES, type TreeDetail } from "./api";
+import { ApiError, listBuilds, type TreeDetail } from "./api";
 import type { Points } from "./loadout";
 import { characters, expand, fixedVariant, type Character, type Variant } from "./space";
 import { payloadOf, type TreeWork } from "./workspace";
@@ -6,9 +6,8 @@ import { payloadOf, type TreeWork } from "./workspace";
 /**
  * Turn the three trees into the list of characters to sim.
  *
- * A fixed tree is its one build. An open tree is enumerated by the solver -- the same job
- * machinery as before, with its caching, so re-entering this step with unchanged searches
- * costs nothing -- and each selection is expanded into both sides of every free choice node.
+ * A fixed tree is its one build. An open tree is listed by the page's own engine, and each
+ * selection is expanded into both sides of every free choice node.
  * The characters are then the product, in a stable order.
  */
 
@@ -35,33 +34,11 @@ export interface Progress {
   error?: string;
 }
 
-const POLL_MS = 400;
-const PAGE = 1000;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
+/** An open tree's builds, listed in the page. A pause first lets the progress paint. */
 async function selections(input: TreeInput, limit: number, signal: AbortSignal): Promise<Points[]> {
-  let job = await submitSolve(input.key, { ...payloadOf(input.work, input.cap), maxResults: limit });
-  while (!TERMINAL_STATES.has(job.state)) {
-    if (signal.aborted) throw new DOMException("cancelled", "AbortError");
-    await sleep(POLL_MS);
-    job = await getJob(job.id);
-  }
-  if (job.state !== "done") {
-    throw new Error(
-      job.state === "capped"
-        ? "The solver stopped before listing every build."
-        : (job.error ?? `The solver ended ${job.state}.`),
-    );
-  }
-  const out: Points[] = [];
-  const total = job.resultCount ?? 0;
-  for (let offset = 0; offset < total; offset += PAGE) {
-    if (signal.aborted) throw new DOMException("cancelled", "AbortError");
-    const page = await getResults(job.id, offset, PAGE);
-    out.push(...page.builds);
-    if (page.builds.length === 0) break;
-  }
-  return out;
+  await new Promise((r) => setTimeout(r, 0));
+  if (signal.aborted) throw new DOMException("cancelled", "AbortError");
+  return listBuilds(input.key, payloadOf(input.work, input.cap), limit);
 }
 
 export async function enumerate(

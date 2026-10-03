@@ -8,3 +8,11 @@ shots/
 
 # The engine reference answers for the parity suite: generated, ~70 MB.
 .parity.json
+
+# Built by tools/site/build_data.py from the ingest output; never committed.
+public/data/
+public/icons/
+
+# Local secrets for wrangler pages dev (WarcraftLogs keys); never committed.
+.dev.vars
+.wrangler/

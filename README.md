@@ -6,12 +6,9 @@ Create, explore and share World of Warcraft talent trees and builds — includin
 exhaustive build solver that enumerates every valid talent combination under
 constraints.
 
-> **Status: being rebuilt as a web application.**
+> **Status: a web application, hosted for free as a static site on Cloudflare Pages.**
 > The native Windows client (v1.4.2) was discontinued in July 2024. It is preserved on the
 > [`archive/native-client`](../../tree/archive/native-client) branch.
->
-> The core loop runs end to end — count, constrain, enumerate, inspect — on live retail data
-> for all 160 trees. Not yet public; the tree editor, sharing and sim analysis are not built.
 
 ## What this is
 
@@ -51,57 +48,51 @@ code, the target architecture, and the open decisions:
 
 ## Running it
 
-Everything is in Docker Compose. Postgres carries the data, the queue and the cache; there
-is no broker and no separate cache to operate.
+There is no server of ours. The site is static: tree data and icons are files, and counting and
+listing builds run in the browser (`frontend/src/engine`). Two Cloudflare Pages Functions
+(`frontend/functions/`) do what needs a server: WarcraftLogs, whose key must stay secret, and
+saved custom projects, in Workers KV. See [`docs/03-plan/browser-only.md`](docs/03-plan/browser-only.md).
 
 ```bash
-docker compose up -d postgres
-docker compose run --rm migrate                     # schema
-docker compose run --rm ingest --point-caps --descriptions
-docker compose run --rm loader                      # trees + precomputed counts
-docker compose run --rm sync-icons                  # optional; see docs/02-target/icons.md
-docker compose up -d api worker
+# the data: live talent data (Raidbots, DB2 point caps, descriptions) and WoW Forever
+pip install -r services/ingest/requirements.txt
+python services/ingest/ingest.py --point-caps --descriptions
+python services/ingest/forever_ingest.py
+python tools/site/build_data.py --out frontend/public \
+  --game retail=data/generated --game forever=data/generated-forever
 
-cd frontend && corepack enable && pnpm install && pnpm run dev   # http://localhost:5173
+# the site, served the way Cloudflare serves it, functions included
+cd frontend && corepack enable && pnpm install
+pnpm run build && pnpm exec wrangler pages dev dist --port 8081      # http://localhost:8081
 ```
 
-Or the production shape — Caddy serving the built frontend and proxying `/api`:
-
-```bash
-docker compose --profile web up -d --build web      # http://localhost:8081
-```
-
-The ingest fetches live talent data from Raidbots and derives point caps from DB2. The
-loader refuses to promote a revision whose description coverage collapses against what is
-already being served, so a run without `--descriptions` cannot quietly replace a complete
-dataset with a blank one.
+For top players, put `WCL_CLIENT_ID` and `WCL_CLIENT_SECRET` in `frontend/.dev.vars`
+(git-ignored). For quick UI work, `pnpm run dev` serves on :5173 with `/api` proxied to
+`wrangler pages dev` on :8788.
 
 ### Checking it
 
 | | |
 |---|---|
-| `python tests/golden_counts.py build/ttm-solver` | Engine counts against known-correct values |
-| `python tools/frontier-dp/test_counting.py` | The frontier DP the pre-flight gate uses |
+| `cd frontend && pnpm run test:all` | Every frontend suite, in a real browser, against the site on :8081 |
+| `python tools/parity/engine_reference.py ...` + `node parity.test.mjs` | The browser engine against the C++ engine: counts and full listings, every tree and filter |
+| `python tests/golden_counts.py build/ttm-solver` | The C++ engine against known-correct counts |
+| `python tools/frontier-dp/test_counting.py` | The Python counting DP, the original reference |
 | `python services/ingest/tests/test_ingest.py` | Transform and validation |
-| `python services/ingest/tests/test_icons.py` | Icon names and fetch classification |
-| `python services/api/test_api.py` | The API, against a live instance |
-| `services/worker/test_worker.py` | Decoding, progress parsing, the watchdog |
-| `services/worker/test_queue.py` | The lease sweeper |
-| `bash services/db/smoke_test.sh` | End to end, and that the constraints bite |
-| `cd frontend && pnpm test` | The real interactions in a real browser |
 
 ## Repository layout
 
 | Path | What |
 |---|---|
-| `Engine/` | **C++ solver and tree model.** Kept, being made portable. The crown jewel. |
-| `CLI/` | Headless entry point to the engine; becoming the server-side worker binary. |
-| `GUI/`, `AppUpdater/` | The native Dear ImGui client. Retained as the reference implementation while the web app catches up. Not actively developed. |
+| `Engine/` | **The C++ solver and tree model.** The browser engine's maintained twin: the release CI requires the two to agree. |
+| `CLI/` | Headless entry point to the engine, used by the parity suite and the golden counts. |
+| `GUI/`, `AppUpdater/` | The native Dear ImGui client. Retained as the reference implementation. Not actively developed. |
 | `docs/` | Analysis, target architecture, and plan. |
-| `services/` | Backend services: ingest, api, worker, database schema and loaders. |
-| `frontend/` | The web client. React + Tailwind; see [`frontend/README.md`](frontend/README.md). |
-| `docker/` | Container definitions and the Caddy config. |
-| `tools/frontier-dp/` | The counting DP, kept as the verified reference implementation. |
+| `services/ingest/` | Live talent data into the tree format the site serves. Runs in CI. |
+| `frontend/` | The site: React + Tailwind, the browser engine, the Pages Functions. See [`frontend/README.md`](frontend/README.md). |
+| `tools/parity/` | The engine parity suite's reference generator and fixtures. |
+| `tools/site/` | Builds the site's static data and icons from the ingest. |
+| `tools/frontier-dp/` | The Python counting DP: the original reference, still used by the engine's tests. |
 | `tests/` | Golden counts for the C++ engine. |
 
 The `WoW Talent Manager.sln` still builds the native client in Visual Studio 2022. A portable
@@ -125,13 +116,12 @@ from the Actions tab:
 
 | Workflow | What it proves |
 |---|---|
-| `release.yml` | The whole product: live ingest, the API's 48 checks, every frontend suite, and a real SimulationCraft round trip. |
-| `engine-tests.yml` | Golden counts from the C++ engine, and the DP agreeing with it. The 8-minute overflow case runs on tags only. |
-| `ingest-tests.yml` | The ingest against live data — also **weekly**, since upstream changes shape on Blizzard's schedule, not ours. |
-| `update_presets.yml` | Legacy, manual only. Failing daily since 2024-07-05 on a retired runner image. |
+| `release.yml` | The browser engine agrees with the C++ engine; live data ingests; the site builds and every frontend suite passes against it, with a real SimulationCraft round trip; then it **publishes to Cloudflare Pages**. |
+| `engine-tests.yml` | Golden counts from the C++ engine, and the Python DP agreeing with it. The 8-minute overflow case runs on tags only. |
+| `ingest-tests.yml` | The ingest against live data, also **weekly**, since upstream changes shape on Blizzard's schedule, not ours. |
+| `update_presets.yml` | Legacy, manual only. |
 
-Locally, the same suites are one command each: `python services/api/test_api.py` and
-`pnpm run test:all` in `frontend/`.
+Locally, the same suites are `pnpm run test:all` in `frontend/`, against the site on :8081.
 
 ### A note on history
 

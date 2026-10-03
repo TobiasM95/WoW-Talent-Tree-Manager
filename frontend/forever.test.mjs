@@ -9,6 +9,7 @@
  * leak across from retail -- Simulate, the talent string, choice and hero-tree shapes.
  */
 import { chromium } from "playwright";
+import { count } from "./testlib.mjs";
 
 // Defaults to the built container, which is what every verification here runs against.
 const url = process.argv[2] ?? "http://localhost:8081";
@@ -34,7 +35,7 @@ async function waitForServer(target, timeoutMs = 30000) {
 }
 
 await waitForServer(url);
-await waitForServer(`${url}/api/health?game=forever`);
+await waitForServer(`${url}/data/forever/index.json`);
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 page.on("pageerror", (e) => check("no page error", false, String(e)));
@@ -95,17 +96,16 @@ check("no Blizzard talent string", (await page.locator("text=Talent string").cou
 check("the data is credited, as its licence asks", /talentsforever\.com/.test(await page.locator("aside").innerText()));
 
 // Open: one search over all three tabs, counted over every split of the pool. Checked against
-// a sum worked out here from each tab's own per-points counts -- the endpoint that has always
-// answered "how many builds of exactly k points" -- not from the spread the page used.
+// a sum worked out here from each tab's counts one total at a time (the counter asked directly,
+// testlib.mjs) -- not from the spreads and the pooling the page used.
 const tabs = ["arms", "fury", "protection"];
 const perPoints = async (tab, filters = {}) => {
   // Zero points is the empty tab: one build, unless something is required in it.
   const out = [filters.mustHave?.length ? 0 : 1];
   for (let k = 1; k <= 64; k++) {
-    const r = await fetch(`${url}/api/counts`, { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ treeKey: `forever/warrior/${tab}`, points: k, ...filters }) });
-    if (r.status !== 200) break;
-    out.push((await r.json()).builds);
+    const r = await count(url, { treeKey: `forever/warrior/${tab}`, points: k, ...filters });
+    if (r.status) break;
+    out.push(r.builds);
   }
   return out;
 };

@@ -18,6 +18,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { count } from "./testlib.mjs";
 
 /*
   Defaults to the built container rather than the dev server: 8081 is what the compose file
@@ -73,7 +74,7 @@ const waitTotal = async (page, predicate, timeout = 15000) => {
 // The web container answers at once; the API behind it can take several seconds more
 // after a rebuild. Waiting on the page alone failed the first run after every deploy.
 await waitForServer(url);
-await waitForServer(`${url}/api/health`);
+await waitForServer(`${url}/data/retail/index.json`);
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 }, acceptDownloads: true });
 const page = await context.newPage();
@@ -165,12 +166,7 @@ check("the reloaded page is the same space", (await waitTotal(page, (v) => v ===
 
 // Both hero trees at once: the question a player asks first. Deathbringer is left open at its
 // full budget, so the hero factor becomes San'layn's 580 plus however many Deathbringer has.
-const api = `${url}/api`;
-const deathbringer = await (await fetch(`${api}/counts`, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ treeKey: "retail/6/250/hero/33", points: 13 }),
-})).json();
+const deathbringer = await count(url, { treeKey: "retail/6/250/hero/33", points: 13 });
 await heroPane.locator('button:text-is("both")').click();
 const EXPECTED = 580 + deathbringer.builds;
 const pooled = await waitTotal(page, (v) => v === EXPECTED);

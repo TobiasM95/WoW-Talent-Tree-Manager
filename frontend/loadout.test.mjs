@@ -1,7 +1,7 @@
 /**
  * Loadout rules, checked against the thing that counts.
  *
- *   node loadout.test.mjs [api-url]
+ *   node loadout.test.mjs [site-url]
  *
  * The assertion that matters is not "the rules look right" but **the solver agrees**: a
  * loadout built by these rules must be one of the builds `POST /counts` counts. If the two
@@ -13,8 +13,10 @@
  * API running; it does not need a browser.
  */
 import { createServer } from "vite";
+import { count as countOf, siteGet } from "./testlib.mjs";
 
-const api = (process.argv[2] ?? "http://localhost:8001").replace(/\/$/, "");
+// The site, whose data files stand in for the old API (testlib.mjs).
+const site = (process.argv[2] ?? "http://localhost:8081").replace(/\/$/, "");
 
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 const L = await server.ssrLoadModule("/src/lib/loadout.ts");
@@ -25,20 +27,12 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures.push(name);
 };
 
-const get = async (path) => {
-  const response = await fetch(api + path);
-  if (!response.ok) throw new Error(`${path}: ${response.status}`);
-  return response.json();
-};
+const get = (path) => siteGet(site, path);
 
 const count = async (body) => {
-  const response = await fetch(api + "/counts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) throw new Error(`${await response.text()}`);
-  return response.json();
+  const r = await countOf(site, body);
+  if (r.status) throw new Error(r.detail);
+  return r;
 };
 
 /** Spend `budget` points by repeatedly taking a random available talent. */

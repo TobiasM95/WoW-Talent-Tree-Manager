@@ -1,7 +1,7 @@
 /**
  * The character space and its SimulationCraft export, against the real API.
  *
- *   node simc.test.mjs [api-url]
+ *   node simc.test.mjs [site-url]
  *
  * Two claims carry the redesigned workflow, and both are checked here against the solver
  * rather than against my reading of it:
@@ -13,8 +13,10 @@
  *      search allows, and the string decodes back to precisely that character.
  */
 import { createServer } from "vite";
+import { count as countOf, listBuilds, siteGet } from "./testlib.mjs";
 
-const api = (process.argv[2] ?? "http://localhost:8001").replace(/\/$/, "");
+// The site, whose data files stand in for the old API (testlib.mjs).
+const site = (process.argv[2] ?? "http://localhost:8081").replace(/\/$/, "");
 const server = await createServer({ server: { middlewareMode: true }, appType: "custom" });
 const SPACE = await server.ssrLoadModule("/src/lib/space.ts");
 const SIMC = await server.ssrLoadModule("/src/lib/simc.ts");
@@ -26,34 +28,15 @@ const check = (name, ok, detail = "") => {
   console.log(`${ok ? "ok  " : "FAIL"} ${name}${ok || !detail ? "" : ` -- ${detail}`}`);
   if (!ok) failures.push(name);
 };
-const get = async (p) => {
-  const r = await fetch(api + p);
-  if (!r.ok) throw new Error(`${p}: ${r.status}`);
-  return r.json();
-};
-const post = async (p, body) => {
-  const r = await fetch(api + p, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`${p}: ${r.status} ${await r.text()}`);
-  return r.json();
-};
+const get = (p) => siteGet(site, p);
 
-async function enumerate(treeKey, body) {
-  let job = await post("/solve", { treeKey, ...body, maxResults: 20000 });
-  while (!["done", "capped", "cancelled", "failed"].includes(job.state)) {
-    await new Promise((r) => setTimeout(r, 300));
-    job = await get(`/solve/${job.id}`);
-  }
-  if (job.state !== "done") throw new Error(`job ${job.state}`);
-  const out = [];
-  for (let offset = 0; offset < job.resultCount; offset += 1000) {
-    out.push(...(await get(`/solve/${job.id}/results?offset=${offset}&limit=1000`)).builds);
-  }
-  return out;
-}
+/** An open tree's builds, listed as the page lists them. */
+const enumerate = (treeKey, body) => listBuilds(site, treeKey, body);
+const post = async (_path, body) => {
+  const r = await countOf(site, body);
+  if (r.status) throw new Error(r.detail);
+  return r;
+};
 
 const trees = {};
 for (const key of ["retail/6/250/class", "retail/6/250/spec", "retail/6/250/hero/31", "retail/6/250/hero/33"]) {

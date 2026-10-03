@@ -6,6 +6,7 @@
  *   node editor.test.mjs [url]
  */
 import { chromium } from "playwright";
+import { count as countOf } from "./testlib.mjs";
 
 // Defaults to the built container, which is what every verification here runs against.
 const url = process.argv[2] ?? "http://localhost:8081";
@@ -30,15 +31,12 @@ async function waitForServer(target, timeoutMs = 30000) {
   }
 }
 
-const api = async (path, body) => {
-  const r = await fetch(`${url}/api${path}`, body ? {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
-  } : undefined);
-  return r.json();
-};
+// Counts come from the counter asked directly (testlib.mjs); saved projects from the site.
+const api = async (path, body) =>
+  path === "/counts" ? countOf(url, body) : (await fetch(`${url}/api${path}`)).json();
 
 await waitForServer(url);
-await waitForServer(`${url}/api/health`);
+await waitForServer(`${url}/data/retail/index.json`);
 const browser = await chromium.launch();
 const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 const page = await context.newPage();
@@ -176,10 +174,9 @@ const pooledCopy = Number(await page.locator("[data-total]").getAttribute("data-
 const perPoints = async (key) => {
   const out = [1];
   for (let k = 1; k <= 64; k++) {
-    const r = await fetch(`${url}/api/counts`, { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ treeKey: key, points: k }) });
-    if (r.status !== 200) break;
-    out.push((await r.json()).builds);
+    const r = await countOf(url, { treeKey: key, points: k });
+    if (r.status) break;
+    out.push(r.builds);
   }
   return out;
 };

@@ -1,9 +1,16 @@
+import { countAt, listAt, SearchError, spreadOf } from "../engine/service";
+
 /**
- * Typed client for the TTM API.
+ * Where the page's data comes from. There is no server of ours: the site is static.
  *
- * Everything goes through /api, which Vite proxies in development and a reverse proxy
- * serves in production. Same-origin either way, so there is no CORS configuration that
- * exists only for development and then has to be remembered in deployment.
+ *   - Trees, their indexes and icons are files, built by CI from the ingest
+ *     (tools/site/build_data.py) and served by Cloudflare Pages.
+ *   - Counting and listing builds run here, in the page (src/engine), kept at parity with
+ *     the C++ engine by the release CI.
+ *   - Two things need a server and get a Cloudflare Pages Function each, under /api: top
+ *     players from WarcraftLogs, whose key must stay secret, and saved custom projects.
+ *
+ * The function names and shapes are the old API's, so the page above this barely changed.
  */
 
 const BASE = "/api";
@@ -48,8 +55,45 @@ export interface Health {
   dataAgeSeconds: number;
 }
 
-/** Each game is its own revision with its own age, so health is asked per game. */
-export const getHealth = (game: Game = "retail") => request<Health>(`/health?game=${game}`);
+interface GameIndex {
+  game: string;
+  revision: number;
+  fetchedAt: string | null;
+  attribution: string | null;
+  trees: TreeSummary[];
+  nodeCount: number;
+}
+
+/** A static file, fetched once per page load. */
+const files = new Map<string, Promise<unknown>>();
+function file<T>(path: string): Promise<T> {
+  let hit = files.get(path);
+  if (!hit) {
+    hit = fetch(path).then(async (r) => {
+      if (!r.ok) throw new ApiError(r.status, r.status === 404 ? `no ${path}` : r.statusText);
+      return r.json();
+    });
+    hit.catch(() => files.delete(path));
+    files.set(path, hit);
+  }
+  return hit as Promise<T>;
+}
+
+const indexOf = (game: Game) => file<GameIndex>(`/data/${game}/index.json`);
+
+/** Each game is its own revision with its own age. */
+export const getHealth = async (game: Game = "retail"): Promise<Health> => {
+  const index = await indexOf(game === "custom" ? "retail" : game);
+  return {
+    status: "ok",
+    revision: index.revision,
+    trees: index.trees.length,
+    nodes: index.nodeCount,
+    descriptionCoverage: null,
+    iconCoverage: null,
+    dataAgeSeconds: index.fetchedAt ? Math.max(0, (Date.now() - Date.parse(index.fetchedAt)) / 1000) : 0,
+  };
+};
 
 /* --- trees ----------------------------------------------------------------- */
 
@@ -113,8 +157,8 @@ export interface TalentNode {
   parents: number[];
   children: number[];
   entries: TalentEntry[];
-  /** Per-rank unlock levels for a tiered node; null for everything else. */
-  rankLevels: number[] | null;
+  /** A tiered node's ranks by character level ({level, maxRanks} steps); null otherwise. */
+  rankLevels: { level: number; maxRanks: number }[] | null;
   /** A root of the tree: reachable with nothing else spent. */
   entryNode: boolean;
   /** Granted rather than chosen, so it costs no point. */
@@ -174,23 +218,40 @@ export interface TreeDetail extends TreeSummary {
   nodes: TalentNode[];
 }
 
-export const listTrees = (params: Record<string, string | number> = {}) => {
-  const query = new URLSearchParams(
-    Object.entries(params).map(([k, v]) => [k, String(v)]),
-  ).toString();
-  return request<TreeSummary[]>(`/trees${query ? `?${query}` : ""}`);
+/** A game's trees. Custom projects are not listed: they are opened by link. */
+export const listTrees = async (params: { game?: Game; kind?: TreeKind } = {}): Promise<TreeSummary[]> => {
+  const game = params.game ?? "retail";
+  if (game === "custom") throw new ApiError(400, "custom trees are listed per project: open one by its link");
+  const trees = (await indexOf(game)).trees;
+  return params.kind ? trees.filter((t) => t.kind === params.kind) : trees;
 };
 
-export const getTree = (key: string) => request<TreeDetail>(`/trees/${key}`);
+/** Custom trees are built from their saved design (lib/projects.ts) and remembered here. */
+const customTrees = new Map<string, TreeDetail>();
+export const rememberCustomTrees = (trees: TreeDetail[]) => trees.forEach((t) => customTrees.set(t.key, t));
 
-export interface TreeCountRow {
-  points: number;
-  sets: number;
-  builds: number;
+export const getTree = async (key: string): Promise<TreeDetail> => {
+  if (key.startsWith("custom/")) {
+    if (!customTrees.has(key)) {
+      const { getProject } = await import("./projects");
+      await getProject(key.split("/")[1]!);
+    }
+    const tree = customTrees.get(key);
+    if (!tree) throw new ApiError(404, `no custom tree '${key}'`);
+    return tree;
+  }
+  return file<TreeDetail>(`/data/trees/${key}.json`);
+};
+
+/** The engine's errors, in the shape the page has always read. */
+function engine<T>(run: () => T): T {
+  try {
+    return run();
+  } catch (e) {
+    if (e instanceof SearchError) throw new ApiError(e.status, e.message);
+    throw e;
+  }
 }
-
-export const getTreeCounts = (key: string) =>
-  request<TreeCountRow[]>(`/trees/${key}/counts`);
 
 /* --- the gate -------------------------------------------------------------- */
 
@@ -222,11 +283,25 @@ export interface CountResult {
   listingLimit: number;
 }
 
-export const countBuilds = (treeKey: string, constraints: Constraints) =>
-  request<CountResult>("/counts", {
-    method: "POST",
-    body: JSON.stringify({ treeKey, ...constraints }),
-  });
+export const countBuilds = async (treeKey: string, constraints: Constraints): Promise<CountResult> => {
+  const tree = await getTree(treeKey);
+  const started = performance.now();
+  const { points, levelCap: _levelCap, ...search } = constraints;
+  const { sets, builds } = engine(() => countAt(treeKey, tree, search, points));
+  const filtered = Object.values(search).some((v) => v && (Array.isArray(v) ? v.length : Object.keys(v).length));
+  return {
+    treeKey,
+    points,
+    levelCap: 90,
+    sets,
+    builds,
+    filtered,
+    source: "computed",
+    elapsedMs: performance.now() - started,
+    listable: sets > 0,
+    listingLimit: Number.MAX_SAFE_INTEGER,
+  };
+};
 
 export interface SpreadResult {
   treeKey: string;
@@ -236,106 +311,36 @@ export interface SpreadResult {
 }
 
 /** A tree's counts at every point total at once, for trees that share a pool. */
-export const countSpread = (treeKey: string, constraints: Constraints) =>
-  request<SpreadResult>("/counts/spread", {
-    method: "POST",
-    body: JSON.stringify({ treeKey, ...constraints, points: 64 }),
-  });
+export const countSpread = async (treeKey: string, constraints: Constraints): Promise<SpreadResult> => {
+  const tree = await getTree(treeKey);
+  const { points: _points, levelCap: _levelCap, ...search } = constraints;
+  return { treeKey, ...engine(() => spreadOf(treeKey, tree, search)) };
+};
 
-/* --- solve jobs ------------------------------------------------------------ */
+/* --- listing builds ------------------------------------------------------- */
 
-export type JobState =
-  | "queued"
-  | "running"
-  | "done"
-  | "capped"
-  | "cancelled"
-  | "failed";
-
-export type JobPhase = "solving" | "storing" | "finalizing" | null;
-
-export interface Job {
-  id: string;
-  state: JobState;
-  treeKey: string;
-  points: number;
-  expectedCount: number | null;
-  resultCount: number | null;
-  progress: number;
-  phase: JobPhase;
-  cancelRequested: boolean;
-  error: string | null;
-  createdAt: string;
-  finishedAt: string | null;
-}
-
-export const TERMINAL_STATES: ReadonlySet<JobState> = new Set([
-  "done",
-  "capped",
-  "cancelled",
-  "failed",
-]);
-
-export const submitSolve = (
-  treeKey: string,
-  constraints: Constraints & { maxResults?: number; timeBudgetMs?: number },
-) =>
-  request<Job>("/solve", {
-    method: "POST",
-    body: JSON.stringify({ treeKey, ...constraints }),
-  });
-
-export const getJob = (id: string) => request<Job>(`/solve/${id}`);
-
-export const cancelJob = (id: string) =>
-  request<Job>(`/solve/${id}/cancel`, { method: "POST" });
-
-export interface ResultPage {
-  jobId: string;
-  state: JobState;
-  total: number;
-  offset: number;
-  /** nodeId (as a string key) -> points spent on that node. */
-  builds: Record<string, number>[];
-}
-
-export const getResults = (id: string, offset = 0, limit = 100) =>
-  request<ResultPage>(`/solve/${id}/results?offset=${offset}&limit=${limit}`);
-
-export interface TalentStat {
-  nodeId: number;
-  /** How many of the job's results take this talent at all. */
-  builds: number;
-  /** That, as a fraction of the whole matching set. */
-  share: number;
-  /** Mean rank among the builds that take it, which is at least 1. */
-  meanPoints: number;
-  /** Taken by every matching build: the constraints already decided it. */
-  mandatory: boolean;
-}
-
-export interface JobStats {
-  jobId: string;
-  state: JobState;
-  total: number;
-  /** Most common first. */
-  talents: TalentStat[];
-}
-
-export const getStats = (id: string) => request<JobStats>(`/solve/${id}/stats`);
+/** Every build a search matches, keyed by talent id, granted talents left out. */
+export const listBuilds = async (treeKey: string, constraints: Constraints, limit: number): Promise<Record<string, number>[]> => {
+  const tree = await getTree(treeKey);
+  const { points, levelCap: _levelCap, ...search } = constraints;
+  return engine(() => listAt(treeKey, tree, search, points, limit));
+};
 
 /* --- icons ----------------------------------------------------------------- */
 
 /**
- * Icons are served with a one-year immutable cache, so this is a plain URL rather than a
- * fetch: the browser's own cache is the right cache, and after the first visit a tree
- * canvas makes no icon requests at all.
- *
- * A missing icon is expected (upstream has no art for ~1% of names), so callers must
- * render the talent without one rather than treating it as an error.
+ * Icons are static files, one per name at 56px, cached hard by the browser; smaller sizes are
+ * the same file scaled by CSS. A missing icon is expected (upstream has no art for ~1% of
+ * names), so callers render the talent without one rather than treating it as an error.
  */
-export const iconUrl = (name: string | null, size: 18 | 36 | 56 = 56) =>
-  name ? `${BASE}/icons/${name}?size=${size}` : null;
+export const iconUrl = (name: string | null, _size: 18 | 36 | 56 = 56) => (name ? `/icons/${name}.jpg` : null);
+
+/** Icon names that have an image, for the editor's picker. */
+export const searchIcons = async (term: string, limit = 48): Promise<string[]> => {
+  const all = await file<string[]>("/data/icons.json");
+  const words = term.toLowerCase().split(/\s+/).filter(Boolean);
+  return all.filter((n) => words.every((w) => n.includes(w))).slice(0, limit);
+};
 
 /* --- what top players run (WarcraftLogs) ------------------------------------ */
 
