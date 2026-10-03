@@ -1,7 +1,8 @@
 /**
  * Rank limits on multi-rank talents, in the browser: paint "at least 2", cap it to "exactly 2",
  * make a one-point dip -- each count checked against the API asked directly -- then a link
- * reproduces them. And the planner: a partly spent talent shows its ranks as arcs, and the
+ * reproduces them. Granted talents cannot be clicked at all. And the planner: in-game colours
+ * (green while ranks remain, gold when full), one outline per talent, and the path lit up, and the
  * path through the tree lights up.
  *
  *   node ranks.test.mjs [url]
@@ -51,6 +52,22 @@ page.on("pageerror", (e) => check("no page error", false, String(e)));
 
 await page.goto(`${url}/?t=${encodeURIComponent(SPEC)}`, { waitUntil: "networkidle" });
 await page.waitForSelector(".ttm-node");
+// A granted talent is not a choice: clicking it in a search changes nothing and says nothing.
+const classTree = await (await fetch(`${url}/data/trees/retail/6/250/class.json`)).json();
+const grantedNode = classTree.nodes.find((n) => n.preFilled && !n.parents.length);
+const grantedEl = page.locator(`section[aria-label="Class"] .ttm-node[data-node-id="${grantedNode.nodeId}"]`);
+await page.waitForTimeout(800);
+const before = Number(await page.locator("[data-total]").getAttribute("data-total"));
+// Forced: Playwright already refuses, reading aria-disabled; this proves a real click is inert too.
+await grantedEl.click({ force: true });
+await grantedEl.click({ button: "right", force: true });
+await page.waitForTimeout(800);
+check("a granted talent is marked and inert", (await grantedEl.getAttribute("aria-disabled")) === "true" &&
+  (await grantedEl.getAttribute("data-granted")) !== null);
+check("clicking it in a search paints nothing", (await grantedEl.getAttribute("data-state")) === "neutral");
+check("and changes no count, with no error", Number(await page.locator("[data-total]").getAttribute("data-total")) === before &&
+  !/granted automatically/.test(await page.locator("body").innerText()));
+
 // Only the spec tree varies: fixed trees contribute one build each, so the total is its count.
 for (const pane of ["Class", "Hero"]) await page.locator(`section[aria-label="${pane}"] .seg button:text-is("Fixed")`).click();
 await page.locator(`section[aria-label="Spec"] .seg button:text-is("Open")`).click();
@@ -62,7 +79,13 @@ const total = async () => {
   return Number(await page.locator("[data-total]").getAttribute("data-total"));
 };
 const badge = async () => (await talent.locator("[data-limit]").count()) ? talent.locator("[data-limit]").innerText() : "";
-const arcs = async (kind) => talent.locator(`.ttm-rank-arc[data-kind="${kind}"]`).count();
+// The limit is drawn in the talent's own border (a conic gradient as --band): count its
+// segments by colour.
+const arcs = async (kind) => {
+  const style = (await talent.getAttribute("style")) ?? "";
+  const band = /--band:\s*(conic-gradient\([^;]*\))/.exec(style)?.[1] ?? "";
+  return band.split(kind === "must" ? "var(--must)" : "var(--barred)").length - 1;
+};
 
 const whole = await total();
 check("the open spec tree alone is the whole count", whole === (await api({ treeKey: SPEC, points: cap })), String(whole));
@@ -104,31 +127,48 @@ check("a free talent capped at 1 reads as a dip", (await badge()) === "≤1", aw
 const dip = await total();
 check("and counts as none-or-one rank", dip === (await api({ treeKey: SPEC, points: cap, rankMax: { [id]: 1 } })), String(dip));
 
-// The planner: arcs for a partly spent talent, and the path lit up.
+// The planner: in-game colours, one outline, and the path lit up.
 await page.goto(`${url}/?t=forever%2Fwarrior%2Farms`, { waitUntil: "networkidle" }).catch(() => {});
 await page.locator('button:text-is("WoW Forever")').click();
 await page.locator('button:text-is("Warrior")').click();
 await page.waitForSelector('section[aria-label="Arms"] .ttm-node');
 await page.waitForTimeout(600);
 const arms = page.locator('section[aria-label="Arms"]');
-const first = arms.locator('.ttm-node[data-reachable="yes"]').first();
+// Pinned by id: "the first reachable talent" is another one once this one is full.
+const firstId = await arms.locator('.ttm-node[data-reachable="yes"]').first().getAttribute("data-node-id");
+const first = arms.locator(`.ttm-node[data-node-id="${firstId}"]`);
 const ranksOf = Number((await first.getAttribute("aria-label")).match(/(\d+) points?\./)[1]);
 await first.click();
 await first.click();
-check("a partly spent talent shows its ranks as arcs: 2 gold of " + ranksOf,
-  (await first.locator('.ttm-rank-arc[data-kind="spent"]').count()) === 2 &&
-  (await first.locator(".ttm-rank-arc").count()) === ranksOf);
-// Spend on down the tree: a build that runs through arrows must light them.
-for (let i = 0; i < 20; i++) {
-  const next = arms.locator('.ttm-node[data-reachable="yes"]').last();
-  if (!(await next.count())) break;
-  await next.click();
-  await page.waitForTimeout(25);
+const rankBadge = async () => (await first.locator(".ttm-node-ranks").innerText()).trim();
+check(`a partly spent talent is green, 2/${ranksOf}`, (await first.getAttribute("data-full")) === "no" && (await rankBadge()) === `2/${ranksOf}`,
+  `${await first.getAttribute("data-full")} ${await rankBadge()}`);
+for (let i = 2; i < ranksOf; i++) await first.click();
+check(`and gold once full, ${ranksOf}/${ranksOf}`, (await first.getAttribute("data-full")) === "yes" && (await rankBadge()) === `${ranksOf}/${ranksOf}`);
+check("one outline per talent: no second ring anywhere", (await page.locator(".ttm-rank-arc, .ttm-rank-arcs").count()) === 0);
+// The path, deterministically: in a fresh Protection tab, a talent whose child opens once the
+// talent is maxed. Maxed, the arrow to its child is green (it can go there next); the child
+// taken, the arrow is gold (the build runs along it).
+const prot = await (await fetch(`${url}/data/trees/forever/warrior/protection.json`)).json();
+const byId = new Map(prot.nodes.map((n) => [n.nodeId, n]));
+const parent = prot.nodes.find((n) => n.pointsRequired === 0 && n.children.some((c) => byId.has(c)));
+const child = byId.get(parent.children.find((c) => byId.has(c)));
+const protPane = page.locator('section[aria-label="Protection"]');
+const childEl = protPane.locator(`.ttm-node[data-node-id="${child.nodeId}"]`);
+for (let i = 0; i < parent.maxPoints; i++) await protPane.locator(`.ttm-node[data-node-id="${parent.nodeId}"]`).click();
+// Its row gate: spend elsewhere in the tab until the child opens.
+for (let i = 0; i < 30 && (await childEl.getAttribute("data-reachable")) !== "yes"; i++) {
+  const other = protPane.locator(`.ttm-node[data-reachable="yes"]:not([data-node-id="${child.nodeId}"])`).first();
+  if (!(await other.count())) break;
+  await other.click();
 }
-const taken = await arms.locator('.ttm-edge[data-flow="taken"]').count();
-const open = await arms.locator('.ttm-edge[data-flow="open"]').count();
-check("the path a build takes is gold", taken > 0, String(taken));
-check("and where it could go next is green", open > 0, String(open));
+await page.waitForTimeout(200);
+const open = await protPane.locator('.ttm-edge[data-flow="open"]').count();
+check(`maxing ${parent.name}, the way on to ${child.name} is green`, open > 0, String(open));
+await protPane.locator(`.ttm-node[data-node-id="${child.nodeId}"]`).click();
+await page.waitForTimeout(200);
+const taken = await protPane.locator('.ttm-edge[data-flow="taken"]').count();
+check("taking it, the path the build runs is gold", taken > 0, String(taken));
 await page.screenshot({ path: "shots/ranks-planner.png" });
 
 await browser.close();

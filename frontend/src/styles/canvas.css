@@ -335,6 +335,17 @@
   --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--taken) 55%, transparent));
 }
 
+/* As in the game: a talent with every rank spent is gold, one with only some is green. */
+.ttm-node[data-spent="yes"][data-full="yes"] {
+  --band: var(--maxed);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--maxed) 55%, transparent));
+}
+
+.ttm-node[data-spent="yes"][data-full="yes"] .ttm-node-ranks {
+  border-color: var(--maxed);
+  color: var(--maxed);
+}
+
 .ttm-node:not([data-editing])[data-spent="no"] .ttm-node-face {
   filter: grayscale(0.92) brightness(0.4);
 }
@@ -377,11 +388,34 @@
   --band: var(--brass-bright);
 }
 
-/* A maxed talent is done -- no more points fit -- so it reads as complete rather than as
-   something still asking to be clicked. */
+/* Points spent: green while ranks remain, gold once full (the rule above, shared with
+   inspecting a build), as in the game. */
 .ttm-node[data-editing][data-spent="yes"] {
   --band: var(--taken);
   --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--taken) 55%, transparent));
+}
+
+.ttm-node[data-editing][data-spent="yes"][data-full="yes"] {
+  --band: var(--maxed);
+  --glow: drop-shadow(0 0 var(--node-glow) color-mix(in srgb, var(--maxed) 55%, transparent));
+}
+
+/* --- granted talents -------------------------------------------------------
+   The game grants them: always taken, no point spent, nothing to decide. Drawn as taken in
+   every mode and inert -- no hover rim, no pointer, nothing happens on a click. */
+.ttm-node[data-granted] {
+  --band: var(--maxed);
+  --glow: none;
+  cursor: default;
+}
+
+.ttm-node[data-granted] .ttm-node-face {
+  filter: none;
+  opacity: 1;
+}
+
+.ttm-node[data-granted]::after {
+  content: none;
 }
 
 /* --- frequency across a result set -----------------------------------------
@@ -599,43 +633,8 @@
 }
 
 /* --- ranks ------------------------------------------------------------------
-   A multi-rank talent's ring, split into one arc per rank. In a search it shows the limits
-   painted on it -- green up to the minimum, red past the cap, faint between -- and in the
-   planner the ranks spent, in gold. Round caps and a gap per rank, so the count of arcs is
-   the count of ranks. */
-.ttm-rank-arcs {
-  position: absolute;
-  z-index: 3;
-  overflow: visible;
-  pointer-events: none;
-}
-
-.ttm-rank-arc {
-  fill: none;
-  stroke-width: 3;
-  stroke-linecap: round;
-}
-
-.ttm-rank-arc[data-kind="must"] {
-  stroke: var(--must);
-}
-
-.ttm-rank-arc[data-kind="barred"] {
-  stroke: var(--barred);
-}
-
-.ttm-rank-arc[data-kind="free"] {
-  stroke: color-mix(in srgb, var(--ink-faint) 30%, transparent);
-}
-
-/* An unspent rank in the planner: there, so the ranks can be counted, but quiet. */
-.ttm-rank-arc[data-kind="empty"] {
-  stroke: color-mix(in srgb, var(--ink-faint) 16%, transparent);
-}
-
-.ttm-rank-arc[data-kind="spent"] {
-  stroke: var(--brass-bright);
-}
+   A rank limit is drawn in the talent's own border (TalentNode's rankBand: a conic gradient
+   set as --band), so a talent never wears two outlines. */
 
 /* A range badge speaks the limit, "2+" or "=2", in the colour of what it asks. */
 .ttm-node-ranks[data-limit] {

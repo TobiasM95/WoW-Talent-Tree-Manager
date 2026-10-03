@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { TalentNode as NodeData, TreeDetail } from "../lib/api";
 import { TalentNode, type NodeState } from "./TalentNode";
 import { Tooltip } from "./Tooltip";
+import { grantedRoots } from "../lib/loadout";
 
 /**
  * The tree, pannable and zoomable, and the surface on which constraints are painted.
@@ -127,6 +128,9 @@ export function TreeCanvas({
   const [hovered, setHovered] = useState<{ node: NodeData; el: HTMLElement } | null>(null);
 
   const layout = useMemo(() => layoutOf(tree), [tree]);
+  // Talents the game grants: the same set the counter removes, so what cannot be chosen
+  // cannot be clicked either.
+  const granted = useMemo(() => grantedRoots(tree), [tree]);
   // Point-gate lookup, so an edge can be drawn as a gate crossing without a find() per edge.
   const gateOf = useMemo(
     () => new Map(tree.nodes.map((n) => [n.nodeId, n.pointsRequired])),
@@ -246,7 +250,7 @@ export function TreeCanvas({
               // The planner's path: gold where a build runs through (parent maxed, child
               // spent), green where it could go next (parent maxed, child open to a point).
               const parent = tree.nodes.find((n) => n.nodeId === parentId);
-              const full = build && parent ? (build[String(parentId)] ?? 0) >= parent.maxPoints : false;
+              const full = build && parent ? granted.has(parentId) || (build[String(parentId)] ?? 0) >= parent.maxPoints : false;
               const flow = !full
                 ? undefined
                 : (build?.[String(node.nodeId)] ?? 0) > 0
@@ -279,12 +283,14 @@ export function TreeCanvas({
             state={states.get(node.nodeId) ?? "neutral"}
             side={sides.get(node.nodeId)}
             stale={stale}
-            spent={build ? (build[String(node.nodeId)] ?? 0) : undefined}
+            // A granted talent is in every build, whether or not a build lists it.
+            spent={build ? (granted.has(node.nodeId) ? node.maxPoints : (build[String(node.nodeId)] ?? 0)) : undefined}
             share={shares ? (shares.get(node.nodeId) ?? 0) : undefined}
             impact={impacts?.get(node.nodeId)}
             reachable={reachable ? reachable.has(node.nodeId) : undefined}
             editing={editing}
             range={ranges?.get(node.nodeId)}
+            granted={granted.has(node.nodeId)}
             onActivate={onActivate}
             onHover={onHover}
           />
