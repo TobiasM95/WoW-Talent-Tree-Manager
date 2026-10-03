@@ -200,24 +200,9 @@ jobs:
 
       # First release only: the Pages project and the KV namespace for saved projects are
       # created if missing. Afterwards these find what is there and change nothing.
+      # Through Cloudflare's API directly, so a refusal names what the token lacks.
       - name: the Pages project and its storage
-        working-directory: frontend
-        run: |
-          # Creating an existing project fails harmlessly; anything worse (a bad token, say)
-          # fails the publish step below, loudly.
-          pnpm exec wrangler pages project create "$PAGES_PROJECT" --production-branch master \
-            || echo "the Pages project already exists"
-          pnpm exec wrangler kv namespace list > namespaces.json
-          id=$(node -e 'const n=require("./namespaces.json").find(x=>x.title===process.env.PAGES_PROJECT+"-projects");if(n)console.log(n.id)')
-          if [ -z "$id" ]; then
-            pnpm exec wrangler kv namespace create "$PAGES_PROJECT-projects" > created.txt
-            cat created.txt
-            pnpm exec wrangler kv namespace list > namespaces.json
-            id=$(node -e 'const n=require("./namespaces.json").find(x=>x.title===process.env.PAGES_PROJECT+"-projects");if(n)console.log(n.id)')
-          fi
-          test -n "$id"
-          sed -i "s/^id = \".*\"/id = \"$id\"/" wrangler.toml
-          grep -n '^id' wrangler.toml
+        run: python3 tools/site/cloudflare_setup.py --project "$PAGES_PROJECT" --toml frontend/wrangler.toml
 
       - name: WarcraftLogs keys, as Pages secrets
         working-directory: frontend
