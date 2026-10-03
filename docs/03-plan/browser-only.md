@@ -1,6 +1,6 @@
 # Browser-only: hosting for free on Cloudflare
 
-**Status:** built (2026-10-03); the first deploy runs from the release workflow.
+**Status:** live at https://talent-tree-manager.pages.dev since 2026-10-03.
 
 | Phase | State |
 |---|---|
@@ -10,7 +10,7 @@
 | 4. Static data | done: `tools/site/build_data.py`, 187 trees, 2,181 icons, ~13 MB |
 | 5. Pages Functions | done: `/api/popular/*` (WarcraftLogs), `/api/custom-trees` (KV) |
 | 6. Frontend switch | done: every suite passes against the site under `wrangler pages dev` |
-| 7. Deploy | written (`release.yml`); first run pending |
+| 7. Deploy | done: `release.yml` publishes after parity and every suite pass; first-run setup by `tools/site/cloudflare_setup.py` |
 | 8. Server retired | done: API, worker, queue, Postgres and the Docker setup removed |
 
 One change from the plan: the WarcraftLogs proxy and the project store are Pages Functions,
@@ -107,3 +107,14 @@ enough, and fewer to keep in step.
   the cache is what makes that work.
 - **The 64-slot listing limit** of the C++ engine stays. Parity cases for listing run only on
   trees the engine can list; counting parity covers every tree.
+
+## Operating it
+
+- **Releasing** is a push to the `release` branch (or a `v*` tag): parity, live ingest, every
+  suite, then the publish. A release is also how the site picks up new talent data.
+- **The Cloudflare token** (`CLOUDFLARE_API_TOKEN`) needs Account > Cloudflare Pages > Edit and
+  Account > Workers KV Storage > Edit. Without the second the setup step says so and stops.
+- **WarcraftLogs** needs the repository secrets `WCL_CLIENT_ID` and `WCL_CLIENT_SECRET`; the deploy
+  sets them as Pages secrets. Without them the site works and the top-players panel says it is
+  not configured.
+
