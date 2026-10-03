@@ -254,3 +254,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log("all loadout-string tests passed");
+// Explicitly: a vite server opened along the way (testlib.mjs) would otherwise keep Node alive.
+process.exit(0);
