@@ -178,9 +178,13 @@ check("and the card shows the sum", heroRows.some((r) => r.includes("+")), heroR
 
 await page.locator(`button:has-text("Simulate ${EXPECTED.toLocaleString("en-US")} builds")`).click();
 await page.waitForSelector('button:has-text("Download")', { timeout: 60000 });
-await page.waitForFunction(() => !document.querySelector('button:has-text("Download")')?.disabled, null, {
-  timeout: 120000,
-}).catch(() => {});
+// Plain DOM in here: this runs in the page, where Playwright's `:has-text` is not a selector.
+// It used to be one, which threw in the page -- and a .catch() hid that the wait never waited.
+await page.waitForFunction(
+  () => [...document.querySelectorAll("button")].some((b) => (b.textContent ?? "").includes("Download") && !b.disabled),
+  null,
+  { timeout: 120000 },
+);
 await page.waitForFunction(
   (n) => [...document.querySelectorAll("h2")].some((h) => (h.textContent ?? "").includes(`Simulate ${n} builds`)),
   EXPECTED.toLocaleString("en-US"),
